@@ -1,0 +1,58 @@
+# ============================================
+# Docker Compose - Restaurant App
+# ============================================
+# Usage:
+#   Development:  docker compose up postgres -d
+#   Production:   docker compose up -d
+# ============================================
+
+services:
+  # ── PostgreSQL ──────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: restaurant_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: restaurant_db
+      POSTGRES_USER: restaurant_user
+      POSTGRES_PASSWORD: restaurant_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U restaurant_user -d restaurant_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Next.js App ─────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: restaurant_app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: "postgresql://restaurant_user:restaurant_pass@postgres:5432/restaurant_db?schema=public"
+      NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+      NEXT_PUBLIC_APP_NAME: "Restaurant App"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── FUTURE: Redis ───────────────────────────
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: restaurant_redis
+  #   restart: unless-stopped
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+
+volumes:
+  postgres_data:
+  # redis_data:

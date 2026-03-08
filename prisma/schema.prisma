@@ -1,0 +1,128 @@
+// ============================================
+// Prisma Schema - Restaurant App
+// ============================================
+// Prepared for multi-tenant SaaS expansion.
+// Add a `Tenant` model and `tenantId` FK to all
+// models when ready to go multi-restaurant.
+// ============================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// LOCATION
+// ============================================
+model Location {
+  id        String   @id @default(cuid())
+  name      String
+  address   String
+  phone     String
+  whatsapp  String
+  mapUrl    String
+  imageUrl  String?
+  isActive  Boolean  @default(true)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contactMessages ContactMessage[]
+
+  @@map("locations")
+}
+
+// ============================================
+// CONTACT MESSAGE
+// ============================================
+model ContactMessage {
+  id         String   @id @default(cuid())
+  name       String
+  email      String
+  message    String
+  locationId String
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([locationId])
+  @@index([createdAt])
+  @@map("contact_messages")
+}
+
+// ============================================
+// MENU CATEGORY
+// ============================================
+model MenuCategory {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  imageUrl    String?
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items MenuItem[]
+
+  @@map("menu_categories")
+}
+
+// ============================================
+// MENU ITEM
+// ============================================
+model MenuItem {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       Decimal  @db.Decimal(10, 2)
+  imageUrl    String?
+  isAvailable Boolean  @default(true)
+  isFeatured  Boolean  @default(false)
+  allergens   String[] @default([])
+  order       Int      @default(0)
+  categoryId  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  category MenuCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([categoryId])
+  @@index([isFeatured])
+  @@map("menu_items")
+}
+
+// ============================================
+// FUTURE: Reservation model
+// ============================================
+// model Reservation {
+//   id         String   @id @default(cuid())
+//   name       String
+//   email      String
+//   phone      String
+//   date       DateTime
+//   time       String
+//   guests     Int
+//   notes      String?
+//   status     ReservationStatus @default(PENDING)
+//   locationId String
+//   createdAt  DateTime @default(now())
+//   updatedAt  DateTime @updatedAt
+//
+//   location Location @relation(fields: [locationId], references: [id])
+//
+//   @@map("reservations")
+// }
+//
+// enum ReservationStatus {
+//   PENDING
+//   CONFIRMED
+//   CANCELLED
+//   COMPLETED
+// }
