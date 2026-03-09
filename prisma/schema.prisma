@@ -16,6 +16,46 @@ datasource db {
 }
 
 // ============================================
+// RESTAURANT
+// ============================================
+model Restaurant {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  logoUrl     String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  menus Menu[]
+
+  @@map("restaurants")
+}
+
+// ============================================
+// MENU
+// ============================================
+model Menu {
+  id           String   @id @default(cuid())
+  name         String
+  slug         String
+  description  String?
+  isActive     Boolean  @default(true)
+  displayOrder Int      @default(0)
+  restaurantId String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  restaurant Restaurant     @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  categories MenuCategory[]
+
+  @@unique([restaurantId, slug])
+  @@index([restaurantId, isActive])
+  @@map("menus")
+}
+
+// ============================================
 // LOCATION
 // ============================================
 model Location {
@@ -61,21 +101,25 @@ model ContactMessage {
 model MenuCategory {
   id          String   @id @default(cuid())
   name        String
-  slug        String   @unique
+  slug        String
   description String?
   imageUrl    String?
   order       Int      @default(0)
   isActive    Boolean  @default(true)
+  menuId      String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  menu  Menu?      @relation(fields: [menuId], references: [id], onDelete: SetNull)
   items MenuItem[]
 
+  @@unique([menuId, slug])
+  @@index([menuId, isActive])
   @@map("menu_categories")
 }
 
 // ============================================
-// MENU ITEM
+// MENU ITEM (Dish)
 // ============================================
 model MenuItem {
   id          String   @id @default(cuid())
@@ -91,11 +135,61 @@ model MenuItem {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  category MenuCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  category MenuCategory  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  images   DishImage[]
+  tags     MenuItemTag[]
 
   @@index([categoryId])
   @@index([isFeatured])
+  @@index([isAvailable, order])
   @@map("menu_items")
+}
+
+// ============================================
+// DISH IMAGE
+// ============================================
+model DishImage {
+  id           String   @id @default(cuid())
+  menuItemId   String
+  imageUrl     String
+  altText      String?
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+
+  @@index([menuItemId, displayOrder])
+  @@map("dish_images")
+}
+
+// ============================================
+// TAG
+// ============================================
+model Tag {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  color     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  menuItems MenuItemTag[]
+
+  @@map("tags")
+}
+
+model MenuItemTag {
+  menuItemId String
+  tagId      String
+  createdAt  DateTime @default(now())
+
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  tag      Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([menuItemId, tagId])
+  @@index([tagId])
+  @@map("menu_item_tags")
 }
 
 // ============================================
