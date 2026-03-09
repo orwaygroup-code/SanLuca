@@ -5,6 +5,38 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("🌱 Seeding database...");
 
+  // ── Restaurants & Menus ────────────────────
+  const restaurant = await prisma.restaurant.upsert({
+    where: { slug: "san-luca" },
+    update: {},
+    create: {
+      id: "rest_san_luca",
+      name: "San Luca",
+      slug: "san-luca",
+      description: "Cocina de autor contemporánea",
+    },
+  });
+
+  const menu = await prisma.menu.upsert({
+    where: {
+      restaurantId_slug: {
+        restaurantId: restaurant.id,
+        slug: "menu-principal",
+      },
+    },
+    update: {},
+    create: {
+      id: "menu_principal",
+      name: "Menú Principal",
+      slug: "menu-principal",
+      description: "Selección principal de temporada",
+      displayOrder: 1,
+      restaurantId: restaurant.id,
+    },
+  });
+
+  console.log("✅ restaurant and menu seeded");
+
   // ── Locations ──────────────────────────────
   const locations = await Promise.all([
     prisma.location.upsert({
@@ -53,57 +85,70 @@ async function main() {
   // ── Menu Categories ────────────────────────
   const categories = await Promise.all([
     prisma.menuCategory.upsert({
-      where: { slug: "entradas" },
-      update: {},
+      where: { menuId_slug: { menuId: menu.id, slug: "entradas" } },
+      update: { menuId: menu.id },
       create: {
         id: "cat_entradas",
         name: "Entradas",
         slug: "entradas",
         description: "Selección de entradas de temporada",
         order: 1,
+        menuId: menu.id,
       },
     }),
     prisma.menuCategory.upsert({
-      where: { slug: "fuertes" },
-      update: {},
+      where: { menuId_slug: { menuId: menu.id, slug: "fuertes" } },
+      update: { menuId: menu.id },
       create: {
         id: "cat_fuertes",
         name: "Platos Fuertes",
         slug: "fuertes",
         description: "Platos principales de la casa",
         order: 2,
+        menuId: menu.id,
       },
     }),
     prisma.menuCategory.upsert({
-      where: { slug: "postres" },
-      update: {},
+      where: { menuId_slug: { menuId: menu.id, slug: "postres" } },
+      update: { menuId: menu.id },
       create: {
         id: "cat_postres",
         name: "Postres",
         slug: "postres",
         description: "Postres artesanales",
         order: 3,
+        menuId: menu.id,
       },
     }),
     prisma.menuCategory.upsert({
-      where: { slug: "bebidas" },
-      update: {},
+      where: { menuId_slug: { menuId: menu.id, slug: "bebidas" } },
+      update: { menuId: menu.id },
       create: {
         id: "cat_bebidas",
         name: "Bebidas",
         slug: "bebidas",
         description: "Coctelería de autor y selección de vinos",
         order: 4,
+        menuId: menu.id,
       },
     }),
   ]);
 
   console.log(`✅ ${categories.length} categories seeded`);
 
+  const tags = await Promise.all([
+    prisma.tag.upsert({ where: { slug: "spicy" }, update: {}, create: { name: "Spicy", slug: "spicy", color: "#D32F2F" } }),
+    prisma.tag.upsert({ where: { slug: "vegan" }, update: {}, create: { name: "Vegan", slug: "vegan", color: "#2E7D32" } }),
+    prisma.tag.upsert({ where: { slug: "gluten-free" }, update: {}, create: { name: "Gluten Free", slug: "gluten-free", color: "#1565C0" } }),
+    prisma.tag.upsert({ where: { slug: "signature" }, update: {}, create: { name: "Signature", slug: "signature", color: "#6A1B9A" } }),
+  ]);
+
+  const tagBySlug = Object.fromEntries(tags.map((tag) => [tag.slug, tag.id]));
+
   // ── Menu Items ─────────────────────────────
   const items = [
-    // Entradas
     {
+      id: "item_carpaccio",
       name: "Carpaccio de Res",
       description: "Res premium con alcaparras, parmesano y aceite de trufa",
       price: 285,
@@ -111,8 +156,11 @@ async function main() {
       isFeatured: true,
       allergens: ["lácteos"],
       order: 1,
+      imageUrl: "/images/menu/carpaccio.jpg",
+      tags: ["signature", "gluten-free"],
     },
     {
+      id: "item_ceviche",
       name: "Ceviche Nikkei",
       description: "Pescado del día con leche de tigre, ají amarillo y aguacate",
       price: 320,
@@ -120,52 +168,10 @@ async function main() {
       isFeatured: true,
       allergens: ["mariscos"],
       order: 2,
+      tags: ["spicy", "gluten-free"],
     },
     {
-      name: "Ensalada de Burrata",
-      description: "Burrata fresca con jitomates heirloom y pesto de albahaca",
-      price: 265,
-      categoryId: "cat_entradas",
-      allergens: ["lácteos"],
-      order: 3,
-    },
-    // Fuertes
-    {
-      name: "Rib Eye 400g",
-      description: "Corte prime con papa trufada y vegetales asados",
-      price: 780,
-      categoryId: "cat_fuertes",
-      isFeatured: true,
-      allergens: ["lácteos"],
-      order: 1,
-    },
-    {
-      name: "Salmón en Costra de Hierbas",
-      description: "Salmón atlántico con risotto de espárragos",
-      price: 520,
-      categoryId: "cat_fuertes",
-      allergens: ["mariscos", "lácteos"],
-      order: 2,
-    },
-    {
-      name: "Pasta al Tartufo",
-      description: "Tagliatelle fresca con crema de trufa negra y parmesano",
-      price: 450,
-      categoryId: "cat_fuertes",
-      isFeatured: true,
-      allergens: ["gluten", "lácteos"],
-      order: 3,
-    },
-    {
-      name: "Cordero Braseado",
-      description: "Pierna de cordero con puré de camote y reducción de vino tinto",
-      price: 680,
-      categoryId: "cat_fuertes",
-      allergens: [],
-      order: 4,
-    },
-    // Postres
-    {
+      id: "item_fondant",
       name: "Fondant de Chocolate",
       description: "Chocolate belga 70% con helado de vainilla de Madagascar",
       price: 220,
@@ -173,53 +179,53 @@ async function main() {
       isFeatured: true,
       allergens: ["gluten", "lácteos", "huevo"],
       order: 1,
-    },
-    {
-      name: "Crème Brûlée",
-      description: "Clásica con toque de lavanda",
-      price: 195,
-      categoryId: "cat_postres",
-      allergens: ["lácteos", "huevo"],
-      order: 2,
-    },
-    {
-      name: "Tiramisú",
-      description: "Receta tradicional italiana con mascarpone y café espresso",
-      price: 210,
-      categoryId: "cat_postres",
-      allergens: ["gluten", "lácteos", "huevo"],
-      order: 3,
-    },
-    // Bebidas
-    {
-      name: "Old Fashioned de la Casa",
-      description: "Bourbon, bitter artesanal, naranja y cereza",
-      price: 240,
-      categoryId: "cat_bebidas",
-      isFeatured: true,
-      allergens: [],
-      order: 1,
-    },
-    {
-      name: "Mezcal Sour",
-      description: "Mezcal joven, limón, jarabe de agave y clara de huevo",
-      price: 220,
-      categoryId: "cat_bebidas",
-      allergens: ["huevo"],
-      order: 2,
-    },
-    {
-      name: "Copa de Vino Tinto",
-      description: "Selección rotativa del sommelier",
-      price: 180,
-      categoryId: "cat_bebidas",
-      allergens: [],
-      order: 3,
+      tags: ["signature"],
     },
   ];
 
   for (const item of items) {
-    await prisma.menuItem.create({ data: item });
+    await prisma.menuItem.upsert({
+      where: { id: item.id },
+      update: {
+        name: item.name,
+        description: item.description,
+        price: item.price,
+        categoryId: item.categoryId,
+        isFeatured: item.isFeatured,
+        allergens: item.allergens,
+        order: item.order,
+        imageUrl: item.imageUrl,
+      },
+      create: {
+        id: item.id,
+        name: item.name,
+        description: item.description,
+        price: item.price,
+        categoryId: item.categoryId,
+        isFeatured: item.isFeatured,
+        allergens: item.allergens,
+        order: item.order,
+        imageUrl: item.imageUrl,
+      },
+    });
+
+    await prisma.dishImage.upsert({
+      where: { id: `${item.id}_img_1` },
+      update: { imageUrl: item.imageUrl ?? "", displayOrder: 1 },
+      create: {
+        id: `${item.id}_img_1`,
+        menuItemId: item.id,
+        imageUrl: item.imageUrl ?? "",
+        displayOrder: 1,
+      },
+    });
+
+    await prisma.menuItemTag.deleteMany({ where: { menuItemId: item.id } });
+    if (item.tags.length > 0) {
+      await prisma.menuItemTag.createMany({
+        data: item.tags.map((slug) => ({ menuItemId: item.id, tagId: tagBySlug[slug] })),
+      });
+    }
   }
 
   console.log(`✅ ${items.length} menu items seeded`);

@@ -18,12 +18,16 @@ export async function getLocationById(id: string) {
 // ============================================
 // MENU
 // ============================================
-export async function getMenuCategories() {
+export async function getMenuCategories(menuId?: string) {
   return prisma.menuCategory.findMany({
-    where: { isActive: true },
+    where: { isActive: true, ...(menuId && { menuId }) },
     include: {
       items: {
         where: { isAvailable: true },
+        include: {
+          images: { orderBy: { displayOrder: "asc" } },
+          tags: { include: { tag: true } },
+        },
         orderBy: { order: "asc" },
       },
     },
@@ -31,12 +35,16 @@ export async function getMenuCategories() {
   });
 }
 
-export async function getMenuCategoryBySlug(slug: string) {
-  return prisma.menuCategory.findUnique({
-    where: { slug },
+export async function getMenuCategoryBySlug(slug: string, menuId?: string) {
+  return prisma.menuCategory.findFirst({
+    where: { slug, isActive: true, ...(menuId && { menuId }) },
     include: {
       items: {
         where: { isAvailable: true },
+        include: {
+          images: { orderBy: { displayOrder: "asc" } },
+          tags: { include: { tag: true } },
+        },
         orderBy: { order: "asc" },
       },
     },
@@ -46,7 +54,11 @@ export async function getMenuCategoryBySlug(slug: string) {
 export async function getFeaturedItems() {
   return prisma.menuItem.findMany({
     where: { isFeatured: true, isAvailable: true },
-    include: { category: true },
+    include: {
+      category: true,
+      images: { orderBy: { displayOrder: "asc" } },
+      tags: { include: { tag: true } },
+    },
     orderBy: { order: "asc" },
   });
 }
