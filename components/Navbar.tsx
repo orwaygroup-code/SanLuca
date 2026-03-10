@@ -7,7 +7,7 @@ import { colors, fonts } from "@/config/theme";
 const NAV_LINKS = [
   { label: "Filosofía", href: "#filosofia" },
   { label: "Menú", href: "/menu" },
-  { label: "Experiencia", href: "/experiencia" },
+
   { label: "Historia", href: "#historia" },
   { label: "Reservar", href: "/reservation" },
   { label: "Contacto", href: "/contact" },

@@ -8,7 +8,7 @@
 import Hero from "@/components/Hero";
 import Philosophy from "@/components/Philosophy";
 import FeaturedMenu from "@/components/FeaturedMenu";
-import Experience from "@/components/Experience";
+
 import ChefStory from "@/components/ChefStory";
 import ReservarPage from "./reservation/page";
 

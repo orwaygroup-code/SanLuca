@@ -166,7 +166,7 @@ export default function Hero() {
             transition: "opacity 1s ease 1.8s",
           }}
         >
-          <Button dark href="#reservar">
+          <Button dark href="/reservation">
             Reservar Mesa
           </Button>
           <Button href="/menu">Descubrir el Menú</Button>
