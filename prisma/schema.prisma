@@ -1,11 +1,3 @@
-// ============================================
-// Prisma Schema - Restaurant App
-// ============================================
-// Prepared for multi-tenant SaaS expansion.
-// Add a `Tenant` model and `tenantId` FK to all
-// models when ready to go multi-restaurant.
-// ============================================
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -15,208 +7,35 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ============================================
-// RESTAURANT
-// ============================================
-model Restaurant {
-  id          String   @id @default(cuid())
-  name        String
-  slug        String   @unique
-  description String?
-  logoUrl     String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  menus Menu[]
-
-  @@map("restaurants")
-}
-
-// ============================================
-// MENU
-// ============================================
-model Menu {
-  id           String   @id @default(cuid())
-  name         String
-  slug         String
-  description  String?
-  isActive     Boolean  @default(true)
-  displayOrder Int      @default(0)
-  restaurantId String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  restaurant Restaurant     @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  categories MenuCategory[]
-
-  @@unique([restaurantId, slug])
-  @@index([restaurantId, isActive])
-  @@map("menus")
-}
-
-// ============================================
-// LOCATION
-// ============================================
-model Location {
-  id        String   @id @default(cuid())
-  name      String
-  address   String
-  phone     String
-  whatsapp  String
-  mapUrl    String
-  imageUrl  String?
-  isActive  Boolean  @default(true)
-  order     Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  contactMessages ContactMessage[]
-
-  @@map("locations")
-}
-
-// ============================================
-// CONTACT MESSAGE
-// ============================================
-model ContactMessage {
-  id         String   @id @default(cuid())
-  name       String
-  email      String
-  message    String
-  locationId String
-  isRead     Boolean  @default(false)
-  createdAt  DateTime @default(now())
-
-  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
-
-  @@index([locationId])
-  @@index([createdAt])
-  @@map("contact_messages")
-}
-
-// ============================================
-// MENU CATEGORY
-// ============================================
 model MenuCategory {
-  id          String   @id @default(cuid())
-  name        String
-  slug        String
-  description String?
-  imageUrl    String?
-  order       Int      @default(0)
-  isActive    Boolean  @default(true)
-  menuId      String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  menu  Menu?      @relation(fields: [menuId], references: [id], onDelete: SetNull)
-  items MenuItem[]
-
-  @@unique([menuId, slug])
-  @@index([menuId, isActive])
-  @@map("menu_categories")
-}
-
-// ============================================
-// MENU ITEM (Dish)
-// ============================================
-model MenuItem {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  price       Decimal  @db.Decimal(10, 2)
-  imageUrl    String?
-  isAvailable Boolean  @default(true)
-  isFeatured  Boolean  @default(false)
-  allergens   String[] @default([])
-  order       Int      @default(0)
-  categoryId  String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  category MenuCategory  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  images   DishImage[]
-  tags     MenuItemTag[]
-
-  @@index([categoryId])
-  @@index([isFeatured])
-  @@index([isAvailable, order])
-  @@map("menu_items")
-}
-
-// ============================================
-// DISH IMAGE
-// ============================================
-model DishImage {
-  id           String   @id @default(cuid())
-  menuItemId   String
-  imageUrl     String
-  altText      String?
-  displayOrder Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  menuItem MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
-
-  @@index([menuItemId, displayOrder])
-  @@map("dish_images")
-}
-
-// ============================================
-// TAG
-// ============================================
-model Tag {
   id        String   @id @default(cuid())
   name      String
-  slug      String   @unique
-  color     String?
+  position  Int?     // orden en el menú
+  dishes    Dish[]
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  menuItems MenuItemTag[]
-
-  @@map("tags")
 }
 
-model MenuItemTag {
-  menuItemId String
-  tagId      String
-  createdAt  DateTime @default(now())
+model Dish {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       Decimal  @db.Decimal(10,2)
+  imageUrl    String?
+  available   Boolean  @default(true)
+  position    Int?     // orden dentro de la categoría
 
-  menuItem MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
-  tag      Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  categoryId  String
+  category    MenuCategory @relation(fields: [categoryId], references: [id])
 
-  @@id([menuItemId, tagId])
-  @@index([tagId])
-  @@map("menu_item_tags")
+  createdAt   DateTime @default(now())
 }
 
-// ============================================
-// FUTURE: Reservation model
-// ============================================
-// model Reservation {
-//   id         String   @id @default(cuid())
-//   name       String
-//   email      String
-//   phone      String
-//   date       DateTime
-//   time       String
-//   guests     Int
-//   notes      String?
-//   status     ReservationStatus @default(PENDING)
-//   locationId String
-//   createdAt  DateTime @default(now())
-//   updatedAt  DateTime @updatedAt
-//
-//   location Location @relation(fields: [locationId], references: [id])
-//
-//   @@map("reservations")
-// }
-//
-// enum ReservationStatus {
-//   PENDING
-//   CONFIRMED
-//   CANCELLED
-//   COMPLETED
-// }
+model Reservation {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String
+  guests    Int
+  date      DateTime
+  notes     String?
+  createdAt DateTime @default(now())
+}

@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Menú",
-  description: "Explora nuestro menú de autor",
+  description: "Explora nuestro menú",
 };
 
 export default async function MenuPage() {
@@ -26,7 +26,7 @@ export default async function MenuPage() {
         {categories.map((category) => (
           <Link
             key={category.id}
-            href={`/menu/${category.slug}`}
+            href={`/menu/${category.id}`}
             style={{ textDecoration: "none", color: "inherit" }}
           >
             <article
@@ -37,9 +37,9 @@ export default async function MenuPage() {
               }}
             >
               <h2>{category.name}</h2>
-              {category.description && <p>{category.description}</p>}
+
               <p style={{ fontSize: "0.875rem", color: "#666" }}>
-                {category.items.length} platillos
+                {category.dishes.length} platillos
               </p>
             </article>
           </Link>
