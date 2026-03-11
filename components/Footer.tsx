@@ -106,8 +106,8 @@ export default function Footer() {
             <div
               style={{
                 fontFamily: fonts.script,
-                fontSize: "0.9rem",
-                color: colors.peru,
+                fontSize: "0.5rem",
+                color: colors.cream,
                 opacity: 0.6,
               }}
             >
@@ -118,8 +118,8 @@ export default function Footer() {
           <FooterColumn
             title="Visítanos"
             lines={[
-              "Av. de la Convención 312",
-              "Col. Centro",
+              "Paseos de las Maravillas 113",
+              "El llano",
               "Aguascalientes, Ags.",
             ]}
           />
@@ -135,8 +135,8 @@ export default function Footer() {
           <FooterColumn
             title="Contacto"
             lines={[
-              "+52 (449) 123 4567",
-              "info@sanluca.mx",
+              "+52 449 287 3674",
+              "sanlucaterrazza@gmail.com",
             ]}
           />
         </div>
@@ -161,8 +161,7 @@ export default function Footer() {
               color: "rgba(245,241,232,0.2)",
             }}
           >
-            © 2026 San Luca Ristorante
-          </span>
+            © 2026 San Luca Ristorante | Desarrollado por OrwayGroup           </span>
           <div style={{ display: "flex", gap: 20 }}>
             <SocialLink label="Instagram" />
             <SocialLink label="Facebook" />

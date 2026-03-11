@@ -40,7 +40,7 @@ export default function ChefStory() {
         >
           {/* Left — Large headline + Italian quote */}
           <Reveal>
-            <Label light>02 — Il Cuore</Label>
+            <Label light> — El origen</Label>
             <h2
               style={{
                 fontFamily: fonts.primary,
@@ -66,7 +66,7 @@ export default function ChefStory() {
                 opacity: 0.8,
               }}
             >
-              Tre generazioni, una passione
+              La trayectoria de un sueño materalizado en cada plato.
             </div>
           </Reveal>
 
@@ -84,7 +84,7 @@ export default function ChefStory() {
                   marginBottom: 24,
                 }}
               >
-                San Luca nació en 1987 de la visión de la familia Luca —
+                San Luca nació en 2020 de la visión de —
                 inmigrantes italianos que trajeron consigo algo más que
                 recetas: trajeron el alma de la cocina de la Toscana.
               </p>

@@ -59,11 +59,11 @@ export default function Philosophy() {
               margin: "12px 0 0",
             }}
           >
-            Cocina de
+            El Arte del
             <br />
-            <span style={{ color: colors.peru }}>Raíz</span> y
+            <span style={{ color: colors.peru }}>Origen</span> y
             <br />
-            Tradición
+            la Tradición
           </h2>
         </Reveal>
 
@@ -81,10 +81,9 @@ export default function Philosophy() {
                 marginBottom: 28,
               }}
             >
-              En San Luca, cada plato nace del respeto profundo por los
-              ingredientes. Trabajamos con productores locales y técnicas
-              heredadas de tres generaciones de cocineros italianos. No buscamos
-              la tendencia — buscamos la verdad en el sabor.
+              En San Luca, la alta gastronomía es un arte que nace del
+              respeto por el origen y la tradición. Buscamos ofrecerte
+              una experiencia sensorial completa, cuidando meticulosamente cada detalle desde la selección del ingrediente hasta tu mesa.
             </p>
           </Reveal>
 
@@ -99,9 +98,14 @@ export default function Philosophy() {
                 marginBottom: 28,
               }}
             >
-              Nuestra pasta se hace a mano cada mañana. Nuestras salsas se
-              cocinan lentamente durante horas. Cada ingrediente tiene un
-              origen, una historia, un propósito.
+              Nos respaldan dos pilares fundamentales: una
+              calidad suprema garantizada a través de productos
+              con denominación de origen, y un firme compromiso
+              con la sostenibilidad, trabajando de la mano con
+              productores responsables.
+
+              En nuestra cocina, elevamos la tradición italiana
+              con innovación y excelencia técnica
             </p>
           </Reveal>
 
@@ -116,10 +120,9 @@ export default function Philosophy() {
                 fontStyle: "italic",
               }}
             >
-              &ldquo;La mejor cocina es aquella que no necesita explicación — se
-              siente.&rdquo;
+              &ldquo;Lo más exclusivo del mundo recorriendo continentes hasta llegar a tu mesa.&rdquo;
             </div>
-            <Label>— Familia Luca, desde 1987</Label>
+            <Label>— San Luca desde 2020</Label>
           </Reveal>
         </div>
       </div>
