@@ -5,7 +5,7 @@ import { Texture, Label, GoldLine } from "@/components/ui/Editorial";
 import Reveal from "@/components/ui/Reveal";
 
 const STATS = [
-  { number: "1987", label: "Año de fundación" },
+  { number: "2020", label: "Año de fundación" },
   { number: "3", label: "Generaciones" },
   { number: "100%", label: "Artesanal" },
 ];
