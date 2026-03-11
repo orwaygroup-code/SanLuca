@@ -13,21 +13,22 @@ export const metadata: Metadata = {
 
 const PILLARS = [
   {
-    title: "Ingredientes Artesanales",
-    desc: "Seleccionados diariamente de productores locales y mercados italianos",
+    title: "Aguas de Nueva Zelanda",
+    desc: "Salmón Ora King: Textura sedosa y sabor profundo",
   },
   {
-    title: "Pasta Fresca Diaria",
-    desc: "Elaborada a mano cada mañana con técnicas de la Emilia-Romaña",
+    title: "Ensenada, B.C., México",
+    desc: "Totoaba, Lubina, Calamares, Almejas & Mejillones, ",
   },
   {
-    title: "Vinos de Reserva",
-    desc: "Carta curada con etiquetas de la Toscana, Piamonte y Sicilia",
+    title: "Océano Atlántico,",
+    desc: "Atún Aleta Azul: Corte selecto y jugoso; su grasa natural aporta untuosidad y sabor",
   },
   {
-    title: "Ambiente Íntimo",
-    desc: "Espacios diseñados para crear momentos memorables",
+    title: "Atlántico Oriental y Mediterráneo",
+    desc: "Pulpo Vulgaris: Carne tierna y jugosa con un sutil toque salino",
   },
+
 ];
 
 export default async function MenuPage() {
@@ -137,8 +138,8 @@ export default async function MenuPage() {
               marginTop: "10px",
             }}
           >
-            Una Experiencia{" "}
-            <span style={{ color: colors.peru }}>Completa</span>
+            El Origen{" "}
+            <span style={{ color: colors.peru }}>de la Excelencia</span>
           </h2>
         </Reveal>
 
@@ -173,7 +174,7 @@ export default async function MenuPage() {
                   marginBottom: 16,
                 }}
               >
-                0{i + 1}
+
               </div>
 
               <h4
