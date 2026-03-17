@@ -1,14 +1,14 @@
 "use client";
 
-// ─────────────────────────────────────────────
-//  components/menu/DishCardBlue.tsx
-//  Variante azul para platillos de BRUNCH
-//  Mismo layout que DishCardGold, paleta azul
-// ─────────────────────────────────────────────
-
 import Image from "next/image";
 import { useState } from "react";
 import { fonts } from "@/config/theme";
+
+const BLUE = "#6b8dab";
+const BLUE_HOVER = "#7a9dbd";
+const BLUE_IMG = "#547290";
+const TEXT = "#1e3a52";
+const CARD_BG = "#ffffff";
 
 type DishCardBlueProps = {
     name: string;
@@ -33,26 +33,27 @@ export default function DishCardBlue({
             onMouseLeave={() => setHovered(false)}
             style={{
                 display: "flex",
-                borderRadius: "10px",
+                borderRadius: "14px",
                 overflow: "hidden",
-                background: "#4a7a9b",
-                border: `1px solid ${hovered ? "#5a9abf" : "#3d6b8c"}`,
+                background: CARD_BG,
+                border: `1.5px solid ${hovered ? BLUE_HOVER : BLUE}`,
                 transition: "all 0.25s ease",
                 boxShadow: hovered
-                    ? "0 6px 24px rgba(30,58,82,0.25)"
-                    : "0 2px 8px rgba(30,58,82,0.12)",
+                    ? "0 8px 28px rgba(30,58,82,0.2)"
+                    : "0 2px 10px rgba(30,58,82,0.1)",
                 cursor: "pointer",
-                minHeight: "120px",
+                minHeight: "110px",
             }}
         >
-            {/* Left — image */}
+            {/* Área izquierda — imagen / placeholder */}
             <div
                 style={{
                     position: "relative",
-                    width: "100px",
+                    width: "130px",
                     flexShrink: 0,
-                    background: "#2c4a6e",
+                    background: BLUE_IMG,
                     overflow: "hidden",
+                    borderRadius: "12px 0 0 12px",
                 }}
             >
                 {imageUrl ? (
@@ -60,52 +61,37 @@ export default function DishCardBlue({
                         src={imageUrl}
                         alt={name}
                         fill
-                        sizes="100px"
+                        sizes="130px"
                         style={{
                             objectFit: "cover",
-                            opacity: 0.8,
-                            transform: hovered ? "scale(1.08)" : "scale(1)",
-                            transition: "transform 0.4s ease",
+                            transform: hovered ? "scale(1.07)" : "scale(1)",
+                            transition: "transform 0.45s ease",
                         }}
                     />
-                ) : (
-                    <div
-                        style={{
-                            position: "absolute",
-                            inset: 0,
-                            background: "linear-gradient(135deg, #2c4a6e 0%, #1e3a52 100%)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                        }}
-                    >
-                        <span style={{ fontSize: "1.5rem", opacity: 0.2, color: "#fff" }}>
-                            ✦
-                        </span>
-                    </div>
-                )}
+                ) : null}
             </div>
 
-            {/* Right — content */}
+            {/* Área derecha — contenido */}
             <div
                 style={{
                     flex: 1,
-                    padding: "1rem 1.1rem",
+                    padding: "1rem 1.25rem",
                     display: "flex",
                     flexDirection: "column",
                     justifyContent: "space-between",
                 }}
             >
+                {/* Nombre + descripción */}
                 <div>
                     <h3
                         style={{
                             fontFamily: fonts.primary,
-                            fontSize: "0.88rem",
+                            fontSize: "0.82rem",
                             fontWeight: 800,
-                            letterSpacing: "0.06em",
+                            letterSpacing: "0.08em",
                             textTransform: "uppercase",
-                            color: "#ffffff",
-                            margin: "0 0 0.3rem",
+                            color: TEXT,
+                            margin: "0 0 0.35rem",
                             lineHeight: 1.2,
                         }}
                     >
@@ -114,11 +100,14 @@ export default function DishCardBlue({
                     {description && (
                         <p
                             style={{
-                                fontFamily: "'Dancing Script', cursive",
-                                fontSize: "0.82rem",
-                                color: "rgba(255,255,255,0.65)",
+                                fontFamily: fonts.primary,
+                                fontSize: "0.75rem",
+                                fontWeight: 400,
+                                textTransform: "uppercase",
+                                letterSpacing: "0.04em",
+                                color: "rgba(30,58,82,0.55)",
                                 margin: 0,
-                                lineHeight: 1.4,
+                                lineHeight: 1.5,
                             }}
                         >
                             {description}
@@ -126,22 +115,22 @@ export default function DishCardBlue({
                     )}
                 </div>
 
-                {/* Price + weight + ⊕ */}
+                {/* Precio + peso + ⊕ */}
                 <div
                     style={{
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "space-between",
-                        marginTop: "0.5rem",
+                        marginTop: "0.75rem",
                     }}
                 >
-                    <div style={{ display: "flex", alignItems: "baseline", gap: "1rem" }}>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: "0.9rem" }}>
                         <span
                             style={{
                                 fontFamily: fonts.primary,
                                 fontSize: "1rem",
                                 fontWeight: 800,
-                                color: "#ffffff",
+                                color: TEXT,
                             }}
                         >
                             ${price.toFixed(0)}
@@ -150,11 +139,11 @@ export default function DishCardBlue({
                             <span
                                 style={{
                                     fontFamily: fonts.primary,
-                                    fontSize: "0.72rem",
+                                    fontSize: "0.65rem",
                                     fontWeight: 700,
-                                    letterSpacing: "0.15em",
+                                    letterSpacing: "0.18em",
                                     textTransform: "uppercase",
-                                    color: "rgba(255,255,255,0.55)",
+                                    color: "rgba(30,58,82,0.5)",
                                 }}
                             >
                                 {weight}GR
@@ -162,26 +151,28 @@ export default function DishCardBlue({
                         )}
                     </div>
 
+                    {/* ⊕ */}
                     <div
                         style={{
-                            width: "30px",
-                            height: "30px",
+                            width: "28px",
+                            height: "28px",
                             borderRadius: "50%",
-                            border: "2px solid rgba(255,255,255,0.7)",
+                            border: `1.5px solid ${hovered ? TEXT : "rgba(30,58,82,0.6)"}`,
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            background: hovered ? "rgba(255,255,255,0.15)" : "transparent",
-                            transition: "background 0.2s ease",
                             flexShrink: 0,
+                            background: hovered ? TEXT : "transparent",
+                            transition: "all 0.2s ease",
                         }}
                     >
                         <span
                             style={{
-                                fontSize: "1.1rem",
+                                fontSize: "1rem",
                                 lineHeight: 1,
-                                color: "#ffffff",
+                                color: hovered ? BLUE : TEXT,
                                 fontWeight: 300,
+                                transition: "color 0.2s ease",
                             }}
                         >
                             +

@@ -17,10 +17,12 @@ function NavLink({
   label,
   href,
   onClick,
+  isDark,
 }: {
   label: string;
   href: string;
   onClick?: () => void;
+  isDark: boolean;
 }) {
   const [hovered, setHovered] = useState(false);
 
@@ -36,7 +38,7 @@ function NavLink({
         fontWeight: 800,
         letterSpacing: "0.24em",
         textTransform: "uppercase",
-        color: hovered ? colors.peru : "rgba(245,241,232,0.6)",
+        color: hovered ? colors.peru : isDark ? "rgba(245,241,232,0.6)" : "rgba(30,58,82,0.7)",
         textDecoration: "none",
         transition: "color 0.3s",
       }}
@@ -52,7 +54,18 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
+  const [isDark, setIsDark] = useState(true);
   const lastY = useRef(0);
+
+  useEffect(() => {
+    const check = () => {
+      setIsDark(document.body.dataset.navTheme !== "brunch");
+    };
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(document.body, { attributes: true, attributeFilter: ["data-nav-theme"] });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const syncAuth = () => setUserName(localStorage.getItem("userName"));
@@ -89,7 +102,9 @@ export default function Navbar() {
         right: 0,
         zIndex: 1000,
         transform: show ? "translateY(0)" : "translateY(-100%)",
-        background: scrolled ? "rgba(28,38,40,0.92)" : "transparent",
+        background: scrolled
+          ? isDark ? "rgba(28,38,40,0.92)" : "rgba(240,235,224,0.95)"
+          : "transparent",
         backdropFilter: scrolled ? "blur(16px)" : "none",
         transition: "all 0.5s cubic-bezier(.25,.46,.45,.94)",
         padding: scrolled ? "12px 0" : "24px 0",
@@ -112,8 +127,9 @@ export default function Navbar() {
             fontFamily: fonts.primary,
             fontWeight: 500,
             fontSize: "0.85rem",
-            color: colors.cream,
+            color: isDark ? colors.cream : "#1e3a52",
             textDecoration: "none",
+            transition: "color 0.4s ease",
           }}
         >
           SAN
@@ -131,7 +147,7 @@ export default function Navbar() {
           }}
         >
           {NAV_LINKS.map((l) => (
-            <NavLink key={l.label} {...l} />
+            <NavLink key={l.label} {...l} isDark={isDark} />
           ))}
 
           {/* Auth section */}
@@ -166,7 +182,7 @@ export default function Navbar() {
                   fontSize: "0.62rem",
                   fontWeight: 800,
                   textTransform: "uppercase",
-                  color: "rgba(245,241,232,0.4)",
+                  color: isDark ? "rgba(245,241,232,0.4)" : "rgba(30,58,82,0.4)",
                   background: "none",
                   border: "none",
                   cursor: "pointer",
@@ -182,7 +198,7 @@ export default function Navbar() {
                   fontSize: "0.62rem",
                   fontWeight: 800,
                   textTransform: "uppercase",
-                  color: "rgba(245,241,232,0.6)",
+                  color: isDark ? "rgba(245,241,232,0.6)" : "rgba(30,58,82,0.7)",
                   textDecoration: "none",
                   transition: "color 0.2s",
                 }}>
@@ -193,9 +209,9 @@ export default function Navbar() {
                   fontSize: "0.62rem",
                   fontWeight: 800,
                   textTransform: "uppercase",
-                  color: colors.dark,
+                  color: isDark ? "rgba(245,241,232,0.6)" : "#ffffff",
                   textDecoration: "none",
-                  background: colors.peru,
+                  background: isDark ? colors.peru : "rgba(30, 58, 82, 0.7)",
                   borderRadius: 999,
                   padding: "6px 14px",
                   transition: "background 0.2s",
@@ -226,7 +242,7 @@ export default function Navbar() {
               y1="1"
               x2="24"
               y2="1"
-              stroke={colors.cream}
+              stroke={isDark ? colors.cream : "#1e3a52"}
               strokeWidth="1.5"
               style={{
                 transition: "0.3s",
@@ -253,7 +269,7 @@ export default function Navbar() {
               y1="13"
               x2="24"
               y2="13"
-              stroke={colors.cream}
+              stroke={isDark ? colors.cream : "#1e3a52"}
               strokeWidth="1.5"
               style={{
                 transition: "0.3s",
@@ -268,49 +284,51 @@ export default function Navbar() {
       </div>
 
       {/* Mobile menu */}
-      {open && (
-        <div
-          className="nav-mobile-menu"
-          style={{
-            background: "rgba(28,38,40,0.98)",
-            padding: "32px 24px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 24,
-            alignItems: "center",
-          }}
-        >
-          {NAV_LINKS.map((l) => (
-            <NavLink key={l.label} {...l} onClick={() => setOpen(false)} />
-          ))}
+      {
+        open && (
+          <div
+            className="nav-mobile-menu"
+            style={{
+              background: "rgba(28,38,40,0.98)",
+              padding: "32px 24px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 24,
+              alignItems: "center",
+            }}
+          >
+            {NAV_LINKS.map((l) => (
+              <NavLink key={l.label} {...l} isDark={isDark} onClick={() => setOpen(false)} />
+            ))}
 
-          <div style={{ width: "100%", height: 1, background: "rgba(186,132,60,0.2)" }} />
+            <div style={{ width: "100%", height: 1, background: "rgba(186,132,60,0.2)" }} />
 
-          {userName ? (
-            <>
-              <span style={{
-                fontFamily: fonts.primary, fontSize: "0.65rem",
-                fontWeight: 800, textTransform: "uppercase", color: colors.peru,
-              }}>
-                Hola, {userName.split(" ")[0]}
-              </span>
-              <NavLink label="Mis Reservas" href="/dashboard" onClick={() => setOpen(false)} />
-              <button onClick={() => { handleLogout(); setOpen(false); }} style={{
-                fontFamily: fonts.primary, fontSize: "0.62rem", fontWeight: 800,
-                textTransform: "uppercase", color: "rgba(245,241,232,0.4)",
-                background: "none", border: "none", cursor: "pointer",
-              }}>
-                Cerrar Sesión
-              </button>
-            </>
-          ) : (
-            <>
-              <NavLink label="Iniciar Sesión" href="/login?mode=login" onClick={() => setOpen(false)} />
-              <NavLink label="Registrar" href="/login?mode=register" onClick={() => setOpen(false)} />
-            </>
-          )}
-        </div>
-      )}
-    </nav>
+            {userName ? (
+              <>
+                <span style={{
+                  fontFamily: fonts.primary, fontSize: "0.65rem",
+                  fontWeight: 800, textTransform: "uppercase", color: colors.peru,
+                }}>
+                  Hola, {userName.split(" ")[0]}
+                </span>
+                <NavLink label="Mis Reservas" href="/dashboard" isDark={isDark} onClick={() => setOpen(false)} />
+                <button onClick={() => { handleLogout(); setOpen(false); }} style={{
+                  fontFamily: fonts.primary, fontSize: "0.62rem", fontWeight: 800,
+                  textTransform: "uppercase", color: "rgba(245,241,232,0.4)",
+                  background: "none", border: "none", cursor: "pointer",
+                }}>
+                  Cerrar Sesión
+                </button>
+              </>
+            ) : (
+              <>
+                <NavLink label="Iniciar Sesión" href="/login?mode=login" isDark={isDark} onClick={() => setOpen(false)} />
+                <NavLink label="Registrar" href="/login?mode=register" isDark={isDark} onClick={() => setOpen(false)} />
+              </>
+            )}
+          </div>
+        )
+      }
+    </nav >
   );
 }

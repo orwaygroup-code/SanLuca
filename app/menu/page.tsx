@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────
 
 import type { Metadata } from "next";
-import { getFeaturedDishes, getMenuCategories } from "@/lib/db";
+import { getTopDishesBySection, getMenuCategories } from "@/lib/db";
 import MenuPageClient from "@/components/menu/MenuPageClient";
 
 export const metadata: Metadata = {
@@ -13,20 +13,23 @@ export const metadata: Metadata = {
   description: "Explora nuestro menú de cocina italiana premium",
 };
 
-export default async function MenuPage() {
-  const [featured, categories] = await Promise.all([
-    getFeaturedDishes(),
-    getMenuCategories(),
-  ]);
-
-  const featuredDishes = featured.slice(0, 3).map((d) => ({
+function mapDish(d: any) {
+  return {
     id: d.id,
     name: d.name,
     description: d.description ?? null,
     price: Number(d.price),
     imageUrl: d.imageUrl ?? null,
-    category: (d as any).categoryName ?? null,
-  }));
+    category: d.category?.name ?? null,
+  };
+}
+
+export default async function MenuPage() {
+  const [comidaRaw, brunchRaw, categories] = await Promise.all([
+    getTopDishesBySection("comida", 3),
+    getTopDishesBySection("brunch", 3),
+    getMenuCategories(),
+  ]);
 
   const dbCategories = categories.map((c) => ({
     id: c.id,
@@ -36,7 +39,8 @@ export default async function MenuPage() {
 
   return (
     <MenuPageClient
-      featuredDishes={featuredDishes}
+      comidaDishes={comidaRaw.map(mapDish)}
+      brunchDishes={brunchRaw.map(mapDish)}
       dbCategories={dbCategories}
     />
   );

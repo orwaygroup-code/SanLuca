@@ -7,13 +7,13 @@ import Button from "@/components/ui/Button";
 import Image from "next/image";
 
 const images = [
-  "/images/1b.png",
-  "/images/2b.png",
-  "/images/3b.png",
-  "/images/4b.png",
-  "/images/5b.png",
-  "/images/6b.png",
-  "/images/7b.png"
+  "/images/hero/1b.png",
+  "/images/hero/2b.png",
+  "/images/hero/3b.png",
+  "/images/hero/4b.png",
+  "/images/hero/5b.png",
+  "/images/hero/6b.png",
+  "/images/hero/7b.png"
 ];
 const randomImage = images[Math.floor(Math.random() * images.length)];
 
@@ -102,7 +102,7 @@ export default function Hero() {
               fontFamily: fonts.primary,
               fontSize: "10rem",
               color: colors.cream,
-              lineHeight: 0.82
+              lineHeight: 0.82,
             }}
           >
             SAN
@@ -151,7 +151,12 @@ export default function Hero() {
             transition: "all 1s ease 1.4s",
           }}
         >
+<<<<<<< HEAD
+          La mejor gastronomia del mundo en tu mesa
+        </p>
+=======
           La mejor gastronomia del mundo en tu mesa        </p>
+>>>>>>> d28167aba32c3f2a35f115729458b9eb272d46e4
 
         {/* CTAs */}
         <div

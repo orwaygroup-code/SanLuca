@@ -6,7 +6,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getMenuCategoryById } from "@/lib/db";
+import { getMenuCategoryByName } from "@/lib/db";
 import { fonts } from "@/config/theme";
 import DishCardBlue from "@/components/menu/DishCardBlue";
 
@@ -25,7 +25,8 @@ type PageProps = {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { category } = await params;
-    const data = await getMenuCategoryById(category);
+    const name = decodeURIComponent(category);
+    const data = await getMenuCategoryByName(`${name} (Brunch)`);
     if (!data) return { title: "Categoría no encontrada" };
     return {
         title: `${data.name} | Brunch | San Luca`,
@@ -35,7 +36,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function BrunchCategoryPage({ params }: PageProps) {
     const { category } = await params;
-    const data = await getMenuCategoryById(category);
+    const name = decodeURIComponent(category);
+    const data = await getMenuCategoryByName(`${name} (Brunch)`);
 
     if (!data) return notFound();
 
@@ -155,13 +157,13 @@ export default async function BrunchCategoryPage({ params }: PageProps) {
                             gap: "1rem",
                         }}
                     >
-                        {data.dishes.map((dish) => (
+                        {data.dishes.map((dish: typeof data.dishes[number]) => (
                             <DishCardBlue
                                 key={dish.id}
                                 name={dish.name}
                                 description={dish.description ?? null}
                                 price={Number(dish.price)}
-                                weight={(dish as any).weight ?? null}
+                                weight={null}
                                 imageUrl={dish.imageUrl ?? null}
                             />
                         ))}
@@ -171,22 +173,34 @@ export default async function BrunchCategoryPage({ params }: PageProps) {
                 <div
                     style={{
                         marginTop: "4rem",
-                        paddingTop: "2rem",
+                        paddingTop: "2.5rem",
                         borderTop: `1px solid ${B.border}`,
+                        display: "flex",
+                        justifyContent: "center",
                     }}
                 >
-                    <Link
-                        href="/menu"
-                        style={{
-                            fontFamily: fonts.primary,
-                            fontSize: "0.72rem",
-                            letterSpacing: "0.28em",
-                            textTransform: "uppercase",
-                            color: B.accent,
-                            textDecoration: "none",
-                        }}
-                    >
-                        ← Volver al menú
+                    <Link href="/menu?mode=brunch" style={{ textDecoration: "none" }}>
+                        <div
+                            style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "0.75rem",
+                                padding: "1rem 2.5rem",
+                                background: B.accent,
+                                color: "#ffffff",
+                                fontFamily: fonts.primary,
+                                fontSize: "0.75rem",
+                                fontWeight: 700,
+                                letterSpacing: "0.25em",
+                                textTransform: "uppercase",
+                                cursor: "pointer",
+                                transition: "all 0.25s ease",
+                                borderRadius: "2px",
+                            }}
+                        >
+                            <span style={{ fontSize: "1rem", lineHeight: 1 }}>←</span>
+                            Volver al menú
+                        </div>
                     </Link>
                 </div>
             </div>

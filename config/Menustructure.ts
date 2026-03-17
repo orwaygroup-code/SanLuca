@@ -10,6 +10,7 @@ export type MenuCategory = {
     name: string;
     nameIt?: string;
     description?: string;
+    imageUrl?: string;
 };
 
 export type MenuGroup = {
@@ -31,26 +32,31 @@ export const COMIDA_GROUPS: MenuGroup[] = [
                 slug: "antipasti",
                 name: "Antipasti",
                 description: "Entradas de la cocina italiana",
+                imageUrl: "/images/menu/clasica/antipaste.png",
             },
             {
                 slug: "paste",
                 name: "Paste",
                 description: "Pastas artesanales al dente",
+                imageUrl: "/images/menu/clasica/paste.png",
             },
             {
                 slug: "pizza",
                 name: "Pizza",
                 description: "Horneadas en horno de leña",
+                imageUrl: "/images/menu/clasica/pizza.png",
             },
             {
                 slug: "risotto",
                 name: "Risotto",
                 description: "Cremoso y perfectamente cocido",
+                imageUrl: "/images/menu/clasica/risoto.png",
             },
             {
                 slug: "insalate",
                 name: "Insalate",
                 description: "Ensaladas frescas de temporada",
+                imageUrl: "/images/menu/clasica/ensalada.png",
             },
             {
                 slug: "carne-wagyu",
@@ -61,11 +67,13 @@ export const COMIDA_GROUPS: MenuGroup[] = [
                 slug: "terra",
                 name: "Terra",
                 description: "Sabores de la tierra",
+                imageUrl: "/images/menu/clasica/terra.png",
             },
             {
                 slug: "pesce-del-giorno",
                 name: "Pesce Del Giorno",
                 description: "Pescado fresco del día",
+                imageUrl: "/images/menu/clasica/pesce.png",
             },
         ],
     },
@@ -89,21 +97,25 @@ export const COMIDA_GROUPS: MenuGroup[] = [
                 slug: "sin-alcohol",
                 name: "Sin Alcohol",
                 description: "Bebidas sin alcohol",
+                imageUrl: "/images/menu/bebidas/sin alc.png",
             },
             {
                 slug: "carajillos",
                 name: "Carajillos",
                 description: "La especialidad de la casa",
+                imageUrl: "/images/menu/bebidas/carajillos.png",
             },
             {
                 slug: "cerveza",
                 name: "Cerveza",
                 description: "Nacionales e importadas",
+                imageUrl: "/images/menu/bebidas/cerveza.png",
             },
             {
                 slug: "cocteleria",
                 name: "Coctelería",
                 description: "Cócteles artesanales",
+                imageUrl: "/images/menu/bebidas/cocteleria.png",
             },
             {
                 slug: "mocteleria",
@@ -122,6 +134,7 @@ export const COMIDA_GROUPS: MenuGroup[] = [
                 name: "Postres",
                 nameIt: "Dolce",
                 description: "Los mejores postres italianos",
+                imageUrl: "/images/menu/Postres/postre.png",
             },
         ],
     },

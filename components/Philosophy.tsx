@@ -63,7 +63,11 @@ export default function Philosophy() {
             <br />
             <span style={{ color: colors.peru }}>Origen</span> y
             <br />
+<<<<<<< HEAD
+              la Tradición
+=======
             la Tradición
+>>>>>>> d28167aba32c3f2a35f115729458b9eb272d46e4
           </h2>
         </Reveal>
 
@@ -84,6 +88,10 @@ export default function Philosophy() {
               En San Luca, la alta gastronomía es un arte que nace del
               respeto por el origen y la tradición. Buscamos ofrecerte
               una experiencia sensorial completa, cuidando meticulosamente cada detalle desde la selección del ingrediente hasta tu mesa.
+<<<<<<< HEAD
+              
+=======
+>>>>>>> d28167aba32c3f2a35f115729458b9eb272d46e4
             </p>
           </Reveal>
 

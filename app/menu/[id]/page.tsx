@@ -142,22 +142,34 @@ export default async function MenuCategoryPage({ params }: PageProps) {
         <div
           style={{
             marginTop: "4rem",
-            paddingTop: "2rem",
+            paddingTop: "2.5rem",
             borderTop: "1px solid rgba(255,255,255,0.07)",
+            display: "flex",
+            justifyContent: "center",
           }}
         >
-          <Link
-            href="/menu"
-            style={{
-              fontFamily: fonts.primary,
-              fontSize: "0.72rem",
-              letterSpacing: "0.28em",
-              textTransform: "uppercase",
-              color: colors.peru,
-              textDecoration: "none",
-            }}
-          >
-            ← Volver al menú
+          <Link href="/menu" style={{ textDecoration: "none" }}>
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.75rem",
+                padding: "1rem 2.5rem",
+                background: colors.peru,
+                color: "#ffffff",
+                fontFamily: fonts.primary,
+                fontSize: "0.75rem",
+                fontWeight: 700,
+                letterSpacing: "0.25em",
+                textTransform: "uppercase",
+                cursor: "pointer",
+                transition: "all 0.25s ease",
+                borderRadius: "2px",
+              }}
+            >
+              <span style={{ fontSize: "1rem", lineHeight: 1 }}>←</span>
+              Volver al menú
+            </div>
           </Link>
         </div>
       </div>

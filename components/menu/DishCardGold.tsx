@@ -1,14 +1,13 @@
 "use client";
 
-// ─────────────────────────────────────────────
-//  components/menu/DishCardGold.tsx
-//  Página 4 PDF — card horizontal dorada
-//  imagen | nombre | descripción | precio | peso | ⊕
-// ─────────────────────────────────────────────
-
 import Image from "next/image";
 import { useState } from "react";
-import { fonts, colors } from "@/config/theme";
+import { fonts } from "@/config/theme";
+
+const GOLD = "#c9a44a";
+const GOLD_HOVER = "#d4b560";
+const CARD_BG = "#1a2224";
+const CARD_BG_HOVER = "#1f2a2c";
 
 type DishCardGoldProps = {
     name: string;
@@ -34,26 +33,27 @@ export default function DishCardGold({
             onMouseLeave={() => setHovered(false)}
             style={{
                 display: "flex",
-                borderRadius: "10px",
+                borderRadius: "12px",
                 overflow: "hidden",
-                background: "#b8963e",
-                border: `1px solid ${hovered ? "#d4ad56" : "#c9a44a"}`,
+                background: hovered ? CARD_BG_HOVER : CARD_BG,
+                border: `1px solid ${hovered ? "rgba(201,164,74,0.35)" : "rgba(201,164,74,0.15)"}`,
                 transition: "all 0.25s ease",
                 boxShadow: hovered
-                    ? "0 6px 24px rgba(0,0,0,0.4)"
-                    : "0 2px 8px rgba(0,0,0,0.25)",
+                    ? "0 8px 28px rgba(0,0,0,0.45)"
+                    : "0 2px 10px rgba(0,0,0,0.3)",
                 cursor: "pointer",
-                minHeight: "120px",
+                minHeight: "110px",
             }}
         >
-            {/* Left — image area */}
+            {/* Área izquierda — imagen / placeholder dorado */}
             <div
                 style={{
                     position: "relative",
-                    width: "100px",
+                    width: "130px",
                     flexShrink: 0,
-                    background: "#0d1214",
+                    background: GOLD,
                     overflow: "hidden",
+                    borderRadius: "10px 0 0 10px",
                 }}
             >
                 {imageUrl ? (
@@ -61,60 +61,37 @@ export default function DishCardGold({
                         src={imageUrl}
                         alt={name}
                         fill
-                        sizes="100px"
+                        sizes="130px"
                         style={{
                             objectFit: "cover",
-                            opacity: 0.75,
-                            transform: hovered ? "scale(1.08)" : "scale(1)",
-                            transition: "transform 0.4s ease",
+                            transform: hovered ? "scale(1.07)" : "scale(1)",
+                            transition: "transform 0.45s ease",
                         }}
                     />
-                ) : (
-                    <div
-                        style={{
-                            position: "absolute",
-                            inset: 0,
-                            background: "linear-gradient(135deg, #1a2628 0%, #111a1c 100%)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                        }}
-                    >
-                        <span
-                            style={{
-                                fontSize: "1.5rem",
-                                opacity: 0.2,
-                                color: "#b8963e",
-                            }}
-                        >
-                            ✦
-                        </span>
-                    </div>
-                )}
+                ) : null}
             </div>
 
-            {/* Right — content */}
+            {/* Área derecha — contenido */}
             <div
                 style={{
                     flex: 1,
-                    padding: "1rem 1.1rem",
+                    padding: "1rem 1.25rem",
                     display: "flex",
                     flexDirection: "column",
                     justifyContent: "space-between",
-                    gap: "0.4rem",
                 }}
             >
-                {/* Name + description */}
+                {/* Nombre + descripción */}
                 <div>
                     <h3
                         style={{
                             fontFamily: fonts.primary,
-                            fontSize: "0.88rem",
+                            fontSize: "0.82rem",
                             fontWeight: 800,
-                            letterSpacing: "0.06em",
+                            letterSpacing: "0.08em",
                             textTransform: "uppercase",
-                            color: "#111a1c",
-                            margin: "0 0 0.3rem",
+                            color: "#ffffff",
+                            margin: "0 0 0.35rem",
                             lineHeight: 1.2,
                         }}
                     >
@@ -123,11 +100,11 @@ export default function DishCardGold({
                     {description && (
                         <p
                             style={{
-                                fontFamily: "'Dancing Script', cursive",
-                                fontSize: "0.82rem",
-                                color: "rgba(17,26,28,0.7)",
+                                fontFamily: fonts.primary ?? "'Dancing Script', cursive",
+                                fontSize: "0.78rem",
+                                color: "rgba(255,255,255,0.45)",
                                 margin: 0,
-                                lineHeight: 1.4,
+                                lineHeight: 1.45,
                             }}
                         >
                             {description}
@@ -135,37 +112,36 @@ export default function DishCardGold({
                     )}
                 </div>
 
-                {/* Bottom: price + weight + ⊕ */}
+                {/* Precio + peso + ⊕ */}
                 <div
                     style={{
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "space-between",
-                        gap: "0.75rem",
-                        marginTop: "0.25rem",
+                        marginTop: "0.75rem",
                     }}
                 >
-                    <div style={{ display: "flex", alignItems: "baseline", gap: "1rem" }}>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: "0.9rem" }}>
                         <span
                             style={{
                                 fontFamily: fonts.primary,
                                 fontSize: "1rem",
                                 fontWeight: 800,
-                                color: "#111a1c",
+                                color: hovered ? GOLD_HOVER : GOLD,
+                                transition: "color 0.25s ease",
                             }}
                         >
                             ${price.toFixed(0)}
                         </span>
-
                         {weight && (
                             <span
                                 style={{
                                     fontFamily: fonts.primary,
-                                    fontSize: "0.72rem",
+                                    fontSize: "0.65rem",
                                     fontWeight: 700,
-                                    letterSpacing: "0.15em",
+                                    letterSpacing: "0.18em",
                                     textTransform: "uppercase",
-                                    color: "rgba(17,26,28,0.6)",
+                                    color: "rgba(255,255,255,0.35)",
                                 }}
                             >
                                 {weight}GR
@@ -173,26 +149,26 @@ export default function DishCardGold({
                         )}
                     </div>
 
-                    {/* ⊕ button */}
+                    {/* ⊕ */}
                     <div
                         style={{
-                            width: "30px",
-                            height: "30px",
+                            width: "28px",
+                            height: "28px",
                             borderRadius: "50%",
-                            border: "2px solid #111a1c",
+                            border: `1.5px solid ${hovered ? GOLD_HOVER : "rgba(201,164,74,0.5)"}`,
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
                             flexShrink: 0,
-                            background: hovered ? "#111a1c" : "transparent",
-                            transition: "background 0.2s ease",
+                            background: hovered ? GOLD : "transparent",
+                            transition: "all 0.2s ease",
                         }}
                     >
                         <span
                             style={{
-                                fontSize: "1.1rem",
+                                fontSize: "1rem",
                                 lineHeight: 1,
-                                color: hovered ? "#b8963e" : "#111a1c",
+                                color: hovered ? "#111a1c" : GOLD,
                                 fontWeight: 300,
                                 transition: "color 0.2s ease",
                             }}

@@ -1,5 +1,5 @@
 # ============================================
-# Docker Compose - Restaurant App
+# Docker Compose - SanLuca
 # ============================================
 # Usage:
 #   Development:  docker compose up postgres -d
@@ -10,18 +10,18 @@ services:
   # ── PostgreSQL ──────────────────────────────
   postgres:
     image: postgres:16-alpine
-    container_name: restaurant_db
+    container_name: sanluca_db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: restaurant_db
-      POSTGRES_USER: restaurant_user
-      POSTGRES_PASSWORD: restaurant_pass
+      POSTGRES_DB: sanluca_db
+      POSTGRES_USER: sanluca_user
+      POSTGRES_PASSWORD: sanluca_pass
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U restaurant_user -d restaurant_db"]
+      test: ["CMD-SHELL", "pg_isready -U sanluca_user -d sanluca_db"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -31,14 +31,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: restaurant_app
+    container_name: sanluca_app
     restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
-      DATABASE_URL: "postgresql://restaurant_user:restaurant_pass@postgres:5432/restaurant_db?schema=public"
+      DATABASE_URL: "postgresql://sanluca_user:sanluca_pass@postgres:5432/sanluca_db?schema=public"
       NEXT_PUBLIC_APP_URL: "http://localhost:3000"
-      NEXT_PUBLIC_APP_NAME: "Restaurant App"
     depends_on:
       postgres:
         condition: service_healthy
@@ -46,7 +45,7 @@ services:
   # ── FUTURE: Redis ───────────────────────────
   # redis:
   #   image: redis:7-alpine
-  #   container_name: restaurant_redis
+  #   container_name: sanluca_redis
   #   restart: unless-stopped
   #   ports:
   #     - "6379:6379"

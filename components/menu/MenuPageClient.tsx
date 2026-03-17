@@ -8,7 +8,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { fonts, colors } from "@/config/theme";
 import { BRUNCH_GROUPS, COMIDA_GROUPS } from "@/config/Menustructure";
 
@@ -28,7 +29,8 @@ type DbCategory = {
 };
 
 type MenuPageClientProps = {
-    featuredDishes: InsigniaItem[];
+    comidaDishes: InsigniaItem[];
+    brunchDishes: InsigniaItem[];
     dbCategories: DbCategory[];
 };
 
@@ -87,11 +89,24 @@ const THEME = {
 
 type ThemeMode = keyof typeof THEME;
 
-export default function MenuPageClient({ featuredDishes, dbCategories }: MenuPageClientProps) {
-    const [mode, setMode] = useState<ThemeMode>("comida");
+export default function MenuPageClient({ comidaDishes, brunchDishes, dbCategories }: MenuPageClientProps) {
+    const searchParams = useSearchParams();
+    const initialMode = searchParams.get("mode") === "brunch" ? "brunch" : "comida";
+    const [mode, setMode] = useState<ThemeMode>(initialMode);
     const [activeTab, setActiveTab] = useState(0);
     const [hoveredCard, setHoveredCard] = useState<number | null>(null);
     const contentRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const m = searchParams.get("mode");
+        if (m === "brunch" || m === "comida") setMode(m);
+    }, [searchParams]);
+
+    // Notifica al Navbar el tema actual para que ajuste sus colores
+    useEffect(() => {
+        document.body.dataset.navTheme = mode;
+        return () => { delete document.body.dataset.navTheme; };
+    }, [mode]);
 
     const t = THEME[mode];
     const groups = mode === "comida"
@@ -108,7 +123,7 @@ export default function MenuPageClient({ featuredDishes, dbCategories }: MenuPag
         const dbMatch = dbCategories.find(
             (d) => d.id === cat.slug || d.name.toLowerCase() === cat.name.toLowerCase()
         );
-        return { ...cat, imageUrl: dbMatch?.imageUrl ?? null };
+        return { ...cat, imageUrl: dbMatch?.imageUrl ?? cat.imageUrl ?? null };
     });
 
     return (
@@ -212,7 +227,7 @@ export default function MenuPageClient({ featuredDishes, dbCategories }: MenuPag
                             transition: "color 0.5s ease",
                         }}
                     >
-                        {mode === "comida" ? "Restaurante" : "Brunch"}
+                        {mode === "comida" ? "Ristorante" : "Brunch"}
                     </p>
 
                     {/* Créditos */}
@@ -347,7 +362,7 @@ export default function MenuPageClient({ featuredDishes, dbCategories }: MenuPag
             <div ref={contentRef} style={{ background: t.bg, transition: "background 0.5s ease" }}>
 
                 <PlatosInsignia
-                    dishes={featuredDishes}
+                    dishes={mode === "comida" ? comidaDishes : brunchDishes}
                     t={t}
                     mode={mode}
                     hoveredCard={hoveredCard}
@@ -398,7 +413,21 @@ export default function MenuPageClient({ featuredDishes, dbCategories }: MenuPag
                     </div>
 
                     <div style={{ maxWidth: "1320px", margin: "0 auto", padding: "0 clamp(1rem, 3vw, 3rem)" }}>
+                        <style>{`
+                            @media (max-width: 640px) {
+                                .category-grid {
+                                    grid-template-columns: repeat(2, 1fr) !important;
+                                    grid-auto-rows: 160px !important;
+                                }
+                            }
+                            @media (min-width: 641px) and (max-width: 1024px) {
+                                .category-grid {
+                                    grid-template-columns: repeat(2, 1fr) !important;
+                                }
+                            }
+                        `}</style>
                         <div
+                            className="category-grid"
                             style={{
                                 display: "grid",
                                 gridTemplateColumns: "repeat(4, 1fr)",
@@ -411,7 +440,7 @@ export default function MenuPageClient({ featuredDishes, dbCategories }: MenuPag
                                     key={cat.slug}
                                     name={cat.name}
                                     imageUrl={cat.imageUrl}
-                                    href={`/menu/${mode}/${cat.slug}`}
+                                    href={`/menu/${mode}/${encodeURIComponent(cat.name)}`}
                                     t={t}
                                 />
                             ))}
@@ -447,7 +476,7 @@ export default function MenuPageClient({ featuredDishes, dbCategories }: MenuPag
                                     transition: "color 0.5s ease",
                                 }}
                             >
-                                {mode === "comida" ? "Restaurante" : "Brunch"}
+                                {mode === "comida" ? "Ristorante" : "Brunch"}
                             </p>
                         </div>
                     </div>
@@ -469,7 +498,7 @@ function PlatosInsignia({
     hoveredCard: number | null;
     setHoveredCard: (i: number | null) => void;
 }) {
-    const featured = dishes.slice(0, 3);
+    const featured = dishes;
 
     return (
         <section
@@ -479,7 +508,28 @@ function PlatosInsignia({
                 transition: "background 0.5s ease",
             }}
         >
+            <style>{`
+                @media (max-width: 640px) {
+                    .podium-grid {
+                        grid-template-columns: 1fr !important;
+                        align-items: stretch !important;
+                    }
+                    .podium-card {
+                        min-height: 200px !important;
+                        box-shadow: none !important;
+                        padding: 2rem 1.5rem !important;
+                    }
+                    .podium-card[data-rank="1"] { order: 1; }
+                    .podium-card[data-rank="2"] { order: 2; }
+                    .podium-card[data-rank="3"] { order: 3; }
+                    .insignia-header {
+                        flex-direction: column !important;
+                        gap: 1.5rem !important;
+                    }
+                }
+            `}</style>
             <div
+                className="insignia-header"
                 style={{
                     display: "flex",
                     justifyContent: "space-between",
@@ -498,7 +548,7 @@ function PlatosInsignia({
                     </h2>
                 </div>
 
-                <Link href={mode === "brunch" ? "/reservacion" : "/menu/comida"} style={{ textDecoration: "none", flexShrink: 0, marginTop: "0.5rem" }}>
+                <Link href="/reservation" style={{ textDecoration: "none", flexShrink: 0, marginTop: "0.5rem" }}>
                     <button
                         style={{
                             fontFamily: fonts.primary, fontSize: "0.72rem", textTransform: "uppercase",
@@ -507,54 +557,84 @@ function PlatosInsignia({
                             transition: "all 0.25s ease",
                         }}
                     >
-                        {mode === "brunch" ? "RESERVA AHORA" : "VER EN EL MENU"}
+                        RESERVA AHORA
                     </button>
                 </Link>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1px", maxWidth: "1320px", margin: "0 auto" }}>
-                {featured.map((dish, i) => {
-                    const isActive = hoveredCard === i || (hoveredCard === null && i === 1);
-                    const numStr = String(i + 1).padStart(2, "0");
-                    return (
-                        <article
-                            key={dish.id}
-                            onMouseEnter={() => setHoveredCard(i)}
-                            onMouseLeave={() => setHoveredCard(null)}
-                            style={{
-                                position: "relative", padding: "2.5rem 2rem",
-                                background: isActive ? t.insigniaCardActive : t.insigniaCard,
-                                border: isActive ? `1px solid ${t.borderAccent}` : `1px solid ${t.border}`,
-                                transition: "all 0.3s ease", cursor: "pointer",
-                                display: "flex", flexDirection: "column", justifyContent: "space-between", minHeight: "280px",
-                            }}
-                        >
-                            <div style={{ position: "absolute", top: "1.25rem", right: "1.5rem", fontFamily: fonts.primary, fontSize: "clamp(4rem, 8vw, 7rem)", fontWeight: 700, color: isActive ? t.insigniaNumberActive : t.insigniaNumber, lineHeight: 1, transition: "color 0.3s ease", userSelect: "none" }}>
-                                {numStr}
-                            </div>
-                            <div>
-                                <p style={{ fontFamily: fonts.primary, fontSize: "0.65rem", textTransform: "uppercase", color: isActive ? (mode === "comida" ? colors.peru : "#ffffff") : "rgba(255,255,255,0.5)", margin: "0 0 0.75rem", transition: "color 0.3s ease" }}>
-                                    {dish.category ?? (mode === "comida" ? "Clásica" : "Brunch")}
-                                </p>
-                                <h3 style={{ fontFamily: fonts.primary, fontSize: "clamp(1.3rem, 2.5vw, 1.9rem)", fontWeight: 700, textTransform: "uppercase", color: "#ffffff", margin: "0 0 1rem", lineHeight: 1.1, maxWidth: "20ch" }}>
-                                    {dish.name}
-                                </h3>
-                                {dish.description && (
-                                    <p style={{ fontFamily: fonts.primary, fontSize: "0.78rem", textTransform: "uppercase", color: "rgba(255,255,255,0.5)", margin: 0, lineHeight: 1.6, maxWidth: "30ch" }}>
-                                        {dish.description}
-                                    </p>
-                                )}
-                            </div>
-                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "2rem", paddingTop: "1.25rem", borderTop: `1px solid ${isActive ? t.borderAccent : t.border}` }}>
-                                <span style={{ fontFamily: fonts.primary, fontSize: "1.2rem", fontWeight: 600, color: isActive ? (mode === "comida" ? colors.peru : "#ffffff") : "rgba(255,255,255,0.6)", transition: "color 0.3s ease" }}>
-                                    ${dish.price.toFixed(0)}
-                                </span>
-                                <div style={{ width: "40px", height: "1px", background: isActive ? t.accent : "rgba(255,255,255,0.2)", transition: "background 0.3s ease" }} />
-                            </div>
-                        </article>
-                    );
-                })}
-            </div>
+            {/* Podium: el #1 (índice 0) va al centro, #2 izquierda, #3 derecha */}
+            {(() => {
+                const podium = featured.length === 3
+                    ? [featured[1], featured[0], featured[2]]
+                    : featured;
+                const originalIndex = featured.length === 3
+                    ? [1, 0, 2]
+                    : featured.map((_, i) => i);
+
+                return (
+                    <div className="podium-grid" style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(3, 1fr)",
+                        gap: "1px",
+                        maxWidth: "1320px",
+                        margin: "0 auto",
+                        alignItems: "end",
+                    }}>
+                        {podium.map((dish, displayIdx) => {
+                            const origIdx = originalIndex[displayIdx];
+                            const isCenter = displayIdx === 1;
+                            const isActive = hoveredCard === origIdx || (hoveredCard === null && isCenter);
+                            const numStr = String(origIdx + 1).padStart(2, "0");
+
+                            return (
+                                <article
+                                    key={dish.id}
+                                    className="podium-card"
+                                    data-rank={origIdx + 1}
+                                    onMouseEnter={() => setHoveredCard(origIdx)}
+                                    onMouseLeave={() => setHoveredCard(null)}
+                                    style={{
+                                        position: "relative",
+                                        padding: isCenter ? "3rem 2rem" : "2.5rem 2rem",
+                                        background: isActive ? t.insigniaCardActive : t.insigniaCard,
+                                        border: isActive ? `1px solid ${t.borderAccent}` : `1px solid ${t.border}`,
+                                        transition: "all 0.3s ease",
+                                        cursor: "pointer",
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        justifyContent: "space-between",
+                                        minHeight: isCenter ? "380px" : "280px",
+                                        boxShadow: isCenter ? `0 -6px 32px rgba(0,0,0,0.35)` : "none",
+                                    }}
+                                >
+                                    <div style={{ position: "absolute", top: "1.25rem", right: "1.5rem", fontFamily: fonts.primary, fontSize: "clamp(4rem, 8vw, 7rem)", fontWeight: 700, color: isActive ? t.insigniaNumberActive : t.insigniaNumber, lineHeight: 1, transition: "color 0.3s ease", userSelect: "none" }}>
+                                        {numStr}
+                                    </div>
+                                    <div>
+                                        <p style={{ fontFamily: fonts.primary, fontSize: "0.65rem", textTransform: "uppercase", color: isActive ? (mode === "comida" ? colors.peru : "#ffffff") : "rgba(255,255,255,0.5)", margin: "0 0 0.75rem", transition: "color 0.3s ease" }}>
+                                            {dish.category ?? (mode === "comida" ? "Clásica" : "Brunch")}
+                                        </p>
+                                        <h3 style={{ fontFamily: fonts.primary, fontSize: isCenter ? "clamp(1.5rem, 2.8vw, 2.1rem)" : "clamp(1.3rem, 2.5vw, 1.9rem)", fontWeight: 700, textTransform: "uppercase", color: "#ffffff", margin: "0 0 1rem", lineHeight: 1.1, maxWidth: "20ch" }}>
+                                            {dish.name}
+                                        </h3>
+                                        {dish.description && (
+                                            <p style={{ fontFamily: fonts.primary, fontSize: "0.78rem", textTransform: "uppercase", color: "rgba(255,255,255,0.5)", margin: 0, lineHeight: 1.6, maxWidth: "30ch" }}>
+                                                {dish.description}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "2rem", paddingTop: "1.25rem", borderTop: `1px solid ${isActive ? t.borderAccent : t.border}` }}>
+                                        <span style={{ fontFamily: fonts.primary, fontSize: isCenter ? "1.5rem" : "1.2rem", fontWeight: 600, color: isActive ? (mode === "comida" ? colors.peru : "#ffffff") : "rgba(255,255,255,0.6)", transition: "color 0.3s ease" }}>
+                                            ${dish.price.toFixed(0)}
+                                        </span>
+                                        <div style={{ width: "40px", height: "1px", background: isActive ? t.accent : "rgba(255,255,255,0.2)", transition: "background 0.3s ease" }} />
+                                    </div>
+                                </article>
+                            );
+                        })}
+                    </div>
+                );
+            })()}
         </section>
     );
 }

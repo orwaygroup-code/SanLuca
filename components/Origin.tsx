@@ -125,6 +125,29 @@ export default function Origin() {
                         </Reveal>
                     ))}
                 </div>
+
+                {/* Mapa */}
+                <div
+                    style={{
+                        position: "relative",
+                        width: "70%",
+                        margin: "3rem auto 0",
+                        borderRadius: "8px",
+                        overflow: "hidden",
+                    }}
+                >
+                    <img
+                        src="/images/mapamundi.png"
+                        alt="Mapa de orígenes San Luca"
+                        style={{
+                            width: "100%",
+                            height: "auto",
+                            display: "block",
+                            opacity: 0.65,
+                            mixBlendMode: "multiply",
+                        }}
+                    />
+                </div>
             </section>
 
             <Texture dark={false} />

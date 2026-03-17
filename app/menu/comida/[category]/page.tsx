@@ -6,7 +6,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getMenuCategoryById } from "@/lib/db";
+import { getMenuCategoryByName } from "@/lib/db";
 import { fonts, colors } from "@/config/theme";
 import DishCardGold from "@/components/menu/DishCardGold";
 
@@ -16,7 +16,7 @@ type PageProps = {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { category } = await params;
-    const data = await getMenuCategoryById(category);
+    const data = await getMenuCategoryByName(decodeURIComponent(category));
     if (!data) return { title: "Categoría no encontrada" };
     return {
         title: `${data.name} | San Luca`,
@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ComidaCategoryPage({ params }: PageProps) {
     const { category } = await params;
-    const data = await getMenuCategoryById(category);
+    const data = await getMenuCategoryByName(decodeURIComponent(category));
 
     if (!data) return notFound();
 
@@ -148,15 +148,14 @@ export default async function ComidaCategoryPage({ params }: PageProps) {
                             gap: "1rem",
                         }}
                     >
-                        {data.dishes.map((dish) => (
+                        {data.dishes.map((dish: typeof data.dishes[number]) => (
                             <DishCardGold
                                 key={dish.id}
                                 name={dish.name}
                                 description={dish.description ?? null}
                                 price={Number(dish.price)}
-                                weight={(dish as any).weight ?? null}
+                                weight={null}
                                 imageUrl={dish.imageUrl ?? null}
-                                allergens={(dish as any).allergens ?? null}
                             />
                         ))}
                     </div>
@@ -166,22 +165,34 @@ export default async function ComidaCategoryPage({ params }: PageProps) {
                 <div
                     style={{
                         marginTop: "4rem",
-                        paddingTop: "2rem",
+                        paddingTop: "2.5rem",
                         borderTop: "1px solid rgba(255,255,255,0.07)",
+                        display: "flex",
+                        justifyContent: "center",
                     }}
                 >
-                    <Link
-                        href="/menu/comida"
-                        style={{
-                            fontFamily: fonts.primary,
-                            fontSize: "0.72rem",
-
-                            textTransform: "uppercase",
-                            color: colors.peru,
-                            textDecoration: "none",
-                        }}
-                    >
-                        ← Volver
+                    <Link href="/menu" style={{ textDecoration: "none" }}>
+                        <div
+                            style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "0.75rem",
+                                padding: "1rem 2.5rem",
+                                background: colors.peru,
+                                color: "#ffffff",
+                                fontFamily: fonts.primary,
+                                fontSize: "0.75rem",
+                                fontWeight: 700,
+                                letterSpacing: "0.25em",
+                                textTransform: "uppercase",
+                                cursor: "pointer",
+                                transition: "all 0.25s ease",
+                                borderRadius: "2px",
+                            }}
+                        >
+                            <span style={{ fontSize: "1rem", lineHeight: 1 }}>←</span>
+                            Volver al menú
+                        </div>
                     </Link>
                 </div>
             </div>

@@ -40,7 +40,7 @@ export default function ComidaSectionsClient({
         );
         return {
             ...cat,
-            imageUrl: dbMatch?.imageUrl ?? null,
+            imageUrl: dbMatch?.imageUrl ?? cat.imageUrl ?? null,
         };
     });
 
@@ -160,7 +160,7 @@ export default function ComidaSectionsClient({
                             margin: 0,
                         }}
                     >
-                        Restaurante
+                        Ristorante
                     </p>
                 </div>
             </div>
