@@ -151,12 +151,8 @@ export default function Hero() {
             transition: "all 1s ease 1.4s",
           }}
         >
-<<<<<<< HEAD
           La mejor gastronomia del mundo en tu mesa
         </p>
-=======
-          La mejor gastronomia del mundo en tu mesa        </p>
->>>>>>> d28167aba32c3f2a35f115729458b9eb272d46e4
 
         {/* CTAs */}
         <div

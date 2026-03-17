@@ -161,12 +161,8 @@ export default function Footer() {
               color: "rgba(245,241,232,0.2)",
             }}
           >
-<<<<<<< HEAD
-            © 2026 San Luca Ristorante | Desarrollado por OrwayGroup 
+            © 2026 San Luca Ristorante | Desarrollado por OrwayGroup
           </span>
-=======
-            © 2026 San Luca Ristorante | Desarrollado por OrwayGroup           </span>
->>>>>>> d28167aba32c3f2a35f115729458b9eb272d46e4
           <div style={{ display: "flex", gap: 20 }}>
             <SocialLink label="Instagram" />
             <SocialLink label="Facebook" />
