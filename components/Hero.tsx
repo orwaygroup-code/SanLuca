@@ -15,14 +15,24 @@ const images = [
   "/images/hero/6b.png",
   "/images/hero/7b.png"
 ];
+
+const imagesResponsive = [
+  "/images/hero/responsive/1-responsive.png",
+  "/images/hero/responsive/2-responsive.png",
+  "/images/hero/responsive/3-responsive.png",
+  "/images/hero/responsive/4-responsive.png",
+];
 const randomImage = images[Math.floor(Math.random() * images.length)];
+const randomImageResponsive = imagesResponsive[Math.floor(Math.random() * imagesResponsive.length)];
 
 
 export default function Hero() {
   const [loaded, setLoaded] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setLoaded(true), 100);
+    setIsMobile(window.innerWidth < 640);
     return () => clearTimeout(t);
   }, []);
 
@@ -46,7 +56,7 @@ export default function Hero() {
 
       <div className="relative w-full aspect-[9/16]">
         <Image
-          src={randomImage}
+          src={isMobile ? randomImageResponsive : randomImage}
           alt="Comunidad de la fundación participando en actividades"
           fill
           priority
@@ -54,7 +64,8 @@ export default function Hero() {
           className="object-cover object-center"
           quality={85}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/70 to-black/80" />      </div>
+        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/70 to-black/80" />
+      </div>
       <div
 
       // style={{
@@ -72,7 +83,8 @@ export default function Hero() {
           position: "relative",
           zIndex: 1,
           textAlign: "center",
-          padding: "0 24px",
+          padding: "0 clamp(16px, 6vw, 24px)",
+          width: "100%",
         }}
       >
         {/* Top label */}
@@ -91,7 +103,7 @@ export default function Hero() {
         {/* Logo */}
         <div
           style={{
-            margin: "40px 0 12px",
+            margin: "clamp(20px, 5vw, 40px) 0 12px",
             opacity: loaded ? 1 : 0,
             transform: loaded ? "none" : "translateY(30px)",
             transition: "all 1.2s cubic-bezier(.16,1,.3,1) 0.5s",
@@ -100,7 +112,7 @@ export default function Hero() {
           <div
             style={{
               fontFamily: fonts.primary,
-              fontSize: "10rem",
+              fontSize: "clamp(4rem, 20vw, 10rem)",
               color: colors.cream,
               lineHeight: 0.82,
             }}
@@ -112,9 +124,8 @@ export default function Hero() {
           <div
             style={{
               fontFamily: fonts.script,
-              fontSize: "clamp(1.2rem, 3vw, 2rem)",
+              fontSize: "clamp(1rem, 4vw, 2rem)",
               color: colors.cream,
-
               opacity: 0.7,
               marginTop: 12,
             }}
@@ -139,11 +150,11 @@ export default function Hero() {
         <p
           style={{
             fontFamily: fonts.primary,
-            fontSize: "clamp(0.85rem, 1.5vw, 1rem)",
+            fontSize: "clamp(0.8rem, 3.5vw, 1rem)",
             fontWeight: 400,
             color: "rgba(245,241,232,0.4)",
             maxWidth: 380,
-            margin: "0 auto 44px",
+            margin: "clamp(12px, 3vw, 20px) auto clamp(24px, 6vw, 44px)",
             lineHeight: 1.8,
             letterSpacing: "0.04em",
             opacity: loaded ? 1 : 0,
@@ -158,18 +169,19 @@ export default function Hero() {
         <div
           style={{
             display: "flex",
-            gap: 14,
+            gap: "clamp(8px, 3vw, 14px)",
             justifyContent: "center",
             flexWrap: "wrap",
             opacity: loaded ? 1 : 0,
             transition: "opacity 1s ease 1.8s",
           }}
         >
-          <Button dark href="/reservation">
+          <Button dark href="/reservation" style={{ padding: isMobile ? "12px 28px" : "16px 44px", fontSize: "clamp(0.7rem, 3vw, 0.9rem)" }}>
             Reservar Mesa
           </Button>
-          <Button href="/menu">Descubrir el Menú</Button>
-
+          <Button href="/menu" style={{ padding: isMobile ? "12px 28px" : "16px 44px", fontSize: "clamp(0.7rem, 3vw, 0.9rem)" }}>
+            Descubrir el Menú
+          </Button>
         </div>
       </div >
 
