@@ -56,9 +56,9 @@ export default function DishCardGold({
                     borderRadius: "10px 0 0 10px",
                 }}
             >
-                {imageUrl ? (
+                {(imageUrl ?? "/images/menu/vinos/vinosTintos/1.png") ? (
                     <Image
-                        src={imageUrl}
+                        src={imageUrl ?? "/images/menu/vinos/vinosTintos/1.png"}
                         alt={name}
                         fill
                         sizes="130px"
