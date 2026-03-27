@@ -31,7 +31,7 @@ export function FeaturedMenuSection({ categories }: Props) {
         {categories.map((category) => (
           <Link
             key={category.id}
-            href={`/menu/${category.slug}`}
+            href={`/menu/${category.id}`}
             style={{ textDecoration: "none", color: "inherit" }}
           >
             <article
@@ -58,7 +58,7 @@ export function FeaturedMenuSection({ categories }: Props) {
               </div>
               <h3 style={{ margin: "0 0 0.25rem" }}>{category.name}</h3>
               <p style={{ color: "#666", fontSize: "0.875rem", margin: 0 }}>
-                {category.items.length} platillos
+                {category.dishes.length} platillos
               </p>
             </article>
           </Link>

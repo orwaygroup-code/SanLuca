@@ -4,6 +4,7 @@
 //  El hero principal vive en app/page.tsx (HOME)
 // ─────────────────────────────────────────────
 
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { getTopDishesBySection, getMenuCategories } from "@/lib/db";
 import MenuPageClient from "@/components/menu/MenuPageClient";
@@ -38,10 +39,12 @@ export default async function MenuPage() {
   }));
 
   return (
-    <MenuPageClient
-      comidaDishes={comidaRaw.map(mapDish)}
-      brunchDishes={brunchRaw.map(mapDish)}
-      dbCategories={dbCategories}
-    />
+    <Suspense>
+      <MenuPageClient
+        comidaDishes={comidaRaw.map(mapDish)}
+        brunchDishes={brunchRaw.map(mapDish)}
+        dbCategories={dbCategories}
+      />
+    </Suspense>
   );
 }

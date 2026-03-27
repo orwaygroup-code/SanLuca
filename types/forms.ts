@@ -35,11 +35,9 @@ export type Location = {
 export type MenuCategory = {
   id: string;
   name: string;
-  slug: string;
-  description: string | null;
-  imageUrl: string | null;
-  order: number;
-  items: MenuItem[];
+  position: number | null;
+  dishes: MenuItem[];
+  createdAt: Date;
 };
 
 export type MenuItem = {
@@ -48,8 +46,8 @@ export type MenuItem = {
   description: string | null;
   price: number;
   imageUrl: string | null;
-  isAvailable: boolean;
-  isFeatured: boolean;
-  allergens: string[];
+  available: boolean;
+  position: number | null;
   categoryId: string;
+  createdAt: Date;
 };
