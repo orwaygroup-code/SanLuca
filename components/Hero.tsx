@@ -28,11 +28,9 @@ const randomImageResponsive = imagesResponsive[Math.floor(Math.random() * images
 
 export default function Hero() {
   const [loaded, setLoaded] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setLoaded(true), 100);
-    setIsMobile(window.innerWidth < 640);
     return () => clearTimeout(t);
   }, []);
 
@@ -54,10 +52,25 @@ export default function Hero() {
 
       {/* Radial color accents */}
 
-      <div className="relative w-full aspect-[9/16]">
+      {/* Imagen móvil — visible solo en pantallas < 640px */}
+      <div className="absolute inset-0 block sm:hidden">
         <Image
-          src={isMobile ? randomImageResponsive : randomImage}
-          alt="Comunidad de la fundación participando en actividades"
+          src={randomImageResponsive}
+          alt="San Luca Ristorante"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-center"
+          quality={85}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/70 to-black/80" />
+      </div>
+
+      {/* Imagen desktop — visible solo en pantallas >= 640px */}
+      <div className="absolute inset-0 hidden sm:block">
+        <Image
+          src={randomImage}
+          alt="San Luca Ristorante"
           fill
           priority
           sizes="100vw"
@@ -176,10 +189,10 @@ export default function Hero() {
             transition: "opacity 1s ease 1.8s",
           }}
         >
-          <Button dark href="/reservation" style={{ padding: isMobile ? "12px 28px" : "16px 44px", fontSize: "clamp(0.7rem, 3vw, 0.9rem)" }}>
+          <Button dark href="/reservation" style={{ padding: "clamp(12px, 3vw, 16px) clamp(28px, 5vw, 44px)", fontSize: "clamp(0.7rem, 3vw, 0.9rem)" }}>
             Reservar Mesa
           </Button>
-          <Button href="/menu" style={{ padding: isMobile ? "12px 28px" : "16px 44px", fontSize: "clamp(0.7rem, 3vw, 0.9rem)" }}>
+          <Button href="/menu" style={{ padding: "clamp(12px, 3vw, 16px) clamp(28px, 5vw, 44px)", fontSize: "clamp(0.7rem, 3vw, 0.9rem)" }}>
             Descubrir el Menú
           </Button>
         </div>
