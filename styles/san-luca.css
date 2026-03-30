@@ -3,6 +3,27 @@
    Editorial Gastronómico
    ═══════════════════════════════════════════════ */
 
+/* ── Hero responsive images ── */
+.hero-img-mobile {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+.hero-img-desktop {
+  position: absolute;
+  inset: 0;
+  display: none;
+}
+.hero-img-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.8), rgba(0,0,0,0.7), rgba(0,0,0,0.8));
+}
+@media (min-width: 640px) {
+  .hero-img-mobile { display: none; }
+  .hero-img-desktop { display: block; }
+}
+
 /* ── Fonts ── */
 @font-face {
   font-family: "DailyNews";

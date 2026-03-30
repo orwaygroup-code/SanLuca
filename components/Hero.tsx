@@ -53,31 +53,31 @@ export default function Hero() {
       {/* Radial color accents */}
 
       {/* Imagen móvil — visible solo en pantallas < 640px */}
-      <div className="absolute inset-0 block sm:hidden">
+      <div className="hero-img-mobile">
         <Image
           src={randomImageResponsive}
           alt="San Luca Ristorante"
           fill
           priority
           sizes="100vw"
-          className="object-cover object-center"
+          style={{ objectFit: "cover", objectPosition: "center" }}
           quality={85}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/70 to-black/80" />
+        <div className="hero-img-overlay" />
       </div>
 
       {/* Imagen desktop — visible solo en pantallas >= 640px */}
-      <div className="absolute inset-0 hidden sm:block">
+      <div className="hero-img-desktop">
         <Image
           src={randomImage}
           alt="San Luca Ristorante"
           fill
           priority
           sizes="100vw"
-          className="object-cover object-center"
+          style={{ objectFit: "cover", objectPosition: "center" }}
           quality={85}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/70 to-black/80" />
+        <div className="hero-img-overlay" />
       </div>
       <div
 
