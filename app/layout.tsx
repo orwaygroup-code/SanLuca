@@ -18,6 +18,14 @@ export const metadata: Metadata = {
   title: "San Luca Ristorante — Auténtica Cocina Italiana",
   description:
     "Restaurante italiano premium en Aguascalientes. Cocina artesanal con ingredientes frescos y recetas de tres generaciones.",
+  icons: {
+    icon:     "/images/favicon.png",   // pestaña del navegador
+    shortcut: "/images/favicon.png",
+    apple:    "/images/favicon.png",   // iOS al guardar en pantalla de inicio
+  },
+  openGraph: {
+    images: ["/images/og-logo.png"],   // imagen que aparece al compartir en redes / Google
+  },
 };
 
 export default function RootLayout({
