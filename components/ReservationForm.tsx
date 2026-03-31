@@ -9,22 +9,22 @@ const SECTIONS = ["Terraza", "Planta Alta", "Salón", "Privado"] as const;
 type Section = (typeof SECTIONS)[number];
 
 const SECTION_IMAGES: Record<Section, string> = {
-  "Terraza":     "/images/terraza.jpg",
+  "Terraza": "/images/terraza.jpg",
   "Planta Alta": "/images/planta-alta.jpg",
-  "Salón":       "/images/salon.jpg",
-  "Privado":     "/images/privado.jpg",
+  "Salón": "/images/salon.jpg",
+  "Privado": "/images/privado.jpg",
 };
 
 const PARTY_SIZES = [1, 2, 3, 4, 5, 6, 7, 8];
 
 interface FormData {
-  guestName:         string;
-  guestPhone:        string;
-  date:              string;
-  time:              string;
-  guests:            number;
+  guestName: string;
+  guestPhone: string;
+  date: string;
+  time: string;
+  guests: number;
   sectionPreference: Section;
-  notes:             string;
+  notes: string;
 }
 
 type Step = "form" | "map";
@@ -32,21 +32,40 @@ type Step = "form" | "map";
 export function ReservationForm() {
   const router = useRouter();
 
-  const [step,      setStep]      = useState<Step>("form");
-  const [form,      setForm]      = useState<FormData>({
+  const [step, setStep] = useState<Step>("form");
+  const [form, setForm] = useState<FormData>({
     guestName: "", guestPhone: "", date: "", time: "",
     guests: 2, sectionPreference: "Terraza", notes: "",
   });
-  const [searching,    setSearching]    = useState(false);
-  const [searchError,  setSearchError]  = useState<string | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [availability, setAvailability] = useState<AvailabilityData | null>(null);
-  const [selection,    setSelection]    = useState<TableSelection | null>(null);
-  const [confirming,   setConfirming]   = useState(false);
+  const [selection, setSelection] = useState<TableSelection | null>(null);
+  const [confirming, setConfirming] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [authRequired, setAuthRequired] = useState(false);
 
   const set = <K extends keyof FormData>(field: K, value: FormData[K]) =>
     setForm((prev) => ({ ...prev, [field]: value }));
+
+  // Slots de horario según el día seleccionado (cada 30 min dentro del horario del restaurante)
+  const timeSlots = (() => {
+    const isSunday = form.date
+      ? (() => { const [y, m, d] = form.date.split("-").map(Number); return new Date(y, m - 1, d).getDay() === 0; })()
+      : false;
+    const slots: string[] = [];
+    const pad = (n: number) => String(n).padStart(2, "0");
+    if (isSunday) {
+      // Domingo: 08:00 – 21:00
+      for (let h = 8; h < 21; h++) { slots.push(`${pad(h)}:00`); slots.push(`${pad(h)}:30`); }
+      slots.push("21:00");
+    } else {
+      // Lunes–Sábado: 08:00 – 23:30 + 00:00
+      for (let h = 8; h < 24; h++) { slots.push(`${pad(h)}:00`); slots.push(`${pad(h)}:30`); }
+      slots.push("23:30");
+    }
+    return slots;
+  })();
 
   // ── Paso 1: buscar disponibilidad ─────────────
   async function handleSearch() {
@@ -64,11 +83,11 @@ export function ReservationForm() {
     try {
       const params = new URLSearchParams({
         section: form.sectionPreference,
-        date:    form.date,
-        time:    form.time,
-        guests:  String(form.guests),
+        date: form.date,
+        time: form.time,
+        guests: String(form.guests),
       });
-      const res  = await fetch(`/api/reservations/available-tables?${params}`);
+      const res = await fetch(`/api/reservations/available-tables?${params}`);
       const data = await res.json();
 
       if (!data.success) throw new Error(data.error);
@@ -101,18 +120,18 @@ export function ReservationForm() {
     try {
       const userId = localStorage.getItem("userId") ?? "";
       const res = await fetch("/api/reservations", {
-        method:  "POST",
+        method: "POST",
         headers: { "Content-Type": "application/json", "x-user-id": userId },
         body: JSON.stringify({
-          guestName:         form.guestName,
-          guestPhone:        form.guestPhone,
-          date:              form.date,
-          time:              form.time,
-          guests:            form.guests,
+          guestName: form.guestName,
+          guestPhone: form.guestPhone,
+          date: form.date,
+          time: form.time,
+          guests: form.guests,
           sectionPreference: form.sectionPreference,
-          notes:             form.notes || undefined,
-          tableId:           selection.tableId,
-          linkedTableId:     selection.linkedTableId,
+          notes: form.notes || undefined,
+          tableId: selection.tableId,
+          linkedTableId: selection.linkedTableId,
         }),
       });
       const data = await res.json();
@@ -126,12 +145,9 @@ export function ReservationForm() {
   }
 
   // ── Slide del switch ──────────────────────────
-  const sections3 = SECTIONS.filter(s => s !== "Privado");
-  const activeIdx = sections3.indexOf(form.sectionPreference as any);
-  const thumbLeft  = activeIdx >= 0
-    ? `calc(${(activeIdx / sections3.length) * 100}% + 4px)`
-    : "calc(75% + 4px)";
-  const thumbWidth = `calc(${100 / sections3.length}% - 8px)`;
+  const activeIdx = SECTIONS.indexOf(form.sectionPreference);
+  const thumbLeft = `calc(${(activeIdx / SECTIONS.length) * 100}% + 4px)`;
+  const thumbWidth = `calc(${100 / SECTIONS.length}% - 8px)`;
 
   // ── Resumen de mesa seleccionada ──────────────
   const selectionLabel = selection
@@ -168,11 +184,11 @@ export function ReservationForm() {
             ))}
           </div>
 
-          {/* Switch de sección (3 opciones + Privado como botón aparte) */}
+          {/* Switch de sección (4 opciones en el mismo track) */}
           <div className="rf-switch-overlay">
-            <div className="rf-switch-track" style={{ display: "grid", gridTemplateColumns: `repeat(${sections3.length}, 1fr)`, position: "relative" }}>
+            <div className="rf-switch-track" style={{ display: "grid", gridTemplateColumns: `repeat(${SECTIONS.length}, 1fr)`, position: "relative" }}>
               <div className="rf-switch-thumb" style={{ left: thumbLeft, width: thumbWidth }} />
-              {sections3.map((sec) => (
+              {SECTIONS.map((sec) => (
                 <button
                   key={sec}
                   className={`rf-switch-btn${form.sectionPreference === sec ? " rf-switch-btn--active" : ""}`}
@@ -182,25 +198,6 @@ export function ReservationForm() {
                 </button>
               ))}
             </div>
-            {/* Privado: botón separado */}
-            <button
-              onClick={() => { set("sectionPreference", "Privado"); setStep("form"); setAvailability(null); setSelection(null); }}
-              style={{
-                marginTop:    6,
-                width:        "100%",
-                padding:      "6px 0",
-                background:   form.sectionPreference === "Privado" ? "rgba(186,132,60,0.3)" : "rgba(28,38,40,0.7)",
-                border:       `1px solid ${form.sectionPreference === "Privado" ? "#ba843c" : "rgba(186,132,60,0.3)"}`,
-                borderRadius: 8,
-                color:        form.sectionPreference === "Privado" ? "#f5f1e8" : "rgba(245,241,232,0.5)",
-                fontSize:     "0.7rem",
-                letterSpacing: "0.1em",
-                cursor:       "pointer",
-                transition:   "all 0.2s ease",
-              }}
-            >
-              PRIVADO
-            </button>
           </div>
         </div>
       </div>
@@ -234,12 +231,18 @@ export function ReservationForm() {
                 <label className="rf-label">Fecha</label>
                 <input className="rf-input" type="date" value={form.date}
                   min={new Date().toISOString().split("T")[0]} style={{ colorScheme: "dark" }}
-                  onChange={(e) => set("date", e.target.value)} />
+                  onChange={(e) => { set("date", e.target.value); set("time", ""); }} />
               </div>
               <div>
                 <label className="rf-label">Hora</label>
-                <input className="rf-input" type="time" value={form.time}
-                  style={{ colorScheme: "dark" }} onChange={(e) => set("time", e.target.value)} />
+                <select className="rf-select" value={form.time}
+                  onChange={(e) => set("time", e.target.value)}
+                  disabled={!form.date}>
+                  <option value="" disabled>{form.date ? "Selecciona hora" : "Elige fecha primero"}</option>
+                  {timeSlots.map((t) => (
+                    <option key={t} value={t} style={{ background: "#1b2224" }}>{t}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="rf-label">Personas</label>

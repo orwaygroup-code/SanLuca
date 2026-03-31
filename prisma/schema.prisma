@@ -15,9 +15,10 @@ model User {
   id           String        @id @default(cuid())
   name         String
   email        String        @unique
-  phone        String
+  phone        String        @default("")
   birthDate    DateTime?
-  passwordHash String
+  passwordHash String?
+  googleId     String?       @unique
   role         Role          @default(CUSTOMER)
   reservations Reservation[]
   createdAt    DateTime      @default(now())

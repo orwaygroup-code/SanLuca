@@ -1,19 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { colors, fonts } from "@/config/theme";
 import Button from "@/components/ui/Button";
 import { SectionHead, Divider } from "@/components/ui/SectionHead";
 
-
-/* ─── Types ─── */
-interface Location {
-  id: string;
-  name: string;
-  address?: string;
-  phone?: string;
-  email?: string;
-}
 
 /* ─── Hours Data ─── */
 const HOURS = [
@@ -254,40 +245,15 @@ function InfoCard({
    CONTACT PAGE
    ═══════════════════════════════════════════ */
 export default function ContactPage() {
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [loadingLocations, setLoadingLocations] = useState(true);
-
   const [form, setForm] = useState({
     name: "",
     email: "",
-    locationId: "",
     message: "",
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [apiError, setApiError] = useState("");
-
-  /* ── Fetch locations on mount ── */
-  useEffect(() => {
-    async function fetchLocations() {
-      try {
-        const res = await fetch("/api/locations");
-        const json = await res.json();
-        // Handle both { success, data } and raw array responses
-        if (json.success && json.data) {
-          setLocations(json.data);
-        } else if (Array.isArray(json)) {
-          setLocations(json);
-        }
-      } catch (err) {
-        console.error("Error loading locations:", err);
-      } finally {
-        setLoadingLocations(false);
-      }
-    }
-    fetchLocations();
-  }, []);
 
   /* ── Update helper ── */
   const update = (key: string) => (value: string) => {
@@ -312,7 +278,6 @@ export default function ContactPage() {
     if (form.name.length < 2) errs.name = "El nombre debe tener al menos 2 caracteres";
     if (form.name.length > 100) errs.name = "El nombre no puede exceder 100 caracteres";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = "Ingresa un email válido";
-    if (!form.locationId) errs.locationId = "Selecciona una sucursal";
     if (form.message.length < 10) errs.message = "El mensaje debe tener al menos 10 caracteres";
     if (form.message.length > 2000) errs.message = "El mensaje no puede exceder 2000 caracteres";
     setErrors(errs);
@@ -332,7 +297,6 @@ export default function ContactPage() {
         body: JSON.stringify({
           name: form.name,
           email: form.email,
-          locationId: form.locationId,
           message: form.message,
         }),
       });
@@ -341,7 +305,7 @@ export default function ContactPage() {
 
       if (json.success) {
         setStatus("sent");
-        setForm({ name: "", email: "", locationId: "", message: "" });
+        setForm({ name: "", email: "", message: "" });
       } else {
         setStatus("error");
         setApiError(json.error || "Error al enviar el mensaje");
@@ -351,10 +315,6 @@ export default function ContactPage() {
       setApiError("Error de conexión. Intenta de nuevo.");
     }
   };
-
-  /* ── Info cards from selected location ── */
-  const sel = locations.find((l) => l.id === form.locationId);
-
 
   /* ═══ RENDER ═══ */
   return (
@@ -423,15 +383,6 @@ export default function ContactPage() {
                 <Field label="Nombre" name="name" value={form.name} onChange={update("name")} error={errors.name} />
                 <Field label="Correo electrónico" name="email" type="email" value={form.email} onChange={update("email")} error={errors.email} />
               </div>
-
-              <SelectField
-                label="Sucursal"
-                value={form.locationId}
-                onChange={update("locationId")}
-                placeholder={loadingLocations ? "Cargando sucursales..." : "Selecciona una sucursal"}
-                options={locations.map((l) => ({ value: l.id, label: l.name }))}
-                error={errors.locationId}
-              />
 
               <Field label="Mensaje" name="message" textarea value={form.message} onChange={update("message")} error={errors.message} />
 
@@ -508,10 +459,10 @@ export default function ContactPage() {
                   Encuéntranos
                 </p>
                 <p style={{ fontFamily: fonts.primary, fontSize: "0.9rem", fontWeight: 400, color: "rgba(245,241,232,0.45)", margin: 0 }}>
-                  {sel?.address || "Aguascalientes, Ags."}
+                  Aguascalientes, Ags.
                 </p>
                 <a
-                  href={`https://maps.google.com/?q=${encodeURIComponent(sel?.address || "San Luca Ristorante Aguascalientes")}`}
+                  href={`https://maps.google.com/?q=${encodeURIComponent("San Luca Ristorante Aguascalientes")}`}
                   target="_blank" rel="noopener noreferrer"
                   style={{
                     display: "inline-block", marginTop: 16, fontFamily: fonts.primary,

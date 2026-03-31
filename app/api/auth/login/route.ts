@@ -27,6 +27,12 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        if (!user.passwordHash) {
+            return NextResponse.json<ApiResponse>(
+                { success: false, error: "GOOGLE_ACCOUNT" },
+                { status: 401 }
+            );
+        }
         const valid = await verifyPassword(password, user.passwordHash);
         if (!valid) {
             return NextResponse.json<ApiResponse>(

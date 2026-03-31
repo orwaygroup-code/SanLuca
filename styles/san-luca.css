@@ -484,52 +484,27 @@ textarea::placeholder {
   padding: 0;
 }
 
-.auth-social-row {
+.auth-google-btn {
+  width: 100%;
   display: flex;
-  justify-content: center;
-  gap: 1rem;
-  padding-top: 0.25rem;
-}
-
-.auth-social-row--inline {
-  justify-content: flex-start;
-  padding-top: 0;
   align-items: center;
-}
-
-.auth-social-btn {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: none;
+  justify-content: center;
+  gap: 10px;
+  padding: 11px 0;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px;
+  color: rgba(245,241,232,0.9);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: opacity 0.2s;
+  transition: background 0.2s, border-color 0.2s;
 }
 
-.auth-social-btn:hover {
-  opacity: 0.8;
-}
-
-.auth-social-btn--fb {
-  background: #1877f2;
-}
-
-.auth-social-btn--g {
-  background: #fff;
-}
-
-.auth-social-btn--apple {
-  background: #111;
-  border: 1px solid rgba(255,255,255,0.2);
-}
-
-.auth-submit-row {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+.auth-google-btn:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.25);
 }
 
 .auth-submit-btn {
