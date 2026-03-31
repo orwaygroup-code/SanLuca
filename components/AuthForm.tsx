@@ -105,6 +105,12 @@ export function AuthForm() {
 
     const handleRegister = async () => {
         setError(null);
+        if (!register.name.trim())            { setError("El nombre es obligatorio.");               return; }
+        if (!register.email.trim())           { setError("El correo electrónico es obligatorio.");   return; }
+        if (!register.phone.trim())           { setError("El número celular es obligatorio.");       return; }
+        if (!register.password)               { setError("La contraseña es obligatoria.");           return; }
+        if (!register.confirmPassword)        { setError("Confirma tu contraseña.");                 return; }
+        if (register.password !== register.confirmPassword) { setError("Las contraseñas no coinciden."); return; }
         setLoading(true);
         try {
             const res = await fetch("/api/auth/register", {
