@@ -61,7 +61,7 @@ model Dish {
 
 model Section {
   id          String   @id @default(cuid())
-  name        String   // "Terraza", "Planta Alta", "Salón"
+  name        String   @unique // "Terraza", "Planta Alta", "Salón", "Privado"
   description String?
   isActive    Boolean  @default(true)
   tables      Table[]
@@ -69,14 +69,15 @@ model Section {
 }
 
 model Table {
-  id           String        @id @default(cuid())
-  number       Int           // número visible: 1, 2, 3...
-  capacity     Int           // máximo de personas
-  sectionId    String
-  section      Section       @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  isActive     Boolean       @default(true)
-  reservations Reservation[]
-  createdAt    DateTime      @default(now())
+  id                 String        @id @default(cuid())
+  number             Int           // número visible: 1, 2, 3...
+  capacity           Int           // máximo de personas
+  sectionId          String
+  section            Section       @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  isActive           Boolean       @default(true)
+  reservations       Reservation[] @relation("PrimaryTable")
+  linkedReservations Reservation[] @relation("LinkedTable")
+  createdAt          DateTime      @default(now())
 
   @@unique([number, sectionId])
   @@index([sectionId])
@@ -100,8 +101,10 @@ model Reservation {
   guestPhone        String
 
   // ── Mesa asignada ──────────────────────
-  tableId           String?           // se asigna al confirmar
-  table             Table?            @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  tableId           String?           // mesa principal (o única)
+  table             Table?            @relation("PrimaryTable", fields: [tableId], references: [id], onDelete: SetNull)
+  linkedTableId     String?           // segunda mesa cuando se combinan dos
+  linkedTable       Table?            @relation("LinkedTable", fields: [linkedTableId], references: [id], onDelete: SetNull)
 
   // ── Detalles del turno ─────────────────
   date              DateTime          // fecha + hora exacta

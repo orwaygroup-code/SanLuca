@@ -388,6 +388,21 @@ textarea::placeholder {
   font-size: 0.85rem;
 }
 
+/* ── Map step: full-width layout ── */
+.rf-wrapper--map {
+  grid-template-columns: 1fr;
+}
+
+.rf-wrapper--map .rf-left {
+  display: none;
+}
+
+.rf-wrapper--map .rf-right {
+  max-width: 1000px;
+  margin: 50px auto 48px;
+  width: calc(100% - 48px);
+}
+
 @media (max-width: 768px) {
   .rf-wrapper {
     grid-template-columns: 1fr;

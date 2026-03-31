@@ -559,6 +559,92 @@ async function main() {
   });
 
   console.log("✓ Seed completo: 37 categorías, 230+ platillos y bebidas");
+
+  // ────────────────────────────────────────────
+  // SECCIONES Y MESAS
+  // ────────────────────────────────────────────
+  const salonSec = await prisma.section.upsert({
+    where: { name: "Salón" },
+    update: {},
+    create: { name: "Salón" },
+  });
+  const terrazaSec = await prisma.section.upsert({
+    where: { name: "Terraza" },
+    update: {},
+    create: { name: "Terraza" },
+  });
+  const plantaAltaSec = await prisma.section.upsert({
+    where: { name: "Planta Alta" },
+    update: {},
+    create: { name: "Planta Alta" },
+  });
+  const privadoSec = await prisma.section.upsert({
+    where: { name: "Privado" },
+    update: {},
+    create: { name: "Privado" },
+  });
+
+  // Salón: M1–M8
+  for (const t of [
+    { number: 1, capacity: 3 },
+    { number: 2, capacity: 2 },
+    { number: 3, capacity: 4 },
+    { number: 4, capacity: 6 },
+    { number: 5, capacity: 4 },
+    { number: 6, capacity: 4 },
+    { number: 7, capacity: 6 },
+    { number: 8, capacity: 4 },
+  ]) {
+    await prisma.table.upsert({
+      where: { number_sectionId: { number: t.number, sectionId: salonSec.id } },
+      update: { capacity: t.capacity },
+      create: { number: t.number, capacity: t.capacity, sectionId: salonSec.id },
+    });
+  }
+
+  // Terraza: M10–M18
+  for (const t of [
+    { number: 10, capacity: 4 },
+    { number: 11, capacity: 4 },
+    { number: 12, capacity: 2 },
+    { number: 13, capacity: 4 },
+    { number: 14, capacity: 2 },
+    { number: 15, capacity: 4 },
+    { number: 16, capacity: 4 },
+    { number: 17, capacity: 4 },
+    { number: 18, capacity: 4 },
+  ]) {
+    await prisma.table.upsert({
+      where: { number_sectionId: { number: t.number, sectionId: terrazaSec.id } },
+      update: { capacity: t.capacity },
+      create: { number: t.number, capacity: t.capacity, sectionId: terrazaSec.id },
+    });
+  }
+
+  // Planta Alta: M20–M25
+  for (const t of [
+    { number: 20, capacity: 4 },
+    { number: 21, capacity: 4 },
+    { number: 22, capacity: 4 },
+    { number: 23, capacity: 4 },
+    { number: 24, capacity: 4 },
+    { number: 25, capacity: 4 },
+  ]) {
+    await prisma.table.upsert({
+      where: { number_sectionId: { number: t.number, sectionId: plantaAltaSec.id } },
+      update: { capacity: t.capacity },
+      create: { number: t.number, capacity: t.capacity, sectionId: plantaAltaSec.id },
+    });
+  }
+
+  // Privado: 1 mesa de 8
+  await prisma.table.upsert({
+    where: { number_sectionId: { number: 1, sectionId: privadoSec.id } },
+    update: { capacity: 8 },
+    create: { number: 1, capacity: 8, sectionId: privadoSec.id },
+  });
+
+  console.log("✓ Secciones y mesas creadas (Salón, Terraza, Planta Alta, Privado)");
 }
 
 main()

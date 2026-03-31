@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const { date, time, ...rest } = validation.data;
+        const { date, time, tableId, linkedTableId, ...rest } = validation.data;
 
         // 4. Combinar fecha + hora en un solo DateTime
         const reservationDate = new Date(`${date}T${time}:00`);
@@ -96,6 +96,8 @@ export async function POST(request: NextRequest) {
             data: {
                 userId,
                 date: reservationDate,
+                ...(tableId       ? { tableId }       : {}),
+                ...(linkedTableId ? { linkedTableId } : {}),
                 ...rest,
             },
             select: {

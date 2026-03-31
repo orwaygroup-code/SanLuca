@@ -47,10 +47,14 @@ export const createReservationSchema = z.object({
 
   // Preferencias
   sectionPreference: z
-    .enum(["Terraza", "Planta Alta", "Salón"])
+    .enum(["Terraza", "Planta Alta", "Salón", "Privado"])
     .optional(),
   occasion: z.string().max(100).optional(),
   notes: z.string().max(500).optional(),
+
+  // Mesa seleccionada en el mapa
+  tableId:       z.string().cuid().optional(),
+  linkedTableId: z.string().cuid().optional(),
 });
 
 export type CreateReservationInput = z.infer<typeof createReservationSchema>;
