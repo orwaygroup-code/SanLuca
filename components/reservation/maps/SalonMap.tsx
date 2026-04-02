@@ -12,68 +12,6 @@ interface Props {
   onSelect:  (sel: TableSelection) => void;
 }
 
-const C: Record<TableState, { bg: string; border: string; text: string; sub: string }> = {
-  available: { bg: "#1e2a2c", border: "rgba(186,132,60,0.4)",  text: "#f5f1e8",               sub: "rgba(186,132,60,0.7)"  },
-  occupied:  { bg: "#181f21", border: "rgba(255,255,255,0.05)", text: "rgba(255,255,255,0.15)", sub: "rgba(255,255,255,0.1)" },
-  selected:  { bg: "#7a5220", border: "#e0a040",               text: "#fff",                  sub: "rgba(255,255,255,0.8)" },
-  pair:      { bg: "#251a08", border: "rgba(186,132,60,0.6)",  text: "rgba(186,132,60,0.9)",  sub: "rgba(186,132,60,0.7)"  },
-  disabled:  { bg: "#161e20", border: "rgba(255,255,255,0.03)", text: "rgba(255,255,255,0.08)", sub: "rgba(255,255,255,0.06)" },
-};
-
-function SillonBox({
-  tableNum, capacity, state, onClick, style,
-}: {
-  tableNum: number; capacity: number; state: TableState;
-  onClick?: () => void; style: React.CSSProperties;
-}) {
-  const c = C[state];
-  const clickable = state === "available" || state === "pair" || state === "selected";
-
-  return (
-    <div
-      onClick={clickable ? onClick : undefined}
-      style={{
-        position: "absolute",
-        cursor: clickable ? "pointer" : "default",
-        background: c.bg,
-        border: `1.5px solid ${c.border}`,
-        borderRadius: 8,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 2,
-        transition: "background 0.2s, border-color 0.2s",
-        zIndex: 1,
-        ...style,
-      }}
-    >
-      {(state === "selected" || state === "pair") && [
-        { top: -5, left: -5,    bw: "2px 0 0 2px" },
-        { top: -5, right: -5,   bw: "2px 2px 0 0" },
-        { bottom: -5, left: -5,  bw: "0 0 2px 2px" },
-        { bottom: -5, right: -5, bw: "0 2px 2px 0" },
-      ].map((b, i) => (
-        <div key={i} style={{
-          position: "absolute", width: 9, height: 9, zIndex: 2, pointerEvents: "none",
-          borderColor: "#ba843c", borderStyle: "solid", borderWidth: b.bw,
-          top: (b as any).top, left: (b as any).left,
-          right: (b as any).right, bottom: (b as any).bottom,
-        }} />
-      ))}
-      <span style={{ fontSize: "0.55rem", fontWeight: 800, color: c.text, letterSpacing: "0.06em", textTransform: "uppercase" }}>
-        Sillón
-      </span>
-      <span style={{ fontSize: "0.5rem", fontWeight: 700, color: c.text, letterSpacing: "0.04em" }}>
-        M{tableNum}
-      </span>
-      <span style={{ fontSize: "0.42rem", color: c.sub }}>
-        {capacity}p
-      </span>
-    </div>
-  );
-}
-
 export function SalonMap({ tables, pairs, guests, selection, onSelect }: Props) {
   const byNumber = new Map(tables.map((t) => [t.number, t]));
   const pairIds  = new Set(pairs.flatMap((p) => [p.tableA.id, p.tableB.id]));
@@ -102,12 +40,6 @@ export function SalonMap({ tables, pairs, guests, selection, onSelect }: Props) 
     const t = byNumber.get(num);
     if (!t) return null;
     return <BlobTable key={num} tableNum={t.number} capacity={t.capacity} cx={cx} cy={cy} state={getState(t)} onClick={() => handleClick(t)} />;
-  };
-
-  const sillon = (num: number, style: React.CSSProperties) => {
-    const t = byNumber.get(num);
-    if (!t) return null;
-    return <SillonBox key={num} tableNum={t.number} capacity={t.capacity} state={getState(t)} onClick={() => handleClick(t)} style={style} />;
   };
 
   return (
@@ -140,35 +72,28 @@ export function SalonMap({ tables, pairs, guests, selection, onSelect }: Props) 
         </span>
       </div>
 
-      {/* ══════════════════════════════════════
-          ZONA SILLONES — M1, M5, M6
-      ══════════════════════════════════════ */}
+      {/* ── Leyenda sillones ── */}
       <div style={{
-        position: "absolute", left: "33%", top: "8%", width: "57%", height: "84%",
-        background: "#1c2628", border: "1px solid rgba(255,255,255,0.07)",
-        borderRadius: 8,
+        position: "absolute", right: "12%", top: 10,
+        fontSize: "0.42rem", color: "rgba(186,132,60,0.45)",
+        letterSpacing: "0.14em", textTransform: "uppercase",
       }}>
-        <div style={{
-          position: "absolute", top: 6, left: 0, right: 0,
-          textAlign: "center", fontSize: "0.42rem",
-          color: "rgba(255,255,255,0.2)", letterSpacing: "0.14em", textTransform: "uppercase",
-        }}>
-          Zona Sillones
-        </div>
-
-        {sillon(6, { left: "3%",  top: "20%", width: "29%", height: "38%" })}
-        {sillon(5, { left: "35%", top: "20%", width: "29%", height: "38%" })}
-        {sillon(1, { left: "35%", top: "62%", width: "29%", height: "30%" })}
+        — Sillones
       </div>
 
-      {/* M2 — mesa en zona de sillones */}
-      {blob(2, 44, 80)}
-
-      {/* ── Mesas (lado izquierdo) ── */}
+      {/* ── Mesas izquierda ── */}
       {blob(8,  8,  26)}
       {blob(7,  22, 50)}
       {blob(4,  8,  76)}
       {blob(3,  22, 76)}
+
+      {/* ── Mesas centro ── */}
+      {blob(2, 42, 60)}
+
+      {/* ── Sillones (como mesas) ── */}
+      {blob(6, 55, 30)}
+      {blob(5, 70, 30)}
+      {blob(1, 70, 70)}
     </div>
   );
 }
