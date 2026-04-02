@@ -63,7 +63,7 @@ export function SalonMap({ tables, pairs, guests, selection, onSelect }: Props) 
 
       {/* ── ENTRADA (right strip) ── */}
       <div style={{
-        position: "absolute", right: 0, top: 0, bottom: 0, width: "9%",
+        position: "absolute", right: 0, top: 0, bottom: 0, width: "8%",
         background: "rgba(255,255,255,0.025)", borderLeft: "1px solid rgba(255,255,255,0.06)",
         display: "flex", alignItems: "center", justifyContent: "center",
       }}>
@@ -72,25 +72,36 @@ export function SalonMap({ tables, pairs, guests, selection, onSelect }: Props) 
         </span>
       </div>
 
-      {/* ── Leyenda sillones ── */}
+      {/* ══════════════════════════════════════
+          ZONA SILLONES — borde delimitado
+          M6 y M5 arriba, M1 abajo-derecha
+      ══════════════════════════════════════ */}
       <div style={{
-        position: "absolute", right: "12%", top: 10,
-        fontSize: "0.42rem", color: "rgba(186,132,60,0.45)",
-        letterSpacing: "0.14em", textTransform: "uppercase",
+        position: "absolute", left: "36%", top: "6%", width: "54%", height: "88%",
+        border: "1px solid rgba(255,255,255,0.08)",
+        borderRadius: 10,
+        background: "rgba(255,255,255,0.015)",
       }}>
-        — Sillones
+        {/* Etiqueta sillones */}
+        <div style={{
+          position: "absolute", top: 5, left: 10,
+          fontSize: "0.38rem", color: "rgba(186,132,60,0.4)",
+          letterSpacing: "0.14em", textTransform: "uppercase",
+        }}>
+          Sillones
+        </div>
       </div>
 
-      {/* ── Mesas izquierda ── */}
-      {blob(8,  8,  26)}
-      {blob(7,  22, 50)}
-      {blob(4,  8,  76)}
-      {blob(3,  22, 76)}
+      {/* ── Mesas izquierda (grid 2×2) ── */}
+      {blob(8,  9,  27)}
+      {blob(7,  26, 27)}
+      {blob(4,  9,  73)}
+      {blob(3,  26, 73)}
 
-      {/* ── Mesas centro ── */}
-      {blob(2, 42, 60)}
+      {/* ── Mesa centro-baja ── */}
+      {blob(2, 47, 73)}
 
-      {/* ── Sillones (como mesas) ── */}
+      {/* ── Sillones como mesas dentro del borde ── */}
       {blob(6, 55, 30)}
       {blob(5, 70, 30)}
       {blob(1, 70, 70)}
