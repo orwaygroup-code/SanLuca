@@ -41,7 +41,7 @@ const STATUS_COLOR: Record<string, string> = {
     NO_SHOW:     "#e05555",
 };
 
-const SECTIONS = ["Todas", "Terraza", "Planta Alta", "Salón"];
+const SECTIONS = ["Todas", "Terraza", "Planta Alta", "Salón", "Privado"];
 const NEXT_STATUSES: Record<string, { label: string; value: string }[]> = {
     PENDING:     [{ label: "Confirmar",  value: "CONFIRMED"   }, { label: "Cancelar",    value: "CANCELLED"   }],
     CONFIRMED:   [{ label: "En curso",   value: "IN_PROGRESS" }, { label: "Retraso",     value: "DELAYED"     }, { label: "No se presentó", value: "NO_SHOW" }],
