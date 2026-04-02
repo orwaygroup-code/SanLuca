@@ -12,122 +12,65 @@ interface Props {
   onSelect:  (sel: TableSelection) => void;
 }
 
-const BACK = "#14191a";
-
-const C: Record<TableState, { bg: string; cushion: string; cBorder: string; text: string; lbl: string }> = {
-  available: { bg: "#1e2a2c", cushion: "#2d3c3e", cBorder: "rgba(186,132,60,0.3)",    text: "#f5f1e8",               lbl: "rgba(186,132,60,0.8)"   },
-  occupied:  { bg: "#181f21", cushion: "#1c2426", cBorder: "rgba(255,255,255,0.04)",   text: "rgba(255,255,255,0.15)", lbl: "rgba(255,255,255,0.1)"  },
-  selected:  { bg: "#7a5220", cushion: "#ba843c", cBorder: "#e0a040",                  text: "#fff",                  lbl: "#fff"                   },
-  pair:      { bg: "#251a08", cushion: "#3d2e14", cBorder: "rgba(186,132,60,0.6)",    text: "rgba(186,132,60,0.9)",  lbl: "rgba(186,132,60,0.75)"  },
-  disabled:  { bg: "#161e20", cushion: "#191f21", cBorder: "rgba(255,255,255,0.03)",   text: "rgba(255,255,255,0.08)", lbl: "rgba(255,255,255,0.06)" },
+const C: Record<TableState, { bg: string; border: string; text: string; sub: string }> = {
+  available: { bg: "#1e2a2c", border: "rgba(186,132,60,0.4)",  text: "#f5f1e8",               sub: "rgba(186,132,60,0.7)"  },
+  occupied:  { bg: "#181f21", border: "rgba(255,255,255,0.05)", text: "rgba(255,255,255,0.15)", sub: "rgba(255,255,255,0.1)" },
+  selected:  { bg: "#7a5220", border: "#e0a040",               text: "#fff",                  sub: "rgba(255,255,255,0.8)" },
+  pair:      { bg: "#251a08", border: "rgba(186,132,60,0.6)",  text: "rgba(186,132,60,0.9)",  sub: "rgba(186,132,60,0.7)"  },
+  disabled:  { bg: "#161e20", border: "rgba(255,255,255,0.03)", text: "rgba(255,255,255,0.08)", sub: "rgba(255,255,255,0.06)" },
 };
 
-/**
- * SofaSection — sofa with visible backing strip + individual cushions
- * orient "h-top"  → horizontal sofa, backing at top, cushions in a row below
- * orient "v-right"→ vertical sofa, backing on right, cushions in a column on left
- */
-function SofaSection({
-  tableNum, capacity, state, onClick, style, orient,
+function SillonBox({
+  tableNum, capacity, state, onClick, style,
 }: {
   tableNum: number; capacity: number; state: TableState;
   onClick?: () => void; style: React.CSSProperties;
-  orient: "h-top" | "v-right";
 }) {
   const c = C[state];
   const clickable = state === "available" || state === "pair" || state === "selected";
-  const isH = orient === "h-top";
 
   return (
     <div
       onClick={clickable ? onClick : undefined}
-      title={`M${tableNum} · ${capacity} personas`}
-      style={{ position: "absolute", cursor: clickable ? "pointer" : "default", zIndex: 1, ...style }}
+      style={{
+        position: "absolute",
+        cursor: clickable ? "pointer" : "default",
+        background: c.bg,
+        border: `1.5px solid ${c.border}`,
+        borderRadius: 8,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 2,
+        transition: "background 0.2s, border-color 0.2s",
+        zIndex: 1,
+        ...style,
+      }}
     >
-      {/* Selection corner brackets */}
       {(state === "selected" || state === "pair") && [
-        { top: -5, left: -5,  bw: "2px 0 0 2px" },
-        { top: -5, right: -5, bw: "2px 2px 0 0" },
+        { top: -5, left: -5,    bw: "2px 0 0 2px" },
+        { top: -5, right: -5,   bw: "2px 2px 0 0" },
         { bottom: -5, left: -5,  bw: "0 0 2px 2px" },
         { bottom: -5, right: -5, bw: "0 2px 2px 0" },
       ].map((b, i) => (
         <div key={i} style={{
-          position: "absolute", width: 9, height: 9, zIndex: 2,
+          position: "absolute", width: 9, height: 9, zIndex: 2, pointerEvents: "none",
           borderColor: "#ba843c", borderStyle: "solid", borderWidth: b.bw,
           top: (b as any).top, left: (b as any).left,
           right: (b as any).right, bottom: (b as any).bottom,
-          pointerEvents: "none",
         }} />
       ))}
-
-      {/* Sofa body */}
-      <div style={{
-        position: "absolute", inset: 0,
-        background: c.bg,
-        border: `1.5px solid ${c.cBorder}`,
-        borderRadius: 8,
-        overflow: "hidden",
-        display: "flex",
-        flexDirection: isH ? "column" : "row",
-        transition: "background 0.2s, border-color 0.2s",
-      }}>
-        {/* h-top: backing strip at top */}
-        {isH && (
-          <div style={{ height: "32%", minHeight: 8, flexShrink: 0, background: BACK, borderBottom: "1px solid rgba(0,0,0,0.3)" }} />
-        )}
-
-        {/* Cushions area */}
-        <div style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: isH ? "row" : "column",
-          gap: 3,
-          padding: isH ? "3px 5px 4px" : "5px 3px 5px 5px",
-        }}>
-          {Array.from({ length: capacity }).map((_, i) => (
-            <div key={i} style={{
-              flex: 1, minHeight: 0, minWidth: 0,
-              background: c.cushion,
-              borderRadius: 5,
-              border: `1px solid ${c.cBorder}`,
-              transition: "background 0.2s",
-            }} />
-          ))}
-        </div>
-
-        {/* v-right: backing strip on right */}
-        {!isH && (
-          <div style={{ width: "32%", minWidth: 8, flexShrink: 0, background: BACK, borderLeft: "1px solid rgba(0,0,0,0.3)" }} />
-        )}
-      </div>
-
-      {/* Label */}
-      <div style={{
-        position: "absolute", inset: 0, zIndex: 1, pointerEvents: "none",
-        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-      }}>
-        <span style={{ fontSize: "0.6rem", fontWeight: 700, color: c.text, textShadow: "0 1px 3px rgba(0,0,0,0.9)", letterSpacing: "0.04em" }}>
-          M{tableNum}
-        </span>
-        <span style={{ fontSize: "0.44rem", color: c.lbl, textShadow: "0 1px 2px rgba(0,0,0,0.8)" }}>
-          {capacity}p
-        </span>
-      </div>
+      <span style={{ fontSize: "0.55rem", fontWeight: 800, color: c.text, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+        Sillón
+      </span>
+      <span style={{ fontSize: "0.5rem", fontWeight: 700, color: c.text, letterSpacing: "0.04em" }}>
+        M{tableNum}
+      </span>
+      <span style={{ fontSize: "0.42rem", color: c.sub }}>
+        {capacity}p
+      </span>
     </div>
-  );
-}
-
-// Small pill armrest shape
-function Armrest({ style }: { style: React.CSSProperties }) {
-  return (
-    <div style={{
-      position: "absolute",
-      background: "#253032",
-      border: "1px solid rgba(255,255,255,0.08)",
-      borderRadius: 5,
-      zIndex: 0,
-      ...style,
-    }} />
   );
 }
 
@@ -161,10 +104,10 @@ export function SalonMap({ tables, pairs, guests, selection, onSelect }: Props) 
     return <BlobTable key={num} tableNum={t.number} capacity={t.capacity} cx={cx} cy={cy} state={getState(t)} onClick={() => handleClick(t)} />;
   };
 
-  const sofa = (num: number, style: React.CSSProperties, orient: "h-top" | "v-right") => {
+  const sillon = (num: number, style: React.CSSProperties) => {
     const t = byNumber.get(num);
     if (!t) return null;
-    return <SofaSection key={num} tableNum={t.number} capacity={t.capacity} state={getState(t)} onClick={() => handleClick(t)} style={style} orient={orient} />;
+    return <SillonBox key={num} tableNum={t.number} capacity={t.capacity} state={getState(t)} onClick={() => handleClick(t)} style={style} />;
   };
 
   return (
@@ -198,72 +141,30 @@ export function SalonMap({ tables, pairs, guests, selection, onSelect }: Props) 
       </div>
 
       {/* ══════════════════════════════════════
-          L-SHAPED SOFA ZONE — M1, M5, M6
-          Backing: top horizontal + right vertical
+          ZONA SILLONES — M1, M5, M6
       ══════════════════════════════════════ */}
       <div style={{
         position: "absolute", left: "33%", top: "8%", width: "57%", height: "84%",
         background: "#1c2628", border: "1px solid rgba(255,255,255,0.07)",
         borderRadius: 8,
       }}>
-
-        {/* ── Top horizontal sofa arm (backing + 5 cushions) ── */}
         <div style={{
-          position: "absolute", top: 0, left: 0, right: 0, height: "26%",
-          background: "#1e2a2c",
-          borderBottom: "1px solid rgba(255,255,255,0.07)",
-          borderRadius: "7px 7px 0 0",
-          overflow: "hidden",
-          display: "flex", flexDirection: "column",
+          position: "absolute", top: 6, left: 0, right: 0,
+          textAlign: "center", fontSize: "0.42rem",
+          color: "rgba(255,255,255,0.2)", letterSpacing: "0.14em", textTransform: "uppercase",
         }}>
-          <div style={{ height: "38%", background: BACK, flexShrink: 0 }} />
-          <div style={{ flex: 1, display: "flex", flexDirection: "row", gap: 3, padding: "3px 6px 4px" }}>
-            {[0,1,2,3,4].map(i => (
-              <div key={i} style={{ flex: 1, background: "#263234", borderRadius: 4, border: "1px solid rgba(255,255,255,0.06)" }} />
-            ))}
-          </div>
+          Zona Sillones
         </div>
 
-        {/* Armrest — right end of top arm (vertical pill) */}
-        <Armrest style={{ right: 2, top: "7%", width: 9, height: "13%" }} />
-
-        {/* ── Right vertical sofa arm (4 cushions + backing on right) ── */}
-        <div style={{
-          position: "absolute", right: 0, top: "26%", width: "20%", height: "74%",
-          background: "#1e2a2c",
-          borderLeft: "1px solid rgba(255,255,255,0.07)",
-          borderRadius: "0 0 7px 0",
-          overflow: "hidden",
-          display: "flex", flexDirection: "row",
-        }}>
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3, padding: "5px 0 5px 3px" }}>
-            {[0,1,2,3].map(i => (
-              <div key={i} style={{ flex: 1, background: "#263234", borderRadius: 4, border: "1px solid rgba(255,255,255,0.06)" }} />
-            ))}
-          </div>
-          <div style={{ width: "36%", background: BACK, flexShrink: 0 }} />
-        </div>
-
-        {/* Armrest — bottom of right arm (horizontal pill) */}
-        <Armrest style={{ right: "3%", bottom: 2, height: 9, width: "13%" }} />
-
-        {/* M6 — upper-left seating */}
-        {sofa(6, { left: "2%", top: "28%", width: "37%", height: "40%" }, "h-top")}
-
-        {/* M5 — upper-right seating */}
-        {sofa(5, { left: "41%", top: "28%", width: "37%", height: "40%" }, "h-top")}
-
-        {/* M1 — lower-right seating */}
-        {sofa(1, { left: "41%", top: "70%", width: "37%", height: "26%" }, "h-top")}
-
-        {/* Divider between M6 and M5 */}
-        <div style={{ position: "absolute", left: "39%", top: "28%", width: "1px", height: "40%", background: "rgba(255,255,255,0.04)" }} />
+        {sillon(6, { left: "3%",  top: "20%", width: "29%", height: "38%" })}
+        {sillon(5, { left: "35%", top: "20%", width: "29%", height: "38%" })}
+        {sillon(1, { left: "35%", top: "62%", width: "29%", height: "30%" })}
       </div>
 
-      {/* M2 — round table at lower-left of booth area */}
+      {/* M2 — mesa en zona de sillones */}
       {blob(2, 44, 80)}
 
-      {/* ── Round tables (left side) ── */}
+      {/* ── Mesas (lado izquierdo) ── */}
       {blob(8,  8,  26)}
       {blob(7,  22, 50)}
       {blob(4,  8,  76)}
