@@ -198,81 +198,70 @@ export function SalonMap({ tables, pairs, guests, selection, onSelect }: Props) 
       </div>
 
       {/* ══════════════════════════════════════
-          BOOTH ZONE — M5 + M6
-          U-shaped sofa container
+          L-SHAPED SOFA ZONE — M1, M5, M6
+          Backing: top horizontal + right vertical
       ══════════════════════════════════════ */}
       <div style={{
-        position: "absolute", left: "36%", top: "8%", width: "36%", height: "84%",
+        position: "absolute", left: "33%", top: "8%", width: "57%", height: "84%",
         background: "#1c2628", border: "1px solid rgba(255,255,255,0.07)",
         borderRadius: 8,
       }}>
 
-        {/* Top horizontal sofa (decorative back of booth) */}
+        {/* ── Top horizontal sofa arm (backing + 5 cushions) ── */}
         <div style={{
-          position: "absolute", top: 0, left: 0, right: 0, height: "28%",
+          position: "absolute", top: 0, left: 0, right: 0, height: "26%",
           background: "#1e2a2c",
           borderBottom: "1px solid rgba(255,255,255,0.07)",
-          display: "flex", flexDirection: "column",
           borderRadius: "7px 7px 0 0",
           overflow: "hidden",
+          display: "flex", flexDirection: "column",
         }}>
-          {/* Backing */}
-          <div style={{ height: "35%", background: BACK, flexShrink: 0 }} />
-          {/* 5 cushions */}
+          <div style={{ height: "38%", background: BACK, flexShrink: 0 }} />
           <div style={{ flex: 1, display: "flex", flexDirection: "row", gap: 3, padding: "3px 6px 4px" }}>
             {[0,1,2,3,4].map(i => (
               <div key={i} style={{ flex: 1, background: "#263234", borderRadius: 4, border: "1px solid rgba(255,255,255,0.06)" }} />
             ))}
           </div>
         </div>
-        {/* Right armrest for top sofa */}
-        <Armrest style={{ right: 2, top: "10%", width: 9, height: "12%" }} />
 
-        {/* Left vertical sofa arm (decorative) */}
+        {/* Armrest — right end of top arm (vertical pill) */}
+        <Armrest style={{ right: 2, top: "7%", width: 9, height: "13%" }} />
+
+        {/* ── Right vertical sofa arm (4 cushions + backing on right) ── */}
         <div style={{
-          position: "absolute", left: 0, top: "28%", width: "17%", bottom: 0,
+          position: "absolute", right: 0, top: "26%", width: "20%", height: "74%",
           background: "#1e2a2c",
-          borderRight: "1px solid rgba(255,255,255,0.07)",
-          display: "flex", flexDirection: "row",
-          borderRadius: "0 0 0 7px",
+          borderLeft: "1px solid rgba(255,255,255,0.07)",
+          borderRadius: "0 0 7px 0",
           overflow: "hidden",
+          display: "flex", flexDirection: "row",
         }}>
-          {/* Backing */}
-          <div style={{ width: "35%", background: BACK, flexShrink: 0 }} />
-          {/* 4 cushions */}
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3, padding: "5px 2px 5px 0" }}>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3, padding: "5px 0 5px 3px" }}>
             {[0,1,2,3].map(i => (
               <div key={i} style={{ flex: 1, background: "#263234", borderRadius: 4, border: "1px solid rgba(255,255,255,0.06)" }} />
             ))}
           </div>
+          <div style={{ width: "36%", background: BACK, flexShrink: 0 }} />
         </div>
-        {/* Bottom armrest for left arm */}
-        <Armrest style={{ left: "4%", bottom: 2, height: 9, width: "10%" }} />
 
-        {/* M6 — left seating section */}
-        {sofa(6, { left: "19%", top: "32%", width: "37%", height: "58%" }, "h-top")}
+        {/* Armrest — bottom of right arm (horizontal pill) */}
+        <Armrest style={{ right: "3%", bottom: 2, height: 9, width: "13%" }} />
 
-        {/* M5 — right seating section */}
-        {sofa(5, { left: "58%", top: "32%", width: "37%", height: "58%" }, "h-top")}
+        {/* M6 — upper-left seating */}
+        {sofa(6, { left: "2%", top: "28%", width: "37%", height: "40%" }, "h-top")}
 
-        {/* Divider */}
-        <div style={{ position: "absolute", left: "56%", top: "32%", width: "1px", height: "58%", background: "rgba(255,255,255,0.04)" }} />
+        {/* M5 — upper-right seating */}
+        {sofa(5, { left: "41%", top: "28%", width: "37%", height: "40%" }, "h-top")}
+
+        {/* M1 — lower-right seating */}
+        {sofa(1, { left: "41%", top: "70%", width: "37%", height: "26%" }, "h-top")}
+
+        {/* Divider between M6 and M5 */}
+        <div style={{ position: "absolute", left: "39%", top: "28%", width: "1px", height: "40%", background: "rgba(255,255,255,0.04)" }} />
       </div>
 
-      {/* ══════════════════════════════════════
-          M1 SOFA — right side, against wall
-          Vertical, backing faces the wall (right)
-      ══════════════════════════════════════ */}
-      {/* Top armrest */}
-      <Armrest style={{ left: "74%", top: "calc(50% - 8px)", width: "13%", height: 9 }} />
-
-      {sofa(1, { left: "74%", top: "50%", width: "13%", height: "40%" }, "v-right")}
-
-      {/* Bottom armrest */}
-      <Armrest style={{ left: "74%", top: "90%", width: "13%", height: 9 }} />
-
-      {/* M2 small round table */}
-      {blob(2, 68, 76)}
+      {/* M2 — round table at lower-left of booth area */}
+      {blob(2, 44, 80)}
 
       {/* ── Round tables (left side) ── */}
       {blob(8,  8,  26)}

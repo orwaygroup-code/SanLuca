@@ -55,16 +55,27 @@ export function TerrazaMap({ tables, pairs, guests, selection, onSelect }: Props
       </div>
 
       {/* ── Salón 1 (edificio central) ── */}
-      <div style={{ position: "absolute", left: "14%", top: "8%", width: "54%", height: "54%", background: "#1e2a2c", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ position: "absolute", left: "14%", top: "8%", width: "58%", height: "56%", background: "#1e2a2c", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <span style={{ fontSize: "clamp(0.6rem,2vw,1rem)", color: "rgba(255,255,255,0.18)", letterSpacing: "0.08em" }}>SALON 1</span>
       </div>
 
       {/* ── Privado (box con borde dorado) ── */}
-      <div style={{ position: "absolute", right: "2%", top: "8%", width: "22%", height: "54%", background: "#1e2a2c", border: "2px solid rgba(186,132,60,0.5)", borderRadius: 12, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
-        {/* Mesa dentro del privado */}
-        <div style={{ width: 44, height: 44, background: "#2c3537", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column" }}>
-          <span style={{ fontSize: "0.55rem", color: "rgba(245,241,232,0.7)", fontWeight: 700 }}>MESA</span>
-          <span style={{ fontSize: "0.48rem", color: "rgba(245,241,232,0.4)" }}>8p</span>
+      <div style={{ position: "absolute", right: "2%", top: "8%", width: "20%", height: "56%", background: "#1e2a2c", border: "2px solid rgba(186,132,60,0.5)", borderRadius: 12, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+        {/* Mesa lounge blob dentro del privado */}
+        <div style={{ position: "relative", width: 56, height: 56, flexShrink: 0 }}>
+          {[0,1,2,3,4,5].map(i => {
+            const angle = (i / 6) * 2 * Math.PI - Math.PI / 2;
+            const r = 22;
+            return (
+              <div key={i} style={{
+                position: "absolute", width: 13, height: 13, borderRadius: "50%",
+                background: "#253234",
+                left: 28 + r * Math.cos(angle) - 6.5,
+                top:  28 + r * Math.sin(angle) - 6.5,
+              }} />
+            );
+          })}
+          <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 26, height: 26, background: "#2c3537", borderRadius: 7 }} />
         </div>
         <span style={{ fontSize: "clamp(0.45rem,1vw,0.65rem)", color: "rgba(186,132,60,0.7)", letterSpacing: "0.1em" }}>PRIVADO</span>
       </div>

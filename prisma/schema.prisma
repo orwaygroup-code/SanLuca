@@ -180,11 +180,13 @@ model ReservationItem {
 // ============================================
 
 enum ReservationStatus {
-  PENDING     // recién creada, esperando confirmación + pago
-  CONFIRMED   // pago recibido, reserva confirmada → se genera QR
-  CANCELLED   // cancelada por cliente o admin
-  COMPLETED   // cliente asistió (check-in realizado)
-  NO_SHOW     // no se presentó
+  PENDING      // recién creada, esperando confirmación + pago
+  CONFIRMED    // reserva confirmada
+  IN_PROGRESS  // cliente está en el restaurante (EN CURSO)
+  DELAYED      // cliente avisó retraso (RETRASO)
+  CANCELLED    // cancelada por cliente o admin
+  COMPLETED    // cliente asistió (check-in realizado)
+  NO_SHOW      // no se presentó
 }
 
 enum PaymentStatus {

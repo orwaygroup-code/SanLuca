@@ -5,7 +5,7 @@ import Navbar from "./Navbar";
 import Footer from "./Footer";
 
 const BARE_PATHS = ["/login"];
-const BARE_PREFIXES = ["/checkin/"];
+const BARE_PREFIXES = ["/checkin/", "/admin"];
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();

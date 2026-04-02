@@ -65,14 +65,14 @@ export function PlantaAltaMap({ tables, pairs, guests, selection, onSelect }: Pr
       </div>
 
       {/* ── Mesas izquierda: M23, M25, M24 ── */}
-      {blob(23, 18, 46)}
-      {blob(25, 10, 76)}
-      {blob(24, 22, 76)}
+      {blob(23, 20, 46)}
+      {blob(25, 11, 78)}
+      {blob(24, 20, 78)}
 
       {/* ── Mesas centro: M20, M21, M22 ── */}
-      {blob(20, 37, 20)}
-      {blob(21, 37, 50)}
-      {blob(22, 37, 78)}
+      {blob(20, 38, 20)}
+      {blob(21, 38, 50)}
+      {blob(22, 38, 78)}
     </div>
   );
 }

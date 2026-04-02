@@ -53,12 +53,13 @@ export function AuthForm() {
                 .then((r) => r.json())
                 .then((data) => {
                     if (data.success) {
-                        localStorage.setItem("userId",   data.data.userId);
+                        localStorage.setItem("userId", data.data.userId);
                         localStorage.setItem("userName", data.data.userName);
-                        router.push(redirect);
+                        localStorage.setItem("userRole", data.data.userRole ?? "CUSTOMER");
+                        router.push(data.data.userRole === "ADMIN" ? "/admin" : redirect);
                     }
                 })
-                .catch(() => {});
+                .catch(() => { });
         }
 
         // Error de Google
@@ -95,7 +96,8 @@ export function AuthForm() {
             }
             localStorage.setItem("userId", data.data.id);
             localStorage.setItem("userName", data.data.name);
-            router.push("/dashboard");
+            localStorage.setItem("userRole", data.data.role ?? "CUSTOMER");
+            router.push(data.data.role === "ADMIN" ? "/admin" : "/dashboard");
         } catch (e: unknown) {
             setError(e instanceof Error ? e.message : "Error al iniciar sesión");
         } finally {
@@ -105,11 +107,11 @@ export function AuthForm() {
 
     const handleRegister = async () => {
         setError(null);
-        if (!register.name.trim())            { setError("El nombre es obligatorio.");               return; }
-        if (!register.email.trim())           { setError("El correo electrónico es obligatorio.");   return; }
-        if (!register.phone.trim())           { setError("El número celular es obligatorio.");       return; }
-        if (!register.password)               { setError("La contraseña es obligatoria.");           return; }
-        if (!register.confirmPassword)        { setError("Confirma tu contraseña.");                 return; }
+        if (!register.name.trim()) { setError("El nombre es obligatorio."); return; }
+        if (!register.email.trim()) { setError("El correo electrónico es obligatorio."); return; }
+        if (!register.phone.trim()) { setError("El número celular es obligatorio."); return; }
+        if (!register.password) { setError("La contraseña es obligatoria."); return; }
+        if (!register.confirmPassword) { setError("Confirma tu contraseña."); return; }
         if (register.password !== register.confirmPassword) { setError("Las contraseñas no coinciden."); return; }
         setLoading(true);
         try {
@@ -292,7 +294,7 @@ export function AuthForm() {
                                 <input
                                     className="rf-input"
                                     type="tel"
-                                    placeholder="+52 449-0000-000"
+                                    placeholder="449-0000-000"
                                     value={register.phone}
                                     onChange={(e) => setR("phone", e.target.value)}
                                 />

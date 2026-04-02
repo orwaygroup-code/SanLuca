@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 4. Create signed short-lived token and redirect to login page
-    const gt = signGoogleToken(user.id, user.name);
+    const gt = signGoogleToken(user.id, user.name, user.role);
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("gt", gt);
     loginUrl.searchParams.set("redirect", redirect);

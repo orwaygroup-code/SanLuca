@@ -222,7 +222,7 @@ export function ReservationForm() {
 
             <div>
               <label className="rf-label">Número celular</label>
-              <input className="rf-input" type="tel" placeholder="+52 55 0000 0000" value={form.guestPhone}
+              <input className="rf-input" type="tel" placeholder=" 55 0000 0000" value={form.guestPhone}
                 onChange={(e) => set("guestPhone", e.target.value)} />
             </div>
 

@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json<ApiResponse>({
             success: true,
-            data: { id: user.id, name: user.name, email: user.email },
+            data: { id: user.id, name: user.name, email: user.email, role: user.role },
         });
     } catch (error) {
         console.error("[API] POST /api/auth/login error:", error);

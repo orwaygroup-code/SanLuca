@@ -1,0 +1,75 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import type { ApiResponse } from "@/types";
+
+async function verifyAdmin(request: NextRequest) {
+    const userId = request.headers.get("x-user-id");
+    if (!userId) return null;
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+    return user?.role === "ADMIN" ? userId : null;
+}
+
+// GET /api/admin/reservations?section=Terraza&date=2026-04-02&search=juan
+export async function GET(request: NextRequest) {
+    try {
+        const adminId = await verifyAdmin(request);
+        if (!adminId) {
+            return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
+        }
+
+        const { searchParams } = new URL(request.url);
+        const section = searchParams.get("section");   // "Terraza" | "Planta Alta" | "Salón" | null = todas
+        const date    = searchParams.get("date");      // "2026-04-02"
+        const search  = searchParams.get("search");    // nombre o teléfono
+
+        const where: Record<string, unknown> = {};
+
+        if (section && section !== "Todas") {
+            where.sectionPreference = section;
+        }
+
+        if (date) {
+            const start = new Date(`${date}T00:00:00`);
+            const end   = new Date(`${date}T23:59:59`);
+            where.date = { gte: start, lte: end };
+        }
+
+        if (search) {
+            where.OR = [
+                { guestName:  { contains: search, mode: "insensitive" } },
+                { guestPhone: { contains: search } },
+            ];
+        }
+
+        const reservations = await prisma.reservation.findMany({
+            where,
+            orderBy: { date: "asc" },
+            select: {
+                id:                true,
+                guestName:         true,
+                guestPhone:        true,
+                date:              true,
+                guests:            true,
+                sectionPreference: true,
+                occasion:          true,
+                notes:             true,
+                status:            true,
+                paymentStatus:     true,
+                checkedInAt:       true,
+                qrToken:           true,
+                table: {
+                    select: {
+                        number:  true,
+                        section: { select: { name: true } },
+                    },
+                },
+                user: { select: { name: true, email: true, phone: true } },
+            },
+        });
+
+        return NextResponse.json<ApiResponse>({ success: true, data: reservations });
+    } catch (error) {
+        console.error("[Admin] GET /api/admin/reservations", error);
+        return NextResponse.json<ApiResponse>({ success: false, error: "Error al obtener reservas" }, { status: 500 });
+    }
+}
