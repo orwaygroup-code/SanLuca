@@ -7,14 +7,14 @@
 
 import Hero from "@/components/Hero";
 import Philosophy from "@/components/Philosophy";
-import FeaturedMenu from "@/components/FeaturedMenu";
-
 import ChefStory from "@/components/ChefStory";
 import Origin from "@/components/Origin";
+import AdminRedirect from "@/components/AdminRedirect";
 
 export default function HomePage() {
   return (
     <>
+      <AdminRedirect />
       <Hero />
       <Philosophy />
       <ChefStory />
