@@ -1130,6 +1130,27 @@ textarea::placeholder {
 }
 .adm-search-btn:hover { background: rgba(186,132,60,0.3); }
 
+.adm-clear-btn {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.45);
+  border-radius: 10px;
+  padding: 0 16px;
+  font-family: var(--font-primary, inherit);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  height: 40px;
+  white-space: nowrap;
+  transition: border-color 0.2s, color 0.2s;
+}
+.adm-clear-btn:hover {
+  border-color: rgba(224,85,85,0.6);
+  color: #e05555;
+}
+
 /* Cards grid */
 .adm-grid {
   display: grid;

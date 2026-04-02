@@ -167,6 +167,16 @@ export default function AdminPage() {
                         🔍 Buscar
                     </button>
                 </div>
+
+                {/* Clear filters */}
+                {(section !== "Todas" || date || search) && (
+                    <button
+                        className="adm-clear-btn"
+                        onClick={() => { setSection("Todas"); setDate(""); setSearch(""); }}
+                    >
+                        ✕ Limpiar filtros
+                    </button>
+                )}
             </div>
 
             {/* ── Cards grid ── */}
