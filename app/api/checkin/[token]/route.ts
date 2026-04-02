@@ -48,11 +48,21 @@ export async function GET(
 }
 
 // ── PATCH /api/checkin/[token] ───────────────────────
-// Marca la reserva como COMPLETED (check-in realizado)
+// Marca la reserva como COMPLETED (check-in realizado). Requiere rol HOSTES.
 export async function PATCH(
-    _req: NextRequest,
+    req: NextRequest,
     { params }: { params: { token: string } }
 ) {
+    const userId = req.headers.get("x-user-id");
+    if (userId) {
+        const staff = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+        if (!staff || staff.role !== "HOSTES") {
+            return NextResponse.json<ApiResponse>({ success: false, error: "Solo el personal Hostess puede hacer check-in" }, { status: 403 });
+        }
+    } else {
+        return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 401 });
+    }
+
     const reservation = await prisma.reservation.findUnique({
         where: { qrToken: params.token },
         select: { id: true, status: true },

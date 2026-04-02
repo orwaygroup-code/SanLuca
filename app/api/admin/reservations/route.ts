@@ -2,17 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { ApiResponse } from "@/types";
 
-async function verifyAdmin(request: NextRequest) {
+async function verifyStaff(request: NextRequest) {
     const userId = request.headers.get("x-user-id");
     if (!userId) return null;
     const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
-    return user?.role === "ADMIN" ? userId : null;
+    return user && ["ADMIN", "HOSTES"].includes(user.role) ? userId : null;
 }
 
 // GET /api/admin/reservations?section=Terraza&date=2026-04-02&search=juan
 export async function GET(request: NextRequest) {
     try {
-        const adminId = await verifyAdmin(request);
+        const adminId = await verifyStaff(request);
         if (!adminId) {
             return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
         }

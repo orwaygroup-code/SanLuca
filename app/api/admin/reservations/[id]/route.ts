@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { ApiResponse } from "@/types";
 
-async function verifyAdmin(request: NextRequest) {
+async function verifyHostes(request: NextRequest) {
     const userId = request.headers.get("x-user-id");
     if (!userId) return null;
     const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
-    return user?.role === "ADMIN" ? userId : null;
+    return user?.role === "HOSTES" ? userId : null;
 }
 
 // PATCH /api/admin/reservations/[id]
@@ -16,7 +16,7 @@ export async function PATCH(
     { params }: { params: { id: string } }
 ) {
     try {
-        const adminId = await verifyAdmin(request);
+        const adminId = await verifyHostes(request);
         if (!adminId) {
             return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
         }

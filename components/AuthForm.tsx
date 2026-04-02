@@ -56,7 +56,7 @@ export function AuthForm() {
                         localStorage.setItem("userId", data.data.userId);
                         localStorage.setItem("userName", data.data.userName);
                         localStorage.setItem("userRole", data.data.userRole ?? "CUSTOMER");
-                        router.push(data.data.userRole === "ADMIN" ? "/admin" : redirect);
+                        router.push(["ADMIN", "HOSTES"].includes(data.data.userRole) ? "/admin" : redirect);
                     }
                 })
                 .catch(() => { });
@@ -97,7 +97,7 @@ export function AuthForm() {
             localStorage.setItem("userId", data.data.id);
             localStorage.setItem("userName", data.data.name);
             localStorage.setItem("userRole", data.data.role ?? "CUSTOMER");
-            router.push(data.data.role === "ADMIN" ? "/admin" : "/dashboard");
+            router.push(["ADMIN", "HOSTES"].includes(data.data.role) ? "/admin" : "/dashboard");
         } catch (e: unknown) {
             setError(e instanceof Error ? e.message : "Error al iniciar sesión");
         } finally {

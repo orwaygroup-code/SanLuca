@@ -7,7 +7,8 @@ export default function AdminRedirect() {
     const router = useRouter();
 
     useEffect(() => {
-        if (localStorage.getItem("userRole") === "ADMIN") {
+        const role = localStorage.getItem("userRole");
+        if (role === "ADMIN" || role === "HOSTES") {
             router.replace("/admin");
         }
     }, [router]);

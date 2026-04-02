@@ -42,8 +42,10 @@ export default function CheckinPage() {
     const [error, setError] = useState<string | null>(null);
     const [confirming, setConfirming] = useState(false);
     const [done, setDone] = useState(false);
+    const [isHostes, setIsHostes] = useState(false);
 
     useEffect(() => {
+        setIsHostes(localStorage.getItem("userRole") === "HOSTES");
         fetch(`/api/checkin/${token}`)
             .then((r) => r.json())
             .then((data) => {
@@ -58,7 +60,11 @@ export default function CheckinPage() {
     const handleCheckin = async () => {
         setConfirming(true);
         try {
-            const res = await fetch(`/api/checkin/${token}`, { method: "PATCH" });
+            const userId = localStorage.getItem("userId") ?? "";
+            const res = await fetch(`/api/checkin/${token}`, {
+                method: "PATCH",
+                headers: { "x-user-id": userId },
+            });
             const data = await res.json();
             if (!data.success) throw new Error(data.error);
             setReservation(data.data);
@@ -208,15 +214,25 @@ export default function CheckinPage() {
                 )}
             </div>
 
-            {/* Check-in button */}
+            {/* Check-in button — solo Hostess */}
             {canCheckin && !done && (
-                <button
-                    className="ci-btn"
-                    onClick={handleCheckin}
-                    disabled={confirming}
-                >
-                    {confirming ? "Confirmando…" : "✓ Confirmar llegada"}
-                </button>
+                isHostes ? (
+                    <button
+                        className="ci-btn"
+                        onClick={handleCheckin}
+                        disabled={confirming}
+                    >
+                        {confirming ? "Confirmando…" : "✓ Confirmar llegada"}
+                    </button>
+                ) : (
+                    <a
+                        className="ci-btn"
+                        href={`/login?mode=login&redirect=/checkin/${token}`}
+                        style={{ textDecoration: "none", textAlign: "center" }}
+                    >
+                        Inicia sesión como Hostess para hacer check-in
+                    </a>
+                )
             )}
         </div>
     );

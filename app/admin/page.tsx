@@ -66,6 +66,7 @@ function fmtTime(iso: string) {
 export default function AdminPage() {
     const router = useRouter();
     const [userId, setUserId]         = useState<string | null>(null);
+    const [userRole, setUserRole]     = useState<string | null>(null);
     const [reservations, setReservations] = useState<Reservation[]>([]);
     const [loading, setLoading]       = useState(true);
     const [section, setSection]       = useState("Todas");
@@ -73,12 +74,13 @@ export default function AdminPage() {
     const [search, setSearch]         = useState("");
     const [updating, setUpdating]     = useState<string | null>(null);
 
-    // Auth guard
+    // Auth guard — ADMIN o HOSTES
     useEffect(() => {
         const uid  = localStorage.getItem("userId");
         const role = localStorage.getItem("userRole");
-        if (!uid || role !== "ADMIN") { router.push("/login?mode=login"); return; }
+        if (!uid || !["ADMIN", "HOSTES"].includes(role ?? "")) { router.push("/login?mode=login"); return; }
         setUserId(uid);
+        setUserRole(role);
     }, [router]);
 
     const fetchReservations = useCallback(async () => {
@@ -122,7 +124,7 @@ export default function AdminPage() {
             <div className="adm-header">
                 <h1 className="adm-title">
                     <span className="adm-title--gold">RESERVACIONES</span>
-                    {" "}<span className="adm-title--white">REGISTRO</span>
+                    {" "}<span className="adm-title--white">{userRole === "ADMIN" ? "ADMIN" : "HOSTESS"}</span>
                 </h1>
                 <button className="adm-logout" onClick={() => {
                     localStorage.clear(); router.push("/login?mode=login");
@@ -216,7 +218,7 @@ export default function AdminPage() {
                                 >
                                     Ver QR / Check-in
                                 </a>
-                                {(NEXT_STATUSES[r.status] ?? []).map((action) => (
+                                {userRole === "HOSTES" && (NEXT_STATUSES[r.status] ?? []).map((action) => (
                                     <button
                                         key={action.value}
                                         className="adm-btn-gold"
