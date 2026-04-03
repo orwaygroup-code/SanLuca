@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createReservationSchema } from "@/lib/validations";
-import { sendReservationQR } from "@/lib/whatsapp";
+import { getShiftWindow } from "@/app/api/reservations/available-tables/route";
 import type { ApiResponse } from "@/types";
 
 const MAX_ACTIVE_RESERVATIONS = 2;
@@ -91,7 +91,30 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // 7. Crear la reserva
+        // 7. Verificar que la mesa no esté ocupada en este turno
+        if (tableId) {
+            const { start: shiftStart, end: shiftEnd, name: shiftName } = getShiftWindow(reservationDate);
+            const tableConflict = await prisma.reservation.findFirst({
+                where: {
+                    status: { notIn: ["CANCELLED", "NO_SHOW"] },
+                    date:   { gte: shiftStart, lt: shiftEnd },
+                    OR: [
+                        { tableId },
+                        { linkedTableId: tableId },
+                        ...(linkedTableId ? [{ tableId: linkedTableId }, { linkedTableId }] : []),
+                    ],
+                },
+            });
+            if (tableConflict) {
+                const turno = shiftName === "brunch" ? "brunch (8am–2pm)" : "cena (2pm–12am)";
+                return NextResponse.json<ApiResponse>(
+                    { success: false, error: `Esta mesa ya está reservada en el turno de ${turno}. Por favor elige otra mesa u otro turno.` },
+                    { status: 409 }
+                );
+            }
+        }
+
+        // 8. Crear la reserva
         const reservation = await prisma.reservation.create({
             data: {
                 userId,
@@ -115,16 +138,6 @@ export async function POST(request: NextRequest) {
                 createdAt: true,
             },
         });
-
-        // 8. Enviar QR por WhatsApp (no bloquea la respuesta si falla)
-        sendReservationQR({
-            phone: reservation.guestPhone,
-            guestName: reservation.guestName,
-            date: reservation.date,
-            guests: reservation.guests,
-            sectionPreference: reservation.sectionPreference,
-            qrToken: reservation.qrToken,
-        }).catch((err) => console.error("[WhatsApp] Error enviando QR:", err));
 
         return NextResponse.json<ApiResponse>(
             {

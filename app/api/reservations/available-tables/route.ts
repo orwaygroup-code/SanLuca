@@ -5,14 +5,35 @@ import { prisma } from "@/lib/prisma";
 import { ADJACENT_PAIRS, COMBINED_MAX_CAPACITY } from "@/lib/tableAdjacency";
 import type { ApiResponse } from "@/types";
 
-const DURATION_MINUTES = 90;
+// ── Turnos ────────────────────────────────────────────────────────────────
+// Brunch: 08:00 – 14:00
+// Cena:   14:00 – 00:00 (del día siguiente)
+// Cada mesa puede reservarse UNA vez por turno.
+export function getShiftWindow(date: Date): { start: Date; end: Date; name: string } {
+  const y = date.getFullYear();
+  const m = date.getMonth();
+  const d = date.getDate();
+  const h = date.getHours();
+  if (h < 14) {
+    return {
+      name:  "brunch",
+      start: new Date(y, m, d, 8,  0, 0),
+      end:   new Date(y, m, d, 14, 0, 0),
+    };
+  }
+  return {
+    name:  "cena",
+    start: new Date(y, m, d,     14, 0, 0),
+    end:   new Date(y, m, d + 1, 0,  0, 0), // medianoche
+  };
+}
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const section  = searchParams.get("section");
-    const date     = searchParams.get("date");
-    const time     = searchParams.get("time");
+    const section   = searchParams.get("section");
+    const date      = searchParams.get("date");
+    const time      = searchParams.get("time");
     const guestsRaw = searchParams.get("guests");
 
     if (!section || !date || !time || !guestsRaw) {
@@ -37,11 +58,11 @@ export async function GET(request: NextRequest) {
         { status: 400 }
       );
     }
-    const reservationEnd = new Date(
-      reservationStart.getTime() + DURATION_MINUTES * 60_000
-    );
 
-    // Fetch section + tables
+    // Turno al que pertenece la reserva
+    const { start: shiftStart, end: shiftEnd } = getShiftWindow(reservationStart);
+
+    // Fetch sección + mesas
     const dbSection = await prisma.section.findUnique({
       where: { name: section },
       include: {
@@ -58,15 +79,11 @@ export async function GET(request: NextRequest) {
 
     const tableIds = dbSection.tables.map((t) => t.id);
 
-    // Find reservations that overlap this time window in this section
-    // Overlap condition: existingStart < reqEnd AND existingStart > reqStart - DURATION
+    // Reservas activas en el mismo turno → esas mesas están ocupadas
     const conflicts = await prisma.reservation.findMany({
       where: {
-        status: { notIn: ["CANCELLED"] },
-        date: {
-          gt: new Date(reservationStart.getTime() - DURATION_MINUTES * 60_000),
-          lt: reservationEnd,
-        },
+        status: { notIn: ["CANCELLED", "NO_SHOW"] },
+        date:   { gte: shiftStart, lt: shiftEnd },
         OR: [
           { tableId:       { in: tableIds } },
           { linkedTableId: { in: tableIds } },
@@ -81,7 +98,7 @@ export async function GET(request: NextRequest) {
       if (c.linkedTableId) occupiedIds.add(c.linkedTableId);
     }
 
-    // Build table statuses
+    // Estado de cada mesa
     const tables = dbSection.tables.map((t) => ({
       id:       t.id,
       number:   t.number,
@@ -89,17 +106,16 @@ export async function GET(request: NextRequest) {
       status:   (occupiedIds.has(t.id) ? "occupied" : "available") as "available" | "occupied",
     }));
 
-    // Build available adjacent pairs (only shown when guests 5–6)
+    // Pares adyacentes disponibles (solo para 5–6 personas)
     type Pair = { tableA: { id: string; number: number }; tableB: { id: string; number: number } };
     const pairs: Pair[] = [];
 
     if (guests >= 5 && guests <= COMBINED_MAX_CAPACITY) {
       const byNumber = new Map(tables.map((t) => [t.number, t]));
-
       for (const [numA, numB] of ADJACENT_PAIRS) {
         const tA = byNumber.get(numA);
         const tB = byNumber.get(numB);
-        if (!tA || !tB) continue; // not in this section
+        if (!tA || !tB) continue;
         if (tA.status === "available" && tB.status === "available") {
           pairs.push({
             tableA: { id: tA.id, number: tA.number },
