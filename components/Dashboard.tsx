@@ -202,14 +202,22 @@ export function Dashboard() {
                                     </div>
                                 </div>
 
-                                {/* Right: QR */}
+                                {/* Right: QR — solo si está confirmada */}
                                 <div className="dash-card__qr">
-                                    <img
-                                        src={qrImgUrl}
-                                        alt="QR Check-in"
-                                        className="dash-card__qr-img"
-                                    />
-                                    <p className="dash-card__qr-label">Check-in QR</p>
+                                    {r.status === "CONFIRMED" ? (
+                                        <>
+                                            <img
+                                                src={qrImgUrl}
+                                                alt="QR Check-in"
+                                                className="dash-card__qr-img"
+                                            />
+                                            <p className="dash-card__qr-label">Check-in QR</p>
+                                        </>
+                                    ) : (
+                                        <p className="dash-card__qr-label" style={{ opacity: 0.4, fontSize: "0.7rem", textAlign: "center" }}>
+                                            QR disponible al confirmar
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                         </div>
