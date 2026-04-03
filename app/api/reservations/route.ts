@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createReservationSchema } from "@/lib/validations";
-import { getShiftWindow } from "@/app/api/reservations/available-tables/route";
+import { getShiftWindow } from "@/lib/shifts";
 import type { ApiResponse } from "@/types";
 
 const MAX_ACTIVE_RESERVATIONS = 2;
