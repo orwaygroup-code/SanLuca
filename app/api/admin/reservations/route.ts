@@ -32,6 +32,11 @@ export async function GET(request: NextRequest) {
             const start = new Date(`${date}T00:00:00`);
             const end   = new Date(`${date}T23:59:59`);
             where.date = { gte: start, lte: end };
+        } else {
+            // Sin filtro de fecha: mostrar solo hoy y futuro
+            const todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
+            where.date = { gte: todayStart };
         }
 
         if (search) {

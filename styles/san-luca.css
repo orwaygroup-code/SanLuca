@@ -1151,6 +1151,31 @@ textarea::placeholder {
   color: #e05555;
 }
 
+/* Date separator */
+.adm-date-separator {
+  padding: 24px 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.adm-date-separator::before,
+.adm-date-separator::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(255,255,255,0.08);
+}
+.adm-date-separator__label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: rgba(255,255,255,0.35);
+  white-space: nowrap;
+}
+.adm-date-separator__label--today {
+  color: #ba843c;
+}
+
 /* Cards grid */
 .adm-grid {
   display: grid;
