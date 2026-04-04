@@ -34,7 +34,30 @@ const STATUS_ES: Record<string, string> = {
 
 export async function POST(request: NextRequest) {
     try {
-        const { phone, message } = await request.json() as { phone: string; message: string };
+        const body = await request.json();
+
+        // ── ROUTER: payload directo de Meta ───────────────────────
+        // Meta manda { entry: [...] }, n8n manda { phone, message }
+        if (body.entry) {
+            const value   = body.entry?.[0]?.changes?.[0]?.value;
+            const message = value?.messages?.[0];
+
+            // Solo mensajes de texto iniciados por el cliente
+            if (message?.type === "text") {
+                // Fire-and-forget → n8n (no bloqueamos la respuesta a Meta)
+                fetch("http://localhost:5678/webhook/whatsapp", {
+                    method:  "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body:    JSON.stringify(body),
+                }).catch((e) => console.error("[Router → n8n]", e.message));
+            }
+
+            // Meta requiere 200 inmediato siempre
+            return NextResponse.json({ status: "ok" });
+        }
+
+        // ── HANDLER: llamada de n8n con { phone, message } ────────
+        const { phone, message } = body as { phone: string; message: string };
 
         if (!phone || !message) {
             return NextResponse.json({ reply: "No pude procesar tu mensaje." });
