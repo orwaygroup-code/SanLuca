@@ -1176,6 +1176,75 @@ textarea::placeholder {
   color: #ba843c;
 }
 
+/* Date block wrapper */
+.adm-date-block {
+  margin-bottom: 8px;
+}
+
+/* Day summary — total count + chips */
+.adm-day-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 0 2px 14px;
+}
+.adm-day-total {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: rgba(245,241,232,0.55);
+}
+.adm-day-guests {
+  font-weight: 500;
+  color: rgba(245,241,232,0.35);
+}
+.adm-day-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.adm-chip {
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  border: 1.5px solid;
+  border-radius: 20px;
+  padding: 2px 10px;
+  white-space: nowrap;
+}
+
+/* Status sub-section */
+.adm-status-section {
+  margin-bottom: 20px;
+}
+.adm-status-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 0 2px;
+}
+.adm-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.adm-status-name {
+  font-size: 0.63rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+}
+.adm-status-count {
+  font-size: 0.63rem;
+  font-weight: 700;
+  opacity: 0.7;
+  background: rgba(255,255,255,0.06);
+  border-radius: 10px;
+  padding: 1px 7px;
+}
+
 /* Cards grid */
 .adm-grid {
   display: grid;

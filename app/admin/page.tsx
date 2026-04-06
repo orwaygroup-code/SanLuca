@@ -38,8 +38,19 @@ const STATUS_COLOR: Record<string, string> = {
     DELAYED:     "#e05555",
     CANCELLED:   "rgba(255,255,255,0.3)",
     COMPLETED:   "rgba(255,255,255,0.25)",
-    NO_SHOW:     "#e05555",
+    NO_SHOW:     "#c0392b",
 };
+
+// Order in which status sections appear on the dashboard
+const STATUS_GROUPS: { key: string; label: string; color: string }[] = [
+    { key: "IN_PROGRESS", label: "EN CURSO",            color: "#4caf50" },
+    { key: "DELAYED",     label: "RETRASO",              color: "#e05555" },
+    { key: "PENDING",     label: "PENDIENTES",           color: "#ba843c" },
+    { key: "CONFIRMED",   label: "CONFIRMADAS",          color: "#4a9eca" },
+    { key: "COMPLETED",   label: "COMPLETADAS",          color: "rgba(255,255,255,0.28)" },
+    { key: "NO_SHOW",     label: "NO SE PRESENTARON",    color: "rgba(192,57,43,0.7)" },
+    { key: "CANCELLED",   label: "CANCELADAS",           color: "rgba(255,255,255,0.18)" },
+];
 
 const SECTIONS = ["Todas", "Terraza", "Planta Alta", "Salón", "Privado"];
 const NEXT_STATUSES: Record<string, { label: string; value: string }[]> = {
@@ -62,17 +73,15 @@ function fmtTime(iso: string) {
     return new Date(iso).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
 }
 
-const STATUS_PRIORITY: Record<string, number> = {
-    IN_PROGRESS: 0,
-    DELAYED:     1,
-    PENDING:     2,
-    CONFIRMED:   3,
-    COMPLETED:   4,
-    NO_SHOW:     5,
-    CANCELLED:   6,
-};
+interface DateGroup {
+    key: string;
+    label: string;
+    isToday: boolean;
+    items: Reservation[];
+    totalGuests: number;
+}
 
-function groupByDate(reservations: Reservation[]): { label: string; isToday: boolean; items: Reservation[] }[] {
+function groupByDate(reservations: Reservation[]): DateGroup[] {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -91,11 +100,8 @@ function groupByDate(reservations: Reservation[]): { label: string; isToday: boo
             const label = isToday
                 ? "HOY — " + fmtDate(`${key}T12:00:00`)
                 : fmtDate(`${key}T12:00:00`);
-            const sorted = [...items].sort(
-                (a, b) => (STATUS_PRIORITY[a.status] ?? 9) - (STATUS_PRIORITY[b.status] ?? 9)
-                       || a.date.localeCompare(b.date)
-            );
-            return { label, isToday, items: sorted };
+            const totalGuests = items.reduce((sum, r) => sum + r.guests, 0);
+            return { key, label, isToday, items, totalGuests };
         });
 }
 
@@ -213,70 +219,119 @@ export default function AdminPage() {
                 <div className="adm-empty">No hay reservas con esos filtros.</div>
             ) : (
                 <div>
-                    {groups.map(({ label, isToday, items }) => (
-                        <div key={label}>
-                            {/* Separador de fecha */}
-                            <div className="adm-date-separator">
-                                <span className={`adm-date-separator__label${isToday ? " adm-date-separator__label--today" : ""}`}>
-                                    {label}
-                                </span>
-                            </div>
+                    {groups.map(({ key, label, isToday, items, totalGuests }) => {
+                        const countByStatus: Record<string, number> = {};
+                        for (const sg of STATUS_GROUPS) {
+                            countByStatus[sg.key] = items.filter((r) => r.status === sg.key).length;
+                        }
 
-                            <div className="adm-grid">
-                                {items.map((r) => (
-                                    <div key={r.id} className="adm-card">
-                                        <div
-                                            className="adm-badge"
-                                            style={{ borderColor: STATUS_COLOR[r.status], color: STATUS_COLOR[r.status] }}
-                                        >
-                                            {STATUS_LABEL[r.status] ?? r.status}
-                                        </div>
+                        // Active chips: only show statuses that have reservations and are not terminal
+                        const activeChips = STATUS_GROUPS.filter(
+                            (sg) => countByStatus[sg.key] > 0 && !["COMPLETED", "CANCELLED", "NO_SHOW"].includes(sg.key)
+                        );
 
-                                        <div className="adm-card-date">{fmtDate(r.date)}</div>
-                                        <div className="adm-card-time">{fmtTime(r.date)}</div>
+                        return (
+                            <div key={key} className="adm-date-block">
+                                {/* Date separator */}
+                                <div className="adm-date-separator">
+                                    <span className={`adm-date-separator__label${isToday ? " adm-date-separator__label--today" : ""}`}>
+                                        {label}
+                                    </span>
+                                </div>
 
-                                        <div className="adm-details">
-                                            <Row label="TITULAR"  val={r.guestName} />
-                                            <Row label="CELULAR"  val={r.guestPhone} />
-                                            <Row label="PERSONAS" val={String(r.guests)} />
-                                            <Row label="SECCIÓN"  val={r.sectionPreference ?? "—"} />
-                                            <Row
-                                                label="MESA"
-                                                val={r.table ? `#${r.table.number} - ${r.table.section.name.toUpperCase()}` : "Sin asignar"}
-                                            />
-                                            <Row
-                                                label="PAGO"
-                                                val={r.paymentStatus === "PAID"    ? "Pagado"
-                                                   : r.paymentStatus === "UNPAID"  ? "Pendiente"
-                                                   : r.paymentStatus === "PARTIAL" ? "Parcial" : "Reembolsado"}
-                                            />
-                                        </div>
-
-                                        <div className="adm-actions">
-                                            <a
-                                                className="adm-btn-outline"
-                                                href={`/checkin/${r.qrToken}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                            >
-                                                Ver QR / Check-in
-                                            </a>
-                                            {userRole === "HOSTES" && (NEXT_STATUSES[r.status] ?? []).map((action) => (
-                                                <button
-                                                    key={action.value}
-                                                    className="adm-btn-gold"
-                                                    disabled={updating === r.id}
-                                                    onClick={() => updateStatus(r.id, action.value)}
+                                {/* Day summary */}
+                                <div className="adm-day-summary">
+                                    <span className="adm-day-total">
+                                        {items.length} {items.length === 1 ? "RESERVA" : "RESERVAS"}
+                                        <span className="adm-day-guests"> · {totalGuests} PERSONAS</span>
+                                    </span>
+                                    {activeChips.length > 0 && (
+                                        <div className="adm-day-chips">
+                                            {activeChips.map((sg) => (
+                                                <span
+                                                    key={sg.key}
+                                                    className="adm-chip"
+                                                    style={{ borderColor: sg.color, color: sg.color }}
                                                 >
-                                                    {updating === r.id ? "…" : action.label.toUpperCase()}
-                                                </button>
+                                                    {countByStatus[sg.key]} {sg.label}
+                                                </span>
                                             ))}
                                         </div>
-                                    </div>
-                                ))}
+                                    )}
+                                </div>
+
+                                {/* Status sub-sections */}
+                                {STATUS_GROUPS.map(({ key: sKey, label: sLabel, color }) => {
+                                    const group = items.filter((r) => r.status === sKey);
+                                    if (group.length === 0) return null;
+                                    return (
+                                        <div key={sKey} className="adm-status-section">
+                                            <div className="adm-status-header">
+                                                <span className="adm-status-dot" style={{ background: color }} />
+                                                <span className="adm-status-name" style={{ color }}>{sLabel}</span>
+                                                <span className="adm-status-count" style={{ color }}>
+                                                    {group.length}
+                                                </span>
+                                            </div>
+                                            <div className="adm-grid">
+                                                {group.map((r) => (
+                                                    <div key={r.id} className="adm-card">
+                                                        <div
+                                                            className="adm-badge"
+                                                            style={{ borderColor: STATUS_COLOR[r.status], color: STATUS_COLOR[r.status] }}
+                                                        >
+                                                            {STATUS_LABEL[r.status] ?? r.status}
+                                                        </div>
+
+                                                        <div className="adm-card-date">{fmtDate(r.date)}</div>
+                                                        <div className="adm-card-time">{fmtTime(r.date)}</div>
+
+                                                        <div className="adm-details">
+                                                            <Row label="TITULAR"  val={r.guestName} />
+                                                            <Row label="CELULAR"  val={r.guestPhone} />
+                                                            <Row label="PERSONAS" val={String(r.guests)} />
+                                                            <Row label="SECCIÓN"  val={r.sectionPreference ?? "—"} />
+                                                            <Row
+                                                                label="MESA"
+                                                                val={r.table ? `#${r.table.number} - ${r.table.section.name.toUpperCase()}` : "Sin asignar"}
+                                                            />
+                                                            <Row
+                                                                label="PAGO"
+                                                                val={r.paymentStatus === "PAID"    ? "Pagado"
+                                                                   : r.paymentStatus === "UNPAID"  ? "Pendiente"
+                                                                   : r.paymentStatus === "PARTIAL" ? "Parcial" : "Reembolsado"}
+                                                            />
+                                                        </div>
+
+                                                        <div className="adm-actions">
+                                                            <a
+                                                                className="adm-btn-outline"
+                                                                href={`/checkin/${r.qrToken}`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                            >
+                                                                Ver QR / Check-in
+                                                            </a>
+                                                            {(NEXT_STATUSES[r.status] ?? []).map((action) => (
+                                                                <button
+                                                                    key={action.value}
+                                                                    className="adm-btn-gold"
+                                                                    disabled={updating === r.id}
+                                                                    onClick={() => updateStatus(r.id, action.value)}
+                                                                >
+                                                                    {updating === r.id ? "…" : action.label.toUpperCase()}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </div>
