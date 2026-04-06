@@ -42,8 +42,8 @@ export async function POST(request: NextRequest) {
             const value   = body.entry?.[0]?.changes?.[0]?.value;
             const message = value?.messages?.[0];
 
-            // Solo mensajes de texto iniciados por el cliente
-            if (message?.type === "text") {
+            // Texto y audio → n8n los maneja (audio pasa por Whisper en n8n)
+            if (message?.type === "text" || message?.type === "audio") {
                 // Fire-and-forget → n8n (no bloqueamos la respuesta a Meta)
                 fetch("http://localhost:5678/webhook/whatsapp", {
                     method:  "POST",
