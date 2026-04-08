@@ -41,7 +41,7 @@ const STATUS_COLOR: Record<string, string> = {
     NO_SHOW:     "#c0392b",
 };
 
-// Order in which status sections appear on the dashboard
+// Order in which status sections appear on the dashboard (CANCELLED hidden)
 const STATUS_GROUPS: { key: string; label: string; color: string }[] = [
     { key: "IN_PROGRESS", label: "EN CURSO",            color: "#4caf50" },
     { key: "DELAYED",     label: "RETRASO",              color: "#e05555" },
@@ -49,7 +49,6 @@ const STATUS_GROUPS: { key: string; label: string; color: string }[] = [
     { key: "CONFIRMED",   label: "CONFIRMADAS",          color: "#4a9eca" },
     { key: "COMPLETED",   label: "COMPLETADAS",          color: "rgba(255,255,255,0.28)" },
     { key: "NO_SHOW",     label: "NO SE PRESENTARON",    color: "rgba(192,57,43,0.7)" },
-    { key: "CANCELLED",   label: "CANCELADAS",           color: "rgba(255,255,255,0.18)" },
 ];
 
 const SECTIONS = ["Todas", "Terraza", "Planta Alta", "Salón", "Privado"];
@@ -116,6 +115,7 @@ export default function AdminPage() {
     const [date, setDate]                 = useState("");
     const [search, setSearch]             = useState("");
     const [updating, setUpdating]         = useState<string | null>(null);
+    const [onlyPending, setOnlyPending]   = useState(false);
 
     useEffect(() => {
         const uid  = localStorage.getItem("userId");
@@ -158,7 +158,11 @@ export default function AdminPage() {
 
     if (!userId) return null;
 
-    const groups = groupByDate(reservations);
+    const pendingCount = reservations.filter((r) => r.status === "PENDING").length;
+    const displayed    = reservations.filter((r) =>
+        r.status !== "CANCELLED" && (!onlyPending || r.status === "PENDING")
+    );
+    const groups = groupByDate(displayed);
 
     return (
         <div className="adm-page">
@@ -172,6 +176,18 @@ export default function AdminPage() {
                     Salir
                 </button>
             </div>
+
+            {/* ── Badge pendientes ── */}
+            {pendingCount > 0 && (
+                <button
+                    className={`adm-pending-badge${onlyPending ? " adm-pending-badge--active" : ""}`}
+                    onClick={() => setOnlyPending((v) => !v)}
+                >
+                    <span className="adm-pending-badge__count">{pendingCount}</span>
+                    {pendingCount === 1 ? "RESERVA POR CONFIRMAR" : "RESERVAS POR CONFIRMAR"}
+                    {onlyPending && <span className="adm-pending-badge__clear"> · Ver todas</span>}
+                </button>
+            )}
 
             {/* ── Filters ── */}
             <div className="adm-filters">

@@ -1425,3 +1425,47 @@ textarea::placeholder {
     display: none;
   }
 }
+
+/* ── Pending badge (admin dashboard) ── */
+@keyframes adm-badge-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(186,132,60,0.4); }
+  50%       { box-shadow: 0 0 0 8px rgba(186,132,60,0); }
+}
+
+.adm-pending-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(186,132,60,0.12);
+  border: 1px solid rgba(186,132,60,0.5);
+  color: #ba843c;
+  border-radius: 10px;
+  padding: 12px 20px;
+  font-family: var(--font-primary);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  margin-bottom: 24px;
+  width: 100%;
+  transition: background 0.2s, border-color 0.2s;
+  animation: adm-badge-pulse 2s ease-in-out infinite;
+}
+
+.adm-pending-badge--active {
+  background: rgba(186,132,60,0.22);
+  border-color: #ba843c;
+  animation: none;
+}
+
+.adm-pending-badge__count {
+  font-size: 1.3rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.adm-pending-badge__clear {
+  margin-left: auto;
+  font-size: 0.65rem;
+  opacity: 0.7;
+}

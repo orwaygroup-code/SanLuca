@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createReservationSchema } from "@/lib/validations";
 import { getShiftWindow } from "@/lib/shifts";
-import { sendReservationQR } from "@/lib/whatsapp";
 import type { ApiResponse } from "@/types";
 
 const MAX_ACTIVE_RESERVATIONS = 2;
@@ -139,16 +138,6 @@ export async function POST(request: NextRequest) {
                 createdAt: true,
             },
         });
-
-        // Enviar QR por WhatsApp de inmediato al crear la reserva
-        sendReservationQR({
-            phone:             reservation.guestPhone,
-            guestName:         reservation.guestName,
-            date:              new Date(reservation.date),
-            guests:            reservation.guests,
-            sectionPreference: reservation.sectionPreference,
-            qrToken:           reservation.qrToken,
-        }).catch((e) => console.error("[WhatsApp QR]", e));
 
         return NextResponse.json<ApiResponse>(
             {
