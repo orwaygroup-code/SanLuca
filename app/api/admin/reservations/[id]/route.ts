@@ -62,3 +62,41 @@ export async function PATCH(
         return NextResponse.json<ApiResponse>({ success: false, error: "Error al actualizar reserva" }, { status: 500 });
     }
 }
+
+// DELETE /api/admin/reservations/[id]
+// Solo elimina reservas en estado terminal (CANCELLED, NO_SHOW, COMPLETED)
+export async function DELETE(
+    request: NextRequest,
+    { params }: { params: { id: string } }
+) {
+    try {
+        const adminId = await verifyHostes(request);
+        if (!adminId) {
+            return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
+        }
+
+        const reservation = await prisma.reservation.findUnique({
+            where: { id: params.id },
+            select: { status: true },
+        });
+
+        if (!reservation) {
+            return NextResponse.json<ApiResponse>({ success: false, error: "Reserva no encontrada" }, { status: 404 });
+        }
+
+        const deletable = ["CANCELLED", "NO_SHOW", "COMPLETED"];
+        if (!deletable.includes(reservation.status)) {
+            return NextResponse.json<ApiResponse>(
+                { success: false, error: "Solo se pueden eliminar reservas canceladas, no presentadas o completadas" },
+                { status: 400 }
+            );
+        }
+
+        await prisma.reservation.delete({ where: { id: params.id } });
+
+        return NextResponse.json<ApiResponse>({ success: true, data: { id: params.id } });
+    } catch (error) {
+        console.error("[Admin] DELETE /api/admin/reservations/[id]", error);
+        return NextResponse.json<ApiResponse>({ success: false, error: "Error al eliminar reserva" }, { status: 500 });
+    }
+}
