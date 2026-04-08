@@ -9,10 +9,10 @@ const SECTIONS = ["Terraza", "Planta Alta", "Salón", "Privado"] as const;
 type Section = (typeof SECTIONS)[number];
 
 const SECTION_IMAGES: Record<Section, string> = {
-  "Terraza": "/images/terraza.jpg",
-  "Planta Alta": "/images/planta-alta.jpg",
-  "Salón": "/images/salon.jpg",
-  "Privado": "/images/privado.jpg",
+  "Terraza":    "/images/areas/terraza.jpg",
+  "Planta Alta": "/images/areas/pAlta.jpg",
+  "Salón":      "/images/areas/salon.jpg",
+  "Privado":    "/images/areas/privado.jpg",
 };
 
 const PARTY_SIZES = [1, 2, 3, 4, 5, 6, 7, 8];

@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
+import { WhatsAppFloat } from "./WhatsAppFloat";
 
 const BARE_PATHS = ["/login"];
 const BARE_PREFIXES = ["/checkin/", "/admin"];
@@ -16,6 +17,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
             {!isAuth && <Navbar />}
             <main>{children}</main>
             {!isAuth && <Footer />}
+            {!isAuth && <WhatsAppFloat />}
         </>
     );
 }

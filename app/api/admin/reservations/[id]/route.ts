@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { sendReservationQR } from "@/lib/whatsapp";
 import type { ApiResponse } from "@/types";
 
 async function verifyHostes(request: NextRequest) {
     const userId = request.headers.get("x-user-id");
     if (!userId) return null;
     const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
-    return user?.role === "HOSTES" ? userId : null;
+    return (user?.role as string) === "HOSTES" ? userId : null;
 }
 
 // PATCH /api/admin/reservations/[id]
@@ -40,21 +39,9 @@ export async function PATCH(
             data:  { status, ...extra },
             select: {
                 id: true, status: true, guestName: true, date: true,
-                guestPhone: true, guests: true, sectionPreference: true, qrToken: true,
+                guestPhone: true, guests: true, sectionPreference: true,
             },
         });
-
-        // Enviar QR por WhatsApp al confirmar
-        if (status === "CONFIRMED") {
-            sendReservationQR({
-                phone:             reservation.guestPhone,
-                guestName:         reservation.guestName,
-                date:              new Date(reservation.date),
-                guests:            reservation.guests,
-                sectionPreference: reservation.sectionPreference,
-                qrToken:           reservation.qrToken,
-            }).catch((e) => console.error("[WhatsApp QR]", e));
-        }
 
         return NextResponse.json<ApiResponse>({ success: true, data: reservation });
     } catch (error) {

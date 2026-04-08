@@ -1370,3 +1370,58 @@ textarea::placeholder {
   .adm-switch-track { min-width: 100%; }
   .adm-filters { flex-direction: column; align-items: stretch; }
 }
+
+/* ══════════════════════════════════════════════
+   WHATSAPP FLOAT BUTTON
+   ══════════════════════════════════════════════ */
+
+@keyframes wapp-pulse {
+  0%, 100% { box-shadow: 0 4px 20px rgba(37,211,102,0.4); }
+  50%       { box-shadow: 0 4px 32px rgba(37,211,102,0.65), 0 0 0 10px rgba(37,211,102,0.08); }
+}
+
+.wapp-float {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #25D366;
+  color: #fff;
+  border-radius: 999px;
+  padding: 13px 22px 13px 16px;
+  text-decoration: none;
+  font-family: var(--font-primary);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  animation: wapp-pulse 2.8s ease-in-out infinite;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.wapp-float:hover {
+  transform: scale(1.05) translateY(-2px);
+  animation: none;
+  box-shadow: 0 8px 32px rgba(37,211,102,0.55);
+}
+
+.wapp-float svg {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .wapp-float {
+    bottom: 20px;
+    right: 20px;
+    padding: 15px;
+    border-radius: 50%;
+  }
+  .wapp-float span {
+    display: none;
+  }
+}
