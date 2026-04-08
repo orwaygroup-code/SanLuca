@@ -16,7 +16,7 @@ export async function sendReservationQR(params: {
     sectionPreference?: string | null;
     qrToken: string;
 }) {
-    const token         = process.env.WHATSAPP_TOKEN;
+    const token         = process.env.WHATSAPP_ACCESS_TOKEN ?? process.env.WHATSAPP_TOKEN;
     const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
     if (!token || !phoneNumberId) throw new Error("WhatsApp credentials not configured");
 

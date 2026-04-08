@@ -41,7 +41,6 @@ const STATUS_COLOR: Record<string, string> = {
     NO_SHOW:     "#c0392b",
 };
 
-// Order in which status sections appear on the dashboard (CANCELLED hidden)
 const STATUS_GROUPS: { key: string; label: string; color: string }[] = [
     { key: "IN_PROGRESS", label: "EN CURSO",            color: "#4caf50" },
     { key: "DELAYED",     label: "RETRASO",              color: "#e05555" },
@@ -49,7 +48,10 @@ const STATUS_GROUPS: { key: string; label: string; color: string }[] = [
     { key: "CONFIRMED",   label: "CONFIRMADAS",          color: "#4a9eca" },
     { key: "COMPLETED",   label: "COMPLETADAS",          color: "rgba(255,255,255,0.28)" },
     { key: "NO_SHOW",     label: "NO SE PRESENTARON",    color: "rgba(192,57,43,0.7)" },
+    { key: "CANCELLED",   label: "CANCELADAS",           color: "rgba(255,255,255,0.18)" },
 ];
+
+const DELETABLE_STATUSES = ["CANCELLED", "NO_SHOW", "COMPLETED"];
 
 const SECTIONS = ["Todas", "Terraza", "Planta Alta", "Salón", "Privado"];
 const NEXT_STATUSES: Record<string, { label: string; value: string }[]> = {
@@ -115,6 +117,7 @@ export default function AdminPage() {
     const [date, setDate]                 = useState("");
     const [search, setSearch]             = useState("");
     const [updating, setUpdating]         = useState<string | null>(null);
+    const [deleting, setDeleting]         = useState<string | null>(null);
     const [onlyPending, setOnlyPending]   = useState(false);
 
     useEffect(() => {
@@ -152,6 +155,18 @@ export default function AdminPage() {
         setUpdating(null);
     };
 
+    const deleteReservation = async (id: string) => {
+        if (!userId) return;
+        if (!confirm("¿Eliminar esta reserva permanentemente?")) return;
+        setDeleting(id);
+        await fetch(`/api/admin/reservations/${id}`, {
+            method:  "DELETE",
+            headers: { "x-user-id": userId },
+        });
+        await fetchReservations();
+        setDeleting(null);
+    };
+
     const sectionIdx = SECTIONS.indexOf(section);
     const thumbLeft  = `calc(${(sectionIdx / SECTIONS.length) * 100}% + 4px)`;
     const thumbWidth = `calc(${100 / SECTIONS.length}% - 8px)`;
@@ -160,7 +175,7 @@ export default function AdminPage() {
 
     const pendingCount = reservations.filter((r) => r.status === "PENDING").length;
     const displayed    = reservations.filter((r) =>
-        r.status !== "CANCELLED" && (!onlyPending || r.status === "PENDING")
+        !onlyPending || r.status === "PENDING"
     );
     const groups = groupByDate(displayed);
 
@@ -338,6 +353,15 @@ export default function AdminPage() {
                                                                     {updating === r.id ? "…" : action.label.toUpperCase()}
                                                                 </button>
                                                             ))}
+                                                            {DELETABLE_STATUSES.includes(r.status) && (
+                                                                <button
+                                                                    className="adm-btn-delete"
+                                                                    disabled={deleting === r.id}
+                                                                    onClick={() => deleteReservation(r.id)}
+                                                                >
+                                                                    {deleting === r.id ? "…" : "🗑 Eliminar"}
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 ))}

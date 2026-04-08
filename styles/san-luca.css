@@ -1355,6 +1355,22 @@ textarea::placeholder {
 }
 .adm-btn-gold:hover:not(:disabled) { background: #a8722f; }
 .adm-btn-gold:disabled { opacity: 0.5; cursor: not-allowed; }
+.adm-btn-delete {
+  flex: 1;
+  min-width: 100px;
+  background: transparent;
+  border: 1px solid rgba(192,57,43,0.6);
+  color: #c0392b;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+.adm-btn-delete:hover:not(:disabled) { background: rgba(192,57,43,0.15); border-color: #c0392b; }
+.adm-btn-delete:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .adm-empty {
   text-align: center;
