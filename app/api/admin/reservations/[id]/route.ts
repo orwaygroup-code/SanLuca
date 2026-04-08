@@ -7,7 +7,7 @@ async function verifyHostes(request: NextRequest) {
     const userId = request.headers.get("x-user-id");
     if (!userId) return null;
     const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
-    return (user?.role as string) === "HOSTES" ? userId : null;
+    return ["HOSTES", "ADMIN"].includes(user?.role as string) ? userId : null;
 }
 
 // PATCH /api/admin/reservations/[id]
