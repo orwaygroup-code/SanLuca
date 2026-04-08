@@ -21,6 +21,13 @@ interface RegisterData {
     confirmPassword: string;
 }
 
+const AREA_IMAGES = [
+    "/images/areas/terraza.jpg",
+    "/images/areas/salon.jpg",
+    "/images/areas/pAlta.jpg",
+    "/images/areas/privado.jpg",
+];
+
 export function AuthForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -30,6 +37,12 @@ export function AuthForm() {
     const [mode, setMode] = useState<Mode>(initialMode);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [imgIdx, setImgIdx] = useState(0);
+
+    useEffect(() => {
+        const t = setInterval(() => setImgIdx((i) => (i + 1) % AREA_IMAGES.length), 4000);
+        return () => clearInterval(t);
+    }, []);
 
     const [login, setLogin] = useState<LoginData>({ email: "", password: "" });
     const [register, setRegister] = useState<RegisterData>({
@@ -149,16 +162,22 @@ export function AuthForm() {
 
                 <div className="rf-image-wrapper">
                     <div className="rf-image-box">
-                        <img
-                            src="/images/terraza.jpg"
-                            alt="San Luca"
-                            className="rf-image"
-                            style={{ opacity: 1 }}
-                            onError={(e) => {
-                                (e.target as HTMLImageElement).parentElement!.style.background =
-                                    "linear-gradient(135deg, #2a2f2e 0%, #3a3228 100%)";
-                            }}
-                        />
+                        {AREA_IMAGES.map((src, i) => (
+                            <img
+                                key={src}
+                                src={src}
+                                alt="San Luca"
+                                className="rf-image"
+                                style={{
+                                    opacity: i === imgIdx ? 1 : 0,
+                                    transition: "opacity 1s ease",
+                                }}
+                                onError={(e) => {
+                                    (e.target as HTMLImageElement).parentElement!.style.background =
+                                        "linear-gradient(135deg, #2a2f2e 0%, #3a3228 100%)";
+                                }}
+                            />
+                        ))}
                     </div>
 
                     <div className="rf-switch-overlay">

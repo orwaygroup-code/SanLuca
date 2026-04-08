@@ -16,6 +16,7 @@ type DishCardGoldProps = {
     weight?: number | null;
     imageUrl?: string | null;
     allergens?: string | null;
+    priceUnit?: string | null;
 };
 
 export default function DishCardGold({
@@ -24,6 +25,7 @@ export default function DishCardGold({
     price,
     weight,
     imageUrl,
+    priceUnit,
 }: DishCardGoldProps) {
     const [hovered, setHovered] = useState(false);
 
@@ -133,6 +135,20 @@ export default function DishCardGold({
                         >
                             ${price.toFixed(0)}
                         </span>
+                        {priceUnit && (
+                            <span
+                                style={{
+                                    fontFamily: fonts.primary,
+                                    fontSize: "0.6rem",
+                                    fontWeight: 700,
+                                    letterSpacing: "0.12em",
+                                    textTransform: "uppercase",
+                                    color: "rgba(201,164,74,0.6)",
+                                }}
+                            >
+                                {priceUnit}
+                            </span>
+                        )}
                         {weight && (
                             <span
                                 style={{
