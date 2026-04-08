@@ -6,9 +6,10 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
   const redirect = searchParams.get("state") || "/reservation";
+  const appUrl = process.env.APP_URL ?? "http://localhost:3000";
 
   if (!code) {
-    return NextResponse.redirect(new URL("/login?error=google_cancelled", request.url));
+    return NextResponse.redirect(`${appUrl}/login?error=google_cancelled`);
   }
 
   try {
@@ -54,13 +55,13 @@ export async function GET(request: NextRequest) {
 
     // 4. Create signed short-lived token and redirect to login page
     const gt = signGoogleToken(user.id, user.name, user.role);
-    const loginUrl = new URL("/login", request.url);
+    const loginUrl = new URL("/login", appUrl);
     loginUrl.searchParams.set("gt", gt);
     loginUrl.searchParams.set("redirect", redirect);
 
     return NextResponse.redirect(loginUrl.toString());
   } catch (e) {
     console.error("[Google OAuth callback]", e);
-    return NextResponse.redirect(new URL("/login?error=google_failed", request.url));
+    return NextResponse.redirect(`${appUrl}/login?error=google_failed`);
   }
 }
