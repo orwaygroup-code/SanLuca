@@ -1,24 +1,27 @@
 "use client";
 import { BlobTable } from "@/components/reservation/BlobTable";
 import type { TableState } from "@/components/reservation/TableDot";
-import type { AvailableTable, AvailablePair, TableSelection } from "@/components/reservation/types";
-import { COMBINED_MAX_CAPACITY } from "@/lib/tableAdjacency";
+import type { AvailableTable, AvailablePair, AvailableTriple, TableSelection } from "@/components/reservation/types";
+import { COMBINED_MAX_CAPACITY, TRIPLE_MIN_GUESTS, TRIPLE_MAX_CAPACITY } from "@/lib/tableAdjacency";
 
 interface Props {
   tables:    AvailableTable[];
   pairs:     AvailablePair[];
+  triples:   AvailableTriple[];
   guests:    number;
   selection: TableSelection | null;
   onSelect:  (sel: TableSelection) => void;
 }
 
-export function SalonMap({ tables, pairs, guests, selection, onSelect }: Props) {
+export function SalonMap({ tables, pairs, triples, guests, selection, onSelect }: Props) {
   const byNumber = new Map(tables.map((t) => [t.number, t]));
-  const pairIds  = new Set(pairs.flatMap((p) => [p.tableA.id, p.tableB.id]));
+  const pairIds   = new Set(pairs.flatMap((p) => [p.tableA.id, p.tableB.id]));
+  const tripleIds = new Set(triples.flatMap((t) => [t.tableA.id, t.tableB.id, t.tableC.id]));
 
   function getState(t: AvailableTable): TableState {
     if (t.status === "occupied") return "occupied";
-    if (selection?.tableId === t.id || selection?.linkedTableId === t.id) return "selected";
+    if (selection?.tableId === t.id || selection?.linkedTableId === t.id || selection?.thirdTableId === t.id) return "selected";
+    if (guests >= TRIPLE_MIN_GUESTS && guests <= TRIPLE_MAX_CAPACITY && tripleIds.has(t.id)) return "triple";
     if (guests >= 5 && guests <= COMBINED_MAX_CAPACITY && pairIds.has(t.id)) return "pair";
     if (t.capacity >= guests) return "available";
     return "disabled";
@@ -26,6 +29,13 @@ export function SalonMap({ tables, pairs, guests, selection, onSelect }: Props) 
 
   function handleClick(t: AvailableTable) {
     if (t.status === "occupied") return;
+    if (guests >= TRIPLE_MIN_GUESTS && guests <= TRIPLE_MAX_CAPACITY) {
+      const triple = triples.find((tr) => tr.tableA.id === t.id || tr.tableB.id === t.id || tr.tableC.id === t.id);
+      if (triple) {
+        onSelect({ tableId: triple.tableA.id, tableNumber: triple.tableA.number, linkedTableId: triple.tableB.id, linkedTableNumber: triple.tableB.number, thirdTableId: triple.tableC.id, thirdTableNumber: triple.tableC.number });
+        return;
+      }
+    }
     if (guests >= 5 && guests <= COMBINED_MAX_CAPACITY) {
       const pair = pairs.find((p) => p.tableA.id === t.id || p.tableB.id === t.id);
       if (pair) {
@@ -72,22 +82,13 @@ export function SalonMap({ tables, pairs, guests, selection, onSelect }: Props) 
         </span>
       </div>
 
-      {/* ══════════════════════════════════════
-          ZONA SILLONES — borde delimitado
-          M6 y M5 arriba, M1 abajo-derecha
-      ══════════════════════════════════════ */}
+      {/* ── Zona sillones ── */}
       <div style={{
         position: "absolute", left: "36%", top: "6%", width: "54%", height: "88%",
-        border: "1px solid rgba(255,255,255,0.08)",
-        borderRadius: 10,
+        border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10,
         background: "rgba(255,255,255,0.015)",
       }}>
-        {/* Etiqueta sillones */}
-        <div style={{
-          position: "absolute", top: 5, left: 10,
-          fontSize: "0.38rem", color: "rgba(186,132,60,0.4)",
-          letterSpacing: "0.14em", textTransform: "uppercase",
-        }}>
+        <div style={{ position: "absolute", top: 5, left: 10, fontSize: "0.38rem", color: "rgba(186,132,60,0.4)", letterSpacing: "0.14em", textTransform: "uppercase" }}>
           Sillones
         </div>
       </div>
@@ -101,7 +102,7 @@ export function SalonMap({ tables, pairs, guests, selection, onSelect }: Props) 
       {/* ── Mesa centro-baja ── */}
       {blob(2, 47, 73)}
 
-      {/* ── Sillones como mesas dentro del borde ── */}
+      {/* ── Sillones ── */}
       {blob(6, 55, 30)}
       {blob(5, 70, 30)}
       {blob(1, 70, 70)}

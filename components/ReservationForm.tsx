@@ -130,8 +130,9 @@ export function ReservationForm() {
           guests: form.guests,
           sectionPreference: form.sectionPreference,
           notes: form.notes || undefined,
-          tableId: selection.tableId,
+          tableId:      selection.tableId,
           linkedTableId: selection.linkedTableId,
+          thirdTableId:  selection.thirdTableId,
         }),
       });
       const data = await res.json();
@@ -151,8 +152,10 @@ export function ReservationForm() {
 
   // ── Resumen de mesa seleccionada ──────────────
   const selectionLabel = selection
-    ? selection.linkedTableNumber
-      ? `Mesa M${selection.tableNumber} + M${selection.linkedTableNumber} (combinadas)`
+    ? selection.thirdTableNumber
+      ? `Mesas M${selection.tableNumber} + M${selection.linkedTableNumber} + M${selection.thirdTableNumber} (combinadas)`
+      : selection.linkedTableNumber
+      ? `Mesas M${selection.tableNumber} + M${selection.linkedTableNumber} (combinadas)`
       : `Mesa M${selection.tableNumber}`
     : null;
 

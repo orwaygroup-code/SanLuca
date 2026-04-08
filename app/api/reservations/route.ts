@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const { date, time, tableId, linkedTableId, ...rest } = validation.data;
+        const { date, time, tableId, linkedTableId, thirdTableId, ...rest } = validation.data;
 
         // 4. Combinar fecha + hora en un solo DateTime
         const reservationDate = new Date(`${date}T${time}:00`);
@@ -94,15 +94,16 @@ export async function POST(request: NextRequest) {
         // 7. Verificar que la mesa no esté ocupada en este turno
         if (tableId) {
             const { start: shiftStart, end: shiftEnd, name: shiftName } = getShiftWindow(reservationDate);
+            const allIds = [tableId, linkedTableId, thirdTableId].filter(Boolean) as string[];
             const tableConflict = await prisma.reservation.findFirst({
                 where: {
                     status: { notIn: ["CANCELLED", "NO_SHOW"] },
                     date:   { gte: shiftStart, lt: shiftEnd },
-                    OR: [
-                        { tableId },
-                        { linkedTableId: tableId },
-                        ...(linkedTableId ? [{ tableId: linkedTableId }, { linkedTableId }] : []),
-                    ],
+                    OR: allIds.flatMap((id) => [
+                        { tableId: id },
+                        { linkedTableId: id },
+                        { thirdTableId: id },
+                    ]),
                 },
             });
             if (tableConflict) {
@@ -121,6 +122,7 @@ export async function POST(request: NextRequest) {
                 date: reservationDate,
                 ...(tableId       ? { tableId }       : {}),
                 ...(linkedTableId ? { linkedTableId } : {}),
+                ...(thirdTableId  ? { thirdTableId }  : {}),
                 ...rest,
             },
             select: {

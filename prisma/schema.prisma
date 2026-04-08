@@ -79,6 +79,7 @@ model Table {
   isActive           Boolean       @default(true)
   reservations       Reservation[] @relation("PrimaryTable")
   linkedReservations Reservation[] @relation("LinkedTable")
+  thirdReservations  Reservation[] @relation("ThirdTable")
   createdAt          DateTime      @default(now())
 
   @@unique([number, sectionId])
@@ -107,6 +108,8 @@ model Reservation {
   table             Table?            @relation("PrimaryTable", fields: [tableId], references: [id], onDelete: SetNull)
   linkedTableId     String?           // segunda mesa cuando se combinan dos
   linkedTable       Table?            @relation("LinkedTable", fields: [linkedTableId], references: [id], onDelete: SetNull)
+  thirdTableId      String?           // tercera mesa cuando se combinan tres
+  thirdTable        Table?            @relation("ThirdTable", fields: [thirdTableId], references: [id], onDelete: SetNull)
 
   // ── Detalles del turno ─────────────────
   date              DateTime          // fecha + hora exacta

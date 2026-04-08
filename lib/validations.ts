@@ -55,6 +55,7 @@ export const createReservationSchema = z.object({
   // Mesa seleccionada en el mapa
   tableId:       z.string().cuid().optional(),
   linkedTableId: z.string().cuid().optional(),
+  thirdTableId:  z.string().cuid().optional(),
 });
 
 export type CreateReservationInput = z.infer<typeof createReservationSchema>;

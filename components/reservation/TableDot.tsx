@@ -2,7 +2,7 @@
 
 // Componente mesa individual reutilizable en todos los mapas
 
-export type TableState = "available" | "occupied" | "selected" | "pair" | "disabled";
+export type TableState = "available" | "occupied" | "selected" | "pair" | "triple" | "disabled";
 
 interface TableDotProps {
   number: number;
@@ -18,6 +18,7 @@ const stateStyle: Record<TableState, { bg: string; border: string; color: string
   occupied:  { bg: "rgba(255,255,255,0.03)", border: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.2)", cursor: "default" },
   selected:  { bg: "rgba(186,132,60,0.45)", border: "#ba843c",                color: "#f5f1e8",            cursor: "pointer"    },
   pair:      { bg: "rgba(186,132,60,0.25)", border: "rgba(186,132,60,0.85)", color: "#f5f1e8",            cursor: "pointer"    },
+  triple:    { bg: "rgba(100,160,80,0.18)", border: "rgba(100,160,80,0.75)",  color: "rgba(140,210,110,0.9)", cursor: "pointer" },
   disabled:  { bg: "rgba(255,255,255,0.02)", border: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.15)", cursor: "not-allowed" },
 };
 

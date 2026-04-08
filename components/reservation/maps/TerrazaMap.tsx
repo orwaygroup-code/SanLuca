@@ -1,24 +1,27 @@
 "use client";
 import { BlobTable } from "@/components/reservation/BlobTable";
 import type { TableState } from "@/components/reservation/TableDot";
-import type { AvailableTable, AvailablePair, TableSelection } from "@/components/reservation/types";
-import { COMBINED_MAX_CAPACITY } from "@/lib/tableAdjacency";
+import type { AvailableTable, AvailablePair, AvailableTriple, TableSelection } from "@/components/reservation/types";
+import { COMBINED_MAX_CAPACITY, TRIPLE_MIN_GUESTS, TRIPLE_MAX_CAPACITY } from "@/lib/tableAdjacency";
 
 interface Props {
   tables:    AvailableTable[];
   pairs:     AvailablePair[];
+  triples:   AvailableTriple[];
   guests:    number;
   selection: TableSelection | null;
   onSelect:  (sel: TableSelection) => void;
 }
 
-export function TerrazaMap({ tables, pairs, guests, selection, onSelect }: Props) {
+export function TerrazaMap({ tables, pairs, triples, guests, selection, onSelect }: Props) {
   const byNumber = new Map(tables.map((t) => [t.number, t]));
-  const pairIds  = new Set(pairs.flatMap((p) => [p.tableA.id, p.tableB.id]));
+  const pairIds   = new Set(pairs.flatMap((p) => [p.tableA.id, p.tableB.id]));
+  const tripleIds = new Set(triples.flatMap((t) => [t.tableA.id, t.tableB.id, t.tableC.id]));
 
   function getState(t: AvailableTable): TableState {
     if (t.status === "occupied") return "occupied";
-    if (selection?.tableId === t.id || selection?.linkedTableId === t.id) return "selected";
+    if (selection?.tableId === t.id || selection?.linkedTableId === t.id || selection?.thirdTableId === t.id) return "selected";
+    if (guests >= TRIPLE_MIN_GUESTS && guests <= TRIPLE_MAX_CAPACITY && tripleIds.has(t.id)) return "triple";
     if (guests >= 5 && guests <= COMBINED_MAX_CAPACITY && pairIds.has(t.id)) return "pair";
     if (t.capacity >= guests) return "available";
     return "disabled";
@@ -26,6 +29,13 @@ export function TerrazaMap({ tables, pairs, guests, selection, onSelect }: Props
 
   function handleClick(t: AvailableTable) {
     if (t.status === "occupied") return;
+    if (guests >= TRIPLE_MIN_GUESTS && guests <= TRIPLE_MAX_CAPACITY) {
+      const triple = triples.find((tr) => tr.tableA.id === t.id || tr.tableB.id === t.id || tr.tableC.id === t.id);
+      if (triple) {
+        onSelect({ tableId: triple.tableA.id, tableNumber: triple.tableA.number, linkedTableId: triple.tableB.id, linkedTableNumber: triple.tableB.number, thirdTableId: triple.tableC.id, thirdTableNumber: triple.tableC.number });
+        return;
+      }
+    }
     if (guests >= 5 && guests <= COMBINED_MAX_CAPACITY) {
       const pair = pairs.find((p) => p.tableA.id === t.id || p.tableB.id === t.id);
       if (pair) {
@@ -59,20 +69,14 @@ export function TerrazaMap({ tables, pairs, guests, selection, onSelect }: Props
         <span style={{ fontSize: "clamp(0.6rem,2vw,1rem)", color: "rgba(255,255,255,0.18)", letterSpacing: "0.08em" }}>SALON 1</span>
       </div>
 
-      {/* ── Privado (box con borde dorado) ── */}
+      {/* ── Privado ── */}
       <div style={{ position: "absolute", right: "2%", top: "8%", width: "20%", height: "56%", background: "#1e2a2c", border: "2px solid rgba(186,132,60,0.5)", borderRadius: 12, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
-        {/* Mesa lounge blob dentro del privado */}
         <div style={{ position: "relative", width: 56, height: 56, flexShrink: 0 }}>
           {[0,1,2,3,4,5].map(i => {
             const angle = (i / 6) * 2 * Math.PI - Math.PI / 2;
             const r = 22;
             return (
-              <div key={i} style={{
-                position: "absolute", width: 13, height: 13, borderRadius: "50%",
-                background: "#253234",
-                left: 28 + r * Math.cos(angle) - 6.5,
-                top:  28 + r * Math.sin(angle) - 6.5,
-              }} />
+              <div key={i} style={{ position: "absolute", width: 13, height: 13, borderRadius: "50%", background: "#253234", left: 28 + r * Math.cos(angle) - 6.5, top: 28 + r * Math.sin(angle) - 6.5 }} />
             );
           })}
           <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 26, height: 26, background: "#2c3537", borderRadius: 7 }} />

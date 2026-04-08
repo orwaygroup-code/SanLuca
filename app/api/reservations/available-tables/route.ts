@@ -2,7 +2,13 @@
 // GET /api/reservations/available-tables?section=Terraza&date=2024-01-15&time=19:00&guests=4
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { ADJACENT_PAIRS, COMBINED_MAX_CAPACITY } from "@/lib/tableAdjacency";
+import {
+  ADJACENT_PAIRS,
+  ADJACENT_TRIPLES,
+  COMBINED_MAX_CAPACITY,
+  TRIPLE_MIN_GUESTS,
+  TRIPLE_MAX_CAPACITY,
+} from "@/lib/tableAdjacency";
 import { getShiftWindow } from "@/lib/shifts";
 import type { ApiResponse } from "@/types";
 
@@ -22,9 +28,9 @@ export async function GET(request: NextRequest) {
     }
 
     const guests = parseInt(guestsRaw);
-    if (isNaN(guests) || guests < 1 || guests > 8) {
+    if (isNaN(guests) || guests < 1 || guests > TRIPLE_MAX_CAPACITY) {
       return NextResponse.json<ApiResponse>(
-        { success: false, error: "Número de personas inválido (1–8)" },
+        { success: false, error: `Número de personas inválido (1–${TRIPLE_MAX_CAPACITY})` },
         { status: 400 }
       );
     }
@@ -37,10 +43,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Turno al que pertenece la reserva
     const { start: shiftStart, end: shiftEnd } = getShiftWindow(reservationStart);
 
-    // Fetch sección + mesas
     const dbSection = await prisma.section.findUnique({
       where: { name: section },
       include: {
@@ -57,7 +61,7 @@ export async function GET(request: NextRequest) {
 
     const tableIds = dbSection.tables.map((t) => t.id);
 
-    // Reservas activas en el mismo turno → esas mesas están ocupadas
+    // Reservas activas en el mismo turno → mesas ocupadas
     const conflicts = await prisma.reservation.findMany({
       where: {
         status: { notIn: ["CANCELLED", "NO_SHOW"] },
@@ -65,18 +69,19 @@ export async function GET(request: NextRequest) {
         OR: [
           { tableId:       { in: tableIds } },
           { linkedTableId: { in: tableIds } },
+          { thirdTableId:  { in: tableIds } },
         ],
       },
-      select: { tableId: true, linkedTableId: true },
+      select: { tableId: true, linkedTableId: true, thirdTableId: true },
     });
 
     const occupiedIds = new Set<string>();
     for (const c of conflicts) {
       if (c.tableId)       occupiedIds.add(c.tableId);
       if (c.linkedTableId) occupiedIds.add(c.linkedTableId);
+      if (c.thirdTableId)  occupiedIds.add(c.thirdTableId);
     }
 
-    // Estado de cada mesa
     const tables = dbSection.tables.map((t) => ({
       id:       t.id,
       number:   t.number,
@@ -84,12 +89,13 @@ export async function GET(request: NextRequest) {
       status:   (occupiedIds.has(t.id) ? "occupied" : "available") as "available" | "occupied",
     }));
 
-    // Pares adyacentes disponibles (solo para 5–6 personas)
+    const byNumber = new Map(tables.map((t) => [t.number, t]));
+
+    // ── Pares disponibles (5-6 personas) ─────────────────
     type Pair = { tableA: { id: string; number: number }; tableB: { id: string; number: number } };
     const pairs: Pair[] = [];
 
     if (guests >= 5 && guests <= COMBINED_MAX_CAPACITY) {
-      const byNumber = new Map(tables.map((t) => [t.number, t]));
       for (const [numA, numB] of ADJACENT_PAIRS) {
         const tA = byNumber.get(numA);
         const tB = byNumber.get(numB);
@@ -103,13 +109,34 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // ── Triples disponibles (7-8 personas) ───────────────
+    type Triple = { tableA: { id: string; number: number }; tableB: { id: string; number: number }; tableC: { id: string; number: number } };
+    const triples: Triple[] = [];
+
+    if (guests >= TRIPLE_MIN_GUESTS && guests <= TRIPLE_MAX_CAPACITY) {
+      for (const [numA, numB, numC] of ADJACENT_TRIPLES) {
+        const tA = byNumber.get(numA);
+        const tB = byNumber.get(numB);
+        const tC = byNumber.get(numC);
+        if (!tA || !tB || !tC) continue;
+        if (tA.status === "available" && tB.status === "available" && tC.status === "available") {
+          triples.push({
+            tableA: { id: tA.id, number: tA.number },
+            tableB: { id: tB.id, number: tB.number },
+            tableC: { id: tC.id, number: tC.number },
+          });
+        }
+      }
+    }
+
     const hasAvailability =
       tables.some((t) => t.status === "available" && t.capacity >= guests) ||
-      pairs.length > 0;
+      pairs.length > 0 ||
+      triples.length > 0;
 
     return NextResponse.json<ApiResponse>({
       success: true,
-      data: { sectionName: dbSection.name, tables, pairs, hasAvailability },
+      data: { sectionName: dbSection.name, tables, pairs, triples, hasAvailability },
     });
   } catch (error) {
     console.error("[API] GET /api/reservations/available-tables error:", error);
