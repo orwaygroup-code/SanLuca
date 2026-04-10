@@ -156,7 +156,7 @@ export default async function ComidaCategoryPage({ params }: PageProps) {
                                 price={Number(dish.price)}
                                 weight={null}
                                 imageUrl={dish.imageUrl ?? null}
-                                priceUnit={data.name === "Carne Wagyu" ? "/ 100g" : null}
+                                priceUnit={data.name === "Carne Wagyu" ? "por cada 100g" : null}
                             />
                         ))}
                     </div>

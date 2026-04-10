@@ -1485,3 +1485,27 @@ textarea::placeholder {
   font-size: 0.65rem;
   opacity: 0.7;
 }
+
+/* ── Mapas de reserva: scroll horizontal en móvil ── */
+.rf-map-scroll {
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .rf-map-scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    cursor: grab;
+    border-radius: 14px;
+  }
+
+  .rf-map-scroll:active {
+    cursor: grabbing;
+  }
+
+  /* El mapa interno mantiene un ancho mínimo para que las mesas sean fáciles de tocar */
+  .rf-map-scroll > div {
+    min-width: 600px;
+  }
+}

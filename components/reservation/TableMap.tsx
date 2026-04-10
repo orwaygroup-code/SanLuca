@@ -42,10 +42,12 @@ export function TableMap({ data, guests, selection, onSelect }: Props) {
 
   return (
     <div style={{ width: "100%" }}>
-      {data.sectionName === "Salón"       && <SalonMap      {...props} />}
-      {data.sectionName === "Terraza"     && <TerrazaMap    {...props} />}
-      {data.sectionName === "Planta Alta" && <PlantaAltaMap {...props} />}
-      {data.sectionName === "Privado"     && <PrivadoSelect tables={data.tables} guests={guests} selection={selection} onSelect={onSelect} />}
+      <div className="rf-map-scroll">
+        {data.sectionName === "Salón"       && <SalonMap      {...props} />}
+        {data.sectionName === "Terraza"     && <TerrazaMap    {...props} />}
+        {data.sectionName === "Planta Alta" && <PlantaAltaMap {...props} />}
+        {data.sectionName === "Privado"     && <PrivadoSelect tables={data.tables} guests={guests} selection={selection} onSelect={onSelect} />}
+      </div>
       {data.sectionName !== "Privado" && legend}
     </div>
   );
