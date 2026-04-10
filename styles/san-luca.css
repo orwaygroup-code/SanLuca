@@ -1509,3 +1509,24 @@ textarea::placeholder {
     min-width: 600px;
   }
 }
+
+/* ── Mapa: rotación a landscape en portrait móvil ── */
+@media screen and (max-width: 768px) and (orientation: portrait) {
+  .rf-wrapper--map .rf-right {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100svh;
+    height: 100svw;
+    transform: rotate(-90deg) translateX(-100%);
+    transform-origin: top left;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0;
+    max-width: none;
+    padding: 10px 14px;
+    box-sizing: border-box;
+    background: #1b2224;
+    z-index: 999;
+  }
+}
