@@ -8,9 +8,10 @@ import { SectionHead, Divider } from "@/components/ui/SectionHead";
 
 /* ─── Hours Data ─── */
 const HOURS = [
-  { day: "Lunes – Sabado", time: "8:00 – 00:00" },
-
-  { day: "Domingo", time: "8:00 – 21:00" },
+  { day: "Lunes",           time: "Cerrado" },
+  { day: "Martes – Jueves", time: "8:00 – 23:00" },
+  { day: "Viernes – Sábado", time: "8:00 – 00:00" },
+  { day: "Domingo",         time: "8:00 – 21:00" },
 ];
 
 /* ─── Shared Input Style ─── */

@@ -48,23 +48,18 @@ export function ReservationForm() {
   const set = <K extends keyof FormData>(field: K, value: FormData[K]) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
-  // Slots de horario según el día seleccionado (cada 30 min dentro del horario del restaurante)
-  const timeSlots = (() => {
-    const isSunday = form.date
-      ? (() => { const [y, m, d] = form.date.split("-").map(Number); return new Date(y, m - 1, d).getDay() === 0; })()
-      : false;
+  // Slots de horario según el día seleccionado
+  const { timeSlots, isDayClosed } = (() => {
+    if (!form.date) return { timeSlots: [], isDayClosed: false };
+    const [y, mo, d] = form.date.split("-").map(Number);
+    const dow = new Date(y, mo - 1, d).getDay();
+    if (dow === 1) return { timeSlots: [], isDayClosed: true }; // Lunes cerrado
     const slots: string[] = [];
     const pad = (n: number) => String(n).padStart(2, "0");
-    if (isSunday) {
-      // Domingo: 08:00 – 21:00
-      for (let h = 8; h < 21; h++) { slots.push(`${pad(h)}:00`); slots.push(`${pad(h)}:30`); }
-      slots.push("21:00");
-    } else {
-      // Lunes–Sábado: 08:00 – 23:30 + 00:00
-      for (let h = 8; h < 24; h++) { slots.push(`${pad(h)}:00`); slots.push(`${pad(h)}:30`); }
-      slots.push("23:30");
-    }
-    return slots;
+    const closeHour = dow === 0 ? 21 : (dow === 5 || dow === 6) ? 24 : 23;
+    for (let h = 8; h < closeHour; h++) { slots.push(`${pad(h)}:00`); slots.push(`${pad(h)}:30`); }
+    if (closeHour < 24) slots.push(`${pad(closeHour)}:00`);
+    return { timeSlots: slots, isDayClosed: false };
   })();
 
   // ── Paso 1: buscar disponibilidad ─────────────
@@ -238,14 +233,18 @@ export function ReservationForm() {
               </div>
               <div>
                 <label className="rf-label">Hora</label>
-                <select className="rf-select" value={form.time}
-                  onChange={(e) => set("time", e.target.value)}
-                  disabled={!form.date}>
-                  <option value="" disabled>{form.date ? "Selecciona hora" : "Elige fecha primero"}</option>
-                  {timeSlots.map((t) => (
-                    <option key={t} value={t} style={{ background: "#1b2224" }}>{t}</option>
-                  ))}
-                </select>
+                {isDayClosed ? (
+                  <div className="rf-error" style={{ marginTop: 4 }}>Los lunes estamos cerrados.</div>
+                ) : (
+                  <select className="rf-select" value={form.time}
+                    onChange={(e) => set("time", e.target.value)}
+                    disabled={!form.date}>
+                    <option value="" disabled>{form.date ? "Selecciona hora" : "Elige fecha primero"}</option>
+                    {timeSlots.map((t) => (
+                      <option key={t} value={t} style={{ background: "#1b2224" }}>{t}</option>
+                    ))}
+                  </select>
+                )}
               </div>
               <div>
                 <label className="rf-label">Personas</label>

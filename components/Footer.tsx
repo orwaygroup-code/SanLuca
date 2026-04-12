@@ -127,7 +127,9 @@ export default function Footer() {
           <FooterColumn
             title="Horario"
             lines={[
-              "Lun–Sáb: 8:00–00:00",
+              "Lunes: Cerrado",
+              "Mar–Jue: 8:00–23:00",
+              "Vie–Sáb: 8:00–00:00",
               "Dom: 8:00–21:00",
             ]}
           />
