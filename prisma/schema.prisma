@@ -115,6 +115,7 @@ model Reservation {
   date              DateTime          // fecha + hora exacta
   duration          Int               @default(90)  // minutos que ocupa la mesa
   guests            Int               // número de comensales
+  isLargeGroup      Boolean           @default(false) // >8 personas: reserva área completa por día
 
   // ── Preferencias del cliente ───────────
   sectionPreference String?           // "Terraza" | "Planta Alta" | "Salón" (no garantizada)

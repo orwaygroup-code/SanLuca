@@ -28,9 +28,9 @@ export async function GET(request: NextRequest) {
     }
 
     const guests = parseInt(guestsRaw);
-    if (isNaN(guests) || guests < 1 || guests > TRIPLE_MAX_CAPACITY) {
+    if (isNaN(guests) || guests < 1) {
       return NextResponse.json<ApiResponse>(
-        { success: false, error: `Número de personas inválido (1–${TRIPLE_MAX_CAPACITY})` },
+        { success: false, error: "Número de personas inválido (mínimo 1)" },
         { status: 400 }
       );
     }
@@ -42,8 +42,6 @@ export async function GET(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    const { start: shiftStart, end: shiftEnd } = getShiftWindow(reservationStart);
 
     const dbSection = await prisma.section.findUnique({
       where: { name: section },
@@ -60,6 +58,91 @@ export async function GET(request: NextRequest) {
     }
 
     const tableIds = dbSection.tables.map((t) => t.id);
+
+    // ── Rango del día completo (para bloqueos de grupo grande) ────────────
+    const [y, mo, d] = date.split("-").map(Number);
+    const dayStart = new Date(y, mo - 1, d, 0, 0, 0);
+    const dayEnd   = new Date(y, mo - 1, d, 23, 59, 59);
+
+    // ══════════════════════════════════════════════════════════════════════
+    // GRUPO GRANDE (>8 personas): verificar disponibilidad de área completa
+    // ══════════════════════════════════════════════════════════════════════
+    if (guests > 8) {
+      // 1. ¿Ya existe otro grupo grande en esta área ese día?
+      const largeGroupConflict = await prisma.reservation.findFirst({
+        where: {
+          isLargeGroup: true,
+          sectionPreference: section,
+          status: { notIn: ["CANCELLED", "NO_SHOW"] },
+          date: { gte: dayStart, lte: dayEnd },
+        },
+      });
+
+      if (largeGroupConflict) {
+        return NextResponse.json<ApiResponse>({
+          success: true,
+          data: {
+            isLargeGroup: true,
+            hasAvailability: false,
+            sectionName: dbSection.name,
+            reason: "already_blocked_large_group",
+          },
+        });
+      }
+
+      // 2. ¿Existen reservas normales en alguna mesa de esta área ese día?
+      const normalConflict = await prisma.reservation.findFirst({
+        where: {
+          status: { notIn: ["CANCELLED", "NO_SHOW"] },
+          date: { gte: dayStart, lte: dayEnd },
+          OR: [
+            { tableId:       { in: tableIds } },
+            { linkedTableId: { in: tableIds } },
+            { thirdTableId:  { in: tableIds } },
+          ],
+        },
+      });
+
+      return NextResponse.json<ApiResponse>({
+        success: true,
+        data: {
+          isLargeGroup: true,
+          hasAvailability: !normalConflict,
+          sectionName: dbSection.name,
+          reason: normalConflict ? "has_normal_reservations" : null,
+        },
+      });
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // RESERVA NORMAL (≤8 personas)
+    // ══════════════════════════════════════════════════════════════════════
+
+    // Verificar si un grupo grande bloqueó esta área hoy
+    const largeGroupBlock = await prisma.reservation.findFirst({
+      where: {
+        isLargeGroup: true,
+        sectionPreference: section,
+        status: { notIn: ["CANCELLED", "NO_SHOW"] },
+        date: { gte: dayStart, lte: dayEnd },
+      },
+    });
+
+    if (largeGroupBlock) {
+      return NextResponse.json<ApiResponse>({
+        success: true,
+        data: {
+          sectionName: dbSection.name,
+          tables: [],
+          pairs: [],
+          triples: [],
+          hasAvailability: false,
+          blockedByLargeGroup: true,
+        },
+      });
+    }
+
+    const { start: shiftStart, end: shiftEnd } = getShiftWindow(reservationStart);
 
     // Reservas activas en el mismo turno → mesas ocupadas
     const conflicts = await prisma.reservation.findMany({

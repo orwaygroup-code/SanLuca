@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const { date, time, tableId, linkedTableId, thirdTableId, ...rest } = validation.data;
+        const { date, time, tableId, linkedTableId, thirdTableId, isLargeGroup, ...rest } = validation.data;
 
         // 4. Combinar fecha + hora en un solo DateTime
         const reservationDate = new Date(`${date}T${time}:00`);
@@ -91,7 +91,103 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // 7. Verificar que la mesa no esté ocupada en este turno
+        // Rango del día completo (para bloqueos de grupo grande)
+        const [y, mo, d] = date.split("-").map(Number);
+        const dayStart = new Date(y, mo - 1, d, 0, 0, 0);
+        const dayEnd   = new Date(y, mo - 1, d, 23, 59, 59);
+
+        // ── GRUPO GRANDE: verificar que el área completa esté libre todo el día ──
+        if (isLargeGroup) {
+            const sectionName = rest.sectionPreference;
+            if (!sectionName) {
+                return NextResponse.json<ApiResponse>(
+                    { success: false, error: "Se requiere seleccionar un área para reservas de grupo grande." },
+                    { status: 400 }
+                );
+            }
+
+            const dbSection = await prisma.section.findUnique({
+                where: { name: sectionName },
+                include: { tables: { where: { isActive: true } } },
+            });
+
+            if (!dbSection) {
+                return NextResponse.json<ApiResponse>(
+                    { success: false, error: `Sección "${sectionName}" no encontrada.` },
+                    { status: 404 }
+                );
+            }
+
+            const sectionTableIds = dbSection.tables.map((t) => t.id);
+
+            const [lgConflict, normalConflict] = await Promise.all([
+                // ¿Ya hay otro grupo grande en esta área hoy?
+                prisma.reservation.findFirst({
+                    where: {
+                        isLargeGroup: true,
+                        sectionPreference: sectionName,
+                        status: { notIn: ["CANCELLED", "NO_SHOW"] },
+                        date: { gte: dayStart, lte: dayEnd },
+                    },
+                }),
+                // ¿Hay reservas normales en alguna mesa de esta área hoy?
+                prisma.reservation.findFirst({
+                    where: {
+                        status: { notIn: ["CANCELLED", "NO_SHOW"] },
+                        date: { gte: dayStart, lte: dayEnd },
+                        OR: [
+                            { tableId:       { in: sectionTableIds } },
+                            { linkedTableId: { in: sectionTableIds } },
+                            { thirdTableId:  { in: sectionTableIds } },
+                        ],
+                    },
+                }),
+            ]);
+
+            if (lgConflict || normalConflict) {
+                return NextResponse.json<ApiResponse>(
+                    { success: false, error: `El área ${sectionName} no está disponible el ${date}. Ya existe otra reserva en esa área para ese día.` },
+                    { status: 409 }
+                );
+            }
+
+            const reservation = await prisma.reservation.create({
+                data: {
+                    userId,
+                    date: reservationDate,
+                    isLargeGroup: true,
+                    ...rest,
+                },
+                select: {
+                    id: true, guestPhone: true, guestName: true, date: true,
+                    guests: true, sectionPreference: true, occasion: true,
+                    notes: true, status: true, wantsPreOrder: true,
+                    qrToken: true, createdAt: true,
+                },
+            });
+
+            return NextResponse.json<ApiResponse>({ success: true, data: reservation }, { status: 201 });
+        }
+
+        // 7. RESERVA NORMAL: verificar que el área no esté bloqueada por grupo grande
+        if (rest.sectionPreference) {
+            const lgBlock = await prisma.reservation.findFirst({
+                where: {
+                    isLargeGroup: true,
+                    sectionPreference: rest.sectionPreference,
+                    status: { notIn: ["CANCELLED", "NO_SHOW"] },
+                    date: { gte: dayStart, lte: dayEnd },
+                },
+            });
+            if (lgBlock) {
+                return NextResponse.json<ApiResponse>(
+                    { success: false, error: `El área ${rest.sectionPreference} está reservada completa para ese día. Elige otra área u otra fecha.` },
+                    { status: 409 }
+                );
+            }
+        }
+
+        // 8. Verificar que la mesa no esté ocupada en este turno
         if (tableId) {
             const { start: shiftStart, end: shiftEnd, name: shiftName } = getShiftWindow(reservationDate);
             const allIds = [tableId, linkedTableId, thirdTableId].filter(Boolean) as string[];
@@ -115,7 +211,7 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        // 8. Crear la reserva
+        // 9. Crear la reserva normal
         const reservation = await prisma.reservation.create({
             data: {
                 userId,

@@ -43,7 +43,7 @@ export const createReservationSchema = z.object({
     .number()
     .int()
     .min(1, "Mínimo 1 persona")
-    .max(20, "Máximo 20 personas"),
+    .max(500, "Máximo 500 personas"),
 
   // Preferencias
   sectionPreference: z
@@ -51,6 +51,9 @@ export const createReservationSchema = z.object({
     .optional(),
   occasion: z.string().max(100).optional(),
   notes: z.string().max(500).optional(),
+
+  // Grupo grande (>8 personas): reserva área completa por todo el día
+  isLargeGroup: z.boolean().optional(),
 
   // Mesa seleccionada en el mapa
   tableId:       z.string().cuid().optional(),

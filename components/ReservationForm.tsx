@@ -27,7 +27,7 @@ interface FormData {
   notes: string;
 }
 
-type Step = "form" | "map";
+type Step = "form" | "map" | "large-confirm";
 
 export function ReservationForm() {
   const router = useRouter();
@@ -37,6 +37,8 @@ export function ReservationForm() {
     guestName: "", guestPhone: "", date: "", time: "",
     guests: 2, sectionPreference: "Terraza", notes: "",
   });
+  const [largeGroupMode, setLargeGroupMode] = useState(false);
+  const [customGuestsInput, setCustomGuestsInput] = useState("");
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [availability, setAvailability] = useState<AvailabilityData | null>(null);
@@ -62,18 +64,34 @@ export function ReservationForm() {
     return { timeSlots: slots, isDayClosed: false };
   })();
 
+  // ── Helpers de autenticación y validación ─────
+  function checkAuth() {
+    if (!localStorage.getItem("userId")) {
+      setAuthRequired(true);
+      return false;
+    }
+    return true;
+  }
+
+  function validateBaseFields() {
+    if (!form.guestName || !form.guestPhone || !form.date || !form.time) {
+      setSearchError("Completa todos los campos antes de buscar.");
+      return false;
+    }
+    if (largeGroupMode && form.guests < 9) {
+      setSearchError("Para grupo grande ingresa al menos 9 personas.");
+      return false;
+    }
+    return true;
+  }
+
   // ── Paso 1: buscar disponibilidad ─────────────
   async function handleSearch() {
     setSearchError(null);
     setAuthRequired(false);
-    if (!localStorage.getItem("userId")) {
-      setAuthRequired(true);
-      return;
-    }
-    if (!form.guestName || !form.guestPhone || !form.date || !form.time) {
-      setSearchError("Completa todos los campos antes de buscar.");
-      return;
-    }
+    if (!checkAuth()) return;
+    if (!validateBaseFields()) return;
+
     setSearching(true);
     try {
       const params = new URLSearchParams({
@@ -84,11 +102,28 @@ export function ReservationForm() {
       });
       const res = await fetch(`/api/reservations/available-tables?${params}`);
       const data = await res.json();
-
       if (!data.success) throw new Error(data.error);
 
+      // ── Grupo grande ──
+      if (form.guests > 8) {
+        if (!data.data.hasAvailability) {
+          const reason = data.data.reason;
+          const msg = reason === "already_blocked_large_group"
+            ? `El área ${form.sectionPreference} ya tiene una reserva de grupo grande ese día.`
+            : `El área ${form.sectionPreference} ya tiene reservas para ese día y no puede reservarse completa. Elige otra área u otra fecha.`;
+          setSearchError(msg);
+          return;
+        }
+        setStep("large-confirm");
+        return;
+      }
+
+      // ── Reserva normal ──
       if (!data.data.hasAvailability) {
-        setSearchError(`Sin disponibilidad en ${form.sectionPreference} para ese horario. Elige otra área u horario.`);
+        const msg = data.data.blockedByLargeGroup
+          ? `El área ${form.sectionPreference} está reservada completa para ese día por un grupo grande. Elige otra área u otro día.`
+          : `Sin disponibilidad en ${form.sectionPreference} para ese horario. Elige otra área u horario.`;
+        setSearchError(msg);
         return;
       }
 
@@ -102,14 +137,10 @@ export function ReservationForm() {
     }
   }
 
-  // ── Paso 2: confirmar reserva ─────────────────
+  // ── Confirmar reserva normal (mapa) ───────────
   async function handleConfirm() {
     if (!selection) return;
-    if (!localStorage.getItem("userId")) {
-      setAuthRequired(true);
-      setStep("form");
-      return;
-    }
+    if (!checkAuth()) { setStep("form"); return; }
     setConfirmError(null);
     setConfirming(true);
     try {
@@ -125,9 +156,40 @@ export function ReservationForm() {
           guests: form.guests,
           sectionPreference: form.sectionPreference,
           notes: form.notes || undefined,
-          tableId:      selection.tableId,
+          tableId:       selection.tableId,
           linkedTableId: selection.linkedTableId,
           thirdTableId:  selection.thirdTableId,
+        }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      router.push("/dashboard");
+    } catch (e: unknown) {
+      setConfirmError(e instanceof Error ? e.message : "Error al crear la reserva");
+    } finally {
+      setConfirming(false);
+    }
+  }
+
+  // ── Confirmar reserva de grupo grande ─────────
+  async function handleConfirmLargeGroup() {
+    if (!checkAuth()) { setStep("form"); return; }
+    setConfirmError(null);
+    setConfirming(true);
+    try {
+      const userId = localStorage.getItem("userId") ?? "";
+      const res = await fetch("/api/reservations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-user-id": userId },
+        body: JSON.stringify({
+          guestName: form.guestName,
+          guestPhone: form.guestPhone,
+          date: form.date,
+          time: form.time,
+          guests: form.guests,
+          sectionPreference: form.sectionPreference,
+          notes: form.notes || undefined,
+          isLargeGroup: true,
         }),
       });
       const data = await res.json();
@@ -153,6 +215,11 @@ export function ReservationForm() {
       ? `Mesas M${selection.tableNumber} + M${selection.linkedTableNumber} (combinadas)`
       : `Mesa M${selection.tableNumber}`
     : null;
+
+  // ── Formato de fecha legible ──────────────────
+  const readableDate = form.date
+    ? new Date(`${form.date}T12:00:00`).toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
+    : "";
 
   // ─────────────────────────────────────────────
   return (
@@ -203,6 +270,7 @@ export function ReservationForm() {
       {/* ── Panel derecho ── */}
       <div className="rf-right">
 
+        {/* ══════════════ PASO 1: FORMULARIO ══════════════ */}
         {step === "form" && (
           <>
             <div>
@@ -246,16 +314,90 @@ export function ReservationForm() {
                   </select>
                 )}
               </div>
+
+              {/* ── Selector de personas ── */}
               <div>
                 <label className="rf-label">Personas</label>
-                <select className="rf-select" value={form.guests}
-                  onChange={(e) => set("guests", Number(e.target.value))}>
-                  {PARTY_SIZES.map((n) => (
-                    <option key={n} value={n} style={{ background: "#1b2224" }}>
-                      {n} {n === 1 ? "persona" : "personas"}
-                    </option>
-                  ))}
-                </select>
+                {!largeGroupMode ? (
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <select
+                      className="rf-select"
+                      value={form.guests}
+                      onChange={(e) => set("guests", Number(e.target.value))}
+                      style={{ flex: 1 }}
+                    >
+                      {PARTY_SIZES.map((n) => (
+                        <option key={n} value={n} style={{ background: "#1b2224" }}>
+                          {n} {n === 1 ? "persona" : "personas"}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLargeGroupMode(true);
+                        setCustomGuestsInput("");
+                        set("guests", 9);
+                      }}
+                      style={{
+                        whiteSpace: "nowrap",
+                        padding: "0 10px",
+                        background: "rgba(186,132,60,0.12)",
+                        border: "1px solid rgba(186,132,60,0.35)",
+                        borderRadius: 8,
+                        color: "#ba843c",
+                        fontSize: "0.68rem",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        letterSpacing: "0.02em",
+                      }}
+                    >
+                      +8 personas
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <input
+                      className="rf-input"
+                      type="number"
+                      min={9}
+                      max={500}
+                      placeholder="Ej. 20"
+                      value={customGuestsInput}
+                      onChange={(e) => {
+                        setCustomGuestsInput(e.target.value);
+                        const n = parseInt(e.target.value);
+                        if (!isNaN(n) && n >= 9) set("guests", n);
+                      }}
+                      style={{ flex: 1 }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLargeGroupMode(false);
+                        setCustomGuestsInput("");
+                        set("guests", 2);
+                      }}
+                      style={{
+                        whiteSpace: "nowrap",
+                        padding: "0 10px",
+                        background: "transparent",
+                        border: "1px solid rgba(245,241,232,0.15)",
+                        borderRadius: 8,
+                        color: "rgba(245,241,232,0.4)",
+                        fontSize: "0.68rem",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                )}
+                {largeGroupMode && (
+                  <p style={{ fontSize: "0.68rem", color: "rgba(186,132,60,0.75)", margin: "5px 0 0", lineHeight: 1.4 }}>
+                    Grupos de +8 personas reservan el área completa por todo el día.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -290,11 +432,12 @@ export function ReservationForm() {
             )}
 
             <button className="rf-submit" onClick={handleSearch} disabled={searching}>
-              {searching ? "Buscando..." : "Buscar Mesa"}
+              {searching ? "Verificando disponibilidad..." : "Buscar Disponibilidad"}
             </button>
           </>
         )}
 
+        {/* ══════════════ PASO 2: MAPA DE MESAS (normal) ══════════════ */}
         {step === "map" && availability && (
           <>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -334,6 +477,78 @@ export function ReservationForm() {
               style={{ opacity: selection ? 1 : 0.4 }}
             >
               {confirming ? "Confirmando..." : "Confirmar Reserva"}
+            </button>
+          </>
+        )}
+
+        {/* ══════════════ PASO 3: CONFIRMACIÓN GRUPO GRANDE ══════════════ */}
+        {step === "large-confirm" && (
+          <>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <button
+                onClick={() => setStep("form")}
+                style={{ background: "none", border: "1px solid rgba(186,132,60,0.4)", borderRadius: 8, color: "rgba(245,241,232,0.7)", padding: "6px 14px", cursor: "pointer", fontSize: "0.75rem" }}
+              >
+                ← Volver
+              </button>
+              <div>
+                <h2 className="rf-form-title" style={{ margin: 0 }}>Reserva de Grupo</h2>
+                <p className="rf-form-sub" style={{ margin: 0 }}>{form.sectionPreference} · {form.guests} personas</p>
+              </div>
+            </div>
+
+            <div className="rf-divider" />
+
+            {/* Resumen */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {[
+                ["Titular", form.guestName],
+                ["Teléfono", form.guestPhone],
+                ["Fecha", readableDate],
+                ["Hora", form.time],
+                ["Personas", `${form.guests} personas`],
+                ["Área", form.sectionPreference],
+                ...(form.notes ? [["Notas", form.notes] as [string, string]] : []),
+              ].map(([label, value]) => (
+                <div key={label} style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                  <span style={{ fontSize: "0.75rem", color: "rgba(245,241,232,0.4)", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>{label}</span>
+                  <span style={{ fontSize: "0.82rem", color: "rgba(245,241,232,0.85)", textAlign: "right" }}>{value}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="rf-divider" />
+
+            {/* Aviso exclusividad */}
+            <div style={{
+              background: "rgba(186,132,60,0.07)",
+              border: "1px solid rgba(186,132,60,0.25)",
+              borderRadius: 10,
+              padding: "16px 18px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+            }}>
+              <p style={{ margin: 0, fontSize: "0.78rem", fontWeight: 700, color: "#ba843c", letterSpacing: "0.04em" }}>
+                RESERVA EXCLUSIVA DE ÁREA
+              </p>
+              <p style={{ margin: 0, fontSize: "0.8rem", color: "rgba(245,241,232,0.65)", lineHeight: 1.6 }}>
+                Al confirmar, el área completa de <strong style={{ color: "rgba(245,241,232,0.85)" }}>{form.sectionPreference}</strong> quedará bloqueada para tu grupo durante todo el{" "}
+                <strong style={{ color: "rgba(245,241,232,0.85)" }}>{readableDate}</strong>.
+              </p>
+              <p style={{ margin: 0, fontSize: "0.8rem", color: "rgba(245,241,232,0.5)", lineHeight: 1.6 }}>
+                Ninguna otra reserva podrá realizarse en esa área ese día. Nuestro equipo acomodará el espacio para {form.guests} personas.
+              </p>
+            </div>
+
+            {confirmError && <div className="rf-error">⚠ {confirmError}</div>}
+
+            <button
+              className="rf-submit"
+              onClick={handleConfirmLargeGroup}
+              disabled={confirming}
+            >
+              {confirming ? "Confirmando..." : `Confirmar Reserva para ${form.guests} Personas`}
             </button>
           </>
         )}
