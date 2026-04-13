@@ -146,33 +146,42 @@ export default function MenuPageClient({ comidaDishes, brunchDishes, dbCategorie
                 }}
             >
                 {/* Hero Image Container */}
-                <div className="hero-img-container relative w-full h-[500px] md:h-[650px] lg:h-[750px] overflow-hidden">
+                <div className="hero-img-mobile relative w-full h-[480px] md:h-[650px] lg:h-[720px] overflow-hidden">
 
-                    {/* Imagen con Next.js Image (responsive) */}
+                    {/* Imagen para MÓVIL (se muestra solo en móvil) */}
+                    <Image
+                        src="/images/menu/hero/responsive-brunch-hero.jpg"
+                        alt="San Luca Ristorante - Brunch"
+                        fill
+                        priority
+                        sizes="100vw"
+                        style={{ objectFit: "cover", objectPosition: "center" }}
+                        quality={85}
+                        className="md:hidden"   // Solo visible en móvil
+                    />
+
+                    {/* Imagen para DESKTOP (se muestra en tablet y desktop) */}
                     <Image
                         src={
                             mode === "comida"
                                 ? "/images/hero-menu.jpg"
-                                : "/images/menu/hero/responsive-brunch-hero.jpg"
+                                : "/images/menu/hero/brunchHero.jpg"   // Aquí pon tu imagen desktop de brunch
                         }
                         alt="San Luca Ristorante"
                         fill
                         priority
                         sizes="100vw"
-                        style={{
-                            objectFit: "cover",
-                            objectPosition: "center",
-                        }}
+                        style={{ objectFit: "cover", objectPosition: "center" }}
                         quality={85}
-                        className="transition-opacity duration-700"
+                        className="hidden md:block"   // Solo visible desde md en adelante
                     />
 
                     {/* Overlay */}
-                    <div className="hero-img-overlay absolute inset-0 bg-black/40 md:bg-black/30" />
+                    <div className="hero-img-overlay absolute inset-0 bg-black/40 md:bg-black/30 transition-all duration-700" />
 
-                    {/* Opacidad adicional según el modo (opcional) */}
+                    {/* Opacidad extra según modo */}
                     <div
-                        className={`absolute inset-0 transition-opacity duration-700 ${mode === "comida" ? "bg-black/30" : "bg-black/20"
+                        className={`absolute inset-0 transition-opacity duration-700 ${mode === "comida" ? "bg-black/35" : "bg-black/25"
                             }`}
                     />
                 </div>
