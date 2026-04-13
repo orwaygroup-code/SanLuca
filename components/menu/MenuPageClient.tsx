@@ -146,33 +146,39 @@ export default function MenuPageClient({ comidaDishes, brunchDishes, dbCategorie
                 }}
             >
                 {/* Hero Image Container */}
-                <picture>
-                    {/* MOBILE */}
-                    <source
-                        media="(max-width: 767px)"
-                        srcSet={
-                            mode === "comida"
-                                ? "/images/menu/hero/comida-responsive.jpg"
-                                : "/images/menu/hero/responsive-brunch-hero.jpg"
-                        }
-                        style={{ opacity: 0.90 }}
-                    />
+                <div className="relative w-full h-[480px] md:h-[650px] lg:h-[720px] overflow-hidden">
 
-                    {/* DESKTOP */}
-                    <Image
-                        src={
-                            mode === "comida"
-                                ? "/images/hero-menu.jpg"
-                                : "/images/menu/hero/brunchHero.jpg"
-                        }
-                        alt="San Luca Ristorante"
-                        fill
-                        priority
-                        sizes="100vw"
-                        style={{ objectFit: "cover", objectPosition: "center", opacity: 0.90 }}
-                        quality={85}
-                    />
-                </picture>
+                    <picture>
+                        {/* MOBILE */}
+                        <source
+                            media="(max-width: 767px)"
+                            srcSet={
+                                mode === "comida"
+                                    ? "/images/menu/hero/comida-responsive.jpg"
+                                    : "/images/menu/hero/responsive-brunch-hero.jpg"
+                            }
+                        />
+
+                        {/* DESKTOP */}
+                        <Image
+                            src={
+                                mode === "comida"
+                                    ? "/images/hero-menu.jpg"
+                                    : "/images/menu/hero/brunchHero.jpg"
+                            }
+                            alt="San Luca Ristorante"
+                            fill
+                            priority
+                            sizes="100vw"
+                            style={{ objectFit: "cover", objectPosition: "center" }}
+                            quality={85}
+                        />
+                    </picture>
+
+                    {/* OVERLAY OSCURO */}
+                    <div className="absolute inset-0 bg-black/40"></div>
+
+                </div>
                 {/* Brunch corner triangle */}
                 <div
                     style={{
