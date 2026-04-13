@@ -175,7 +175,7 @@ export default function MenuPageClient({ comidaDishes, brunchDishes, dbCategorie
                     </picture>
 
                     {/* OVERLAY BLANCO */}
-                    <div className="absolute inset-0 bg-white/90 z-20"></div>
+                    <div className="absolute inset-0 bg-white/90 z-1 pointer-events-none" style={{ zIndex: 1 }}></div>
 
                 </div>
                 {/* Brunch corner triangle */}
@@ -199,7 +199,7 @@ export default function MenuPageClient({ comidaDishes, brunchDishes, dbCategorie
                     style={{
                         position: "absolute",
                         inset: 0,
-                        zIndex: 5,
+                        zIndex: 0,
                         background: mode === "comida"
                             ? "linear-gradient(to bottom, rgba(17,26,28,0.2) 0%, rgba(17,26,28,0.5) 60%, rgba(17,26,28,0.92) 100%)"
                             : "linear-gradient(to bottom, rgba(240,235,224,0.15) 0%, rgba(240,235,224,0.45) 60%, rgba(240,235,224,0.95) 100%)",
