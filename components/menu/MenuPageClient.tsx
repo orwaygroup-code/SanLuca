@@ -149,7 +149,6 @@ export default function MenuPageClient({ comidaDishes, brunchDishes, dbCategorie
                 <div className="relative w-full h-[480px] md:h-[650px] lg:h-[720px] overflow-hidden">
 
                     <picture>
-                        {/* MOBILE */}
                         <source
                             media="(max-width: 767px)"
                             srcSet={
@@ -159,7 +158,6 @@ export default function MenuPageClient({ comidaDishes, brunchDishes, dbCategorie
                             }
                         />
 
-                        {/* DESKTOP */}
                         <Image
                             src={
                                 mode === "comida"
@@ -175,8 +173,8 @@ export default function MenuPageClient({ comidaDishes, brunchDishes, dbCategorie
                         />
                     </picture>
 
-                    {/* OVERLAY OSCURO */}
-                    <div className="absolute inset-0 bg-white/40"></div>
+                    {/* OVERLAY BLANCO */}
+                    <div className="absolute inset-0 bg-white/85"></div>
 
                 </div>
                 {/* Brunch corner triangle */}
