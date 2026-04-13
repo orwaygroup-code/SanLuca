@@ -145,19 +145,37 @@ export default function MenuPageClient({ comidaDishes, brunchDishes, dbCategorie
                     transition: "background 0.6s ease",
                 }}
             >
-                {/* Bg image */}
-                <div
-                    style={{
-                        position: "absolute",
-                        inset: 0,
-                        backgroundImage: `url(/images/${mode === "comida" ? "hero-menu.jpg" : "menu/hero/brunchHero.jpg"})`,
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                        opacity: mode === "comida" ? 0.5 : 0.35,
-                        transition: "opacity 0.6s ease",
-                    }}
-                />
+                {/* Hero Image Container */}
+                <div className="hero-img-container relative w-full h-[500px] md:h-[650px] lg:h-[750px] overflow-hidden">
 
+                    {/* Imagen con Next.js Image (responsive) */}
+                    <Image
+                        src={
+                            mode === "comida"
+                                ? "/images/hero-menu.jpg"
+                                : "/images/menu/hero/responsive-brunch-hero.jpg"
+                        }
+                        alt="San Luca Ristorante"
+                        fill
+                        priority
+                        sizes="100vw"
+                        style={{
+                            objectFit: "cover",
+                            objectPosition: "center",
+                        }}
+                        quality={85}
+                        className="transition-opacity duration-700"
+                    />
+
+                    {/* Overlay */}
+                    <div className="hero-img-overlay absolute inset-0 bg-black/40 md:bg-black/30" />
+
+                    {/* Opacidad adicional según el modo (opcional) */}
+                    <div
+                        className={`absolute inset-0 transition-opacity duration-700 ${mode === "comida" ? "bg-black/30" : "bg-black/20"
+                            }`}
+                    />
+                </div>
                 {/* Brunch corner triangle */}
                 <div
                     style={{
