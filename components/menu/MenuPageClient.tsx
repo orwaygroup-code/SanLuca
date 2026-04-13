@@ -175,7 +175,7 @@ export default function MenuPageClient({ comidaDishes, brunchDishes, dbCategorie
                     </picture>
 
                     {/* OVERLAY BLANCO */}
-                    <div className="absolute inset-0 bg-white/90 z-10"></div>
+                    <div className="absolute inset-0 bg-red-500 z-10"></div>
 
                 </div>
                 {/* Brunch corner triangle */}
