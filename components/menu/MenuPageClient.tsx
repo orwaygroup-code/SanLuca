@@ -176,14 +176,7 @@ export default function MenuPageClient({ comidaDishes, brunchDishes, dbCategorie
                         className="hidden md:block"   // Solo visible desde md en adelante
                     />
 
-                    {/* Overlay */}
-                    <div className="hero-img-overlay absolute inset-0 bg-black/40 md:bg-black/30 transition-all duration-700" />
 
-                    {/* Opacidad extra según modo */}
-                    <div
-                        className={`absolute inset-0 transition-opacity duration-700 ${mode === "comida" ? "bg-black/35" : "bg-black/25"
-                            }`}
-                    />
                 </div>
                 {/* Brunch corner triangle */}
                 <div
