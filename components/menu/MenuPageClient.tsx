@@ -146,26 +146,23 @@ export default function MenuPageClient({ comidaDishes, brunchDishes, dbCategorie
                 }}
             >
                 {/* Hero Image Container */}
-                <div className="hero-img-mobile relative w-full h-[480px] md:h-[650px] lg:h-[720px] overflow-hidden">
-
-                    {/* Imagen para MÓVIL (se muestra solo en móvil) */}
-                    <Image
-                        src="/images/menu/hero/responsive-brunch-hero.jpg"
-                        alt="San Luca Ristorante - Brunch"
-                        fill
-                        priority
-                        sizes="100vw"
-                        style={{ objectFit: "cover", objectPosition: "center" }}
-                        quality={85}
-                        className="md:hidden"   // Solo visible en móvil
+                <picture>
+                    {/* MOBILE */}
+                    <source
+                        media="(max-width: 767px)"
+                        srcSet={
+                            mode === "comida"
+                                ? "/images/menu/hero/comida-responsive.jpg"
+                                : "/images/menu/hero/responsive-brunch-hero.jpg"
+                        }
                     />
 
-                    {/* Imagen para DESKTOP (se muestra en tablet y desktop) */}
+                    {/* DESKTOP */}
                     <Image
                         src={
                             mode === "comida"
                                 ? "/images/hero-menu.jpg"
-                                : "/images/menu/hero/brunchHero.jpg"   // Aquí pon tu imagen desktop de brunch
+                                : "/images/menu/hero/brunchHero.jpg"
                         }
                         alt="San Luca Ristorante"
                         fill
@@ -173,11 +170,8 @@ export default function MenuPageClient({ comidaDishes, brunchDishes, dbCategorie
                         sizes="100vw"
                         style={{ objectFit: "cover", objectPosition: "center" }}
                         quality={85}
-                        className="hidden md:block"   // Solo visible desde md en adelante
                     />
-
-
-                </div>
+                </picture>
                 {/* Brunch corner triangle */}
                 <div
                     style={{
