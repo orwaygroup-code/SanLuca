@@ -150,7 +150,7 @@ export default function MenuPageClient({ comidaDishes, brunchDishes, dbCategorie
                     style={{
                         position: "absolute",
                         inset: 0,
-                        backgroundImage: `url(/images/${mode === "comida" ? "hero-menu.jpg" : "hero-brunch.jpg"})`,
+                        backgroundImage: `url(/images/${mode === "comida" ? "hero-menu.jpg" : "menu/hero/brunchHero.png"})`,
                         backgroundSize: "cover",
                         backgroundPosition: "center",
                         opacity: mode === "comida" ? 0.5 : 0.35,
