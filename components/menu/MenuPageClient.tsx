@@ -148,7 +148,7 @@ export default function MenuPageClient({ comidaDishes, brunchDishes, dbCategorie
                 {/* Hero Image Container */}
                 <div className="relative w-full h-[480px] md:h-[650px] lg:h-[720px] overflow-hidden">
 
-                    <picture>
+                    <picture className="absolute inset-0 z-0">
                         <source
                             media="(max-width: 767px)"
                             srcSet={
@@ -170,11 +170,12 @@ export default function MenuPageClient({ comidaDishes, brunchDishes, dbCategorie
                             sizes="100vw"
                             style={{ objectFit: "cover", objectPosition: "center" }}
                             quality={85}
+                            className="z-0"
                         />
                     </picture>
 
                     {/* OVERLAY BLANCO */}
-                    <div className="absolute inset-0 bg-white/85"></div>
+                    <div className="absolute inset-0 bg-white/90 z-10"></div>
 
                 </div>
                 {/* Brunch corner triangle */}
