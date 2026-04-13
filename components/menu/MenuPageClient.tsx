@@ -155,7 +155,7 @@ export default function MenuPageClient({ comidaDishes, brunchDishes, dbCategorie
                                 ? "/images/menu/hero/comida-responsive.jpg"
                                 : "/images/menu/hero/responsive-brunch-hero.jpg"
                         }
-                        style={{ opacity: 0.66 }}
+                        style={{ opacity: 0.90 }}
                     />
 
                     {/* DESKTOP */}
@@ -169,7 +169,7 @@ export default function MenuPageClient({ comidaDishes, brunchDishes, dbCategorie
                         fill
                         priority
                         sizes="100vw"
-                        style={{ objectFit: "cover", objectPosition: "center", opacity: 0.66 }}
+                        style={{ objectFit: "cover", objectPosition: "center", opacity: 0.90 }}
                         quality={85}
                     />
                 </picture>
