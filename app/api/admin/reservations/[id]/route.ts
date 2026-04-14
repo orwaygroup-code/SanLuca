@@ -11,7 +11,8 @@ async function verifyHostes(request: NextRequest) {
 }
 
 // PATCH /api/admin/reservations/[id]
-// Body: { status: "CONFIRMED" | "IN_PROGRESS" | "DELAYED" | "CANCELLED" | "COMPLETED" | "NO_SHOW" }
+// Body: { status: "CONFIRMED" | ... }          → cambiar estado
+// Body: { action: "move-table", tableId, linkedTableId?, thirdTableId?, sectionPreference? } → mover mesa
 export async function PATCH(
     request: NextRequest,
     { params }: { params: { id: string } }
@@ -22,7 +23,83 @@ export async function PATCH(
             return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
         }
 
-        const { status } = await request.json();
+        const body = await request.json();
+
+        // ── Mover mesa ────────────────────────────────────────────────
+        if (body.action === "move-table") {
+            const { tableId, linkedTableId, thirdTableId, sectionPreference } = body as {
+                tableId:           string;
+                linkedTableId?:    string;
+                thirdTableId?:     string;
+                sectionPreference?: string;
+            };
+
+            if (!tableId) {
+                return NextResponse.json<ApiResponse>(
+                    { success: false, error: "Se requiere tableId para mover la mesa" },
+                    { status: 400 }
+                );
+            }
+
+            // Obtener la reserva actual para saber fecha/hora y excluirla del check de conflictos
+            const current = await prisma.reservation.findUnique({
+                where: { id: params.id },
+                select: { id: true, date: true, status: true },
+            });
+
+            if (!current) {
+                return NextResponse.json<ApiResponse>(
+                    { success: false, error: "Reserva no encontrada" },
+                    { status: 404 }
+                );
+            }
+
+            const { getShiftWindow } = await import("@/lib/shifts");
+            const { start: shiftStart, end: shiftEnd } = getShiftWindow(current.date);
+
+            const allNewIds = [tableId, linkedTableId, thirdTableId].filter(Boolean) as string[];
+
+            // Verificar conflictos en la nueva mesa (excluyendo esta misma reserva)
+            const conflict = await prisma.reservation.findFirst({
+                where: {
+                    id:     { not: params.id },
+                    status: { notIn: ["CANCELLED", "NO_SHOW"] },
+                    date:   { gte: shiftStart, lt: shiftEnd },
+                    OR: allNewIds.flatMap((id) => [
+                        { tableId: id },
+                        { linkedTableId: id },
+                        { thirdTableId: id },
+                    ]),
+                },
+            });
+
+            if (conflict) {
+                return NextResponse.json<ApiResponse>(
+                    { success: false, error: "La mesa seleccionada ya está ocupada en ese turno." },
+                    { status: 409 }
+                );
+            }
+
+            const updated = await prisma.reservation.update({
+                where: { id: params.id },
+                data: {
+                    tableId,
+                    linkedTableId:     linkedTableId  ?? null,
+                    thirdTableId:      thirdTableId   ?? null,
+                    ...(sectionPreference ? { sectionPreference } : {}),
+                },
+                select: {
+                    id: true, status: true, guestName: true, date: true,
+                    guestPhone: true, guests: true, sectionPreference: true, qrToken: true,
+                    table: { select: { number: true, section: { select: { name: true } } } },
+                },
+            });
+
+            return NextResponse.json<ApiResponse>({ success: true, data: updated });
+        }
+
+        // ── Cambiar estado ────────────────────────────────────────────
+        const { status } = body;
 
         const validStatuses = ["PENDING", "CONFIRMED", "IN_PROGRESS", "DELAYED", "CANCELLED", "COMPLETED", "NO_SHOW"];
         if (!validStatuses.includes(status)) {

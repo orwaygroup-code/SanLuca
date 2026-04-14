@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { TableMap } from "@/components/reservation/TableMap";
+import type { AvailabilityData, TableSelection } from "@/components/reservation/types";
 
 // ── Types ──────────────────────────────────────────────────────────────
 interface Reservation {
@@ -119,6 +121,7 @@ export default function AdminPage() {
     const [updating, setUpdating]         = useState<string | null>(null);
     const [deleting, setDeleting]         = useState<string | null>(null);
     const [onlyPending, setOnlyPending]   = useState(false);
+    const [moveTarget, setMoveTarget]     = useState<Reservation | null>(null);
 
     useEffect(() => {
         const uid  = localStorage.getItem("userId");
@@ -165,6 +168,24 @@ export default function AdminPage() {
         });
         await fetchReservations();
         setDeleting(null);
+    };
+
+    const moveTable = async (id: string, selection: TableSelection, sectionPreference: string) => {
+        if (!userId) return;
+        const res = await fetch(`/api/admin/reservations/${id}`, {
+            method:  "PATCH",
+            headers: { "Content-Type": "application/json", "x-user-id": userId },
+            body: JSON.stringify({
+                action:            "move-table",
+                tableId:           selection.tableId,
+                linkedTableId:     selection.linkedTableId,
+                thirdTableId:      selection.thirdTableId,
+                sectionPreference,
+            }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        await fetchReservations();
     };
 
     const sectionIdx = SECTIONS.indexOf(section);
@@ -343,6 +364,15 @@ export default function AdminPage() {
                                                             >
                                                                 Ver QR / Check-in
                                                             </a>
+                                                            {!DELETABLE_STATUSES.includes(r.status) && (
+                                                                <button
+                                                                    className="adm-btn-outline"
+                                                                    onClick={() => setMoveTarget(r)}
+                                                                    style={{ borderColor: "rgba(74,158,202,0.5)", color: "#4a9eca" }}
+                                                                >
+                                                                    Cambiar Mesa
+                                                                </button>
+                                                            )}
                                                             {(NEXT_STATUSES[r.status] ?? []).map((action) => (
                                                                 <button
                                                                     key={action.value}
@@ -374,6 +404,18 @@ export default function AdminPage() {
                     })}
                 </div>
             )}
+            {/* ── Modal cambiar mesa ── */}
+            {moveTarget && (
+                <MoveTableModal
+                    reservation={moveTarget}
+                    userId={userId}
+                    onClose={() => setMoveTarget(null)}
+                    onMove={async (selection, sectionPref) => {
+                        await moveTable(moveTarget.id, selection, sectionPref);
+                        setMoveTarget(null);
+                    }}
+                />
+            )}
         </div>
     );
 }
@@ -383,6 +425,190 @@ function Row({ label, val }: { label: string; val: string }) {
         <div className="adm-row">
             <span className="adm-row-label">{label}:</span>
             <span className="adm-row-val">{val}</span>
+        </div>
+    );
+}
+
+// ── Modal Cambiar Mesa ─────────────────────────────────────────────────────
+const MODAL_SECTIONS = ["Terraza", "Planta Alta", "Salón", "Privado"] as const;
+
+function MoveTableModal({
+    reservation,
+    userId,
+    onClose,
+    onMove,
+}: {
+    reservation: Reservation;
+    userId: string;
+    onClose: () => void;
+    onMove: (selection: TableSelection, sectionPref: string) => Promise<void>;
+}) {
+    const date    = reservation.date.slice(0, 10);
+    const time    = new Date(reservation.date).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false });
+    const initSec = (reservation.sectionPreference ?? "Terraza") as typeof MODAL_SECTIONS[number];
+
+    const [selectedSection, setSelectedSection] = useState<string>(initSec);
+    const [availability, setAvailability]       = useState<AvailabilityData | null>(null);
+    const [selection, setSelection]             = useState<TableSelection | null>(null);
+    const [loading, setLoading]                 = useState(false);
+    const [error, setError]                     = useState<string | null>(null);
+    const [saving, setSaving]                   = useState(false);
+
+    const fetchAvailability = useCallback(async (sec: string) => {
+        setLoading(true);
+        setError(null);
+        setSelection(null);
+        setAvailability(null);
+        try {
+            const params = new URLSearchParams({ section: sec, date, time, guests: String(reservation.guests) });
+            const res  = await fetch(`/api/reservations/available-tables?${params}`);
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error);
+            // Forzar que la mesa actual quede disponible visualmente (ya se excluye en el backend)
+            const av: AvailabilityData = data.data;
+            setAvailability(av);
+        } catch (e: unknown) {
+            setError(e instanceof Error ? e.message : "Error al buscar mesas");
+        } finally {
+            setLoading(false);
+        }
+    }, [date, time, reservation.guests]);
+
+    useEffect(() => { fetchAvailability(selectedSection); }, [selectedSection, fetchAvailability]);
+
+    const handleConfirm = async () => {
+        if (!selection) return;
+        setSaving(true);
+        setError(null);
+        try {
+            await onMove(selection, selectedSection);
+        } catch (e: unknown) {
+            setError(e instanceof Error ? e.message : "Error al mover mesa");
+            setSaving(false);
+        }
+    };
+
+    const selLabel = selection
+        ? selection.thirdTableNumber
+            ? `M${selection.tableNumber} + M${selection.linkedTableNumber} + M${selection.thirdTableNumber}`
+            : selection.linkedTableNumber
+            ? `M${selection.tableNumber} + M${selection.linkedTableNumber}`
+            : `Mesa M${selection.tableNumber}`
+        : null;
+
+    return (
+        <div
+            style={{
+                position: "fixed", inset: 0, zIndex: 1000,
+                background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                padding: "16px",
+            }}
+            onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+        >
+            <div style={{
+                background: "#1a2628", border: "1px solid rgba(186,132,60,0.2)",
+                borderRadius: 16, width: "100%", maxWidth: 680,
+                maxHeight: "90vh", overflowY: "auto",
+                padding: "28px 24px", display: "flex", flexDirection: "column", gap: 20,
+            }}>
+                {/* Header */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <div>
+                        <p style={{ margin: 0, fontSize: "0.65rem", letterSpacing: "0.2em", color: "#ba843c", fontWeight: 700, textTransform: "uppercase" }}>
+                            Cambiar Mesa
+                        </p>
+                        <p style={{ margin: "4px 0 0", fontSize: "1rem", color: "#f5f1e8", fontWeight: 700 }}>
+                            {reservation.guestName}
+                        </p>
+                        <p style={{ margin: "2px 0 0", fontSize: "0.8rem", color: "rgba(245,241,232,0.45)" }}>
+                            {reservation.guests} personas · {date} {time}
+                        </p>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        style={{ background: "none", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, color: "rgba(245,241,232,0.5)", padding: "6px 12px", cursor: "pointer", fontSize: "0.8rem" }}
+                    >
+                        ✕ Cerrar
+                    </button>
+                </div>
+
+                {/* Selector de área */}
+                <div>
+                    <p style={{ margin: "0 0 10px", fontSize: "0.65rem", letterSpacing: "0.15em", color: "rgba(245,241,232,0.4)", textTransform: "uppercase", fontWeight: 700 }}>
+                        Área
+                    </p>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        {MODAL_SECTIONS.map((sec) => (
+                            <button
+                                key={sec}
+                                onClick={() => setSelectedSection(sec)}
+                                style={{
+                                    padding: "7px 16px", borderRadius: 999, fontSize: "0.75rem", fontWeight: 600, cursor: "pointer",
+                                    background: selectedSection === sec ? "#ba843c" : "transparent",
+                                    border: `1px solid ${selectedSection === sec ? "#ba843c" : "rgba(255,255,255,0.15)"}`,
+                                    color: selectedSection === sec ? "#fff" : "rgba(245,241,232,0.6)",
+                                    transition: "all 0.2s",
+                                }}
+                            >
+                                {sec}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Mapa de mesas */}
+                <div>
+                    {loading && (
+                        <p style={{ textAlign: "center", color: "rgba(245,241,232,0.4)", fontSize: "0.85rem" }}>Cargando mesas…</p>
+                    )}
+                    {!loading && availability && (
+                        <TableMap
+                            data={availability}
+                            guests={reservation.guests}
+                            selection={selection}
+                            onSelect={setSelection}
+                        />
+                    )}
+                    {!loading && availability && !availability.hasAvailability && (
+                        <p style={{ textAlign: "center", color: "#e05555", fontSize: "0.82rem", margin: "12px 0 0" }}>
+                            Sin mesas disponibles en {selectedSection} para este turno.
+                        </p>
+                    )}
+                </div>
+
+                {selLabel && (
+                    <p style={{ textAlign: "center", color: "#ba843c", fontSize: "0.85rem", fontWeight: 600, margin: 0 }}>
+                        Seleccionada: {selLabel}
+                    </p>
+                )}
+
+                {error && (
+                    <p style={{ color: "#e05555", fontSize: "0.82rem", margin: 0 }}>⚠ {error}</p>
+                )}
+
+                {/* Acciones */}
+                <div style={{ display: "flex", gap: 10 }}>
+                    <button
+                        onClick={onClose}
+                        style={{ flex: 1, padding: "11px 0", background: "transparent", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, color: "rgba(245,241,232,0.5)", fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" }}
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        onClick={handleConfirm}
+                        disabled={!selection || saving}
+                        style={{
+                            flex: 2, padding: "11px 0", background: selection ? "#ba843c" : "rgba(186,132,60,0.2)",
+                            border: "none", borderRadius: 10, color: selection ? "#fff" : "rgba(245,241,232,0.3)",
+                            fontWeight: 700, fontSize: "0.82rem", cursor: selection ? "pointer" : "default",
+                            letterSpacing: "0.06em", textTransform: "uppercase",
+                        }}
+                    >
+                        {saving ? "Guardando…" : "Confirmar Cambio"}
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }
