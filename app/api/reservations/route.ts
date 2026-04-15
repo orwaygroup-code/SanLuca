@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createReservationSchema } from "@/lib/validations";
 import { getShiftWindow } from "@/lib/shifts";
+import { autoAssignTable } from "@/lib/autoAssignTable";
 import type { ApiResponse } from "@/types";
 
 const MAX_ACTIVE_RESERVATIONS = 2;
@@ -211,14 +212,27 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        // 9. Crear la reserva normal
+        // 9. Auto-asignar mesa si el usuario no eligió una
+        let assignedTableId       = tableId;
+        let assignedLinkedTableId = linkedTableId;
+        let assignedThirdTableId  = thirdTableId;
+
+        if (!assignedTableId) {
+            const assigned = await autoAssignTable(reservationDate, rest.guests, rest.sectionPreference ?? null);
+            if (assigned) {
+                assignedTableId = assigned.tableId;
+                if (!rest.sectionPreference) rest.sectionPreference = assigned.sectionName;
+            }
+        }
+
+        // 10. Crear la reserva normal
         const reservation = await prisma.reservation.create({
             data: {
                 userId,
                 date: reservationDate,
-                ...(tableId       ? { tableId }       : {}),
-                ...(linkedTableId ? { linkedTableId } : {}),
-                ...(thirdTableId  ? { thirdTableId }  : {}),
+                ...(assignedTableId       ? { tableId:       assignedTableId }       : {}),
+                ...(assignedLinkedTableId ? { linkedTableId: assignedLinkedTableId } : {}),
+                ...(assignedThirdTableId  ? { thirdTableId:  assignedThirdTableId }  : {}),
                 ...rest,
             },
             select: {

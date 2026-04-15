@@ -4,7 +4,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getShiftWindow } from "@/lib/shifts";
+import { autoAssignTable } from "@/lib/autoAssignTable";
 
 // ── Normaliza teléfono a 10 dígitos ───────────────────────────────────
 function normalizePhone(raw: string): string {
@@ -46,64 +46,6 @@ function parseDate(fechaStr: string, horaStr: string): Date | null {
     }
 }
 
-// ── Busca la primera mesa disponible para la fecha/hora/personas ──────
-async function findAvailableTable(
-    reservationDate: Date,
-    guests: number,
-    preferredSection: string | null,
-): Promise<{ tableId: string; sectionName: string } | null> {
-    const { start: shiftStart, end: shiftEnd } = getShiftWindow(reservationDate);
-
-    // Mesas ya ocupadas en ese turno
-    const conflicts = await prisma.reservation.findMany({
-        where: {
-            status: { notIn: ["CANCELLED", "NO_SHOW"] },
-            date:   { gte: shiftStart, lt: shiftEnd },
-        },
-        select: { tableId: true, linkedTableId: true, thirdTableId: true },
-    });
-
-    const occupiedIds = new Set<string>();
-    for (const c of conflicts) {
-        if (c.tableId)       occupiedIds.add(c.tableId);
-        if (c.linkedTableId) occupiedIds.add(c.linkedTableId);
-        if (c.thirdTableId)  occupiedIds.add(c.thirdTableId);
-    }
-
-    // Orden de secciones: primero la preferida, luego el resto
-    const SECTION_ORDER = ["Terraza", "Salón", "Planta Alta", "Privado"];
-    if (preferredSection) {
-        const norm = preferredSection.trim();
-        const idx  = SECTION_ORDER.findIndex(s => s.toLowerCase() === norm.toLowerCase());
-        if (idx > 0) {
-            SECTION_ORDER.splice(idx, 1);
-            SECTION_ORDER.unshift(norm);
-        }
-    }
-
-    for (const sectionName of SECTION_ORDER) {
-        const section = await prisma.section.findFirst({
-            where: { name: { equals: sectionName, mode: "insensitive" } },
-            include: {
-                tables: {
-                    where:   { isActive: true, capacity: { gte: guests } },
-                    orderBy: { capacity: "asc" }, // mesa más ajustada primero
-                },
-            },
-        });
-
-        if (!section) continue;
-
-        for (const table of section.tables) {
-            if (!occupiedIds.has(table.id)) {
-                return { tableId: table.id, sectionName: section.name };
-            }
-        }
-    }
-
-    return null; // Sin mesa disponible
-}
-
 // ── POST /api/bot/reservation ─────────────────────────────────────────
 export async function POST(request: NextRequest) {
     // 1. Verificar API key del bot
@@ -140,17 +82,18 @@ export async function POST(request: NextRequest) {
         user = await prisma.user.upsert({
             where:  { email: guestEmail },
             update: { name: titular },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             create: {
                 name:  titular,
                 email: guestEmail,
                 phone,
                 role:  "CUSTOMER",
-            },
+            } as any,
         });
     }
 
     // 5. Buscar mesa disponible automáticamente
-    const assigned = await findAvailableTable(reservationDate, guestCount, zona ?? null);
+    const assigned = await autoAssignTable(reservationDate, guestCount, zona ?? null);
 
     // 6. Crear la reservación
     const reservation = await prisma.reservation.create({
