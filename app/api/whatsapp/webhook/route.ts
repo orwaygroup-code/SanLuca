@@ -39,18 +39,13 @@ export async function POST(request: NextRequest) {
         // ── ROUTER: payload directo de Meta ───────────────────────
         // Meta manda { entry: [...] }, n8n manda { phone, message }
         if (body.entry) {
-            const value   = body.entry?.[0]?.changes?.[0]?.value;
-            const message = value?.messages?.[0];
-
-            // Texto y audio → n8n los maneja (audio pasa por Whisper en n8n)
-            if (message?.type === "text" || message?.type === "audio") {
-                // Fire-and-forget → n8n (no bloqueamos la respuesta a Meta)
-                fetch("http://localhost:5678/webhook/whatsapp", {
-                    method:  "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body:    JSON.stringify(body),
-                }).catch((e) => console.error("[Router → n8n]", e.message));
-            }
+            // Reenviar TODOS los eventos a n8n incondicionalmente
+            // (mensajes normales, audio, anuncios Click-to-WhatsApp con referral, etc.)
+            fetch("http://localhost:5678/webhook/whatsapp", {
+                method:  "POST",
+                headers: { "Content-Type": "application/json" },
+                body:    JSON.stringify(body),
+            }).catch((e) => console.error("[Router → n8n]", e.message));
 
             // Meta requiere 200 inmediato siempre
             return NextResponse.json({ status: "ok" });
