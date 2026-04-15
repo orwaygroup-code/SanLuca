@@ -26,9 +26,12 @@ export interface TableSelection {
 }
 
 export interface AvailabilityData {
-  sectionName:     string;
-  tables:          AvailableTable[];
-  pairs:           AvailablePair[];
-  triples:         AvailableTriple[];
-  hasAvailability: boolean;
+  sectionName:         string;
+  tables?:             AvailableTable[];
+  pairs?:              AvailablePair[];
+  triples?:            AvailableTriple[];
+  hasAvailability:     boolean;
+  isLargeGroup?:       boolean;
+  blockedByLargeGroup?: boolean;
+  reason?:             string | null;
 }

@@ -14,7 +14,7 @@ interface Props {
 }
 
 export function TableMap({ data, guests, selection, onSelect }: Props) {
-  const props = { tables: data.tables, pairs: data.pairs, triples: data.triples, guests, selection, onSelect };
+  const props = { tables: data.tables ?? [], pairs: data.pairs ?? [], triples: data.triples ?? [], guests, selection, onSelect };
 
   const legend = (
     <div style={{ display: "flex", gap: 20, flexWrap: "wrap", marginTop: 10, justifyContent: "center" }}>

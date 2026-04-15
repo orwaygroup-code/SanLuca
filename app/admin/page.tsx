@@ -170,16 +170,16 @@ export default function AdminPage() {
         setDeleting(null);
     };
 
-    const moveTable = async (id: string, selection: TableSelection, sectionPreference: string) => {
+    const moveTable = async (id: string, selection: TableSelection | null, sectionPreference: string) => {
         if (!userId) return;
         const res = await fetch(`/api/admin/reservations/${id}`, {
             method:  "PATCH",
             headers: { "Content-Type": "application/json", "x-user-id": userId },
             body: JSON.stringify({
                 action:            "move-table",
-                tableId:           selection.tableId,
-                linkedTableId:     selection.linkedTableId,
-                thirdTableId:      selection.thirdTableId,
+                tableId:           selection?.tableId ?? null,
+                linkedTableId:     selection?.linkedTableId ?? null,
+                thirdTableId:      selection?.thirdTableId ?? null,
                 sectionPreference,
             }),
         });
@@ -441,7 +441,7 @@ function MoveTableModal({
     reservation: Reservation;
     userId: string;
     onClose: () => void;
-    onMove: (selection: TableSelection, sectionPref: string) => Promise<void>;
+    onMove: (selection: TableSelection | null, sectionPref: string) => Promise<void>;
 }) {
     const date    = reservation.date.slice(0, 10);
     const time    = new Date(reservation.date).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false });
@@ -476,8 +476,10 @@ function MoveTableModal({
 
     useEffect(() => { fetchAvailability(selectedSection); }, [selectedSection, fetchAvailability]);
 
+    const isLargeGroupReady = !!(availability?.isLargeGroup && availability?.hasAvailability);
+
     const handleConfirm = async () => {
-        if (!selection) return;
+        if (!selection && !isLargeGroupReady) return;
         setSaving(true);
         setError(null);
         try {
@@ -562,7 +564,7 @@ function MoveTableModal({
                     {loading && (
                         <p style={{ textAlign: "center", color: "rgba(245,241,232,0.4)", fontSize: "0.85rem" }}>Cargando mesas…</p>
                     )}
-                    {!loading && availability && (
+                    {!loading && availability && !availability.isLargeGroup && (
                         <TableMap
                             data={availability}
                             guests={reservation.guests}
@@ -570,7 +572,14 @@ function MoveTableModal({
                             onSelect={setSelection}
                         />
                     )}
-                    {!loading && availability && !availability.hasAvailability && (
+                    {!loading && availability?.isLargeGroup && (
+                        <p style={{ textAlign: "center", color: availability.hasAvailability ? "#ba843c" : "#e05555", fontSize: "0.85rem", margin: "12px 0" }}>
+                            {availability.hasAvailability
+                                ? `✓ Área ${selectedSection} disponible para grupo grande. Se asignará el área completa.`
+                                : `✗ El área ${selectedSection} ya está bloqueada por otro grupo grande ese día.`}
+                        </p>
+                    )}
+                    {!loading && availability && !availability.hasAvailability && !availability.isLargeGroup && (
                         <p style={{ textAlign: "center", color: "#e05555", fontSize: "0.82rem", margin: "12px 0 0" }}>
                             Sin mesas disponibles en {selectedSection} para este turno.
                         </p>
@@ -597,11 +606,11 @@ function MoveTableModal({
                     </button>
                     <button
                         onClick={handleConfirm}
-                        disabled={!selection || saving}
+                        disabled={(!selection && !isLargeGroupReady) || saving}
                         style={{
-                            flex: 2, padding: "11px 0", background: selection ? "#ba843c" : "rgba(186,132,60,0.2)",
-                            border: "none", borderRadius: 10, color: selection ? "#fff" : "rgba(245,241,232,0.3)",
-                            fontWeight: 700, fontSize: "0.82rem", cursor: selection ? "pointer" : "default",
+                            flex: 2, padding: "11px 0", background: (selection || isLargeGroupReady) ? "#ba843c" : "rgba(186,132,60,0.2)",
+                            border: "none", borderRadius: 10, color: (selection || isLargeGroupReady) ? "#fff" : "rgba(245,241,232,0.3)",
+                            fontWeight: 700, fontSize: "0.82rem", cursor: (selection || isLargeGroupReady) ? "pointer" : "default",
                             letterSpacing: "0.06em", textTransform: "uppercase",
                         }}
                     >
