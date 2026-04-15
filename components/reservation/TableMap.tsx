@@ -46,7 +46,7 @@ export function TableMap({ data, guests, selection, onSelect }: Props) {
         {data.sectionName === "Salón"       && <SalonMap      {...props} />}
         {data.sectionName === "Terraza"     && <TerrazaMap    {...props} />}
         {data.sectionName === "Planta Alta" && <PlantaAltaMap {...props} />}
-        {data.sectionName === "Privado"     && <PrivadoSelect tables={data.tables} guests={guests} selection={selection} onSelect={onSelect} />}
+        {data.sectionName === "Privado"     && <PrivadoSelect tables={data.tables ?? []} guests={guests} selection={selection} onSelect={onSelect} />}
       </div>
       {data.sectionName !== "Privado" && legend}
     </div>
