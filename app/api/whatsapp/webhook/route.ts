@@ -187,3 +187,16 @@ export async function GET(request: NextRequest) {
     }
     return new Response("Forbidden", { status: 403 });
 }
+
+// HEAD — algunas verificaciones de Meta hacen HEAD antes del GET
+export async function HEAD() {
+    return new Response(null, { status: 200 });
+}
+
+// OPTIONS — preflight que Meta puede enviar
+export async function OPTIONS() {
+    return new Response(null, {
+        status: 200,
+        headers: { "Allow": "GET, POST, HEAD, OPTIONS" },
+    });
+}
