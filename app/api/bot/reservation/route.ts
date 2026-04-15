@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getShiftWindow } from "@/lib/shifts";
 
 // ── Normaliza teléfono a 10 dígitos ───────────────────────────────────
 function normalizePhone(raw: string): string {
@@ -45,6 +46,64 @@ function parseDate(fechaStr: string, horaStr: string): Date | null {
     }
 }
 
+// ── Busca la primera mesa disponible para la fecha/hora/personas ──────
+async function findAvailableTable(
+    reservationDate: Date,
+    guests: number,
+    preferredSection: string | null,
+): Promise<{ tableId: string; sectionName: string } | null> {
+    const { start: shiftStart, end: shiftEnd } = getShiftWindow(reservationDate);
+
+    // Mesas ya ocupadas en ese turno
+    const conflicts = await prisma.reservation.findMany({
+        where: {
+            status: { notIn: ["CANCELLED", "NO_SHOW"] },
+            date:   { gte: shiftStart, lt: shiftEnd },
+        },
+        select: { tableId: true, linkedTableId: true, thirdTableId: true },
+    });
+
+    const occupiedIds = new Set<string>();
+    for (const c of conflicts) {
+        if (c.tableId)       occupiedIds.add(c.tableId);
+        if (c.linkedTableId) occupiedIds.add(c.linkedTableId);
+        if (c.thirdTableId)  occupiedIds.add(c.thirdTableId);
+    }
+
+    // Orden de secciones: primero la preferida, luego el resto
+    const SECTION_ORDER = ["Terraza", "Salón", "Planta Alta", "Privado"];
+    if (preferredSection) {
+        const norm = preferredSection.trim();
+        const idx  = SECTION_ORDER.findIndex(s => s.toLowerCase() === norm.toLowerCase());
+        if (idx > 0) {
+            SECTION_ORDER.splice(idx, 1);
+            SECTION_ORDER.unshift(norm);
+        }
+    }
+
+    for (const sectionName of SECTION_ORDER) {
+        const section = await prisma.section.findFirst({
+            where: { name: { equals: sectionName, mode: "insensitive" } },
+            include: {
+                tables: {
+                    where:   { isActive: true, capacity: { gte: guests } },
+                    orderBy: { capacity: "asc" }, // mesa más ajustada primero
+                },
+            },
+        });
+
+        if (!section) continue;
+
+        for (const table of section.tables) {
+            if (!occupiedIds.has(table.id)) {
+                return { tableId: table.id, sectionName: section.name };
+            }
+        }
+    }
+
+    return null; // Sin mesa disponible
+}
+
 // ── POST /api/bot/reservation ─────────────────────────────────────────
 export async function POST(request: NextRequest) {
     // 1. Verificar API key del bot
@@ -69,11 +128,12 @@ export async function POST(request: NextRequest) {
         );
     }
 
+    const guestCount = parseInt(String(personas), 10) || 2;
+
     // 3. Normalizar teléfono
     const phone = normalizePhone(String(celular));
 
     // 4. Buscar o crear usuario por teléfono
-    //    Si ya tiene cuenta la vinculamos; si no, creamos una cuenta de invitado
     let user = await prisma.user.findFirst({ where: { phone } });
     if (!user) {
         const guestEmail = `${phone}@whatsapp.guest`;
@@ -89,26 +149,36 @@ export async function POST(request: NextRequest) {
         });
     }
 
-    // 5. Crear la reservación (PENDING — el hostess la confirmará desde el dashboard)
+    // 5. Buscar mesa disponible automáticamente
+    const assigned = await findAvailableTable(reservationDate, guestCount, zona ?? null);
+
+    // 6. Crear la reservación
     const reservation = await prisma.reservation.create({
         data: {
             userId:            user.id,
             guestName:         titular,
             guestPhone:        phone,
-            guests:            parseInt(String(personas), 10) || 2,
-            sectionPreference: zona ?? null,
+            guests:            guestCount,
+            sectionPreference: assigned?.sectionName ?? zona ?? null,
             date:              reservationDate,
             status:            "PENDING",
             paymentStatus:     "UNPAID",
+            ...(assigned ? { tableId: assigned.tableId } : {}),
+        },
+        include: {
+            table: { select: { number: true, section: { select: { name: true } } } },
         },
     });
 
     return NextResponse.json({
         success: true,
         data: {
-            id:      reservation.id,
-            qrToken: reservation.qrToken,
-            date:    reservation.date,
+            id:        reservation.id,
+            qrToken:   reservation.qrToken,
+            date:      reservation.date,
+            tableInfo: reservation.table
+                ? `Mesa #${reservation.table.number} en ${reservation.table.section.name}`
+                : null,
         },
     });
 }
