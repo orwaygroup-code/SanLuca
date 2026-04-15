@@ -43,8 +43,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const dbSection = await prisma.section.findUnique({
-      where: { name: section },
+    const dbSection = await prisma.section.findFirst({
+      where: { name: { equals: section, mode: "insensitive" } },
       include: {
         tables: { where: { isActive: true }, orderBy: { number: "asc" } },
       },
