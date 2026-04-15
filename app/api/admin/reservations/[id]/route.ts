@@ -34,11 +34,23 @@ export async function PATCH(
                 sectionPreference?: string;
             };
 
+            // Sin tableId → solo actualizar sección (grupo grande)
             if (!tableId) {
-                return NextResponse.json<ApiResponse>(
-                    { success: false, error: "Se requiere tableId para mover la mesa" },
-                    { status: 400 }
-                );
+                const updated = await prisma.reservation.update({
+                    where: { id: params.id },
+                    data: {
+                        tableId:       null,
+                        linkedTableId: null,
+                        thirdTableId:  null,
+                        ...(sectionPreference ? { sectionPreference } : {}),
+                    },
+                    select: {
+                        id: true, status: true, guestName: true, date: true,
+                        guestPhone: true, guests: true, sectionPreference: true, qrToken: true,
+                        table: { select: { number: true, section: { select: { name: true } } } },
+                    },
+                });
+                return NextResponse.json<ApiResponse>({ success: true, data: updated });
             }
 
             // Obtener la reserva actual para saber fecha/hora y excluirla del check de conflictos
