@@ -221,7 +221,7 @@ export async function POST(request: NextRequest) {
             const assigned = await autoAssignTable(reservationDate, rest.guests, rest.sectionPreference ?? null);
             if (assigned) {
                 assignedTableId = assigned.tableId;
-                if (!rest.sectionPreference) rest.sectionPreference = assigned.sectionName;
+                if (!rest.sectionPreference) rest.sectionPreference = assigned.sectionName as "Terraza" | "Planta Alta" | "Salón" | "Privado";
             }
         }
 
