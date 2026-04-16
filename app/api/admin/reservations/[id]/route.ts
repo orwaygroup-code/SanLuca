@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendReservationQR } from "@/lib/whatsapp";
+import { autoAssignTable } from "@/lib/autoAssignTable";
 import type { ApiResponse } from "@/types";
 
 async function verifyHostes(request: NextRequest) {
@@ -24,6 +25,92 @@ export async function PATCH(
         }
 
         const body = await request.json();
+
+        // ── Editar reserva completa ───────────────────────────────────
+        if (body.action === "edit-reservation") {
+            const {
+                date, time, guests, guestName, guestPhone,
+                sectionPreference, tableId, linkedTableId, thirdTableId,
+                notes, occasion,
+            } = body as {
+                date:               string;
+                time:               string;
+                guests:             number;
+                guestName:          string;
+                guestPhone:         string;
+                sectionPreference?: string;
+                tableId?:           string;
+                linkedTableId?:     string;
+                thirdTableId?:      string;
+                notes?:             string;
+                occasion?:          string;
+            };
+
+            const reservationDate = new Date(`${date}T${time}:00.000-06:00`);
+            if (isNaN(reservationDate.getTime())) {
+                return NextResponse.json<ApiResponse>(
+                    { success: false, error: "Fecha u hora inválida" }, { status: 400 }
+                );
+            }
+
+            const { getShiftWindow } = await import("@/lib/shifts");
+            const { start: shiftStart, end: shiftEnd } = getShiftWindow(reservationDate);
+
+            // Determinar mesa final (elegida o auto-asignada)
+            let finalTableId       = tableId       ?? null;
+            let finalLinkedTableId = linkedTableId ?? null;
+            let finalThirdTableId  = thirdTableId  ?? null;
+
+            if (finalTableId) {
+                // Verificar que la mesa elegida no esté ocupada (excluyendo esta reserva)
+                const allIds = [finalTableId, finalLinkedTableId, finalThirdTableId].filter(Boolean) as string[];
+                const conflict = await prisma.reservation.findFirst({
+                    where: {
+                        id:     { not: params.id },
+                        status: { notIn: ["CANCELLED", "NO_SHOW"] },
+                        date:   { gte: shiftStart, lt: shiftEnd },
+                        OR: allIds.flatMap((id) => [
+                            { tableId: id }, { linkedTableId: id }, { thirdTableId: id },
+                        ]),
+                    },
+                });
+                if (conflict) {
+                    return NextResponse.json<ApiResponse>(
+                        { success: false, error: "La mesa seleccionada ya está ocupada en ese turno." },
+                        { status: 409 }
+                    );
+                }
+            } else {
+                // Auto-asignar mesa
+                const assigned = await autoAssignTable(reservationDate, guests, sectionPreference ?? null);
+                if (assigned) {
+                    finalTableId = assigned.tableId;
+                }
+            }
+
+            const updated = await prisma.reservation.update({
+                where: { id: params.id },
+                data: {
+                    date:              reservationDate,
+                    guests,
+                    guestName,
+                    guestPhone,
+                    sectionPreference: sectionPreference ?? null,
+                    tableId:           finalTableId,
+                    linkedTableId:     finalLinkedTableId,
+                    thirdTableId:      finalThirdTableId,
+                    notes:             notes    ?? null,
+                    occasion:          occasion ?? null,
+                },
+                select: {
+                    id: true, status: true, guestName: true, date: true,
+                    guestPhone: true, guests: true, sectionPreference: true, qrToken: true,
+                    table: { select: { number: true, section: { select: { name: true } } } },
+                },
+            });
+
+            return NextResponse.json<ApiResponse>({ success: true, data: updated });
+        }
 
         // ── Mover mesa ────────────────────────────────────────────────
         if (body.action === "move-table") {
