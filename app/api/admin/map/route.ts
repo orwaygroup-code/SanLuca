@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
             if (r.sectionPreference) {
                 largeGroupBySectionName.set(r.sectionPreference, {
                     id: r.id, status: r.status, guestName: r.guestName, guests: r.guests,
-                    time: new Date(r.date).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }),
+                    time: new Date(r.date).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", timeZone: "America/Mexico_City" }),
                 });
             }
         }
@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
         for (const r of activeReservations) {
             const info: ResInfo = {
                 id: r.id, status: r.status, guestName: r.guestName, guests: r.guests,
-                time: new Date(r.date).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }),
+                time: new Date(r.date).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", timeZone: "America/Mexico_City" }),
             };
             if (r.tableId)       tableResMap.set(r.tableId,       info);
             if (r.linkedTableId) tableResMap.set(r.linkedTableId, info);

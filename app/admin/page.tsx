@@ -67,13 +67,16 @@ const NEXT_STATUSES: Record<string, { label: string; value: string }[]> = {
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────
+const MX_TZ = "America/Mexico_City";
+
 function fmtDate(iso: string) {
     return new Date(iso).toLocaleDateString("es-MX", {
         weekday: "long", day: "numeric", month: "long", year: "numeric",
+        timeZone: MX_TZ,
     }).toUpperCase();
 }
 function fmtTime(iso: string) {
-    return new Date(iso).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+    return new Date(iso).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", timeZone: MX_TZ });
 }
 
 interface DateGroup {
