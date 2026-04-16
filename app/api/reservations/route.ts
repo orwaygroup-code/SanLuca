@@ -67,13 +67,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // 5. Verificar que la fecha no sea en el pasado
-        if (reservationDate < new Date()) {
-            return NextResponse.json<ApiResponse>(
-                { success: false, error: "No puedes reservar en una fecha pasada" },
-                { status: 400 }
-            );
-        }
+
 
         // 6. Verificar límite de reservas activas por usuario
         const activeCount = await prisma.reservation.count({

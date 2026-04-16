@@ -296,7 +296,7 @@ export function ReservationForm() {
               <div>
                 <label className="rf-label">Fecha</label>
                 <input className="rf-input" type="date" value={form.date}
-                  min={new Date().toISOString().split("T")[0]} style={{ colorScheme: "dark" }}
+                  style={{ colorScheme: "dark" }}
                   onChange={(e) => { set("date", e.target.value); set("time", ""); }} />
               </div>
               <div>
