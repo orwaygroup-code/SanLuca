@@ -93,16 +93,18 @@ function groupByDate(reservations: Reservation[]): DateGroup[] {
 
     const map = new Map<string, Reservation[]>();
     for (const r of reservations) {
-        const key = r.date.slice(0, 10);
+        // Convertir a fecha México antes de agrupar
+        const key = new Date(r.date).toLocaleDateString("en-CA", { timeZone: MX_TZ });
         if (!map.has(key)) map.set(key, []);
         map.get(key)!.push(r);
     }
 
+    const todayKey = new Date().toLocaleDateString("en-CA", { timeZone: MX_TZ });
+
     return Array.from(map.entries())
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([key, items]) => {
-            const d = new Date(`${key}T00:00:00`);
-            const isToday = d.getTime() === today.getTime();
+            const isToday = key === todayKey;
             const label = isToday
                 ? "HOY — " + fmtDate(`${key}T12:00:00`)
                 : fmtDate(`${key}T12:00:00`);
@@ -525,8 +527,8 @@ function MoveTableModal({
     onClose: () => void;
     onMove: (selection: TableSelection | null, sectionPref: string) => Promise<void>;
 }) {
-    const date    = reservation.date.slice(0, 10);
-    const time    = new Date(reservation.date).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false });
+    const date    = new Date(reservation.date).toLocaleDateString("en-CA", { timeZone: MX_TZ });
+    const time    = new Date(reservation.date).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: MX_TZ });
     const initSec = (reservation.sectionPreference ?? "Terraza") as typeof MODAL_SECTIONS[number];
 
     const [selectedSection, setSelectedSection] = useState<string>(initSec);
@@ -721,8 +723,8 @@ function EditReservationModal({
     onClose: () => void;
     onSave: (data: EditData) => Promise<void>;
 }) {
-    const initDate = reservation.date.slice(0, 10);
-    const initTime = new Date(reservation.date).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false });
+    const initDate = new Date(reservation.date).toLocaleDateString("en-CA", { timeZone: MX_TZ });
+    const initTime = new Date(reservation.date).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: MX_TZ });
 
     const [guestName,   setGuestName]   = useState(reservation.guestName);
     const [guestPhone,  setGuestPhone]  = useState(reservation.guestPhone);
