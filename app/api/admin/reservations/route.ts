@@ -29,13 +29,15 @@ export async function GET(request: NextRequest) {
         }
 
         if (date) {
-            const start = new Date(`${date}T00:00:00`);
-            const end   = new Date(`${date}T23:59:59`);
+            // Interpretar la fecha en timezone de México (UTC-6 fijo, sin horario de verano)
+            const start = new Date(`${date}T00:00:00.000-06:00`);
+            const end   = new Date(`${date}T23:59:59.999-06:00`);
             where.date = { gte: start, lte: end };
         } else {
-            // Sin filtro de fecha: mostrar solo hoy y futuro
-            const todayStart = new Date();
-            todayStart.setHours(0, 0, 0, 0);
+            // Sin filtro de fecha: mostrar hoy y futuro en tiempo de México
+            const nowMx   = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Mexico_City" }));
+            const dateMx  = `${nowMx.getFullYear()}-${String(nowMx.getMonth() + 1).padStart(2, "0")}-${String(nowMx.getDate()).padStart(2, "0")}`;
+            const todayStart = new Date(`${dateMx}T00:00:00.000-06:00`);
             where.date = { gte: todayStart };
         }
 
