@@ -9,72 +9,60 @@ type TableStatus = "available" | "reserved" | "in_progress" | "walk_in" | "area_
 interface LargeGroupInfo {
     id: string; status: string; guestName: string; guests: number; time: string;
 }
-
 interface LiveTable {
-    id:       string;
-    number:   number;
-    capacity: number;
-    status:   TableStatus;
+    id: string; number: number; capacity: number; status: TableStatus;
     reservation: { id: string; status: string; guestName: string; guests: number; time: string } | null;
-    block:       { note: string | null; createdAt: string } | null;
+    block: { note: string | null; createdAt: string } | null;
 }
-
 interface LiveSection {
-    id:         string;
-    name:       string;
-    largeGroup: LargeGroupInfo | null;
-    tables:     LiveTable[];
+    id: string; name: string; largeGroup: LargeGroupInfo | null; tables: LiveTable[];
 }
 
-// ── Styling maps ──────────────────────────────────────────────────────────────
-const STATUS_BG: Record<TableStatus, string> = {
-    available:    "#1e2c2e",
+// ── Status config ─────────────────────────────────────────────────────────────
+const S_BG: Record<TableStatus, string> = {
+    available:    "#1e2628",
     reserved:     "#1a2d3d",
     in_progress:  "#3a1010",
     walk_in:      "#2e1e08",
     area_blocked: "#2a0d2a",
 };
-const STATUS_BORDER: Record<TableStatus, string> = {
+const S_BORDER: Record<TableStatus, string> = {
     available:    "rgba(255,255,255,0.08)",
     reserved:     "rgba(74,158,202,0.55)",
     in_progress:  "rgba(224,85,85,0.8)",
     walk_in:      "rgba(186,132,60,0.75)",
-    area_blocked: "rgba(180,60,180,0.75)",
+    area_blocked: "rgba(180,60,180,0.7)",
 };
-const STATUS_DOT: Record<TableStatus, string> = {
+const S_DOT: Record<TableStatus, string> = {
     available:    "#4caf50",
     reserved:     "#4a9eca",
     in_progress:  "#e05555",
     walk_in:      "#ba843c",
-    area_blocked: "#b43cb4",
+    area_blocked: "#c060c0",
 };
-const STATUS_LABEL: Record<TableStatus, string> = {
+const S_LABEL: Record<TableStatus, string> = {
     available:    "Libre",
     reserved:     "Reservada",
     in_progress:  "En curso",
     walk_in:      "Walk-in",
     area_blocked: "Área bloqueada",
 };
-
-const LG_STATUS_LABEL: Record<string, string> = {
-    PENDING:     "Pendiente",
-    CONFIRMED:   "Confirmada",
-    IN_PROGRESS: "En curso",
-    DELAYED:     "Con retraso",
+const LG_LABEL: Record<string, string> = {
+    PENDING: "Pendiente", CONFIRMED: "Confirmada", IN_PROGRESS: "En curso", DELAYED: "Retraso",
 };
 
-// ── Main component ────────────────────────────────────────────────────────────
+// ── Component ─────────────────────────────────────────────────────────────────
 export default function MapaPage() {
     const router = useRouter();
-    const [userId,     setUserId]     = useState<string | null>(null);
-    const [data,       setData]       = useState<LiveSection[]>([]);
-    const [loading,    setLoading]    = useState(true);
-    const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
-    const [selected,        setSelected]        = useState<LiveTable | null>(null);
-    const [sectionTarget,   setSectionTarget]   = useState<LiveSection | null>(null);
-    const [blocking,        setBlocking]        = useState(false);
-    const [note,            setNote]            = useState("");
-    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const [userId,       setUserId]       = useState<string | null>(null);
+    const [data,         setData]         = useState<LiveSection[]>([]);
+    const [loading,      setLoading]      = useState(true);
+    const [lastUpdate,   setLastUpdate]   = useState<Date | null>(null);
+    const [selected,     setSelected]     = useState<LiveTable | null>(null);
+    const [sectionModal, setSectionModal] = useState<LiveSection | null>(null);
+    const [blocking,     setBlocking]     = useState(false);
+    const [note,         setNote]         = useState("");
+    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     useEffect(() => {
         const uid  = localStorage.getItem("userId");
@@ -88,44 +76,28 @@ export default function MapaPage() {
             const res  = await fetch("/api/admin/map", { headers: { "x-user-id": uid } });
             const json = await res.json();
             if (json.success) { setData(json.data); setLastUpdate(new Date()); }
-        } catch { /* silent */ } finally {
-            setLoading(false);
-        }
+        } catch { /* silent */ } finally { setLoading(false); }
     }, []);
 
     useEffect(() => {
         if (!userId) return;
         fetchMap(userId);
-        intervalRef.current = setInterval(() => fetchMap(userId), 20_000);
-        return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+        timerRef.current = setInterval(() => fetchMap(userId), 20_000);
+        return () => { if (timerRef.current) clearInterval(timerRef.current); };
     }, [userId, fetchMap]);
 
-    const toggleBlock = async (table: LiveTable) => {
+    const patchMap = async (body: object) => {
         if (!userId) return;
-        const isBlocked = table.status === "walk_in";
         setBlocking(true);
         await fetch("/api/admin/map", {
-            method:  "PATCH",
+            method: "PATCH",
             headers: { "Content-Type": "application/json", "x-user-id": userId },
-            body:    JSON.stringify({ tableId: table.id, action: isBlocked ? "unblock" : "block", note: note || undefined }),
+            body: JSON.stringify(body),
         });
+        setBlocking(false);
         setSelected(null);
+        setSectionModal(null);
         setNote("");
-        setBlocking(false);
-        fetchMap(userId);
-    };
-
-    const toggleSectionBlock = async (sec: LiveSection, block: boolean) => {
-        if (!userId) return;
-        setBlocking(true);
-        await fetch("/api/admin/map", {
-            method:  "PATCH",
-            headers: { "Content-Type": "application/json", "x-user-id": userId },
-            body:    JSON.stringify({ sectionId: sec.id, action: block ? "block-section" : "unblock-section", note: note || undefined }),
-        });
-        setSectionTarget(null);
-        setNote("");
-        setBlocking(false);
         fetchMap(userId);
     };
 
@@ -140,262 +112,251 @@ export default function MapaPage() {
         area_blocked: allTables.filter((t) => t.status === "area_blocked").length,
     };
 
-    const pill = (s: React.CSSProperties): React.CSSProperties => ({
-        display: "flex", alignItems: "center", gap: 8,
-        padding: "7px 14px", borderRadius: 10, ...s,
-    });
-
     return (
-        <div style={{ minHeight: "100vh", background: "#0f1a1c", color: "#f5f1e8", fontFamily: "var(--font-cormorant, serif)", padding: "24px 16px", maxWidth: 900, margin: "0 auto" }}>
+        <div className="adm-page">
 
-            {/* Header */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
-                <div>
-                    <p style={{ margin: 0, fontSize: "0.6rem", letterSpacing: "0.28em", color: "#ba843c", fontWeight: 700, textTransform: "uppercase" }}>San Luca · Hostess</p>
-                    <h1 style={{ margin: "4px 0 0", fontSize: "1.5rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>Mapa en Vivo</h1>
+            {/* ── Header ── */}
+            <div className="adm-header">
+                <h1 className="adm-title">
+                    <span className="adm-title--gold">MAPA</span>{" "}
+                    <span className="adm-title--white">EN VIVO</span>
+                </h1>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                     {lastUpdate && (
-                        <p style={{ margin: "4px 0 0", fontSize: "0.68rem", color: "rgba(245,241,232,0.3)" }}>
-                            {lastUpdate.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", second: "2-digit" })} · refresca cada 20s
-                        </p>
+                        <span style={{ fontSize: "0.68rem", color: "rgba(245,241,232,0.3)", marginRight: 4 }}>
+                            {lastUpdate.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                        </span>
                     )}
-                </div>
-                <div style={{ display: "flex", gap: 8 }}>
-                    <button onClick={() => userId && fetchMap(userId)} style={{ padding: "8px 14px", background: "rgba(186,132,60,0.12)", border: "1px solid rgba(186,132,60,0.35)", borderRadius: 8, color: "#ba843c", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer" }}>
+                    <button
+                        className="adm-logout"
+                        onClick={() => userId && fetchMap(userId)}
+                        style={{ borderColor: "rgba(186,132,60,0.4)", color: "#ba843c" }}
+                    >
                         ↺ Refrescar
                     </button>
-                    <button onClick={() => router.push("/admin")} style={{ padding: "8px 14px", background: "transparent", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "rgba(245,241,232,0.45)", fontSize: "0.75rem", cursor: "pointer" }}>
+                    <button className="adm-logout" onClick={() => router.push("/admin")}>
                         ← Reservas
                     </button>
                 </div>
             </div>
 
-            {/* Resumen */}
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 32 }}>
-                {(Object.keys(counts) as TableStatus[]).filter((s) => s !== "area_blocked" || counts[s] > 0).map((s) => (
-                    <div key={s} style={pill({ background: STATUS_BG[s], border: `1px solid ${STATUS_BORDER[s]}` })}>
-                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: STATUS_DOT[s], flexShrink: 0 }} />
-                        <span style={{ fontSize: "0.82rem", fontWeight: 700 }}>{counts[s]}</span>
-                        <span style={{ fontSize: "0.7rem", color: "rgba(245,241,232,0.5)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{STATUS_LABEL[s]}</span>
-                    </div>
-                ))}
+            {/* ── Resumen de estados ── */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 32 }}>
+                {(Object.keys(S_LABEL) as TableStatus[])
+                    .filter((s) => s !== "area_blocked" || counts[s] > 0)
+                    .map((s) => (
+                        <div key={s} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 14px", background: S_BG[s], border: `1px solid ${S_BORDER[s]}`, borderRadius: 10 }}>
+                            <span style={{ width: 8, height: 8, borderRadius: "50%", background: S_DOT[s], flexShrink: 0 }} />
+                            <span style={{ fontSize: "0.9rem", fontWeight: 800, color: "#f5f1e8" }}>{counts[s]}</span>
+                            <span style={{ fontSize: "0.68rem", color: "rgba(245,241,232,0.5)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>{S_LABEL[s]}</span>
+                        </div>
+                    ))}
+                <span style={{ fontSize: "0.68rem", color: "rgba(245,241,232,0.25)", alignSelf: "center", marginLeft: 4 }}>
+                    · se refresca cada 20s
+                </span>
             </div>
 
-            {/* Secciones */}
+            {/* ── Mapa por secciones ── */}
             {loading ? (
-                <p style={{ textAlign: "center", color: "rgba(245,241,232,0.3)", marginTop: 60 }}>Cargando mesas…</p>
+                <div className="adm-empty">Cargando mesas…</div>
             ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
-                    {data.map((sec) => (
-                        <div key={sec.id}>
-                            {/* Header de sección */}
-                            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
-                                <p style={{ margin: 0, fontSize: "0.65rem", letterSpacing: "0.2em", color: sec.largeGroup ? "#b43cb4" : "#ba843c", fontWeight: 700, textTransform: "uppercase" }}>
-                                    {sec.name}
-                                </p>
-                                {sec.largeGroup && (
-                                    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 12px", background: "rgba(180,60,180,0.12)", border: "1px solid rgba(180,60,180,0.4)", borderRadius: 20 }}>
-                                        <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#b43cb4", flexShrink: 0 }} />
-                                        <span style={{ fontSize: "0.68rem", color: "#d080d0", fontWeight: 700 }}>
-                                            BLOQUEO DE ÁREA · {sec.largeGroup.guestName} · {sec.largeGroup.guests} personas · {sec.largeGroup.time} · {LG_STATUS_LABEL[sec.largeGroup.status] ?? sec.largeGroup.status}
-                                        </span>
-                                    </div>
-                                )}
-                                {/* Botón bloquear / liberar área completa */}
-                                {!sec.largeGroup && (() => {
-                                    const allBlocked = sec.tables.length > 0 && sec.tables.every((t) => t.status === "walk_in");
-                                    return (
+                <div style={{ display: "flex", flexDirection: "column", gap: 36 }}>
+                    {data.map((sec) => {
+                        const allBlocked = !sec.largeGroup && sec.tables.length > 0 && sec.tables.every((t) => t.status === "walk_in");
+                        return (
+                            <div key={sec.id}>
+                                {/* Header sección */}
+                                <div className="adm-status-header" style={{ marginBottom: 12, gap: 12, flexWrap: "wrap" }}>
+                                    <span className="adm-status-dot" style={{ background: sec.largeGroup ? "#c060c0" : "#ba843c" }} />
+                                    <span className="adm-status-name" style={{ color: sec.largeGroup ? "#c060c0" : "#ba843c" }}>
+                                        {sec.name.toUpperCase()}
+                                    </span>
+                                    <span className="adm-status-count" style={{ color: "rgba(245,241,232,0.3)" }}>
+                                        {sec.tables.length} mesas
+                                    </span>
+
+                                    {/* Botón bloquear/liberar área */}
+                                    {!sec.largeGroup && (
                                         <button
-                                            onClick={() => { setNote(""); setSectionTarget(sec); }}
-                                            style={{ marginLeft: "auto", padding: "4px 12px", borderRadius: 20, fontSize: "0.67rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.08em", textTransform: "uppercase", border: allBlocked ? "1px solid rgba(76,175,80,0.6)" : "1px solid rgba(180,60,180,0.5)", background: allBlocked ? "rgba(76,175,80,0.1)" : "rgba(180,60,180,0.1)", color: allBlocked ? "#4caf50" : "#d080d0" }}
+                                            onClick={() => { setNote(""); setSectionModal(sec); }}
+                                            style={{ marginLeft: "auto", padding: "4px 14px", borderRadius: 20, fontSize: "0.68rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em", textTransform: "uppercase", border: allBlocked ? "1px solid rgba(76,175,80,0.5)" : "1px solid rgba(180,60,180,0.45)", background: allBlocked ? "rgba(76,175,80,0.08)" : "rgba(180,60,180,0.08)", color: allBlocked ? "#4caf50" : "#c060c0" }}
                                         >
                                             {allBlocked ? "🔓 Liberar área" : "🚫 Bloquear área"}
                                         </button>
-                                    );
-                                })()}
-                            </div>
-
-                            {/* Banner de área bloqueada */}
-                            {sec.largeGroup && (
-                                <div style={{ marginBottom: 12, padding: "12px 16px", background: "rgba(180,60,180,0.08)", border: "1px solid rgba(180,60,180,0.3)", borderRadius: 10, display: "flex", alignItems: "center", gap: 12 }}>
-                                    <span style={{ fontSize: "1.2rem" }}>🚫</span>
-                                    <div>
-                                        <p style={{ margin: 0, fontSize: "0.78rem", fontWeight: 700, color: "#d080d0" }}>
-                                            Área completa reservada para grupo grande
-                                        </p>
-                                        <p style={{ margin: "2px 0 0", fontSize: "0.7rem", color: "rgba(245,241,232,0.45)" }}>
-                                            {sec.largeGroup.guestName} · {sec.largeGroup.guests} personas · {sec.largeGroup.time} · Estado: {LG_STATUS_LABEL[sec.largeGroup.status] ?? sec.largeGroup.status}
-                                        </p>
-                                    </div>
+                                    )}
                                 </div>
-                            )}
 
-                            {/* Mesas */}
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-                                {sec.tables.map((t) => (
-                                    <TableCard key={t.id} table={t} onClick={() => {
-                                        if (t.status === "in_progress" || t.status === "reserved" || t.status === "area_blocked") return;
-                                        setNote("");
-                                        setSelected(t);
-                                    }} />
-                                ))}
+                                {/* Banner grupo grande */}
+                                {sec.largeGroup && (
+                                    <div style={{ marginBottom: 14, padding: "12px 16px", background: "rgba(180,60,180,0.07)", border: "1px solid rgba(180,60,180,0.28)", borderRadius: 10, display: "flex", alignItems: "center", gap: 12 }}>
+                                        <span style={{ fontSize: "1.1rem" }}>🚫</span>
+                                        <div>
+                                            <p style={{ margin: 0, fontSize: "0.8rem", fontWeight: 700, color: "#d080d0" }}>
+                                                Área completa bloqueada — Grupo grande
+                                            </p>
+                                            <p style={{ margin: "2px 0 0", fontSize: "0.72rem", color: "rgba(245,241,232,0.45)" }}>
+                                                {sec.largeGroup.guestName} · {sec.largeGroup.guests} personas · {sec.largeGroup.time} · {LG_LABEL[sec.largeGroup.status] ?? sec.largeGroup.status}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Grid de mesas */}
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                                    {sec.tables.map((t) => {
+                                        const clickable = t.status === "available" || t.status === "walk_in";
+                                        return (
+                                            <div
+                                                key={t.id}
+                                                onClick={clickable ? () => { setNote(""); setSelected(t); } : undefined}
+                                                style={{
+                                                    width: 120, minHeight: 100, borderRadius: 12, padding: "12px 14px",
+                                                    background: S_BG[t.status], border: `1.5px solid ${S_BORDER[t.status]}`,
+                                                    cursor: clickable ? "pointer" : "default",
+                                                    display: "flex", flexDirection: "column", gap: 4,
+                                                    transition: "opacity 0.15s, transform 0.1s",
+                                                    userSelect: "none",
+                                                }}
+                                                onMouseEnter={(e) => { if (clickable) (e.currentTarget as HTMLDivElement).style.opacity = "0.8"; }}
+                                                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.opacity = "1"; }}
+                                            >
+                                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                                    <span style={{ fontSize: "1.05rem", fontWeight: 800, color: "#f5f1e8" }}>#{t.number}</span>
+                                                    <span style={{ width: 9, height: 9, borderRadius: "50%", background: S_DOT[t.status], flexShrink: 0 }} />
+                                                </div>
+                                                <span style={{ fontSize: "0.65rem", color: "rgba(245,241,232,0.38)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                                                    {t.capacity} personas
+                                                </span>
+                                                <span style={{ fontSize: "0.7rem", fontWeight: 700, color: S_DOT[t.status], textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                                                    {S_LABEL[t.status]}
+                                                </span>
+                                                {t.reservation && t.status !== "area_blocked" && (
+                                                    <div style={{ marginTop: 3, borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 4 }}>
+                                                        <p style={{ margin: 0, fontSize: "0.72rem", color: "rgba(245,241,232,0.7)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                                            {t.reservation.guestName}
+                                                        </p>
+                                                        <p style={{ margin: 0, fontSize: "0.65rem", color: "rgba(245,241,232,0.38)" }}>
+                                                            {t.reservation.guests}p · {t.reservation.time}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                                {t.block && (
+                                                    <p style={{ margin: "2px 0 0", fontSize: "0.65rem", color: "rgba(245,241,232,0.38)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                                        {t.block.note || "Walk-in"}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 
-            {/* Leyenda */}
-            <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 40, paddingTop: 20, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-                {(Object.keys(STATUS_LABEL) as TableStatus[]).map((s) => (
+            {/* ── Leyenda ── */}
+            <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 48, paddingTop: 20, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                {(Object.keys(S_LABEL) as TableStatus[]).map((s) => (
                     <div key={s} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <span style={{ width: 11, height: 11, borderRadius: 3, background: STATUS_BG[s], border: `1px solid ${STATUS_BORDER[s]}`, flexShrink: 0 }} />
-                        <span style={{ fontSize: "0.67rem", color: "rgba(245,241,232,0.38)" }}>{STATUS_LABEL[s]}</span>
+                        <span style={{ width: 11, height: 11, borderRadius: 3, background: S_BG[s], border: `1px solid ${S_BORDER[s]}`, flexShrink: 0 }} />
+                        <span style={{ fontSize: "0.68rem", color: "rgba(245,241,232,0.35)" }}>{S_LABEL[s]}</span>
                     </div>
                 ))}
+                <span style={{ fontSize: "0.67rem", color: "rgba(245,241,232,0.2)", marginLeft: "auto" }}>
+                    Toca mesa libre o walk-in para gestionar
+                </span>
             </div>
 
-            {/* Modal bloquear / liberar área completa */}
-            {sectionTarget && (() => {
-                const allBlocked = sectionTarget.tables.length > 0 && sectionTarget.tables.every((t) => t.status === "walk_in");
+            {/* ── Modal: bloquear/liberar sección ── */}
+            {sectionModal && (() => {
+                const allBlocked = sectionModal.tables.length > 0 && sectionModal.tables.every((t) => t.status === "walk_in");
                 return (
-                    <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.82)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
-                        onClick={(e) => { if (e.target === e.currentTarget) setSectionTarget(null); }}
-                    >
-                        <div style={{ background: "#1a2628", border: "1px solid rgba(180,60,180,0.3)", borderRadius: 16, padding: "28px 24px", width: "100%", maxWidth: 400, display: "flex", flexDirection: "column", gap: 16 }}>
-                            <p style={{ margin: 0, fontSize: "0.62rem", letterSpacing: "0.22em", color: "#d080d0", fontWeight: 700, textTransform: "uppercase" }}>
-                                {allBlocked ? "Liberar Área Completa" : "Bloquear Área Completa"}
-                            </p>
-                            <p style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700 }}>
-                                Sección {sectionTarget.name} · {sectionTarget.tables.length} mesas
-                            </p>
-                            {!allBlocked && (
-                                <div>
-                                    <label style={{ fontSize: "0.65rem", letterSpacing: "0.15em", color: "rgba(245,241,232,0.4)", textTransform: "uppercase", fontWeight: 700, display: "block", marginBottom: 6 }}>
-                                        Motivo (opcional)
-                                    </label>
-                                    <input
-                                        value={note}
-                                        onChange={(e) => setNote(e.target.value)}
-                                        placeholder="Ej. Evento privado, grupo sin reserva…"
-                                        style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.05)", color: "#f5f1e8", fontSize: "0.85rem", boxSizing: "border-box" }}
-                                    />
-                                </div>
-                            )}
-                            <div style={{ display: "flex", gap: 10 }}>
-                                <button onClick={() => setSectionTarget(null)} style={{ flex: 1, padding: "10px 0", background: "transparent", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, color: "rgba(245,241,232,0.5)", fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" }}>
-                                    Cancelar
-                                </button>
-                                <button
-                                    onClick={() => toggleSectionBlock(sectionTarget, !allBlocked)}
-                                    disabled={blocking}
-                                    style={{ flex: 2, padding: "10px 0", background: allBlocked ? "#4caf50" : "#b43cb4", border: "none", borderRadius: 10, color: "#fff", fontWeight: 700, fontSize: "0.82rem", cursor: blocking ? "default" : "pointer", letterSpacing: "0.06em", textTransform: "uppercase", opacity: blocking ? 0.6 : 1 }}
-                                >
-                                    {blocking ? "…" : allBlocked ? "Liberar área" : "Bloquear área"}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                    <Modal onClose={() => setSectionModal(null)}>
+                        <p style={modalLabel}>{allBlocked ? "Liberar Área Completa" : "Bloquear Área Completa"}</p>
+                        <p style={modalTitle}>Sección {sectionModal.name} · {sectionModal.tables.length} mesas</p>
+                        {!allBlocked && (
+                            <NoteInput value={note} onChange={setNote} placeholder="Ej. Evento privado, grupo sin reserva…" />
+                        )}
+                        <ModalActions
+                            onCancel={() => setSectionModal(null)}
+                            onConfirm={() => patchMap({ sectionId: sectionModal.id, action: allBlocked ? "unblock-section" : "block-section", note: note || undefined })}
+                            loading={blocking}
+                            confirmColor={allBlocked ? "#4caf50" : "#c060c0"}
+                            confirmLabel={allBlocked ? "Liberar área" : "Bloquear área"}
+                        />
+                    </Modal>
                 );
             })()}
 
-            {/* Modal bloquear / liberar mesa individual */}
-            {selected && (
-                <div
-                    style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.82)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
-                    onClick={(e) => { if (e.target === e.currentTarget) setSelected(null); }}
-                >
-                    <div style={{ background: "#1a2628", border: "1px solid rgba(186,132,60,0.25)", borderRadius: 16, padding: "28px 24px", width: "100%", maxWidth: 380, display: "flex", flexDirection: "column", gap: 16 }}>
-                        <p style={{ margin: 0, fontSize: "0.62rem", letterSpacing: "0.22em", color: "#ba843c", fontWeight: 700, textTransform: "uppercase" }}>
-                            {selected.status === "walk_in" ? "Liberar Mesa" : "Bloquear Walk-in"}
-                        </p>
-                        <p style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>
-                            Mesa #{selected.number} · {selected.capacity} personas
-                        </p>
-
-                        {selected.status === "walk_in" && selected.block && (
-                            <div style={{ background: "rgba(186,132,60,0.08)", border: "1px solid rgba(186,132,60,0.2)", borderRadius: 8, padding: "10px 14px" }}>
+            {/* ── Modal: bloquear/liberar mesa individual ── */}
+            {selected && (() => {
+                const isWalkIn = selected.status === "walk_in";
+                return (
+                    <Modal onClose={() => setSelected(null)}>
+                        <p style={modalLabel}>{isWalkIn ? "Liberar Mesa" : "Bloquear Walk-in"}</p>
+                        <p style={modalTitle}>Mesa #{selected.number} · {selected.capacity} personas</p>
+                        {isWalkIn && selected.block && (
+                            <div style={{ padding: "10px 14px", background: "rgba(186,132,60,0.08)", border: "1px solid rgba(186,132,60,0.2)", borderRadius: 8 }}>
                                 <p style={{ margin: 0, fontSize: "0.78rem", color: "rgba(245,241,232,0.6)" }}>
                                     Walk-in desde {new Date(selected.block.createdAt).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}
                                     {selected.block.note && ` · ${selected.block.note}`}
                                 </p>
                             </div>
                         )}
-
-                        {selected.status === "available" && (
-                            <div>
-                                <label style={{ fontSize: "0.65rem", letterSpacing: "0.15em", color: "rgba(245,241,232,0.4)", textTransform: "uppercase", fontWeight: 700, display: "block", marginBottom: 6 }}>
-                                    Nota (opcional)
-                                </label>
-                                <input
-                                    value={note}
-                                    onChange={(e) => setNote(e.target.value)}
-                                    placeholder="Ej. 4 personas, sin reserva…"
-                                    style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.05)", color: "#f5f1e8", fontSize: "0.85rem", boxSizing: "border-box" }}
-                                />
-                            </div>
+                        {!isWalkIn && (
+                            <NoteInput value={note} onChange={setNote} placeholder="Ej. 4 personas, sin reserva…" />
                         )}
-
-                        <div style={{ display: "flex", gap: 10 }}>
-                            <button onClick={() => setSelected(null)} style={{ flex: 1, padding: "10px 0", background: "transparent", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, color: "rgba(245,241,232,0.5)", fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" }}>
-                                Cancelar
-                            </button>
-                            <button
-                                onClick={() => toggleBlock(selected)}
-                                disabled={blocking}
-                                style={{ flex: 2, padding: "10px 0", background: selected.status === "walk_in" ? "#4caf50" : "#ba843c", border: "none", borderRadius: 10, color: "#fff", fontWeight: 700, fontSize: "0.82rem", cursor: blocking ? "default" : "pointer", letterSpacing: "0.06em", textTransform: "uppercase", opacity: blocking ? 0.6 : 1 }}
-                            >
-                                {blocking ? "…" : selected.status === "walk_in" ? "Liberar Mesa" : "Bloquear Walk-in"}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+                        <ModalActions
+                            onCancel={() => setSelected(null)}
+                            onConfirm={() => patchMap({ tableId: selected.id, action: isWalkIn ? "unblock" : "block", note: note || undefined })}
+                            loading={blocking}
+                            confirmColor={isWalkIn ? "#4caf50" : "#ba843c"}
+                            confirmLabel={isWalkIn ? "Liberar mesa" : "Bloquear walk-in"}
+                        />
+                    </Modal>
+                );
+            })()}
         </div>
     );
 }
 
-// ── TableCard ────────────────────────────────────────────────────────────────
-function TableCard({ table, onClick }: { table: LiveTable; onClick: () => void }) {
-    const isClickable = table.status === "available" || table.status === "walk_in";
+// ── Shared modal pieces ───────────────────────────────────────────────────────
+const modalLabel: React.CSSProperties = { margin: 0, fontSize: "0.62rem", letterSpacing: "0.22em", color: "#ba843c", fontWeight: 700, textTransform: "uppercase" };
+const modalTitle: React.CSSProperties = { margin: 0, fontSize: "1.05rem", fontWeight: 700, color: "#f5f1e8" };
 
+function Modal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
     return (
-        <div
-            onClick={isClickable ? onClick : undefined}
-            style={{
-                width: 110, minHeight: 95, borderRadius: 12, padding: "10px 12px",
-                background: STATUS_BG[table.status],
-                border: `1.5px solid ${STATUS_BORDER[table.status]}`,
-                cursor: isClickable ? "pointer" : "default",
-                display: "flex", flexDirection: "column", gap: 3,
-                userSelect: "none",
-                ...(table.status === "area_blocked" ? { opacity: 0.85 } : {}),
-            }}
-        >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: "1rem", fontWeight: 700 }}>#{table.number}</span>
-                <span style={{ width: 8, height: 8, borderRadius: "50%", background: STATUS_DOT[table.status], flexShrink: 0 }} />
+        <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+            onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+            <div style={{ background: "#1a2628", border: "1px solid rgba(186,132,60,0.2)", borderRadius: 16, padding: "28px 24px", width: "100%", maxWidth: 400, display: "flex", flexDirection: "column", gap: 16 }}>
+                {children}
             </div>
-            <span style={{ fontSize: "0.63rem", color: "rgba(245,241,232,0.4)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                {table.capacity} pers.
-            </span>
-            <span style={{ fontSize: "0.67rem", fontWeight: 700, color: STATUS_DOT[table.status], textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                {STATUS_LABEL[table.status]}
-            </span>
-            {table.reservation && table.status !== "area_blocked" && (
-                <div style={{ marginTop: 2 }}>
-                    <p style={{ margin: 0, fontSize: "0.7rem", color: "rgba(245,241,232,0.7)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                        {table.reservation.guestName}
-                    </p>
-                    <p style={{ margin: 0, fontSize: "0.63rem", color: "rgba(245,241,232,0.38)" }}>
-                        {table.reservation.guests}p · {table.reservation.time}
-                    </p>
-                </div>
-            )}
-            {table.block && (
-                <p style={{ margin: "2px 0 0", fontSize: "0.63rem", color: "rgba(245,241,232,0.38)" }}>
-                    {table.block.note || "Walk-in"}
-                </p>
-            )}
+        </div>
+    );
+}
+
+function NoteInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
+    return (
+        <div>
+            <label style={{ fontSize: "0.65rem", letterSpacing: "0.15em", color: "rgba(245,241,232,0.4)", textTransform: "uppercase", fontWeight: 700, display: "block", marginBottom: 6 }}>Nota (opcional)</label>
+            <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
+                style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.05)", color: "#f5f1e8", fontSize: "0.85rem", boxSizing: "border-box" }} />
+        </div>
+    );
+}
+
+function ModalActions({ onCancel, onConfirm, loading, confirmColor, confirmLabel }: {
+    onCancel: () => void; onConfirm: () => void; loading: boolean; confirmColor: string; confirmLabel: string;
+}) {
+    return (
+        <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={onCancel} style={{ flex: 1, padding: "10px 0", background: "transparent", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, color: "rgba(245,241,232,0.5)", fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" }}>
+                Cancelar
+            </button>
+            <button onClick={onConfirm} disabled={loading} style={{ flex: 2, padding: "10px 0", background: confirmColor, border: "none", borderRadius: 10, color: "#fff", fontWeight: 700, fontSize: "0.82rem", cursor: loading ? "default" : "pointer", letterSpacing: "0.06em", textTransform: "uppercase", opacity: loading ? 0.6 : 1 }}>
+                {loading ? "…" : confirmLabel}
+            </button>
         </div>
     );
 }
