@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { autoAssignTable } from "@/lib/autoAssignTable";
 import type { ApiResponse } from "@/types";
 
 async function verifyStaff(request: NextRequest) {
@@ -78,5 +79,74 @@ export async function GET(request: NextRequest) {
     } catch (error) {
         console.error("[Admin] GET /api/admin/reservations", error);
         return NextResponse.json<ApiResponse>({ success: false, error: "Error al obtener reservas" }, { status: 500 });
+    }
+}
+
+// POST /api/admin/reservations — crea reserva sin restricciones (solo hostess/admin)
+export async function POST(request: NextRequest) {
+    try {
+        const adminId = await verifyStaff(request);
+        if (!adminId) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
+
+        const body = await request.json() as {
+            guestName:         string;
+            guestPhone:        string;
+            date:              string; // "YYYY-MM-DD"
+            time:              string; // "HH:MM"
+            guests:            number;
+            sectionPreference?: string;
+            notes?:            string;
+            occasion?:         string;
+        };
+
+        const { guestName, guestPhone, date, time, guests, sectionPreference, notes, occasion } = body;
+        if (!guestName || !guestPhone || !date || !time || !guests) {
+            return NextResponse.json<ApiResponse>({ success: false, error: "Faltan campos requeridos" }, { status: 400 });
+        }
+
+        const reservationDate = new Date(`${date}T${time}:00.000-06:00`);
+        if (isNaN(reservationDate.getTime())) {
+            return NextResponse.json<ApiResponse>({ success: false, error: "Fecha u hora inválida" }, { status: 400 });
+        }
+
+        // Buscar o crear usuario por teléfono
+        const phone = guestPhone.replace(/\D/g, "").slice(-10);
+        let user = await prisma.user.findFirst({ where: { phone } });
+        if (!user) {
+            const guestEmail = `${phone}@hostes.guest`;
+            user = await prisma.user.upsert({
+                where:  { email: guestEmail },
+                update: { name: guestName },
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                create: { name: guestName, email: guestEmail, phone, role: "CUSTOMER" } as any,
+            });
+        }
+
+        // Auto-asignar mesa
+        const assigned = await autoAssignTable(reservationDate, guests, sectionPreference ?? null);
+
+        const reservation = await prisma.reservation.create({
+            data: {
+                userId:            user.id,
+                guestName,
+                guestPhone:        phone,
+                guests,
+                date:              reservationDate,
+                sectionPreference: assigned?.sectionName ?? sectionPreference ?? null,
+                notes:             notes ?? null,
+                occasion:          occasion ?? null,
+                status:            "CONFIRMED",
+                paymentStatus:     "UNPAID",
+                ...(assigned ? { tableId: assigned.tableId } : {}),
+            },
+            include: {
+                table: { select: { number: true, section: { select: { name: true } } } },
+            },
+        });
+
+        return NextResponse.json<ApiResponse>({ success: true, data: reservation });
+    } catch (error) {
+        console.error("[Admin] POST /api/admin/reservations", error);
+        return NextResponse.json<ApiResponse>({ success: false, error: "Error al crear reserva" }, { status: 500 });
     }
 }

@@ -124,8 +124,9 @@ export default function AdminPage() {
     const [updating, setUpdating]         = useState<string | null>(null);
     const [deleting, setDeleting]         = useState<string | null>(null);
     const [onlyPending, setOnlyPending]   = useState(false);
-    const [moveTarget, setMoveTarget]     = useState<Reservation | null>(null);
-    const [editTarget, setEditTarget]     = useState<Reservation | null>(null);
+    const [moveTarget, setMoveTarget]       = useState<Reservation | null>(null);
+    const [editTarget, setEditTarget]       = useState<Reservation | null>(null);
+    const [showNewModal, setShowNewModal]   = useState(false);
 
     useEffect(() => {
         const uid  = localStorage.getItem("userId");
@@ -191,6 +192,21 @@ export default function AdminPage() {
         await fetchReservations();
     };
 
+    const createReservation = async (data: {
+        guestName: string; guestPhone: string; date: string; time: string;
+        guests: number; sectionPreference?: string; notes?: string; occasion?: string;
+    }) => {
+        if (!userId) return;
+        const res = await fetch("/api/admin/reservations", {
+            method:  "POST",
+            headers: { "Content-Type": "application/json", "x-user-id": userId },
+            body:    JSON.stringify(data),
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error);
+        await fetchReservations();
+    };
+
     const moveTable = async (id: string, selection: TableSelection | null, sectionPreference: string) => {
         if (!userId) return;
         const res = await fetch(`/api/admin/reservations/${id}`, {
@@ -235,6 +251,12 @@ export default function AdminPage() {
                         style={{ padding: "8px 14px", background: "rgba(186,132,60,0.12)", border: "1px solid rgba(186,132,60,0.35)", borderRadius: 8, color: "#ba843c", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}
                     >
                         🗺 Mapa
+                    </button>
+                    <button
+                        onClick={() => setShowNewModal(true)}
+                        style={{ padding: "8px 14px", background: "rgba(186,132,60,0.85)", border: "1px solid #ba843c", borderRadius: 8, color: "#fff", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}
+                    >
+                        + Nueva Reserva
                     </button>
                     <button className="adm-logout" onClick={() => { localStorage.clear(); router.push("/login?mode=login"); }}>
                         Salir
@@ -462,6 +484,16 @@ export default function AdminPage() {
                     onSave={async (data) => {
                         await editReservation(editTarget.id, data);
                         setEditTarget(null);
+                    }}
+                />
+            )}
+            {/* ── Modal nueva reserva ── */}
+            {showNewModal && (
+                <NewReservationModal
+                    onClose={() => setShowNewModal(false)}
+                    onCreate={async (data) => {
+                        await createReservation(data);
+                        setShowNewModal(false);
                     }}
                 />
             )}
@@ -883,6 +915,151 @@ function EditReservationModal({
                     </button>
                     <button onClick={handleSave} disabled={saving} style={{ flex: 2, padding: "11px 0", background: "#ba843c", border: "none", borderRadius: 10, color: "#fff", fontWeight: 700, fontSize: "0.82rem", cursor: saving ? "default" : "pointer", letterSpacing: "0.06em", textTransform: "uppercase", opacity: saving ? 0.6 : 1 }}>
                         {saving ? "Guardando…" : "Guardar Cambios"}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ── Modal Nueva Reserva (hostess, sin restricciones) ───────────────────────
+const OCCASIONS = ["", "Cumpleaños", "Aniversario", "Cena de negocios", "Pedida de mano", "Otro"];
+
+function NewReservationModal({
+    onClose,
+    onCreate,
+}: {
+    onClose: () => void;
+    onCreate: (data: {
+        guestName: string; guestPhone: string; date: string; time: string;
+        guests: number; sectionPreference?: string; notes?: string; occasion?: string;
+    }) => Promise<void>;
+}) {
+    const todayMx = new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
+    const nowTimeMx = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "America/Mexico_City" });
+
+    const [guestName,         setGuestName]         = useState("");
+    const [guestPhone,        setGuestPhone]         = useState("");
+    const [date,              setDate]               = useState(todayMx);
+    const [time,              setTime]               = useState(nowTimeMx);
+    const [guests,            setGuests]             = useState(2);
+    const [sectionPreference, setSectionPreference]  = useState("");
+    const [occasion,          setOccasion]           = useState("");
+    const [notes,             setNotes]              = useState("");
+    const [saving,            setSaving]             = useState(false);
+    const [error,             setError]              = useState<string | null>(null);
+
+    const fieldStyle: React.CSSProperties = {
+        width: "100%", padding: "10px 12px", background: "rgba(255,255,255,0.05)",
+        border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, color: "#f5f1e8",
+        fontSize: "0.85rem", boxSizing: "border-box",
+    };
+    const labelStyle: React.CSSProperties = {
+        display: "block", marginBottom: 6, fontSize: "0.65rem",
+        letterSpacing: "0.15em", color: "rgba(245,241,232,0.4)",
+        textTransform: "uppercase", fontWeight: 700,
+    };
+
+    const handleCreate = async () => {
+        setError(null);
+        if (!guestName.trim() || !guestPhone.trim() || !date || !time || !guests) {
+            setError("Nombre, celular, fecha, hora y personas son obligatorios");
+            return;
+        }
+        setSaving(true);
+        try {
+            await onCreate({
+                guestName: guestName.trim(),
+                guestPhone: guestPhone.trim(),
+                date, time,
+                guests,
+                sectionPreference: sectionPreference || undefined,
+                occasion:          occasion || undefined,
+                notes:             notes.trim() || undefined,
+            });
+        } catch (e: unknown) {
+            setError(e instanceof Error ? e.message : "Error al crear reserva");
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div
+            style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+            onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+        >
+            <div style={{ background: "#1a2628", border: "1px solid rgba(186,132,60,0.25)", borderRadius: 16, width: "100%", maxWidth: 480, maxHeight: "90vh", overflowY: "auto", padding: "28px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
+                {/* Header */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                        <p style={{ margin: 0, fontSize: "0.65rem", letterSpacing: "0.2em", color: "#ba843c", fontWeight: 700, textTransform: "uppercase" }}>Nueva Reserva</p>
+                        <p style={{ margin: "4px 0 0", fontSize: "1rem", color: "#f5f1e8", fontWeight: 700 }}>Crear sin restricciones</p>
+                    </div>
+                    <button onClick={onClose} style={{ background: "none", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, color: "rgba(245,241,232,0.5)", padding: "6px 12px", cursor: "pointer", fontSize: "0.8rem" }}>✕ Cerrar</button>
+                </div>
+
+                {/* Nombre + Teléfono */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                    <label>
+                        <span style={labelStyle}>Nombre *</span>
+                        <input style={fieldStyle} value={guestName} onChange={(e) => setGuestName(e.target.value)} placeholder="Nombre del titular" />
+                    </label>
+                    <label>
+                        <span style={labelStyle}>Celular *</span>
+                        <input style={fieldStyle} type="tel" value={guestPhone} onChange={(e) => setGuestPhone(e.target.value)} placeholder="10 dígitos" />
+                    </label>
+                </div>
+
+                {/* Fecha + Hora + Personas */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 80px", gap: 12 }}>
+                    <label>
+                        <span style={labelStyle}>Fecha *</span>
+                        <input style={{ ...fieldStyle, colorScheme: "dark" }} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                    </label>
+                    <label>
+                        <span style={labelStyle}>Hora *</span>
+                        <input style={{ ...fieldStyle, colorScheme: "dark" }} type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+                    </label>
+                    <label>
+                        <span style={labelStyle}>Personas *</span>
+                        <input style={fieldStyle} type="number" min={1} value={guests} onChange={(e) => setGuests(Number(e.target.value))} />
+                    </label>
+                </div>
+
+                {/* Sección */}
+                <label>
+                    <span style={labelStyle}>Sección (opcional)</span>
+                    <select style={{ ...fieldStyle, cursor: "pointer" }} value={sectionPreference} onChange={(e) => setSectionPreference(e.target.value)}>
+                        <option value="">Sin preferencia (auto-asignar)</option>
+                        {["Terraza", "Planta Alta", "Salón", "Privado"].map((s) => (
+                            <option key={s} value={s}>{s}</option>
+                        ))}
+                    </select>
+                </label>
+
+                {/* Ocasión */}
+                <label>
+                    <span style={labelStyle}>Ocasión (opcional)</span>
+                    <select style={{ ...fieldStyle, cursor: "pointer" }} value={occasion} onChange={(e) => setOccasion(e.target.value)}>
+                        {OCCASIONS.map((o) => <option key={o} value={o}>{o || "— Ninguna —"}</option>)}
+                    </select>
+                </label>
+
+                {/* Notas */}
+                <label>
+                    <span style={labelStyle}>Notas (opcional)</span>
+                    <textarea style={{ ...fieldStyle, resize: "vertical", minHeight: 64 }} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Peticiones especiales…" />
+                </label>
+
+                {error && <p style={{ margin: 0, color: "#e05555", fontSize: "0.82rem" }}>{error}</p>}
+
+                {/* Botones */}
+                <div style={{ display: "flex", gap: 10 }}>
+                    <button onClick={onClose} style={{ flex: 1, padding: "11px 0", background: "transparent", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, color: "rgba(245,241,232,0.5)", fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" }}>
+                        Cancelar
+                    </button>
+                    <button onClick={handleCreate} disabled={saving} style={{ flex: 2, padding: "11px 0", background: "#ba843c", border: "none", borderRadius: 10, color: "#fff", fontWeight: 700, fontSize: "0.82rem", cursor: saving ? "default" : "pointer", letterSpacing: "0.06em", textTransform: "uppercase", opacity: saving ? 0.6 : 1 }}>
+                        {saving ? "Creando…" : "Crear Reserva"}
                     </button>
                 </div>
             </div>
