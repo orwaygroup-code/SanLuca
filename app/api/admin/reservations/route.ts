@@ -89,17 +89,21 @@ export async function POST(request: NextRequest) {
         if (!adminId) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
 
         const body = await request.json() as {
-            guestName:         string;
-            guestPhone:        string;
-            date:              string; // "YYYY-MM-DD"
-            time:              string; // "HH:MM"
-            guests:            number;
+            guestName:          string;
+            guestPhone:         string;
+            date:               string; // "YYYY-MM-DD"
+            time:               string; // "HH:MM"
+            guests:             number;
             sectionPreference?: string;
-            notes?:            string;
-            occasion?:         string;
+            notes?:             string;
+            occasion?:          string;
+            isLargeGroup?:      boolean;
+            tableId?:           string;
+            linkedTableId?:     string;
+            thirdTableId?:      string;
         };
 
-        const { guestName, guestPhone, date, time, guests, sectionPreference, notes, occasion } = body;
+        const { guestName, guestPhone, date, time, guests, sectionPreference, notes, occasion, isLargeGroup, tableId, linkedTableId, thirdTableId } = body;
         if (!guestName || !guestPhone || !date || !time || !guests) {
             return NextResponse.json<ApiResponse>({ success: false, error: "Faltan campos requeridos" }, { status: 400 });
         }
@@ -122,8 +126,13 @@ export async function POST(request: NextRequest) {
             });
         }
 
-        // Auto-asignar mesa
-        const assigned = await autoAssignTable(reservationDate, guests, sectionPreference ?? null);
+        // Auto-asignar mesa solo si no se envía tableId y no es grupo grande
+        let assignedTableId = tableId ?? null;
+        let assignedSection = sectionPreference ?? null;
+        if (!assignedTableId && !isLargeGroup) {
+            const assigned = await autoAssignTable(reservationDate, guests, sectionPreference ?? null);
+            if (assigned) { assignedTableId = assigned.tableId; assignedSection = assigned.sectionName; }
+        }
 
         const reservation = await prisma.reservation.create({
             data: {
@@ -132,12 +141,15 @@ export async function POST(request: NextRequest) {
                 guestPhone:        phone,
                 guests,
                 date:              reservationDate,
-                sectionPreference: assigned?.sectionName ?? sectionPreference ?? null,
+                isLargeGroup:      isLargeGroup ?? false,
+                sectionPreference: assignedSection,
                 notes:             notes ?? null,
                 occasion:          occasion ?? null,
                 status:            "CONFIRMED",
                 paymentStatus:     "UNPAID",
-                ...(assigned ? { tableId: assigned.tableId } : {}),
+                ...(assignedTableId ? { tableId: assignedTableId } : {}),
+                ...(linkedTableId   ? { linkedTableId }            : {}),
+                ...(thirdTableId    ? { thirdTableId }             : {}),
             },
             include: {
                 table: { select: { number: true, section: { select: { name: true } } } },
