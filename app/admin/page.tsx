@@ -936,13 +936,19 @@ function NewReservationModal({
     }) => Promise<void>;
 }) {
     const todayMx = new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
-    const nowTimeMx = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "America/Mexico_City" });
 
     const [guestName,         setGuestName]         = useState("");
     const [guestPhone,        setGuestPhone]         = useState("");
     const [date,              setDate]               = useState(todayMx);
-    const [time,              setTime]               = useState(nowTimeMx);
+    const [time,              setTime]               = useState("13:00");
     const [guests,            setGuests]             = useState(2);
+
+    const timeSlots = (() => {
+        const pad = (n: number) => String(n).padStart(2, "0");
+        const slots: string[] = [];
+        for (let h = 8; h < 24; h++) { slots.push(`${pad(h)}:00`); slots.push(`${pad(h)}:30`); }
+        return slots;
+    })();
     const [sectionPreference, setSectionPreference]  = useState("");
     const [occasion,          setOccasion]           = useState("");
     const [notes,             setNotes]              = useState("");
@@ -1018,7 +1024,9 @@ function NewReservationModal({
                     </label>
                     <label>
                         <span style={labelStyle}>Hora *</span>
-                        <input style={{ ...fieldStyle, colorScheme: "dark" }} type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+                        <select style={{ ...fieldStyle, cursor: "pointer" }} value={time} onChange={(e) => setTime(e.target.value)}>
+                            {timeSlots.map((s) => <option key={s} value={s}>{s}</option>)}
+                        </select>
                     </label>
                     <label>
                         <span style={labelStyle}>Personas *</span>
