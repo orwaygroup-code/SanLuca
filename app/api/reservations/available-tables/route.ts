@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const reservationStart = new Date(`${date}T${time}:00`);
+    const reservationStart = new Date(`${date}T${time}:00.000-06:00`);
     if (isNaN(reservationStart.getTime())) {
       return NextResponse.json<ApiResponse>(
         { success: false, error: "Fecha u hora inválida" },

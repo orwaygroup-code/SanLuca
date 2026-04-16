@@ -57,7 +57,8 @@ export async function POST(request: NextRequest) {
         const { date, time, tableId, linkedTableId, thirdTableId, isLargeGroup, ...rest } = validation.data;
 
         // 4. Combinar fecha + hora en un solo DateTime
-        const reservationDate = new Date(`${date}T${time}:00`);
+        // Tratar como hora local de México (UTC-6, sin horario de verano desde 2023)
+        const reservationDate = new Date(`${date}T${time}:00.000-06:00`);
 
         if (isNaN(reservationDate.getTime())) {
             return NextResponse.json<ApiResponse>(

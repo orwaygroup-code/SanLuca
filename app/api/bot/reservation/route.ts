@@ -39,7 +39,9 @@ function parseDate(fechaStr: string, horaStr: string): Date | null {
             if (meridiem === "am" && hours === 12) hours = 0;
         }
 
-        const d = new Date(year, month - 1, day, hours, minutes, 0, 0);
+        const pad = (n: number) => String(n).padStart(2, "0");
+        // Tratar la hora como hora local de México (UTC-6, sin horario de verano desde 2023)
+        const d = new Date(`${year}-${pad(month)}-${pad(day)}T${pad(hours)}:${pad(minutes)}:00.000-06:00`);
         return isNaN(d.getTime()) ? null : d;
     } catch {
         return null;
