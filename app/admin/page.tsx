@@ -684,6 +684,19 @@ function EditReservationModal({
     const [guestPhone,  setGuestPhone]  = useState(reservation.guestPhone);
     const [date,        setDate]        = useState(initDate);
     const [time,        setTime]        = useState(initTime);
+
+    const { timeSlots, isDayClosed } = (() => {
+        if (!date) return { timeSlots: [] as string[], isDayClosed: false };
+        const [y, mo, d] = date.split("-").map(Number);
+        const dow = new Date(y, mo - 1, d).getDay();
+        if (dow === 1) return { timeSlots: [] as string[], isDayClosed: true };
+        const closeHour = dow === 0 ? 21 : (dow === 5 || dow === 6) ? 24 : 23;
+        const slots: string[] = [];
+        const pad = (n: number) => String(n).padStart(2, "0");
+        for (let h = 8; h < closeHour; h++) { slots.push(`${pad(h)}:00`); slots.push(`${pad(h)}:30`); }
+        if (closeHour < 24) slots.push(`${pad(closeHour)}:00`);
+        return { timeSlots: slots, isDayClosed: false };
+    })();
     const [guests,      setGuests]      = useState(reservation.guests);
     const [section,     setSection]     = useState<string>(reservation.sectionPreference ?? "Terraza");
     const [notes,       setNotes]       = useState(reservation.notes ?? "");
@@ -787,11 +800,20 @@ function EditReservationModal({
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
                     <div>
                         <label style={lbl}>Fecha</label>
-                        <input type="date" style={{ ...inp, colorScheme: "dark" }} value={date} onChange={(e) => setDate(e.target.value)} />
+                        <input type="date" style={{ ...inp, colorScheme: "dark" }} value={date} onChange={(e) => { setDate(e.target.value); setTime(""); }} />
                     </div>
                     <div>
                         <label style={lbl}>Hora</label>
-                        <input type="time" style={{ ...inp, colorScheme: "dark" }} value={time} onChange={(e) => setTime(e.target.value)} />
+                        {isDayClosed ? (
+                            <p style={{ color: "#e05555", fontSize: "0.8rem", margin: "6px 0 0" }}>Lunes cerrado</p>
+                        ) : (
+                            <select style={{ ...inp, cursor: "pointer" }} value={time} onChange={(e) => setTime(e.target.value)} disabled={!date}>
+                                <option value="" disabled>{date ? "Selecciona hora" : "Elige fecha primero"}</option>
+                                {timeSlots.map((t) => (
+                                    <option key={t} value={t} style={{ background: "#1b2224" }}>{t}</option>
+                                ))}
+                            </select>
+                        )}
                     </div>
                     <div>
                         <label style={lbl}>Personas</label>
