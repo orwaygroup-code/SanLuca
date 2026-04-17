@@ -324,7 +324,7 @@ textarea::placeholder {
   font-size: 0.95rem;
   padding: 13px 16px;
   outline: none;
-  font-family: var(--font-primary);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   box-sizing: border-box;
   transition: border-color 0.2s;
 }
