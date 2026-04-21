@@ -22,7 +22,7 @@ async function main() {
   const mocteleria = await prisma.menuCategory.create({ data: { name: "Moctelería", position: 14 } });
 
   // ── COMIDA: Postres ──────────────────────────
-  await prisma.menuCategory.create({ data: { name: "Postres", position: 15 } });
+  const postres = await prisma.menuCategory.create({ data: { name: "Postres", position: 15 } });
 
   // ── COMIDA: Destilados ───────────────────────
   const tequila = await prisma.menuCategory.create({ data: { name: "Tequila", position: 16 } });
@@ -194,16 +194,22 @@ async function main() {
   // ── CAFETERÍA ────────────────────────────────
   await prisma.dish.createMany({
     data: [
-      { name: "Expreso corto", description: "35 ml.", price: 45, categoryId: cafeteria.id, position: 1 },
-      { name: "Expreso largo", description: "35 ml.", price: 45, categoryId: cafeteria.id, position: 2 },
-      { name: "Americano", description: "200 ml.", price: 49, categoryId: cafeteria.id, position: 3 },
-      { name: "Cappuccino", description: "200 ml.", price: 69, categoryId: cafeteria.id, position: 4 },
-      { name: "Cappuccino de mocha", description: "200 ml.", price: 77, categoryId: cafeteria.id, position: 5 },
-      { name: "Cappuccino vainilla", description: "200 ml.", price: 77, categoryId: cafeteria.id, position: 6 },
-      { name: "Frappuccino", description: "200 ml.", price: 69, categoryId: cafeteria.id, position: 7 },
-      { name: "Malteada (fresa, chocolate o vainilla)", description: "200 ml.", price: 75, categoryId: cafeteria.id, position: 8 },
-      { name: "Malteada de Ferrero", description: "200 ml.", price: 95, categoryId: cafeteria.id, position: 9 },
-      { name: "Café irlandés", description: "185 ml.", price: 190, categoryId: cafeteria.id, position: 10 },
+      { name: "Expreso corto", description: "35 ml.", price: 56, categoryId: cafeteria.id, position: 1 },
+      { name: "Expreso doble", description: "35 ml.", price: 85, categoryId: cafeteria.id, position: 2 },
+      { name: "Americano", description: "200 ml.", price: 56, categoryId: cafeteria.id, position: 3 },
+      { name: "Cappuccino (mocha, cereza, nuez, cajeta, vainilla)", description: "200 ml.", price: 77, categoryId: cafeteria.id, position: 4 },
+      { name: "Frappuccino", description: "200 ml.", price: 77, categoryId: cafeteria.id, position: 5 },
+      { name: "Malteada (fresa, chocolate o vainilla)", description: "200 ml.", price: 75, categoryId: cafeteria.id, position: 6 },
+      { name: "Malteada de Ferrero", description: "200 ml.", price: 95, categoryId: cafeteria.id, position: 7 },
+      { name: "Café irlandés", description: "185 ml.", price: 190, categoryId: cafeteria.id, position: 8 },
+      { name: "Matcha", description: null, price: 75, categoryId: cafeteria.id, position: 9 },
+      { name: "Matcha Preparado", description: null, price: 90, categoryId: cafeteria.id, position: 10 },
+      { name: "Té chai", description: null, price: 65, categoryId: cafeteria.id, position: 11 },
+      { name: "Chai Latte", description: null, price: 65, categoryId: cafeteria.id, position: 12 },
+      { name: "Cappuccino con Baileys", description: "200 ml.", price: 135, categoryId: cafeteria.id, position: 13 },
+      { name: "Cappuccino con Kahlúa", description: "200 ml.", price: 115, categoryId: cafeteria.id, position: 14 },
+      { name: "Cappuccino Licor", description: "200 ml.", price: 145, categoryId: cafeteria.id, position: 15 },
+      { name: "Cappuccino Amaretto", description: "200 ml.", price: 135, categoryId: cafeteria.id, position: 16 },
     ]
   });
 
@@ -238,20 +244,21 @@ async function main() {
   await prisma.dish.createMany({
     data: [
       { name: "Refrescos (Coca-Cola, Coca-Zero, Coca-Light, Manzanita, Fanta, Sprite, Squirt)", description: "355 ml.", price: 40, categoryId: sinAlcohol.id, position: 1 },
-      { name: "Naranjada", description: "330 ml.", price: 40, categoryId: sinAlcohol.id, position: 2 },
-      { name: "Limonada", description: "330 ml.", price: 40, categoryId: sinAlcohol.id, position: 3 },
-      { name: "Agua Panna natural", description: "200 ml.", price: 70, categoryId: sinAlcohol.id, position: 4 },
+      { name: "Naranjada", description: "330 ml.", price: 47, categoryId: sinAlcohol.id, position: 2 },
+      { name: "Limonada", description: "330 ml.", price: 47, categoryId: sinAlcohol.id, position: 3 },
+      { name: "Agua Panna natural", description: "200 ml.", price: 85, categoryId: sinAlcohol.id, position: 4 },
       { name: "Botellín de agua", description: "250 ml.", price: 35, categoryId: sinAlcohol.id, position: 5 },
-      { name: "Agua mineral", description: "355 ml.", price: 40, categoryId: sinAlcohol.id, position: 6 },
-      { name: "San Pellegrino", description: "250 ml.", price: 60, categoryId: sinAlcohol.id, position: 7 },
-      { name: "Agua tónica", description: "300 ml.", price: 40, categoryId: sinAlcohol.id, position: 8 },
-      { name: "Perrier", description: "255 ml.", price: 60, categoryId: sinAlcohol.id, position: 9 },
+      { name: "Agua mineral", description: "355 ml.", price: 45, categoryId: sinAlcohol.id, position: 6 },
+      { name: "San Pellegrino", description: "250 ml.", price: 75, categoryId: sinAlcohol.id, position: 7 },
+      { name: "Agua tónica", description: "300 ml.", price: 55, categoryId: sinAlcohol.id, position: 8 },
+      { name: "Perrier", description: "255 ml.", price: 75, categoryId: sinAlcohol.id, position: 9 },
       { name: "Jarra de limonada mineral con frutos rojos", description: "2 L.", price: 195, categoryId: sinAlcohol.id, position: 10 },
       { name: "Rusa", description: "255 ml.", price: 45, categoryId: sinAlcohol.id, position: 11 },
       { name: "Jarra de agua del día", description: "2 L.", price: 165, categoryId: sinAlcohol.id, position: 12 },
-      { name: "Clamato preparado", description: "355 ml.", price: 50, categoryId: sinAlcohol.id, position: 13 },
-      { name: "Jarra de naranjada o limonada Agua Panna", description: "2 L.", price: 180, categoryId: sinAlcohol.id, position: 14 },
+      { name: "Clamato preparado", description: "355 ml.", price: 75, categoryId: sinAlcohol.id, position: 13 },
+      { name: "Jarra de naranjada o limonada", description: "2 L.", price: 180, categoryId: sinAlcohol.id, position: 14 },
       { name: "Agua Panna", description: "255 ml.", price: 85, categoryId: sinAlcohol.id, position: 15 },
+      { name: "Topo Chico", description: null, price: 55, categoryId: sinAlcohol.id, position: 16 },
     ]
   });
 
@@ -279,11 +286,16 @@ async function main() {
       { name: "Alfonso 13", description: null, price: 125, categoryId: cocteleria.id, position: 19 },
       { name: "Gin Tonic", description: null, price: 175, categoryId: cocteleria.id, position: 20 },
       { name: "Vodka Tonic (mandarina, sandía, extract, cítricos)", description: null, price: 160, categoryId: cocteleria.id, position: 21 },
-      { name: "Expreso Martini", description: null, price: 175, categoryId: cocteleria.id, position: 22 },
+      { name: "Expreso Martini", description: null, price: 178, categoryId: cocteleria.id, position: 22 },
       { name: "Bull", description: null, price: 120, categoryId: cocteleria.id, position: 23 },
       { name: "Mazmada", description: null, price: 125, categoryId: cocteleria.id, position: 24 },
       { name: "Germain Spritz", description: null, price: 255, categoryId: cocteleria.id, position: 25 },
       { name: "Moji Beer", description: null, price: 85, categoryId: cocteleria.id, position: 26 },
+      { name: "Martini Pay limón", description: null, price: 190, categoryId: cocteleria.id, position: 27 },
+      { name: "Tinto de Verano", description: null, price: 190, categoryId: cocteleria.id, position: 28 },
+      { name: "Daiquiri", description: null, price: 105, categoryId: cocteleria.id, position: 29 },
+      { name: "Cosmopolitan", description: null, price: 125, categoryId: cocteleria.id, position: 30 },
+      { name: "Clericot Rosado", description: null, price: 135, categoryId: cocteleria.id, position: 31 },
     ]
   });
 
@@ -314,6 +326,10 @@ async function main() {
       { name: "Don Julio Reposado", description: "3 oz.", price: 185, categoryId: tequila.id, position: 9 },
       { name: "Centenario Reposado", description: "3 oz.", price: 115, categoryId: tequila.id, position: 10 },
       { name: "1800 Cristalino", description: "3 oz.", price: 175, categoryId: tequila.id, position: 11 },
+      { name: "1800 Blanco", description: "3 oz.", price: 120, categoryId: tequila.id, position: 12 },
+      { name: "Don Julio 70 Cristalino", description: "3 oz.", price: 210, categoryId: tequila.id, position: 13 },
+      { name: "Don Julio Blanco", description: "3 oz.", price: 105, categoryId: tequila.id, position: 14 },
+      { name: "Herradura Ultra", description: "3 oz.", price: 240, categoryId: tequila.id, position: 15 },
     ]
   });
 
@@ -342,6 +358,7 @@ async function main() {
     data: [
       { name: "400 Conejos", description: "3 oz.", price: 170, categoryId: mezcal.id, position: 1 },
       { name: "1000 Diablos", description: "3 oz.", price: 110, categoryId: mezcal.id, position: 2 },
+      { name: "Monte Lobos", description: "3 oz.", price: 180, categoryId: mezcal.id, position: 3 },
     ]
   });
 
@@ -354,6 +371,9 @@ async function main() {
       { name: "Whisky Chivas 12", description: "3 oz.", price: 195, categoryId: whiskey.id, position: 4 },
       { name: "Etiqueta Negra", description: "3 oz.", price: 220, categoryId: whiskey.id, position: 5 },
       { name: "Bucanas Master", description: "3 oz.", price: 220, categoryId: whiskey.id, position: 6 },
+      { name: "Bushmills 10", description: "3 oz.", price: 255, categoryId: whiskey.id, position: 7 },
+      { name: "Bucanas 12", description: "3 oz.", price: 175, categoryId: whiskey.id, position: 8 },
+      { name: "Bushmills Black", description: "3 oz.", price: 195, categoryId: whiskey.id, position: 9 },
     ]
   });
 
@@ -361,6 +381,9 @@ async function main() {
   await prisma.dish.createMany({
     data: [
       { name: "Martel VS", description: "3 oz.", price: 230, categoryId: conac.id, position: 1 },
+      { name: "Hennessy VSOP", description: "3 oz.", price: 290, categoryId: conac.id, position: 2 },
+      { name: "Hennessy VS", description: "3 oz.", price: 240, categoryId: conac.id, position: 3 },
+      { name: "Mortel VSOP", description: "3 oz.", price: 270, categoryId: conac.id, position: 4 },
     ]
   });
 
@@ -371,6 +394,8 @@ async function main() {
       { name: "Beefeater London (mora o fresa)", description: "3 oz.", price: 135, categoryId: ginebras.id, position: 2 },
       { name: "Gin Bombay", description: "3 oz.", price: 140, categoryId: ginebras.id, position: 3 },
       { name: "Gin Hendrick's", description: "3 oz.", price: 210, categoryId: ginebras.id, position: 4 },
+      { name: "Gin Tanqueray Sevilla", description: "3 oz.", price: 210, categoryId: ginebras.id, position: 5 },
+      { name: "Tanqueray", description: "3 oz.", price: 170, categoryId: ginebras.id, position: 6 },
     ]
   });
 
@@ -416,20 +441,38 @@ async function main() {
   });
 
   // ────────────────────────────────────────────
+  // POSTRES
+  // ────────────────────────────────────────────
+  await prisma.dish.createMany({
+    data: [
+      { name: "Ispahan", description: "Combinación elegante de rosas, frambuesa y un toque fresco de lichi. Notas florales, acidez brillante de frambuesa y la jugosidad del lichi. Versión moderna del clásico de Pierre Hermé.", price: 355, categoryId: postres.id, position: 1 },
+      { name: "Panna Cotta", description: "Clásico postre italiano a base de crema cocida, acompañado de coulis del día.", price: 215, categoryId: postres.id, position: 2 },
+      { name: "Seadas Sarda", description: "Postre tradicional de Cerdeña: una empanada rellena de queso, frita y bañada en miel.", price: 215, categoryId: postres.id, position: 3 },
+      { name: "Tiramisù", description: "Capas de bizcocho empapado en café, con una mezcla de mascarpone y cacao en polvo.", price: 215, categoryId: postres.id, position: 4 },
+      { name: "Pera al Barolo con Gelato", description: "Pera cocida en vino tinto, servida con helado fiore di latte artesanal.", price: 215, categoryId: postres.id, position: 5 },
+      { name: "Gelato de Coco", description: "Cremoso y tropical, hecho con coco natural. Acompañado de salsa fresca de maracuyá y coco tostado para un contraste ácido, crujiente y súper veraniego.", price: 215, categoryId: postres.id, position: 6 },
+      { name: "Frutos Rojos con Vino Tinto", description: "Gelato intenso y afrutado con notas profundas de vino tinto, elaborado con gelatina de St-Germain, láminas de manzana-melón y un toque de nuez tostada.", price: 215, categoryId: postres.id, position: 7 },
+      { name: "Frambuesa con Champaña", description: "Sorbete ligero y chispeante de frambuesa con champaña, cubitos de gelatina champaña, frambuesas maceradas y un crocante de almendra al limón que equilibra acidez y textura.", price: 215, categoryId: postres.id, position: 8 },
+      { name: "Mandarina", description: "Sorbete brillante y aromático de mandarina fresca con un toque de zanahoria, palomitas de yogurt nitrogenadas y ralladura de lima. Una explosión cítrica y fresca.", price: 215, categoryId: postres.id, position: 9 },
+      { name: "Vainilla Laminado de Chocolate 70%", description: "Gelato clásico de vainilla con aroma profundo, sobre cama de salsa de fresa, con láminas de chocolate oscuro, avellana tostada y un contraste espectacular.", price: 215, categoryId: postres.id, position: 10 },
+    ]
+  });
+
+  // ────────────────────────────────────────────
   // VINOS
   // ────────────────────────────────────────────
 
   // ── VINOS BLANCOS Y ROSADOS ──────────────────
   await prisma.dish.createMany({
     data: [
-      { name: "Lupo Nero Blanco", description: "IGT Sicilia, Italia. Uvas: Grecanico, Cataratto, Inzolia. Vino blanco elegante y refrescante con notas cítricas, recuerdo a almendra y nueces.", price: 455, categoryId: vinosBlancos.id, position: 1, imageUrl: "/images/menu/vinos/VinosBlancosyRosados/Lupo Nero Blanco.png" },
-      { name: "Pinot Grigio", description: "I.G.T. Venezie, Italia. Uva: 100% Pinot Grigio. En boca de agradable acidez y frescura. Notas de cítricos, piña, lima, pera y flores.", price: 690, categoryId: vinosBlancos.id, position: 2, imageUrl: "/images/menu/vinos/VinosBlancosyRosados/Pinot Grigio.png" },
-      { name: "Roccaperciata Bianco", description: "Terre Siciliane IGT, Italia. Uvas: 50% Inzolia, 50% Chardonnay. Aromas de almendras, guanábana, piña, manzana, pera, romero y laurel.", price: 670, categoryId: vinosBlancos.id, position: 3 },
-      { name: "Pinot Grigio Rosato", description: "Provincia di Pavia IGT, Lombardía. Uva: 100% Pinot Grigio. Fresco, de acidez en equilibrio. Aromas a cerezas frescas, granada, duraznos y manzana.", price: 700, categoryId: vinosBlancos.id, position: 4 },
-      { name: "Illivia Rosado", description: "Salento IGT, Puglia, Italia. Uva: 100% Negroamaro. Aromas a grosellas, granada, fresas, cerezas y rosas.", price: 805, categoryId: vinosBlancos.id, position: 5, imageUrl: "/images/menu/vinos/VinosBlancosyRosados/Illivia Rosado.png" },
-      { name: "Scaia Blanco", description: "IGT Comune di Colognola Ai Colli. Uva: 55% Garganega – 45% Chardonnay. Fresco con notas frutales como naranja, toronja y recuerdos de minerales.", price: 1100, categoryId: vinosBlancos.id, position: 6, imageUrl: "/images/menu/vinos/VinosBlancosyRosados/Scaia Blanco.png" },
-      { name: "Quater Vitis Blanco", description: "Terre Siciliane IGT, Italia. Uva: Inzolia, Catarratto, Carricante e Zibibbo. 6 meses sobre lías. Notas a guanábana, mango, guayaba, piña, flores de azahar, manzanilla, saúco, perejil y jengibre.", price: 1500, categoryId: vinosBlancos.id, position: 7 },
-      { name: "Branciforti", description: "Agro di Trapani, Tenuta Celso Grande. Uva: 100% Cataratto. Intensamente fresco con notas de fruta tropical y herbáceas. Armónico con fina acidez y postgusto de frutas tropicales y miel.", price: 720, categoryId: vinosBlancos.id, position: 8 },
+      { name: "Lupo Nero Blanco", description: "IGT Sicilia, Italia. Uvas: Grecanico, Cataratto, Inzolia. Vino blanco elegante y refrescante con notas cítricas, recuerdo a almendra y nueces.", price: 800, categoryId: vinosBlancos.id, position: 1, imageUrl: "/images/menu/vinos/VinosBlancosyRosados/Lupo Nero Blanco.png" },
+      { name: "Pinot Grigio", description: "I.G.T. Venezie, Italia. Uva: 100% Pinot Grigio. En boca de agradable acidez y frescura. Notas de cítricos, piña, lima, pera y flores.", price: 940, categoryId: vinosBlancos.id, position: 2, imageUrl: "/images/menu/vinos/VinosBlancosyRosados/Pinot Grigio.png" },
+      { name: "Roccaperciata Bianco", description: "Terre Siciliane IGT, Italia. Uvas: 50% Inzolia, 50% Chardonnay. Aromas de almendras, guanábana, piña, manzana, pera, romero y laurel.", price: 920, categoryId: vinosBlancos.id, position: 3 },
+      { name: "Pinot Grigio Rosato", description: "Provincia di Pavia IGT, Lombardía. Uva: 100% Pinot Grigio. Fresco, de acidez en equilibrio. Aromas a cerezas frescas, granada, duraznos y manzana.", price: 950, categoryId: vinosBlancos.id, position: 4 },
+      { name: "Illivia Rosado", description: "Salento IGT, Puglia, Italia. Uva: 100% Negroamaro. Aromas a grosellas, granada, fresas, cerezas y rosas.", price: 1050, categoryId: vinosBlancos.id, position: 5, imageUrl: "/images/menu/vinos/VinosBlancosyRosados/Illivia Rosado.png" },
+      { name: "Scaia Blanco", description: "IGT Comune di Colognola Ai Colli. Uva: 55% Garganega – 45% Chardonnay. Fresco con notas frutales como naranja, toronja y recuerdos de minerales.", price: 1350, categoryId: vinosBlancos.id, position: 6, imageUrl: "/images/menu/vinos/VinosBlancosyRosados/Scaia Blanco.png" },
+      { name: "Quater Vitis Blanco", description: "Terre Siciliane IGT, Italia. Uva: Inzolia, Catarratto, Carricante e Zibibbo. 6 meses sobre lías. Notas a guanábana, mango, guayaba, piña, flores de azahar, manzanilla, saúco, perejil y jengibre.", price: 1750, categoryId: vinosBlancos.id, position: 7 },
+      { name: "Branciforti", description: "Agro di Trapani, Tenuta Celso Grande. Uva: 100% Cataratto. Intensamente fresco con notas de fruta tropical y herbáceas. Armónico con fina acidez y postgusto de frutas tropicales y miel.", price: 970, categoryId: vinosBlancos.id, position: 8 },
     ]
   });
 
@@ -439,31 +482,31 @@ async function main() {
       // Copa
       { name: "Copa Montepulciano", description: "3 oz.", price: 130, categoryId: vinoTinto.id, position: 1 },
       // Botellas
-      { name: "Montepulciano D'Abruzzo DOC", description: "Montepulciano d'Abruzzo DOC, Abruzzo, Italia. Uva: 100% Montepulciano. Muy frutal con notas de cerezas, zarzamora y grosellas rojas. Pimienta negra, menta, laurel y vainilla.", price: 660, categoryId: vinoTinto.id, position: 5, imageUrl: "/images/menu/vinos/VinosTintos/Montepulciano D'Abruzzo DOC.png" },
-      { name: "Ottobucce", description: "Piemonte. Uvas: Dolcetto, Barbera, Freisa, Bonarda, Albarossa, Merlot, Syrah y Cabernet Sauvignon. Intenso y armónico con agradables y delicadas notas de frutos rojos.", price: 890, categoryId: vinoTinto.id, position: 6 },
-      { name: "Illivia Negroamaro", description: "Salento IGT, Puglia, Italia. Uva: 100% Negroamaro.", price: 960, categoryId: vinoTinto.id, position: 7, imageUrl: "/images/menu/vinos/VinosTintos/Illivia Negroamaro.png" },
-      { name: "Illivia Primitivo", description: "Salento IGT, Puglia, Italia. Uva: 100% Primitivo. Redondo y de gran cuerpo. Aromas de cerezas, frambuesas, ciruela, rosas, pimienta, laurel y notas de yogurt.", price: 1122, categoryId: vinoTinto.id, position: 8 },
-      { name: "Roccaperciata Rosso", description: "Terre Siciliane IGT, Italia. Uvas: 50% Nero d'Avola, 50% Syrah. Las cerezas negras, ciruelas y grosellas negras ofrecen una marcada intensidad aromática adornada por violetas y suculentas notas lácticas.", price: 710, categoryId: vinoTinto.id, position: 9, imageUrl: "/images/menu/vinos/VinosTintos/Roccaperciata Rosso.png" },
-      { name: "5 Vite", description: "DOC Puglia, Italia. Uvas: Primitivo y Susamaniello. Frutos rojos, ciruela y especias dulces. Elegante con postgusto largo.", price: 1200, categoryId: vinoTinto.id, position: 10, imageUrl: "/images/menu/vinos/VinosTintos/5 Vite.png" },
-      { name: "Quater Vitis Rosso", description: "Terre Siciliane IGT, Italia. Uvas: Nero d'Avola, Perricone, Frappato e Nerello Cappuccio dell'Etna. Crianza de 10 meses. Aromas a grosellas, cerezas negras, higos, moras, arándanos, pimienta negra, coco tostado, vainilla y más.", price: 1500, categoryId: vinoTinto.id, position: 11, imageUrl: "/images/menu/vinos/VinosTintos/Quater Vitis Rosso.png" },
-      { name: "Scaia Rosso", description: "IGT Comune di Colognola Ai Colli, Verona. Uva: 100% Corvina. Elegante, con buen cuerpo y postgusto mediamente largo. Notas florales, frutos del bosque, cereza y ciruela.", price: 1317, categoryId: vinoTinto.id, position: 12, imageUrl: "/images/menu/vinos/VinosTintos/Scaia Rosso.png" },
-      { name: "Villa Santera", description: "Salice Salentino Riserva DOC, Puglia, Italia. Uva: 90% Negroamaro y 10% Malvasia Nera di Lecce. 12 meses de barrica de roble. Intensas notas de arándanos maduros, cerezas, albahaca, eneldo, orégano y eucalipto.", price: 1550, categoryId: vinoTinto.id, position: 13, imageUrl: "/images/menu/vinos/VinosTintos/Villa Santera.png" },
-      { name: "Colpo di Zappa", description: "Salice Salentino DOC, Puglia, Italia. Uva: 100% Negroamaro. 12 meses en barrica de roble francés, 12 meses en botella. Sedoso y armónico con aromas de higos, moras, zarzamoras, ciruelas y grosellas negras maduras.", price: 2400, categoryId: vinoTinto.id, position: 14, imageUrl: "/images/menu/vinos/VinosTintos/Colpo di Zappa.png" },
-      { name: "Amarone della Valpolicella", description: "DOCG Municipio di Mezzane di Sotto, Monte Garbi, Verona. Uvas: 70% Corvina y Corvinone, 20% Rondinella, 5% Croatina, 5% Oseleta. Apasimento de las uvas por 3 meses.", price: 3350, categoryId: vinoTinto.id, position: 15, imageUrl: "/images/menu/vinos/VinosTintos/Amarone della Valpolicella.png" },
-      { name: "Pingus PSI", description: "DO Ribera del Duero, España. Uva: Tempranillo 90%, Garnacha 10%. Vino expresivo con elegantes tonos florales, matices de hierbas silvestres, especias y fruta roja. Sabroso y fácil de beber, con un final largo y agradable.", price: 3112, categoryId: vinoTinto.id, position: 16 },
-      { name: "Marqués de Riscal Reserva Especial XR", description: "DOC Rioja, España. Uva: Tempranillo, Graciano. 26 meses de barrica. Muy expresivo en nariz con notas de regaliz, canela y pimienta negra.", price: 2040, categoryId: vinoTinto.id, position: 17, imageUrl: "/images/menu/vinos/VinosTintos/Marqués de Riscal Reserva Especial XR.png" },
-      { name: "Luna del Valle Luz", description: "Valle de Guadalupe. Uva: Tempranillo. 8 meses de barrica. Suave, cuerpo medio alto, bien equilibrado y de larga permanencia. Frutos rojos y negros como ciruela, cereza, zarzamora y frambuesa.", price: 1695, categoryId: vinoTinto.id, position: 18 },
-      { name: "Somms 8", description: "Aguascalientes. Uva: Cabernet Sauvignon. Vino elegante de cuerpo medio con taninos suaves. Aromas a frutos rojos maduros, ciruela y notas de especias.", price: 845, categoryId: vinoTinto.id, position: 19 },
-      { name: "Les Légendes R Rouge", description: "Bordeaux, Francia. Uva: Cabernet Sauvignon y Merlot. 9 meses de crianza en barrica. Intenso y muy expresivo, dominado por aromas de fruta fresca como la grosella roja y la frambuesa.", price: 1200, categoryId: vinoTinto.id, position: 20, imageUrl: "/images/menu/vinos/VinosTintos/Les Légendes R Rouge.png" },
-      { name: "Zuccardi Serie Q", description: "Valle de Uco, Argentina. Uva: 100% Malbec. 12 meses en barrica de roble francés. Complejo aroma de frutos secos maduros, ciruelas, higos y cassis con notas sutiles de tabaco, vainilla y pimienta negra.", price: 1992, categoryId: vinoTinto.id, position: 21, imageUrl: "/images/menu/vinos/VinosTintos/Zuccardi Serie Q.png" },
+      { name: "Montepulciano D'Abruzzo DOC", description: "Montepulciano d'Abruzzo DOC, Abruzzo, Italia. Uva: 100% Montepulciano. Muy frutal con notas de cerezas, zarzamora y grosellas rojas. Pimienta negra, menta, laurel y vainilla.", price: 910, categoryId: vinoTinto.id, position: 5, imageUrl: "/images/menu/vinos/VinosTintos/Montepulciano D'Abruzzo DOC.png" },
+      { name: "Ottobucce", description: "Piemonte. Uvas: Dolcetto, Barbera, Freisa, Bonarda, Albarossa, Merlot, Syrah y Cabernet Sauvignon. Intenso y armónico con agradables y delicadas notas de frutos rojos.", price: 1140, categoryId: vinoTinto.id, position: 6 },
+      { name: "Illivia Negroamaro", description: "Salento IGT, Puglia, Italia. Uva: 100% Negroamaro. Muy frutal con notas de cerezas, zarzamora y grosellas rojas. Pimienta negra, menta, laurel y vainilla.", price: 1210, categoryId: vinoTinto.id, position: 7, imageUrl: "/images/menu/vinos/VinosTintos/Illivia Negroamaro.png" },
+      { name: "Illivia Primitivo", description: "Salento IGT, Puglia, Italia. Uva: 100% Primitivo. Redondo y de gran cuerpo. Aromas de cerezas, frambuesas, ciruela, rosas, pimienta, laurel y notas de yogurt.", price: 1372, categoryId: vinoTinto.id, position: 8 },
+      { name: "Roccaperciata Rosso", description: "Terre Siciliane IGT, Italia. Uvas: 50% Nero d'Avola, 50% Syrah. Las cerezas negras, ciruelas y grosellas negras ofrecen una marcada intensidad aromática adornada por violetas y suculentas notas lácticas.", price: 960, categoryId: vinoTinto.id, position: 9, imageUrl: "/images/menu/vinos/VinosTintos/Roccaperciata Rosso.png" },
+      { name: "5 Vite", description: "DOC Puglia, Italia. Uvas: Primitivo y Susamaniello. Frutos rojos, ciruela y especias dulces. Elegante con postgusto largo.", price: 1450, categoryId: vinoTinto.id, position: 10, imageUrl: "/images/menu/vinos/VinosTintos/5 Vite.png" },
+      { name: "Quater Vitis Rosso", description: "Terre Siciliane IGT, Italia. Uvas: Nero d'Avola, Perricone, Frappato e Nerello Cappuccio dell'Etna. Crianza de 10 meses. Aromas a grosellas, cerezas negras, higos, moras, arándanos, pimienta negra, coco tostado, vainilla y más.", price: 1750, categoryId: vinoTinto.id, position: 11, imageUrl: "/images/menu/vinos/VinosTintos/Quater Vitis Rosso.png" },
+      { name: "Scaia Rosso", description: "IGT Comune di Colognola Ai Colli, Verona. Uva: 100% Corvina. Elegante, con buen cuerpo y postgusto mediamente largo. Notas florales, frutos del bosque, cereza y ciruela.", price: 1567, categoryId: vinoTinto.id, position: 12, imageUrl: "/images/menu/vinos/VinosTintos/Scaia Rosso.png" },
+      { name: "Villa Santera", description: "Salice Salentino Riserva DOC, Puglia, Italia. Uva: 90% Negroamaro y 10% Malvasia Nera di Lecce. 12 meses de barrica de roble. Intensas notas de arándanos maduros, cerezas, albahaca, eneldo, orégano y eucalipto.", price: 1800, categoryId: vinoTinto.id, position: 13, imageUrl: "/images/menu/vinos/VinosTintos/Villa Santera.png" },
+      { name: "Colpo di Zappa", description: "Salice Salentino DOC, Puglia, Italia. Uva: 100% Negroamaro. 12 meses en barrica de roble francés, 12 meses en botella. Sedoso y armónico con aromas de higos, moras, zarzamoras, ciruelas y grosellas negras maduras.", price: 2650, categoryId: vinoTinto.id, position: 14, imageUrl: "/images/menu/vinos/VinosTintos/Colpo di Zappa.png" },
+      { name: "Amarone della Valpolicella", description: "DOCG Municipio di Mezzane di Sotto, Monte Garbi, Verona. Uvas: 70% Corvina y Corvinone, 20% Rondinella, 5% Croatina, 5% Oseleta. Apasimento de las uvas por 3 meses.", price: 3600, categoryId: vinoTinto.id, position: 15, imageUrl: "/images/menu/vinos/VinosTintos/Amarone della Valpolicella.png" },
+      { name: "Pingus PSI", description: "DO Ribera del Duero, España. Uva: Tempranillo 90%, Garnacha 10%. Vino expresivo con elegantes tonos florales, matices de hierbas silvestres, especias y fruta roja. Sabroso y fácil de beber, con un final largo y agradable.", price: 3362, categoryId: vinoTinto.id, position: 16 },
+      { name: "Marqués de Riscal Reserva Especial XR", description: "DOC Rioja, España. Uva: Tempranillo, Graciano. 26 meses de barrica. Muy expresivo en nariz con notas de regaliz, canela y pimienta negra.", price: 2290, categoryId: vinoTinto.id, position: 17, imageUrl: "/images/menu/vinos/VinosTintos/Marqués de Riscal Reserva Especial XR.png" },
+      { name: "Luna del Valle Luz", description: "Valle de Guadalupe. Uva: Tempranillo. 8 meses de barrica. Suave, cuerpo medio alto, bien equilibrado y de larga permanencia. Frutos rojos y negros como ciruela, cereza, zarzamora y frambuesa.", price: 1945, categoryId: vinoTinto.id, position: 18 },
+      { name: "Viña Secreta Malbec", description: "Aguascalientes. Uva: Malbec. Ciruela mora, vainilla, clavo y tabaco dulce. Taninos maduros, cuerpo medio-alto y textura jugosa.", price: 890, categoryId: vinoTinto.id, position: 19 },
+      { name: "Les Légendes R Rouge", description: "Bordeaux, Francia. Uva: Cabernet Sauvignon y Merlot. 9 meses de crianza en barrica. Intenso y muy expresivo, dominado por aromas de fruta fresca como la grosella roja y la frambuesa.", price: 1450, categoryId: vinoTinto.id, position: 20, imageUrl: "/images/menu/vinos/VinosTintos/Les Légendes R Rouge.png" },
+      { name: "Zuccardi Serie Q", description: "Valle de Uco, Argentina. Uva: 100% Malbec. 12 meses en barrica de roble francés. Complejo aroma de frutos secos maduros, ciruelas, higos y cassis con notas sutiles de tabaco, vainilla y pimienta negra.", price: 2242, categoryId: vinoTinto.id, position: 21, imageUrl: "/images/menu/vinos/VinosTintos/Zuccardi Serie Q.png" },
     ]
   });
 
   // ── VINOS ESPUMOSOS ──────────────────────────
   await prisma.dish.createMany({
     data: [
-      { name: "Lambrusco Antiche Tradizione", description: "Emilia Romagna, Italia. Uva: Lambrusco. Intensamente afrutado, fresa, cereza y rutilla roja. Amable, fresco y de buena acidez en boca.", price: 550, categoryId: vinosEspumosos.id, position: 1 },
-      { name: "Flumen Prosecco", description: "DOC Pramaggiore, Italia. Uva: 100% Glera. Aromas a flores blancas, acacia, melocotón y manzana verde. Fragante y sabroso, con una aterciopelada persistencia.", price: 790, categoryId: vinosEspumosos.id, position: 2, imageUrl: "/images/menu/vinos/VinosEspumosos/Flumen Prosecco.png" },
+      { name: "Lambrusco Antiche Tradizione", description: "Emilia Romagna, Italia. Uva: Lambrusco. Intensamente afrutado, fresa, cereza y rutilla roja. Amable, fresco y de buena acidez en boca.", price: 810, categoryId: vinosEspumosos.id, position: 1 },
+      { name: "Flumen Prosecco", description: "DOC Pramaggiore, Italia. Uva: 100% Glera. Aromas a flores blancas, acacia, melocotón y manzana verde. Fragante y sabroso, con una aterciopelada persistencia.", price: 1040, categoryId: vinosEspumosos.id, position: 2, imageUrl: "/images/menu/vinos/VinosEspumosos/Flumen Prosecco.png" },
     ]
   });
 
@@ -474,25 +517,26 @@ async function main() {
   // ── PIATTI SALATI ────────────────────────────
   await prisma.dish.createMany({
     data: [
-      { name: "Huevos rotos (estilo español)", description: "Papas fritas con huevo y jamón serrano.", price: 252, categoryId: plattiSalati.id, position: 1 },
-      { name: "Uova alla Benedict", description: "Huevos benedictinos clásicos con salsa holandesa.", price: 252, categoryId: plattiSalati.id, position: 2 },
-      { name: "Uova alla Milanese", description: "Huevos ponchados con espárragos, pancetta y queso mozzarella.", price: 225, categoryId: plattiSalati.id, position: 3 },
-      { name: "Tortilla española", description: "Huevos horneados con papa y cebolla.", price: 255, categoryId: plattiSalati.id, position: 4 },
-      { name: "Molletes", description: "Con jamón y queso, acompañados de pico de gallo y emulsión de aguacate.", price: 199, categoryId: plattiSalati.id, position: 5 },
+      { name: "Huevos rotos (estilo español)", description: "Papas fritas con huevo y jamón serrano.", price: 252, categoryId: plattiSalati.id, position: 1, imageUrl: "/images/menu/brunch/Alimentos/Huevos rotos (estilo español).jpg" },
+      { name: "Uova alla Benedict", description: "Huevos benedictinos clásicos con salsa holandesa.", price: 252, categoryId: plattiSalati.id, position: 2, imageUrl: "/images/menu/brunch/Alimentos/Uova alla Benedict.jpg" },
+      { name: "Uova alla Milanese", description: "Huevos ponchados con espárragos, pancetta y queso mozzarella.", price: 255, categoryId: plattiSalati.id, position: 3 },
+      { name: "Tortilla española", description: "Huevos horneados con papa y cebolla.", price: 199, categoryId: plattiSalati.id, position: 4, imageUrl: "/images/menu/brunch/Alimentos/Tortilla española.jpg" },
+      { name: "Molletes", description: "Con jamón y queso, acompañados de pico de gallo y emulsión de aguacate.", price: 155, categoryId: plattiSalati.id, position: 5, imageUrl: "/images/menu/brunch/Alimentos/Molletes.jpg" },
+      { name: "Chilaquiles negros", description: "Con huevo (2pz) $225 · Con pollo 100g $235 · Con arrachera Cross Wagyu 100g $295.", price: 179, categoryId: plattiSalati.id, position: 6, imageUrl: "/images/menu/brunch/Alimentos/Chilaquiles negros.jpg" },
     ]
   });
 
   // ── TOASTS & PANINI ──────────────────────────
   await prisma.dish.createMany({
     data: [
-      { name: "Toast prosciutto e formaggio", description: "Toast de jamón y queso fundido.", price: 228, categoryId: toastsPanini.id, position: 1 },
+      { name: "Toast prosciutto e formaggio", description: "Tost de jamón de pierna y queso fundido.", price: 155, categoryId: toastsPanini.id, position: 1 },
       { name: "Toast de atún bonito del norte (Reserva de la Familia)", description: "Con aguacate y aderezo tártara.", price: 255, categoryId: toastsPanini.id, position: 2 },
-      { name: "Pepito di arrachera", description: "Sándwich de arrachera elaborada con Cross Wagyu Americano, emulsión de aguacate, frijoles refritos y queso asadero gratinado.", price: 252, categoryId: toastsPanini.id, position: 3 },
-      { name: "Panino di roast beef di picanha", description: "Panini de roast beef de picaña Cross Wagyu Americano, horneado con mostaza Dijon, vino blanco y finas hierbas.", price: 252, categoryId: toastsPanini.id, position: 4 },
+      { name: "Pepito di arrachera", description: "Sándwich de arrachera elaborada con Cross Wagyu Americano, emulsión de aguacate, frijoles refritos y queso asadero gratinado.", price: 252, categoryId: toastsPanini.id, position: 3, imageUrl: "/images/menu/brunch/Alimentos/Pepito di arrachera.jpg" },
+      { name: "Panino di roast beef di picanha", description: "Panini de roast beef de picaña Cross Wagyu Americano, horneado con mostaza Dijon, vino blanco y finas hierbas.", price: 275, categoryId: toastsPanini.id, position: 4 },
       { name: "Panino di porchetta", description: "Panini de porchetta, cerdo asado lentamente con hierbas aromáticas y especias mediterráneas, acompañado de mostaza Dijon.", price: 252, categoryId: toastsPanini.id, position: 5 },
       { name: "Panini de pulpo a las brasas", description: "Con aderezo tártara.", price: 295, categoryId: toastsPanini.id, position: 6 },
-      { name: "Mozzarella in carrozza", description: "Sándwich de mozzarella frito acompañado de salsa pomodoro.", price: 228, categoryId: toastsPanini.id, position: 7 },
-      { name: "Croque Madame", description: "Pan brioche, jamón artesanal, bechamel y huevo estrellado.", price: 350, categoryId: toastsPanini.id, position: 8 },
+      { name: "Mozzarella in carrozza", description: "Sándwich de mozzarella frito acompañado de salsa pomodoro.", price: 228, categoryId: toastsPanini.id, position: 7, imageUrl: "/images/menu/brunch/Alimentos/Mozzarella in carrozza.jpg" },
+      { name: "Croque Madame", description: "Pan brioche, jamón artesanal, bechamel y huevo estrellado.", price: 255, categoryId: toastsPanini.id, position: 8, imageUrl: "/images/menu/brunch/Alimentos/Croque Madame.jpg" },
     ]
   });
 
@@ -510,13 +554,13 @@ async function main() {
   // ── ESPECIALES ───────────────────────────────
   await prisma.dish.createMany({
     data: [
-      { name: "Crepes di ricotta e spinaci gratinate ai quattro formaggi", description: "Crepas rellenas de ricotta y espinaca en salsa de cuatro quesos.", price: 252, categoryId: especiales.id, position: 1 },
-      { name: "Polpette al sugo", description: "Albóndigas de res elaboradas con Cross Wagyu Americano en salsa de jitomate.", price: 215, categoryId: especiales.id, position: 2 },
-      { name: "Brioche di brisket en salsa gravy", description: "Brioche de brisket Cross Wagyu Americano sobre emulsión de aguacate y huevo poché.", price: 350, categoryId: especiales.id, position: 3 },
-      { name: "Focaccia ripiena e stracciatella", description: "Focaccia rellena de mortadela, mousse de pistache y queso stracciatella.", price: 252, categoryId: especiales.id, position: 4 },
-      { name: "Crostoni casarecci", description: "Pan de masa madre con jitomate, mozzarella y jamón serrano.", price: 252, categoryId: especiales.id, position: 5 },
-      { name: "Bagel con salmone Oraking e formaggio cremoso", description: "Bagel de salmón Oraking con queso crema.", price: 350, categoryId: especiales.id, position: 6 },
-      { name: "Ratatouille", description: "Platillo francés elaborado con calabacín, berenjena, pimientos y cebolla sobre una base de salsa de tomate, horneado a la leña con hierbas provenzales.", price: 225, categoryId: especiales.id, position: 7 },
+      { name: "Lasagna de crepas", description: "Crepas a la bolognesa de Cross Wagyu.", price: 255, categoryId: especiales.id, position: 1 },
+      { name: "Crepes di ricotta e spinaci gratinate ai quattro formaggi", description: "Crepas rellenas de ricotta y espinaca en salsa de cuatro quesos.", price: 215, categoryId: especiales.id, position: 2 },
+      { name: "Polpette al sugo", description: "Albóndigas de res elaboradas con Cross Wagyu Americano en salsa de jitomate.", price: 255, categoryId: especiales.id, position: 3 },
+      { name: "Brioche di brisket en salsa gravy", description: "Brioche de brisket Cross Wagyu Americano sobre emulsión de aguacate y huevo poché.", price: 252, categoryId: especiales.id, position: 4 },
+      { name: "Focaccia ripiena e stracciatella", description: "Focaccia rellena de mortadela, mousse de pistache y queso stracciatella.", price: 252, categoryId: especiales.id, position: 5 },
+      { name: "Crostoni casarecci", description: "Pan de masa madre con jitomate, mozzarella y jamón serrano.", price: 350, categoryId: especiales.id, position: 6 },
+      { name: "Bagel con salmone Oraking e formaggio cremoso", description: "Bagel de salmón Oraking con queso crema.", price: 225, categoryId: especiales.id, position: 7 },
     ]
   });
 
@@ -524,8 +568,10 @@ async function main() {
   await prisma.dish.createMany({
     data: [
       { name: "Pan francés con helado de mantequilla", description: null, price: 225, categoryId: panetteria.id, position: 1 },
-      { name: "Affogato al Gelato", description: "Helado artesanal bañado en espresso (preguntar sabores).", price: 166, categoryId: panetteria.id, position: 2 },
+      { name: "Affogato al Gelato", description: "Helado artesanal bañado en espresso (preguntar sabores).", price: 179, categoryId: panetteria.id, position: 2 },
       { name: "Hot Cakes", description: "Esponjosos hot cakes bañados de cajeta con mantequilla y maple.", price: 155, categoryId: panetteria.id, position: 3 },
+      { name: "Crepas de cajeta", description: null, price: 155, categoryId: panetteria.id, position: 4 },
+      { name: "Crepas de cajeta con gelato extra", description: null, price: 215, categoryId: panetteria.id, position: 5 },
     ]
   });
 
