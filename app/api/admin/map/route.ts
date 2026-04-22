@@ -19,11 +19,10 @@ export async function GET(request: NextRequest) {
         const adminId = await verifyHostes(request);
         if (!adminId) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
 
-        const now = new Date();
-        const { start: shiftStart, end: shiftEnd } = getShiftWindow(now);
+        const now    = new Date();
+        const mxDate = now.toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
 
-        // Día completo en tiempo México (para grupos grandes que bloquean todo el día)
-        const mxDate   = now.toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
+        // Todo el día en tiempo México
         const dayStart = new Date(`${mxDate}T00:00:00.000-06:00`);
         const dayEnd   = new Date(`${mxDate}T23:59:59.999-06:00`);
 
@@ -53,12 +52,12 @@ export async function GET(request: NextRequest) {
             }
         }
 
-        // Reservas normales activas en el turno actual con mesa asignada
+        // Reservas normales activas hoy con mesa asignada
         const activeReservations = await prisma.reservation.findMany({
             where: {
                 isLargeGroup: false,
                 status: { in: ["PENDING", "CONFIRMED", "IN_PROGRESS", "DELAYED"] },
-                date:   { gte: shiftStart, lt: shiftEnd },
+                date:   { gte: dayStart, lte: dayEnd },
                 OR: [
                     { tableId:       { not: null } },
                     { linkedTableId: { not: null } },
@@ -76,13 +75,12 @@ export async function GET(request: NextRequest) {
         const blockMap = new Map(blocks.map((b) => [b.tableId, b]));
 
         // Mapear reservas normales a tablas
-        type ResInfo = { id: string; status: string; guestName: string; guests: number; time: string; resDate: Date };
+        type ResInfo = { id: string; status: string; guestName: string; guests: number; time: string };
         const tableResMap = new Map<string, ResInfo>();
         for (const r of activeReservations) {
             const info: ResInfo = {
                 id: r.id, status: r.status, guestName: r.guestName, guests: r.guests,
                 time: new Date(r.date).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", timeZone: "America/Mexico_City" }),
-                resDate: new Date(r.date),
             };
             if (r.tableId)       tableResMap.set(r.tableId,       info);
             if (r.linkedTableId) tableResMap.set(r.linkedTableId, info);
@@ -117,12 +115,10 @@ export async function GET(request: NextRequest) {
 
                 const res   = tableResMap.get(t.id);
                 const block = blockMap.get(t.id);
-                // Auto-transición: si la hora de reserva ya llegó y aún está CONFIRMED/PENDING → en curso
-                const autoInProgress = res && (res.status === "CONFIRMED" || res.status === "PENDING") && res.resDate <= now;
                 const status =
-                    res?.status === "IN_PROGRESS" || res?.status === "DELAYED" || autoInProgress ? "in_progress"  as const
-                    : block                                                                        ? "walk_in"      as const
-                    : res?.status === "CONFIRMED" || res?.status === "PENDING"                    ? "reserved"     as const
+                    res?.status === "IN_PROGRESS" || res?.status === "DELAYED" ? "in_progress"  as const
+                    : block                                                      ? "walk_in"      as const
+                    : res?.status === "CONFIRMED" || res?.status === "PENDING"  ? "reserved"     as const
                     : "available" as const;
 
                 return {
