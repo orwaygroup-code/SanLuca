@@ -48,6 +48,7 @@ async function main() {
     });
     await updateDish(plattiSalati.id, "Uova alla Milanese", {
         price: 255,
+        imageUrl: "/images/menu/brunch/Alimentos/uova-alla-milanese.jpg",
     });
     await updateDish(plattiSalati.id, "Tortilla española", {
         price: 199,
@@ -105,11 +106,14 @@ async function main() {
     await updateDish(especiales.id, "Polpette al sugo", {
         price: 255,
     });
+    await updateDish(especiales.id, "Brioche di brisket en salsa gravy", {
+        price: 252,
+    });
     await updateDish(especiales.id, "Crostoni casarecci", {
-        price: 350,
+        price: 225,
     });
     await updateDish(especiales.id, "Bagel con salmone Oraking e formaggio cremoso", {
-        price: 225,
+        price: 350,
     });
     // Eliminar Ratatouille (no está en la carta actual)
     const ratatouille = await prisma.dish.findFirst({ where: { name: "Ratatouille", categoryId: especiales.id } });

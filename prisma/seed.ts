@@ -519,7 +519,7 @@ async function main() {
     data: [
       { name: "Huevos rotos (estilo español)", description: "Papas fritas con huevo y jamón serrano.", price: 252, categoryId: plattiSalati.id, position: 1, imageUrl: "/images/menu/brunch/Alimentos/huevos-rotos.jpg" },
       { name: "Uova alla Benedict", description: "Huevos benedictinos clásicos con salsa holandesa.", price: 252, categoryId: plattiSalati.id, position: 2, imageUrl: "/images/menu/brunch/Alimentos/uova-alla-benedict.jpg" },
-      { name: "Uova alla Milanese", description: "Huevos ponchados con espárragos, pancetta y queso mozzarella.", price: 255, categoryId: plattiSalati.id, position: 3 },
+      { name: "Uova alla Milanese", description: "Huevos ponchados con espárragos, pancetta y queso mozzarella.", price: 255, categoryId: plattiSalati.id, position: 3, imageUrl: "/images/menu/brunch/Alimentos/uova-alla-milanese.jpg" },
       { name: "Tortilla española", description: "Huevos horneados con papa y cebolla.", price: 199, categoryId: plattiSalati.id, position: 4, imageUrl: "/images/menu/brunch/Alimentos/tortilla-espanola.jpg" },
       { name: "Molletes", description: "Con jamón y queso, acompañados de pico de gallo y emulsión de aguacate.", price: 155, categoryId: plattiSalati.id, position: 5, imageUrl: "/images/menu/brunch/Alimentos/molletes.jpg" },
       { name: "Chilaquiles negros", description: "Con huevo (2pz) $225 · Con pollo 100g $235 · Con arrachera Cross Wagyu 100g $295.", price: 179, categoryId: plattiSalati.id, position: 6, imageUrl: "/images/menu/brunch/Alimentos/chilaquiles-negros.jpg" },
@@ -559,8 +559,8 @@ async function main() {
       { name: "Polpette al sugo", description: "Albóndigas de res elaboradas con Cross Wagyu Americano en salsa de jitomate.", price: 255, categoryId: especiales.id, position: 3 },
       { name: "Brioche di brisket en salsa gravy", description: "Brioche de brisket Cross Wagyu Americano sobre emulsión de aguacate y huevo poché.", price: 252, categoryId: especiales.id, position: 4 },
       { name: "Focaccia ripiena e stracciatella", description: "Focaccia rellena de mortadela, mousse de pistache y queso stracciatella.", price: 252, categoryId: especiales.id, position: 5 },
-      { name: "Crostoni casarecci", description: "Pan de masa madre con jitomate, mozzarella y jamón serrano.", price: 350, categoryId: especiales.id, position: 6 },
-      { name: "Bagel con salmone Oraking e formaggio cremoso", description: "Bagel de salmón Oraking con queso crema.", price: 225, categoryId: especiales.id, position: 7 },
+      { name: "Crostoni casarecci", description: "Pan de masa madre con jitomate, mozzarella y jamón serrano.", price: 225, categoryId: especiales.id, position: 6 },
+      { name: "Bagel con salmone Oraking e formaggio cremoso", description: "Bagel de salmón Oraking con queso crema.", price: 350, categoryId: especiales.id, position: 7 },
     ]
   });
 
