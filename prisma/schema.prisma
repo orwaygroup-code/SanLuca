@@ -39,6 +39,7 @@ model MenuCategory {
   id        String   @id @default(cuid())
   name      String
   position  Int?
+  imageUrl  String?  
   dishes    Dish[]
   createdAt DateTime @default(now())
 }
