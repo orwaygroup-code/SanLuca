@@ -76,12 +76,13 @@ export async function GET(request: NextRequest) {
         const blockMap = new Map(blocks.map((b) => [b.tableId, b]));
 
         // Mapear reservas normales a tablas
-        type ResInfo = { id: string; status: string; guestName: string; guests: number; time: string };
+        type ResInfo = { id: string; status: string; guestName: string; guests: number; time: string; resDate: Date };
         const tableResMap = new Map<string, ResInfo>();
         for (const r of activeReservations) {
             const info: ResInfo = {
                 id: r.id, status: r.status, guestName: r.guestName, guests: r.guests,
                 time: new Date(r.date).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", timeZone: "America/Mexico_City" }),
+                resDate: new Date(r.date),
             };
             if (r.tableId)       tableResMap.set(r.tableId,       info);
             if (r.linkedTableId) tableResMap.set(r.linkedTableId, info);
@@ -116,10 +117,12 @@ export async function GET(request: NextRequest) {
 
                 const res   = tableResMap.get(t.id);
                 const block = blockMap.get(t.id);
+                // Auto-transición: si la hora de reserva ya llegó y aún está CONFIRMED/PENDING → en curso
+                const autoInProgress = res && (res.status === "CONFIRMED" || res.status === "PENDING") && res.resDate <= now;
                 const status =
-                    res?.status === "IN_PROGRESS" || res?.status === "DELAYED" ? "in_progress"  as const
-                    : block                                                      ? "walk_in"      as const
-                    : res?.status === "CONFIRMED" || res?.status === "PENDING"  ? "reserved"     as const
+                    res?.status === "IN_PROGRESS" || res?.status === "DELAYED" || autoInProgress ? "in_progress"  as const
+                    : block                                                                        ? "walk_in"      as const
+                    : res?.status === "CONFIRMED" || res?.status === "PENDING"                    ? "reserved"     as const
                     : "available" as const;
 
                 return {
