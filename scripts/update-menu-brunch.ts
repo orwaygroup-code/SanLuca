@@ -37,6 +37,8 @@ async function main() {
     // ── PIATTI SALATI ─────────────────────────────────────────────────────────
     console.log("\n📋 Piatti Salati (Brunch)");
     const plattiSalati = await findCategory("Platti Salati (Brunch)");
+    await prisma.menuCategory.update({ where: { id: plattiSalati.id }, data: { imageUrl: "/images/menu/brunch/portadas/platti-salati.jpg" } });
+    console.log("  ✓ Portada: platti-salati.jpg");
 
     await updateDish(plattiSalati.id, "Huevos rotos (estilo español)", {
         price: 252,
@@ -69,6 +71,8 @@ async function main() {
     // ── TOASTS & PANINI ───────────────────────────────────────────────────────
     console.log("\n📋 Toasts & Panini (Brunch)");
     const toastsPanini = await findCategory("Toasts & Panini (Brunch)");
+    await prisma.menuCategory.update({ where: { id: toastsPanini.id }, data: { imageUrl: "/images/menu/brunch/portadas/toasts-panini.jpg" } });
+    console.log("  ✓ Portada: toasts-panini.jpg");
 
     await updateDish(toastsPanini.id, "Toast prosciutto e formaggio", {
         price: 155,
