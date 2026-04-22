@@ -40,28 +40,28 @@ async function main() {
 
     await updateDish(plattiSalati.id, "Huevos rotos (estilo español)", {
         price: 252,
-        imageUrl: "/images/menu/brunch/Alimentos/Huevos rotos (estilo español).jpg",
+        imageUrl: "/images/menu/brunch/Alimentos/huevos-rotos.jpg",
     });
     await updateDish(plattiSalati.id, "Uova alla Benedict", {
         price: 252,
-        imageUrl: "/images/menu/brunch/Alimentos/Uova alla Benedict.jpg",
+        imageUrl: "/images/menu/brunch/Alimentos/uova-alla-benedict.jpg",
     });
     await updateDish(plattiSalati.id, "Uova alla Milanese", {
         price: 255,
     });
     await updateDish(plattiSalati.id, "Tortilla española", {
         price: 199,
-        imageUrl: "/images/menu/brunch/Alimentos/Tortilla española.jpg",
+        imageUrl: "/images/menu/brunch/Alimentos/tortilla-espanola.jpg",
     });
     await updateDish(plattiSalati.id, "Molletes", {
         price: 155,
-        imageUrl: "/images/menu/brunch/Alimentos/Molletes.jpg",
+        imageUrl: "/images/menu/brunch/Alimentos/molletes.jpg",
     });
     // Nuevo
     await upsertDish(plattiSalati.id, "Chilaquiles negros", {
         price: 179,
         description: "Con huevo (2pz) $225 · Con pollo 100g $235 · Con arrachera Cross Wagyu 100g $295.",
-        imageUrl: "/images/menu/brunch/Alimentos/Chilaquiles negros.jpg",
+        imageUrl: "/images/menu/brunch/Alimentos/chilaquiles-negros.jpg",
         position: 6,
     });
 
@@ -75,18 +75,18 @@ async function main() {
     });
     await updateDish(toastsPanini.id, "Pepito di arrachera", {
         price: 252,
-        imageUrl: "/images/menu/brunch/Alimentos/Pepito di arrachera.jpg",
+        imageUrl: "/images/menu/brunch/Alimentos/pepito-di-arrachera.jpg",
     });
     await updateDish(toastsPanini.id, "Panino di roast beef di picanha", {
         price: 275,
     });
     await updateDish(toastsPanini.id, "Mozzarella in carrozza", {
         price: 228,
-        imageUrl: "/images/menu/brunch/Alimentos/Mozzarella in carrozza.jpg",
+        imageUrl: "/images/menu/brunch/Alimentos/mozzarella-in-carrozza.jpg",
     });
     await updateDish(toastsPanini.id, "Croque Madame", {
         price: 255,
-        imageUrl: "/images/menu/brunch/Alimentos/Croque Madame.jpg",
+        imageUrl: "/images/menu/brunch/Alimentos/croque-madame.jpg",
     });
 
     // ── ESPECIALES ────────────────────────────────────────────────────────────

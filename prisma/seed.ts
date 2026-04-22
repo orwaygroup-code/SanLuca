@@ -517,12 +517,12 @@ async function main() {
   // ── PIATTI SALATI ────────────────────────────
   await prisma.dish.createMany({
     data: [
-      { name: "Huevos rotos (estilo español)", description: "Papas fritas con huevo y jamón serrano.", price: 252, categoryId: plattiSalati.id, position: 1, imageUrl: "/images/menu/brunch/Alimentos/Huevos rotos (estilo español).jpg" },
-      { name: "Uova alla Benedict", description: "Huevos benedictinos clásicos con salsa holandesa.", price: 252, categoryId: plattiSalati.id, position: 2, imageUrl: "/images/menu/brunch/Alimentos/Uova alla Benedict.jpg" },
+      { name: "Huevos rotos (estilo español)", description: "Papas fritas con huevo y jamón serrano.", price: 252, categoryId: plattiSalati.id, position: 1, imageUrl: "/images/menu/brunch/Alimentos/huevos-rotos.jpg" },
+      { name: "Uova alla Benedict", description: "Huevos benedictinos clásicos con salsa holandesa.", price: 252, categoryId: plattiSalati.id, position: 2, imageUrl: "/images/menu/brunch/Alimentos/uova-alla-benedict.jpg" },
       { name: "Uova alla Milanese", description: "Huevos ponchados con espárragos, pancetta y queso mozzarella.", price: 255, categoryId: plattiSalati.id, position: 3 },
-      { name: "Tortilla española", description: "Huevos horneados con papa y cebolla.", price: 199, categoryId: plattiSalati.id, position: 4, imageUrl: "/images/menu/brunch/Alimentos/Tortilla española.jpg" },
-      { name: "Molletes", description: "Con jamón y queso, acompañados de pico de gallo y emulsión de aguacate.", price: 155, categoryId: plattiSalati.id, position: 5, imageUrl: "/images/menu/brunch/Alimentos/Molletes.jpg" },
-      { name: "Chilaquiles negros", description: "Con huevo (2pz) $225 · Con pollo 100g $235 · Con arrachera Cross Wagyu 100g $295.", price: 179, categoryId: plattiSalati.id, position: 6, imageUrl: "/images/menu/brunch/Alimentos/Chilaquiles negros.jpg" },
+      { name: "Tortilla española", description: "Huevos horneados con papa y cebolla.", price: 199, categoryId: plattiSalati.id, position: 4, imageUrl: "/images/menu/brunch/Alimentos/tortilla-espanola.jpg" },
+      { name: "Molletes", description: "Con jamón y queso, acompañados de pico de gallo y emulsión de aguacate.", price: 155, categoryId: plattiSalati.id, position: 5, imageUrl: "/images/menu/brunch/Alimentos/molletes.jpg" },
+      { name: "Chilaquiles negros", description: "Con huevo (2pz) $225 · Con pollo 100g $235 · Con arrachera Cross Wagyu 100g $295.", price: 179, categoryId: plattiSalati.id, position: 6, imageUrl: "/images/menu/brunch/Alimentos/chilaquiles-negros.jpg" },
     ]
   });
 
@@ -531,12 +531,12 @@ async function main() {
     data: [
       { name: "Toast prosciutto e formaggio", description: "Tost de jamón de pierna y queso fundido.", price: 155, categoryId: toastsPanini.id, position: 1 },
       { name: "Toast de atún bonito del norte (Reserva de la Familia)", description: "Con aguacate y aderezo tártara.", price: 255, categoryId: toastsPanini.id, position: 2 },
-      { name: "Pepito di arrachera", description: "Sándwich de arrachera elaborada con Cross Wagyu Americano, emulsión de aguacate, frijoles refritos y queso asadero gratinado.", price: 252, categoryId: toastsPanini.id, position: 3, imageUrl: "/images/menu/brunch/Alimentos/Pepito di arrachera.jpg" },
+      { name: "Pepito di arrachera", description: "Sándwich de arrachera elaborada con Cross Wagyu Americano, emulsión de aguacate, frijoles refritos y queso asadero gratinado.", price: 252, categoryId: toastsPanini.id, position: 3, imageUrl: "/images/menu/brunch/Alimentos/pepito-di-arrachera.jpg" },
       { name: "Panino di roast beef di picanha", description: "Panini de roast beef de picaña Cross Wagyu Americano, horneado con mostaza Dijon, vino blanco y finas hierbas.", price: 275, categoryId: toastsPanini.id, position: 4 },
       { name: "Panino di porchetta", description: "Panini de porchetta, cerdo asado lentamente con hierbas aromáticas y especias mediterráneas, acompañado de mostaza Dijon.", price: 252, categoryId: toastsPanini.id, position: 5 },
       { name: "Panini de pulpo a las brasas", description: "Con aderezo tártara.", price: 295, categoryId: toastsPanini.id, position: 6 },
-      { name: "Mozzarella in carrozza", description: "Sándwich de mozzarella frito acompañado de salsa pomodoro.", price: 228, categoryId: toastsPanini.id, position: 7, imageUrl: "/images/menu/brunch/Alimentos/Mozzarella in carrozza.jpg" },
-      { name: "Croque Madame", description: "Pan brioche, jamón artesanal, bechamel y huevo estrellado.", price: 255, categoryId: toastsPanini.id, position: 8, imageUrl: "/images/menu/brunch/Alimentos/Croque Madame.jpg" },
+      { name: "Mozzarella in carrozza", description: "Sándwich de mozzarella frito acompañado de salsa pomodoro.", price: 228, categoryId: toastsPanini.id, position: 7, imageUrl: "/images/menu/brunch/Alimentos/mozzarella-in-carrozza.jpg" },
+      { name: "Croque Madame", description: "Pan brioche, jamón artesanal, bechamel y huevo estrellado.", price: 255, categoryId: toastsPanini.id, position: 8, imageUrl: "/images/menu/brunch/Alimentos/croque-madame.jpg" },
     ]
   });
 
