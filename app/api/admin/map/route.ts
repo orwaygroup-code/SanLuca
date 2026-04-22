@@ -22,9 +22,10 @@ export async function GET(request: NextRequest) {
         const now = new Date();
         const { start: shiftStart, end: shiftEnd } = getShiftWindow(now);
 
-        // Día completo (para grupos grandes que bloquean todo el día)
-        const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-        const dayEnd   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+        // Día completo en tiempo México (para grupos grandes que bloquean todo el día)
+        const mxDate   = now.toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
+        const dayStart = new Date(`${mxDate}T00:00:00.000-06:00`);
+        const dayEnd   = new Date(`${mxDate}T23:59:59.999-06:00`);
 
         // Grupos grandes activos hoy → bloquean toda su sección
         const largeGroupReservations = await prisma.reservation.findMany({

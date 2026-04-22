@@ -9,29 +9,36 @@
 // Cena:   14:00 – cierre del día
 // Cada mesa puede reservarse UNA vez por turno.
 
-export function getShiftWindow(date: Date): { start: Date; end: Date; name: string } {
-    const y = date.getFullYear();
-    const m = date.getMonth();
-    const d = date.getDate();
-    const h = date.getHours();
-    const dow = date.getDay(); // 0=Dom, 5=Vie, 6=Sáb
+const MX_TZ = "America/Mexico_City";
 
-    // Hora de cierre según día
+export function getShiftWindow(date: Date): { start: Date; end: Date; name: string } {
+    // Usar hora México (UTC-6 fijo), no hora del servidor VPS
+    const mxDate = date.toLocaleDateString("en-CA", { timeZone: MX_TZ }); // "YYYY-MM-DD"
+    const mxHour = parseInt(
+        date.toLocaleString("en-US", { timeZone: MX_TZ, hour: "2-digit", hour12: false })
+    );
+    const dow = new Date(`${mxDate}T12:00:00.000-06:00`).getDay(); // 0=Dom, 5=Vie, 6=Sáb
+
     const closeHour = dow === 0 ? 21 : (dow === 5 || dow === 6) ? 24 : 23;
 
-    if (h < 14) {
+    if (mxHour < 14) {
         return {
             name:  "brunch",
-            start: new Date(y, m, d, 8,  0, 0),
-            end:   new Date(y, m, d, 14, 0, 0),
+            start: new Date(`${mxDate}T08:00:00.000-06:00`),
+            end:   new Date(`${mxDate}T14:00:00.000-06:00`),
         };
     }
+
+    const nextDayDate = new Date(`${mxDate}T12:00:00.000-06:00`);
+    nextDayDate.setDate(nextDayDate.getDate() + 1);
+    const nextDay = nextDayDate.toLocaleDateString("en-CA", { timeZone: MX_TZ });
+
     return {
         name:  "cena",
-        start: new Date(y, m, d, 14, 0, 0),
+        start: new Date(`${mxDate}T14:00:00.000-06:00`),
         end:   closeHour === 24
-            ? new Date(y, m, d + 1, 0, 0, 0)
-            : new Date(y, m, d, closeHour, 0, 0),
+            ? new Date(`${nextDay}T00:00:00.000-06:00`)
+            : new Date(`${mxDate}T${String(closeHour).padStart(2, "0")}:00:00.000-06:00`),
     };
 }
 
