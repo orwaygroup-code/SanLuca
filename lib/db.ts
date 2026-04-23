@@ -33,7 +33,12 @@ export async function getMenuCategoryById(id: string) {
 export async function getMenuCategoryByName(name: string) {
   return prisma.menuCategory.findFirst({
     where: { name: { equals: name, mode: "insensitive" } },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      imageUrl: true,
+      position: true,
+      createdAt: true,
       dishes: {
         where: { available: true },
         orderBy: { position: "asc" },

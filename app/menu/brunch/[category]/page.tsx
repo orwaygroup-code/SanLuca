@@ -4,6 +4,7 @@
 // ─────────────────────────────────────────────
 
 import Link from "next/link";
+import Image from "next/image";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getMenuCategoryByName } from "@/lib/db";
@@ -50,6 +51,24 @@ export default async function BrunchCategoryPage({ params }: PageProps) {
                 paddingBottom: "5rem",
             }}
         >
+            {/* ── PORTADA ── */}
+            {data.imageUrl && (
+                <div style={{ position: "relative", width: "100%", height: "clamp(200px, 35vw, 420px)" }}>
+                    <Image
+                        src={data.imageUrl}
+                        alt={data.name}
+                        fill
+                        priority
+                        sizes="100vw"
+                        style={{ objectFit: "cover" }}
+                    />
+                    <div style={{
+                        position: "absolute", inset: 0,
+                        background: "linear-gradient(to bottom, rgba(240,235,224,0) 40%, rgba(240,235,224,1) 100%)",
+                    }} />
+                </div>
+            )}
+
             {/* ── TÍTULO — estilo PDF p.5 ── */}
             <div
                 style={{
