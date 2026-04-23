@@ -42,29 +42,29 @@ async function main() {
 
     await updateDish(plattiSalati.id, "Huevos rotos (estilo español)", {
         price: 252,
-        imageUrl: "/images/menu/brunch/Alimentos/huevos-rotos.jpg",
+        imageUrl: "/images/menu/brunch/Alimentos/platti salati/huevos-rotos.jpg",
     });
     await updateDish(plattiSalati.id, "Uova alla Benedict", {
         price: 252,
-        imageUrl: "/images/menu/brunch/Alimentos/uova-alla-benedict.jpg",
+        imageUrl: "/images/menu/brunch/Alimentos/platti salati/uova-alla-benedict.jpg",
     });
     await updateDish(plattiSalati.id, "Uova alla Milanese", {
         price: 255,
-        imageUrl: "/images/menu/brunch/Alimentos/uova-alla-milanese.jpg",
+        imageUrl: "/images/menu/brunch/Alimentos/platti salati/uova-alla-milanese.jpg",
     });
     await updateDish(plattiSalati.id, "Tortilla española", {
         price: 199,
-        imageUrl: "/images/menu/brunch/Alimentos/tortilla-espanola.jpg",
+        imageUrl: "/images/menu/brunch/Alimentos/platti salati/tortilla-espanola.jpg",
     });
     await updateDish(plattiSalati.id, "Molletes", {
         price: 155,
-        imageUrl: "/images/menu/brunch/Alimentos/molletes.jpg",
+        imageUrl: "/images/menu/brunch/Alimentos/platti salati/molletes.jpg",
     });
     // Nuevo
     await upsertDish(plattiSalati.id, "Chilaquiles negros", {
         price: 179,
         description: "Con huevo (2pz) $225 · Con pollo 100g $235 · Con arrachera Cross Wagyu 100g $295.",
-        imageUrl: "/images/menu/brunch/Alimentos/chilaquiles-negros.jpg",
+        imageUrl: "/images/menu/brunch/Alimentos/platti salati/chilaquiles-negros.jpg",
         position: 6,
     });
 
@@ -77,26 +77,56 @@ async function main() {
     await updateDish(toastsPanini.id, "Toast prosciutto e formaggio", {
         price: 155,
         description: "Tost de jamón de pierna y queso fundido.",
+        imageUrl: "/images/menu/brunch/Alimentos/toast&panini/toast-prosciutto.jpg",
     });
     await updateDish(toastsPanini.id, "Pepito di arrachera", {
         price: 252,
-        imageUrl: "/images/menu/brunch/Alimentos/pepito-di-arrachera.jpg",
+        imageUrl: "/images/menu/brunch/Alimentos/toast&panini/pepito-di-arrachera.jpg",
     });
     await updateDish(toastsPanini.id, "Panino di roast beef di picanha", {
         price: 275,
     });
+    await updateDish(toastsPanini.id, "Panino di porchetta", {
+        price: 252,
+        imageUrl: "/images/menu/brunch/Alimentos/toast&panini/panino-di-porchetta.jpg",
+    });
+    await updateDish(toastsPanini.id, "Panini de pulpo a las brasas", {
+        price: 295,
+        imageUrl: "/images/menu/brunch/Alimentos/toast&panini/panini-pulpo.jpg",
+    });
     await updateDish(toastsPanini.id, "Mozzarella in carrozza", {
         price: 228,
-        imageUrl: "/images/menu/brunch/Alimentos/mozzarella-in-carrozza.jpg",
+        imageUrl: "/images/menu/brunch/Alimentos/toast&panini/mozzarella-in-carrozza.jpg",
     });
     await updateDish(toastsPanini.id, "Croque Madame", {
         price: 255,
-        imageUrl: "/images/menu/brunch/Alimentos/croque-madame.jpg",
+        imageUrl: "/images/menu/brunch/Alimentos/toast&panini/croque-madame.jpg",
+    });
+
+    // ── OMELETTES ─────────────────────────────────────────────────────────────
+    console.log("\n📋 Omelettes (Brunch)");
+    const omelettes = await findCategory("Omelettes (Brunch)");
+    await prisma.menuCategory.update({ where: { id: omelettes.id }, data: { imageUrl: "/images/menu/brunch/portadas/omelettes.jpg" } });
+    console.log("  ✓ Portada: omelettes.jpg");
+
+    await updateDish(omelettes.id, "Omelette de queso con jamón", {
+        imageUrl: "/images/menu/brunch/Alimentos/omelettes/om-queso-con-jamon.jpg",
+    });
+    await updateDish(omelettes.id, "Omelette de salmón Oraking y queso crema", {
+        imageUrl: "/images/menu/brunch/Alimentos/omelettes/om-salmon-y quesocrema.jpg",
+    });
+    await updateDish(omelettes.id, "Omelette cuatro quesos", {
+        imageUrl: "/images/menu/brunch/Alimentos/omelettes/om-cuatro-quesos.jpg",
+    });
+    await updateDish(omelettes.id, "Omelette light de claras con espinacas", {
+        imageUrl: "/images/menu/brunch/Alimentos/omelettes/om-light-con-espinacas.jpg",
     });
 
     // ── ESPECIALES ────────────────────────────────────────────────────────────
     console.log("\n📋 Especiales (Brunch)");
     const especiales = await findCategory("Especiales (Brunch)");
+    await prisma.menuCategory.update({ where: { id: especiales.id }, data: { imageUrl: "/images/menu/brunch/portadas/especiales.jpg" } });
+    console.log("  ✓ Portada: especiales.jpg");
 
     // Nuevo
     await upsertDish(especiales.id, "Lasagna de crepas", {
