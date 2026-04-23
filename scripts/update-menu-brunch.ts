@@ -173,6 +173,31 @@ async function main() {
     });
 
     console.log("\n✅ Menú brunch actualizado correctamente.");
+
+    // ── COMIDA: portadas de categorías ────────────────────────────────────────
+    console.log("\n📋 Portadas Comida (Clásica)");
+
+    const comidaPortadas: { name: string; imageUrl: string }[] = [
+        { name: "Antipasti",        imageUrl: "/images/menu/clasica/antipaste.png" },
+        { name: "Paste",            imageUrl: "/images/menu/clasica/paste.png" },
+        { name: "Pizza",            imageUrl: "/images/menu/clasica/pizza.png" },
+        { name: "Risotto",          imageUrl: "/images/menu/clasica/risoto.png" },
+        { name: "Insalate",         imageUrl: "/images/menu/clasica/ensalada.png" },
+        { name: "Terra",            imageUrl: "/images/menu/clasica/terra.png" },
+        { name: "Pesce Del Giorno", imageUrl: "/images/menu/clasica/pesce.png" },
+    ];
+
+    for (const { name, imageUrl } of comidaPortadas) {
+        const cat = await prisma.menuCategory.findFirst({ where: { name } });
+        if (cat) {
+            await prisma.menuCategory.update({ where: { id: cat.id }, data: { imageUrl } });
+            console.log(`  ✓ Portada: ${name}`);
+        } else {
+            console.warn(`  ⚠ No encontrada: "${name}"`);
+        }
+    }
+
+    console.log("\n✅ Portadas Comida actualizadas.");
 }
 
 main()
