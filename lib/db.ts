@@ -9,7 +9,12 @@ import { COMIDA_GROUPS, BRUNCH_GROUPS } from "@/config/Menustructure";
 export async function getMenuCategories() {
   return prisma.menuCategory.findMany({
     orderBy: { position: "asc" },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      imageUrl: true,
+      position: true,
+      createdAt: true,
       dishes: {
         where: { available: true },
         orderBy: { position: "asc" },

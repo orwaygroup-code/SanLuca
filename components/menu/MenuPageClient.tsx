@@ -120,8 +120,12 @@ export default function MenuPageClient({ comidaDishes, brunchDishes, dbCategorie
     };
 
     const categoriesWithImages = (currentGroup?.categories ?? []).map((cat) => {
+        const catName = cat.name.toLowerCase();
         const dbMatch = dbCategories.find(
-            (d) => d.id === cat.slug || d.name.toLowerCase() === cat.name.toLowerCase()
+            (d) =>
+                d.id === cat.slug ||
+                d.name.toLowerCase() === catName ||
+                d.name.toLowerCase().startsWith(catName)
         );
         return { ...cat, imageUrl: dbMatch?.imageUrl ?? cat.imageUrl ?? null };
     });

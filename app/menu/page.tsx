@@ -35,7 +35,7 @@ export default async function MenuPage() {
   const dbCategories = categories.map((c) => ({
     id: c.id,
     name: c.name,
-    imageUrl: (c as any).imageUrl ?? null,
+    imageUrl: c.imageUrl ?? null,
   }));
 
   return (
