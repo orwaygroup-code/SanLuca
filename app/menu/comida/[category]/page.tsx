@@ -10,6 +10,7 @@ import { notFound } from "next/navigation";
 import { getMenuCategoryByName } from "@/lib/db";
 import { fonts, colors } from "@/config/theme";
 import DishCardGold from "@/components/menu/DishCardGold";
+import NavThemeSetter from "@/components/NavThemeSetter";
 
 type PageProps = {
     params: Promise<{ category: string }>;
@@ -36,13 +37,14 @@ export default async function ComidaCategoryPage({ params }: PageProps) {
             style={{
                 background: "#1a2628",
                 minHeight: "100vh",
-                paddingTop: "100px",
                 paddingBottom: "5rem",
             }}
         >
+            <NavThemeSetter theme="comida" />
+
             {/* ── PORTADA ── */}
             {data.imageUrl && (
-                <div style={{ position: "relative", width: "100%", height: "clamp(200px, 35vw, 420px)" }}>
+                <div style={{ position: "relative", width: "100%", height: "clamp(320px, 50vw, 560px)" }}>
                     <Image
                         src={data.imageUrl}
                         alt={data.name}
@@ -53,7 +55,7 @@ export default async function ComidaCategoryPage({ params }: PageProps) {
                     />
                     <div style={{
                         position: "absolute", inset: 0,
-                        background: "linear-gradient(to bottom, rgba(26,38,40,0) 40%, rgba(26,38,40,1) 100%)",
+                        background: "linear-gradient(to bottom, rgba(26,38,40,0) 50%, rgba(26,38,40,1) 100%)",
                     }} />
                 </div>
             )}
@@ -62,7 +64,9 @@ export default async function ComidaCategoryPage({ params }: PageProps) {
             <div
                 style={{
                     textAlign: "center",
-                    padding: "2.5rem clamp(1.5rem, 4vw, 4rem) 3.5rem",
+                    padding: data.imageUrl
+                        ? "1.5rem clamp(1.5rem, 4vw, 4rem) 3.5rem"
+                        : "100px clamp(1.5rem, 4vw, 4rem) 3.5rem",
                     position: "relative",
                 }}
             >

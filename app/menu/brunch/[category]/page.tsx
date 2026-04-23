@@ -10,6 +10,7 @@ import { notFound } from "next/navigation";
 import { getMenuCategoryByName } from "@/lib/db";
 import { fonts } from "@/config/theme";
 import DishCardBlue from "@/components/menu/DishCardBlue";
+import NavThemeSetter from "@/components/NavThemeSetter";
 
 // Paleta brunch
 const B = {
@@ -47,13 +48,14 @@ export default async function BrunchCategoryPage({ params }: PageProps) {
             style={{
                 background: B.bg,
                 minHeight: "100vh",
-                paddingTop: "100px",
                 paddingBottom: "5rem",
             }}
         >
+            <NavThemeSetter theme="brunch" />
+
             {/* ── PORTADA ── */}
             {data.imageUrl && (
-                <div style={{ position: "relative", width: "100%", height: "clamp(200px, 35vw, 420px)" }}>
+                <div style={{ position: "relative", width: "100%", height: "clamp(320px, 50vw, 560px)" }}>
                     <Image
                         src={data.imageUrl}
                         alt={data.name}
@@ -64,7 +66,7 @@ export default async function BrunchCategoryPage({ params }: PageProps) {
                     />
                     <div style={{
                         position: "absolute", inset: 0,
-                        background: "linear-gradient(to bottom, rgba(240,235,224,0) 40%, rgba(240,235,224,1) 100%)",
+                        background: "linear-gradient(to bottom, rgba(240,235,224,0) 50%, rgba(240,235,224,1) 100%)",
                     }} />
                 </div>
             )}
@@ -73,7 +75,9 @@ export default async function BrunchCategoryPage({ params }: PageProps) {
             <div
                 style={{
                     textAlign: "center",
-                    padding: "2.5rem clamp(1.5rem, 4vw, 4rem) 3.5rem",
+                    padding: data.imageUrl
+                        ? "1.5rem clamp(1.5rem, 4vw, 4rem) 3.5rem"
+                        : "100px clamp(1.5rem, 4vw, 4rem) 3.5rem",
                     position: "relative",
                 }}
             >
