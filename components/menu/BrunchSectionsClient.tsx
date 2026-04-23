@@ -30,14 +30,16 @@ export default function BrunchSectionsClient({
     const currentGroup = BRUNCH_GROUPS[activeTab];
 
     const categoriesWithImages = currentGroup.categories.map((cat) => {
+        const catName = cat.name.toLowerCase();
         const dbMatch = dbCategories.find(
             (d) =>
                 d.id === cat.slug ||
-                d.name.toLowerCase() === cat.name.toLowerCase()
+                d.name.toLowerCase() === catName ||
+                d.name.toLowerCase().startsWith(catName)
         );
         return {
             ...cat,
-            imageUrl: dbMatch?.imageUrl ?? null,
+            imageUrl: dbMatch?.imageUrl ?? cat.imageUrl ?? null,
         };
     });
 
