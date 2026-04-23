@@ -15,9 +15,10 @@ echo "════════════════════════�
 # ── 1. Directorio
 cd "$APP_DIR"
 
-# ── 2. Git pull
+# ── 2. Git pull (descartar cambios locales para no bloquear el merge)
 echo ""
 echo "▶ [1/7] Actualizando código..."
+git stash
 git pull origin main
 
 # ── 3. Dependencias
