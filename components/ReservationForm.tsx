@@ -15,7 +15,7 @@ const SECTION_IMAGES: Record<Section, string> = {
   "Privado":    "/images/areas/privado.jpg",
 };
 
-const PARTY_SIZES = [1, 2, 3, 4, 5, 6, 7, 8];
+const PARTY_SIZES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 
 interface FormData {
   guestName: string;
@@ -78,8 +78,8 @@ export function ReservationForm() {
       setSearchError("Completa todos los campos antes de buscar.");
       return false;
     }
-    if (largeGroupMode && form.guests < 9) {
-      setSearchError("Para grupo grande ingresa al menos 9 personas.");
+    if (largeGroupMode && form.guests < 16) {
+      setSearchError("Para grupo grande ingresa al menos 16 personas.");
       return false;
     }
     return true;
@@ -105,7 +105,7 @@ export function ReservationForm() {
       if (!data.success) throw new Error(data.error);
 
       // ── Grupo grande ──
-      if (form.guests > 8) {
+      if (form.guests > 15) {
         if (!data.data.hasAvailability) {
           const reason = data.data.reason;
           const msg = reason === "already_blocked_large_group"
@@ -156,9 +156,10 @@ export function ReservationForm() {
           guests: form.guests,
           sectionPreference: form.sectionPreference,
           notes: form.notes || undefined,
-          tableId:       selection.tableId,
-          linkedTableId: selection.linkedTableId,
-          thirdTableId:  selection.thirdTableId,
+          tableId:        selection.tableId,
+          linkedTableId:  selection.linkedTableId,
+          thirdTableId:   selection.thirdTableId,
+          fourthTableId:  selection.fourthTableId,
         }),
       });
       const data = await res.json();
@@ -209,7 +210,9 @@ export function ReservationForm() {
 
   // ── Resumen de mesa seleccionada ──────────────
   const selectionLabel = selection
-    ? selection.thirdTableNumber
+    ? selection.fourthTableNumber
+      ? `Mesas M${selection.tableNumber} + M${selection.linkedTableNumber} + M${selection.thirdTableNumber} + M${selection.fourthTableNumber} (combinadas)`
+      : selection.thirdTableNumber
       ? `Mesas M${selection.tableNumber} + M${selection.linkedTableNumber} + M${selection.thirdTableNumber} (combinadas)`
       : selection.linkedTableNumber
       ? `Mesas M${selection.tableNumber} + M${selection.linkedTableNumber} (combinadas)`
@@ -337,7 +340,7 @@ export function ReservationForm() {
                       onClick={() => {
                         setLargeGroupMode(true);
                         setCustomGuestsInput("");
-                        set("guests", 9);
+                        set("guests", 16);
                       }}
                       style={{
                         whiteSpace: "nowrap",
@@ -352,7 +355,7 @@ export function ReservationForm() {
                         letterSpacing: "0.02em",
                       }}
                     >
-                      +8 personas
+                      +15 personas
                     </button>
                   </div>
                 ) : (
@@ -360,14 +363,14 @@ export function ReservationForm() {
                     <input
                       className="rf-input"
                       type="number"
-                      min={9}
+                      min={16}
                       max={500}
                       placeholder="Ej. 20"
                       value={customGuestsInput}
                       onChange={(e) => {
                         setCustomGuestsInput(e.target.value);
                         const n = parseInt(e.target.value);
-                        if (!isNaN(n) && n >= 9) set("guests", n);
+                        if (!isNaN(n) && n >= 16) set("guests", n);
                       }}
                       style={{ flex: 1 }}
                     />
@@ -395,7 +398,7 @@ export function ReservationForm() {
                 )}
                 {largeGroupMode && (
                   <p style={{ fontSize: "0.68rem", color: "rgba(186,132,60,0.75)", margin: "5px 0 0", lineHeight: 1.4 }}>
-                    Grupos de +8 personas reservan el área completa por todo el día.
+                    Grupos de +15 personas reservan el área completa por todo el día.
                   </p>
                 )}
               </div>

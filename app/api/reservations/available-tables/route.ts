@@ -5,9 +5,12 @@ import { prisma } from "@/lib/prisma";
 import {
   ADJACENT_PAIRS,
   ADJACENT_TRIPLES,
+  ADJACENT_QUADS,
   COMBINED_MAX_CAPACITY,
   TRIPLE_MIN_GUESTS,
   TRIPLE_MAX_CAPACITY,
+  QUAD_MIN_GUESTS,
+  QUAD_MAX_CAPACITY,
 } from "@/lib/tableAdjacency";
 import { getShiftWindow } from "@/lib/shifts";
 import type { ApiResponse } from "@/types";
@@ -65,9 +68,9 @@ export async function GET(request: NextRequest) {
     const dayEnd   = new Date(y, mo - 1, d, 23, 59, 59);
 
     // ══════════════════════════════════════════════════════════════════════
-    // GRUPO GRANDE (>8 personas): verificar disponibilidad de área completa
+    // GRUPO GRANDE (>15 personas): verificar disponibilidad de área completa
     // ══════════════════════════════════════════════════════════════════════
-    if (guests > 8) {
+    if (guests > 15) {
       // 1. ¿Ya existe otro grupo grande en esta área ese día?
       const largeGroupConflict = await prisma.reservation.findFirst({
         where: {
@@ -96,9 +99,10 @@ export async function GET(request: NextRequest) {
           status: { notIn: ["CANCELLED", "NO_SHOW"] },
           date: { gte: dayStart, lte: dayEnd },
           OR: [
-            { tableId:       { in: tableIds } },
-            { linkedTableId: { in: tableIds } },
-            { thirdTableId:  { in: tableIds } },
+            { tableId:        { in: tableIds } },
+            { linkedTableId:  { in: tableIds } },
+            { thirdTableId:   { in: tableIds } },
+            { fourthTableId:  { in: tableIds } },
           ],
         },
       });
@@ -115,7 +119,7 @@ export async function GET(request: NextRequest) {
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    // RESERVA NORMAL (≤8 personas)
+    // RESERVA NORMAL (≤15 personas)
     // ══════════════════════════════════════════════════════════════════════
 
     // Verificar si un grupo grande bloqueó esta área hoy
@@ -136,6 +140,7 @@ export async function GET(request: NextRequest) {
           tables: [],
           pairs: [],
           triples: [],
+          quads: [],
           hasAvailability: false,
           blockedByLargeGroup: true,
         },
@@ -150,19 +155,21 @@ export async function GET(request: NextRequest) {
         status: { notIn: ["CANCELLED", "NO_SHOW"] },
         date:   { gte: shiftStart, lt: shiftEnd },
         OR: [
-          { tableId:       { in: tableIds } },
-          { linkedTableId: { in: tableIds } },
-          { thirdTableId:  { in: tableIds } },
+          { tableId:        { in: tableIds } },
+          { linkedTableId:  { in: tableIds } },
+          { thirdTableId:   { in: tableIds } },
+          { fourthTableId:  { in: tableIds } },
         ],
       },
-      select: { tableId: true, linkedTableId: true, thirdTableId: true },
+      select: { tableId: true, linkedTableId: true, thirdTableId: true, fourthTableId: true },
     });
 
     const occupiedIds = new Set<string>();
     for (const c of conflicts) {
-      if (c.tableId)       occupiedIds.add(c.tableId);
-      if (c.linkedTableId) occupiedIds.add(c.linkedTableId);
-      if (c.thirdTableId)  occupiedIds.add(c.thirdTableId);
+      if (c.tableId)        occupiedIds.add(c.tableId);
+      if (c.linkedTableId)  occupiedIds.add(c.linkedTableId);
+      if (c.thirdTableId)   occupiedIds.add(c.thirdTableId);
+      if (c.fourthTableId)  occupiedIds.add(c.fourthTableId);
     }
 
     const tables = dbSection.tables.map((t) => ({
@@ -174,7 +181,7 @@ export async function GET(request: NextRequest) {
 
     const byNumber = new Map(tables.map((t) => [t.number, t]));
 
-    // ── Pares disponibles (5-6 personas) ─────────────────
+    // ── Pares disponibles (5-8 personas) ─────────────────
     type Pair = { tableA: { id: string; number: number }; tableB: { id: string; number: number } };
     const pairs: Pair[] = [];
 
@@ -192,7 +199,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // ── Triples disponibles (7-8 personas) ───────────────
+    // ── Triples disponibles (9-12 personas) ──────────────
     type Triple = { tableA: { id: string; number: number }; tableB: { id: string; number: number }; tableC: { id: string; number: number } };
     const triples: Triple[] = [];
 
@@ -212,14 +219,37 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // ── Cuádruples disponibles (13-15 personas) ───────────
+    type Quad = { tableA: { id: string; number: number }; tableB: { id: string; number: number }; tableC: { id: string; number: number }; tableD: { id: string; number: number } };
+    const quads: Quad[] = [];
+
+    if (guests >= QUAD_MIN_GUESTS && guests <= QUAD_MAX_CAPACITY) {
+      for (const [numA, numB, numC, numD] of ADJACENT_QUADS) {
+        const tA = byNumber.get(numA);
+        const tB = byNumber.get(numB);
+        const tC = byNumber.get(numC);
+        const tD = byNumber.get(numD);
+        if (!tA || !tB || !tC || !tD) continue;
+        if (tA.status === "available" && tB.status === "available" && tC.status === "available" && tD.status === "available") {
+          quads.push({
+            tableA: { id: tA.id, number: tA.number },
+            tableB: { id: tB.id, number: tB.number },
+            tableC: { id: tC.id, number: tC.number },
+            tableD: { id: tD.id, number: tD.number },
+          });
+        }
+      }
+    }
+
     const hasAvailability =
       tables.some((t) => t.status === "available" && t.capacity >= guests) ||
       pairs.length > 0 ||
-      triples.length > 0;
+      triples.length > 0 ||
+      quads.length > 0;
 
     return NextResponse.json<ApiResponse>({
       success: true,
-      data: { sectionName: dbSection.name, tables, pairs, triples, hasAvailability },
+      data: { sectionName: dbSection.name, tables, pairs, triples, quads, hasAvailability },
     });
   } catch (error) {
     console.error("[API] GET /api/reservations/available-tables error:", error);

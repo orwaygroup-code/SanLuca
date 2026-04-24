@@ -59,14 +59,15 @@ export async function GET(request: NextRequest) {
                 status: { in: ["PENDING", "CONFIRMED", "IN_PROGRESS", "DELAYED"] },
                 date:   { gte: dayStart, lte: dayEnd },
                 OR: [
-                    { tableId:       { not: null } },
-                    { linkedTableId: { not: null } },
-                    { thirdTableId:  { not: null } },
+                    { tableId:        { not: null } },
+                    { linkedTableId:  { not: null } },
+                    { thirdTableId:   { not: null } },
+                    { fourthTableId:  { not: null } },
                 ],
             },
             select: {
                 id: true, status: true, guestName: true, guests: true, date: true,
-                tableId: true, linkedTableId: true, thirdTableId: true,
+                tableId: true, linkedTableId: true, thirdTableId: true, fourthTableId: true,
             },
         });
 
@@ -82,9 +83,10 @@ export async function GET(request: NextRequest) {
                 id: r.id, status: r.status, guestName: r.guestName, guests: r.guests,
                 time: new Date(r.date).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", timeZone: "America/Mexico_City" }),
             };
-            if (r.tableId)       tableResMap.set(r.tableId,       info);
-            if (r.linkedTableId) tableResMap.set(r.linkedTableId, info);
-            if (r.thirdTableId)  tableResMap.set(r.thirdTableId,  info);
+            if (r.tableId)        tableResMap.set(r.tableId,        info);
+            if (r.linkedTableId)  tableResMap.set(r.linkedTableId,  info);
+            if (r.thirdTableId)   tableResMap.set(r.thirdTableId,   info);
+            if (r.fourthTableId)  tableResMap.set(r.fourthTableId,  info);
         }
 
         // Secciones con sus mesas

@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const { date, time, tableId, linkedTableId, thirdTableId, isLargeGroup, ...rest } = validation.data;
+        const { date, time, tableId, linkedTableId, thirdTableId, fourthTableId, isLargeGroup, ...rest } = validation.data;
 
         // 4. Combinar fecha + hora en un solo DateTime
         // Tratar como hora local de México (UTC-6, sin horario de verano desde 2023)
@@ -132,9 +132,10 @@ export async function POST(request: NextRequest) {
                         status: { notIn: ["CANCELLED", "NO_SHOW"] },
                         date: { gte: dayStart, lte: dayEnd },
                         OR: [
-                            { tableId:       { in: sectionTableIds } },
-                            { linkedTableId: { in: sectionTableIds } },
-                            { thirdTableId:  { in: sectionTableIds } },
+                            { tableId:        { in: sectionTableIds } },
+                            { linkedTableId:  { in: sectionTableIds } },
+                            { thirdTableId:   { in: sectionTableIds } },
+                            { fourthTableId:  { in: sectionTableIds } },
                         ],
                     },
                 }),
@@ -186,7 +187,7 @@ export async function POST(request: NextRequest) {
         // 8. Verificar que la mesa no esté ocupada en este turno
         if (tableId) {
             const { start: shiftStart, end: shiftEnd, name: shiftName } = getShiftWindow(reservationDate);
-            const allIds = [tableId, linkedTableId, thirdTableId].filter(Boolean) as string[];
+            const allIds = [tableId, linkedTableId, thirdTableId, fourthTableId].filter(Boolean) as string[];
             const tableConflict = await prisma.reservation.findFirst({
                 where: {
                     status: { notIn: ["CANCELLED", "NO_SHOW"] },
@@ -195,6 +196,7 @@ export async function POST(request: NextRequest) {
                         { tableId: id },
                         { linkedTableId: id },
                         { thirdTableId: id },
+                        { fourthTableId: id },
                     ]),
                 },
             });
@@ -208,9 +210,10 @@ export async function POST(request: NextRequest) {
         }
 
         // 9. Auto-asignar mesa si el usuario no eligió una
-        let assignedTableId       = tableId;
-        let assignedLinkedTableId = linkedTableId;
-        let assignedThirdTableId  = thirdTableId;
+        let assignedTableId        = tableId;
+        let assignedLinkedTableId  = linkedTableId;
+        let assignedThirdTableId   = thirdTableId;
+        let assignedFourthTableId  = fourthTableId;
 
         if (!assignedTableId) {
             const assigned = await autoAssignTable(reservationDate, rest.guests, rest.sectionPreference ?? null);
@@ -228,6 +231,7 @@ export async function POST(request: NextRequest) {
                 ...(assignedTableId       ? { tableId:       assignedTableId }       : {}),
                 ...(assignedLinkedTableId ? { linkedTableId: assignedLinkedTableId } : {}),
                 ...(assignedThirdTableId  ? { thirdTableId:  assignedThirdTableId }  : {}),
+                ...(assignedFourthTableId ? { fourthTableId: assignedFourthTableId } : {}),
                 ...rest,
             },
             select: {

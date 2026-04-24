@@ -42,8 +42,9 @@ const stateColors: Record<TableState, { table: string; chair: string; text: stri
   occupied:  { table: "#1e2426", chair: "#1a2022", text: "rgba(255,255,255,0.15)", border: "none"                   },
   selected:  { table: "#ba843c", chair: "#9a6a2a", text: "#fff",                border: "2px solid #ba843c"          },
   pair:      { table: "#3d3020", chair: "#2a2016", text: "rgba(186,132,60,0.9)", border: "2px solid rgba(186,132,60,0.7)" },
-  triple:    { table: "#1e3020", chair: "#182618", text: "rgba(100,200,80,0.9)",  border: "2px solid rgba(100,200,80,0.6)" },
-  disabled:  { table: "#1e2426", chair: "#1a2022", text: "rgba(255,255,255,0.1)", border: "none"                   },
+  triple:    { table: "#1e3020", chair: "#182618", text: "rgba(100,200,80,0.9)",  border: "2px solid rgba(100,200,80,0.6)"  },
+  quad:      { table: "#1a2040", chair: "#141830", text: "rgba(120,180,255,0.9)", border: "2px solid rgba(80,140,220,0.6)"  },
+  disabled:  { table: "#1e2426", chair: "#1a2022", text: "rgba(255,255,255,0.1)", border: "none"                            },
 };
 
 export function BlobTable({ tableNum, capacity, cx, cy, state, onClick, shape = "round" }: BlobTableProps) {
@@ -55,7 +56,7 @@ export function BlobTable({ tableNum, capacity, cx, cy, state, onClick, shape = 
   const pad      = chairR * 2 + 4;
   const boxW     = tw + pad * 2;
   const boxH     = th + pad * 2;
-  const clickable = state === "available" || state === "pair" || state === "triple" || state === "selected";
+  const clickable = state === "available" || state === "pair" || state === "triple" || state === "quad" || state === "selected";
 
   return (
     <div
@@ -117,7 +118,7 @@ export function BlobTable({ tableNum, capacity, cx, cy, state, onClick, shape = 
       </button>
 
       {/* Indicador de selección: brackets en las 4 esquinas */}
-      {(state === "selected" || state === "pair" || state === "triple") && (
+      {(state === "selected" || state === "pair" || state === "triple" || state === "quad") && (
         <>
           {[
             { top: boxH/2 - th/2 - 8, left: boxW/2 - tw/2 - 8, bw: "2px 0 0 2px" },

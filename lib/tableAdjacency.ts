@@ -1,7 +1,8 @@
 // lib/tableAdjacency.ts
 // Mesas físicamente contiguas que pueden combinarse.
-// Pares → grupos de 5-6 personas.
-// Triples → grupos de 7-8 personas.
+// Pares → grupos de 5-8 personas.
+// Triples → grupos de 9-12 personas.
+// Cuádruples → grupos de 13-15 personas.
 // Los números son globalmente únicos en el restaurante (M1–M25).
 
 export const ADJACENT_PAIRS: readonly [number, number][] = [
@@ -21,7 +22,7 @@ export const ADJACENT_PAIRS: readonly [number, number][] = [
   [24, 25], // 4+4 = cap 6
 ] as const;
 
-// Triples: 3 mesas adyacentes para 7-8 personas
+// Triples: 3 mesas adyacentes para 9-12 personas
 export const ADJACENT_TRIPLES: readonly [number, number, number][] = [
   // ── Salón ──────────────────
   [8, 7, 4],    // grid izquierdo (4+2+2 = 8 caps)
@@ -34,9 +35,21 @@ export const ADJACENT_TRIPLES: readonly [number, number, number][] = [
   [23, 24, 25], // cluster izquierdo
 ] as const;
 
-export const COMBINED_MAX_CAPACITY = 6;   // máx para par
-export const TRIPLE_MIN_GUESTS     = 7;   // mín para triple
+// Cuádruples: 4 mesas adyacentes para 13-15 personas
+export const ADJACENT_QUADS: readonly [number, number, number, number][] = [
+  // ── Terraza ────────────────
+  [16, 15, 14, 13], // fila completa izquierda+centro
+  [16, 17, 18, 15], // bloque derecho terraza
+  // ── Planta Alta ────────────
+  [20, 21, 22, 23], // fila central planta alta
+  [22, 23, 24, 25], // cluster izquierdo+centro
+] as const;
+
+export const COMBINED_MAX_CAPACITY = 8;   // máx para par
+export const TRIPLE_MIN_GUESTS     = 9;   // mín para triple
 export const TRIPLE_MAX_CAPACITY   = 12;  // máx para triple
+export const QUAD_MIN_GUESTS       = 13;  // mín para cuádruple
+export const QUAD_MAX_CAPACITY     = 15;  // máx para cuádruple
 
 /** Devuelve todos los pares que involucran a este número de mesa. */
 export function getPairsForTable(tableNumber: number): [number, number][] {
@@ -58,5 +71,12 @@ export function getAdjacentPartner(tableNumber: number): number | null {
 export function getTriplesForTable(tableNumber: number): [number, number, number][] {
   return (ADJACENT_TRIPLES as unknown as [number, number, number][]).filter(
     ([a, b, c]) => a === tableNumber || b === tableNumber || c === tableNumber
+  );
+}
+
+/** Devuelve todos los cuádruples que involucran a este número de mesa. */
+export function getQuadsForTable(tableNumber: number): [number, number, number, number][] {
+  return (ADJACENT_QUADS as unknown as [number, number, number, number][]).filter(
+    ([a, b, c, d]) => a === tableNumber || b === tableNumber || c === tableNumber || d === tableNumber
   );
 }

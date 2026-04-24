@@ -20,14 +20,15 @@ export async function autoAssignTable(
             status: { notIn: ["CANCELLED", "NO_SHOW"] },
             date:   { gte: shiftStart, lt: shiftEnd },
         },
-        select: { tableId: true, linkedTableId: true, thirdTableId: true },
+        select: { tableId: true, linkedTableId: true, thirdTableId: true, fourthTableId: true },
     });
 
     const occupiedIds = new Set<string>();
     for (const c of conflicts) {
-        if (c.tableId)       occupiedIds.add(c.tableId);
-        if (c.linkedTableId) occupiedIds.add(c.linkedTableId);
-        if (c.thirdTableId)  occupiedIds.add(c.thirdTableId);
+        if (c.tableId)        occupiedIds.add(c.tableId);
+        if (c.linkedTableId)  occupiedIds.add(c.linkedTableId);
+        if (c.thirdTableId)   occupiedIds.add(c.thirdTableId);
+        if (c.fourthTableId)  occupiedIds.add(c.fourthTableId);
     }
 
     // Orden: sección preferida primero

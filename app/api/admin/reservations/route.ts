@@ -101,9 +101,10 @@ export async function POST(request: NextRequest) {
             tableId?:           string;
             linkedTableId?:     string;
             thirdTableId?:      string;
+            fourthTableId?:     string;
         };
 
-        const { guestName, guestPhone, date, time, guests, sectionPreference, notes, occasion, isLargeGroup, tableId, linkedTableId, thirdTableId } = body;
+        const { guestName, guestPhone, date, time, guests, sectionPreference, notes, occasion, isLargeGroup, tableId, linkedTableId, thirdTableId, fourthTableId } = body;
         if (!guestName || !guestPhone || !date || !time || !guests) {
             return NextResponse.json<ApiResponse>({ success: false, error: "Faltan campos requeridos" }, { status: 400 });
         }
@@ -150,6 +151,7 @@ export async function POST(request: NextRequest) {
                 ...(assignedTableId ? { tableId: assignedTableId } : {}),
                 ...(linkedTableId   ? { linkedTableId }            : {}),
                 ...(thirdTableId    ? { thirdTableId }             : {}),
+                ...(fourthTableId   ? { fourthTableId }            : {}),
             },
             include: {
                 table: { select: { number: true, section: { select: { name: true } } } },

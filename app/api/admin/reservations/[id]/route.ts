@@ -30,7 +30,7 @@ export async function PATCH(
         if (body.action === "edit-reservation") {
             const {
                 date, time, guests, guestName, guestPhone,
-                sectionPreference, tableId, linkedTableId, thirdTableId,
+                sectionPreference, tableId, linkedTableId, thirdTableId, fourthTableId,
                 notes, occasion,
             } = body as {
                 date:               string;
@@ -42,6 +42,7 @@ export async function PATCH(
                 tableId?:           string;
                 linkedTableId?:     string;
                 thirdTableId?:      string;
+                fourthTableId?:     string;
                 notes?:             string;
                 occasion?:          string;
             };
@@ -57,20 +58,21 @@ export async function PATCH(
             const { start: shiftStart, end: shiftEnd } = getShiftWindow(reservationDate);
 
             // Determinar mesa final (elegida o auto-asignada)
-            let finalTableId       = tableId       ?? null;
-            let finalLinkedTableId = linkedTableId ?? null;
-            let finalThirdTableId  = thirdTableId  ?? null;
+            let finalTableId        = tableId        ?? null;
+            let finalLinkedTableId  = linkedTableId  ?? null;
+            let finalThirdTableId   = thirdTableId   ?? null;
+            let finalFourthTableId  = fourthTableId  ?? null;
 
             if (finalTableId) {
                 // Verificar que la mesa elegida no esté ocupada (excluyendo esta reserva)
-                const allIds = [finalTableId, finalLinkedTableId, finalThirdTableId].filter(Boolean) as string[];
+                const allIds = [finalTableId, finalLinkedTableId, finalThirdTableId, finalFourthTableId].filter(Boolean) as string[];
                 const conflict = await prisma.reservation.findFirst({
                     where: {
                         id:     { not: params.id },
                         status: { notIn: ["CANCELLED", "NO_SHOW"] },
                         date:   { gte: shiftStart, lt: shiftEnd },
                         OR: allIds.flatMap((id) => [
-                            { tableId: id }, { linkedTableId: id }, { thirdTableId: id },
+                            { tableId: id }, { linkedTableId: id }, { thirdTableId: id }, { fourthTableId: id },
                         ]),
                     },
                 });
@@ -99,6 +101,7 @@ export async function PATCH(
                     tableId:           finalTableId,
                     linkedTableId:     finalLinkedTableId,
                     thirdTableId:      finalThirdTableId,
+                    fourthTableId:     finalFourthTableId,
                     notes:             notes    ?? null,
                     occasion:          occasion ?? null,
                 },
@@ -114,10 +117,11 @@ export async function PATCH(
 
         // ── Mover mesa ────────────────────────────────────────────────
         if (body.action === "move-table") {
-            const { tableId, linkedTableId, thirdTableId, sectionPreference } = body as {
-                tableId:           string;
-                linkedTableId?:    string;
-                thirdTableId?:     string;
+            const { tableId, linkedTableId, thirdTableId, fourthTableId, sectionPreference } = body as {
+                tableId:            string;
+                linkedTableId?:     string;
+                thirdTableId?:      string;
+                fourthTableId?:     string;
                 sectionPreference?: string;
             };
 
@@ -129,6 +133,7 @@ export async function PATCH(
                         tableId:       null,
                         linkedTableId: null,
                         thirdTableId:  null,
+                        fourthTableId: null,
                         ...(sectionPreference ? { sectionPreference } : {}),
                     },
                     select: {
@@ -156,7 +161,7 @@ export async function PATCH(
             const { getShiftWindow } = await import("@/lib/shifts");
             const { start: shiftStart, end: shiftEnd } = getShiftWindow(current.date);
 
-            const allNewIds = [tableId, linkedTableId, thirdTableId].filter(Boolean) as string[];
+            const allNewIds = [tableId, linkedTableId, thirdTableId, fourthTableId].filter(Boolean) as string[];
 
             // Verificar conflictos en la nueva mesa (excluyendo esta misma reserva)
             const conflict = await prisma.reservation.findFirst({
@@ -168,6 +173,7 @@ export async function PATCH(
                         { tableId: id },
                         { linkedTableId: id },
                         { thirdTableId: id },
+                        { fourthTableId: id },
                     ]),
                 },
             });
@@ -183,8 +189,9 @@ export async function PATCH(
                 where: { id: params.id },
                 data: {
                     tableId,
-                    linkedTableId:     linkedTableId  ?? null,
-                    thirdTableId:      thirdTableId   ?? null,
+                    linkedTableId:  linkedTableId  ?? null,
+                    thirdTableId:   thirdTableId   ?? null,
+                    fourthTableId:  fourthTableId  ?? null,
                     ...(sectionPreference ? { sectionPreference } : {}),
                 },
                 select: {

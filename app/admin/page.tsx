@@ -180,7 +180,7 @@ export default function AdminPage() {
     const editReservation = async (id: string, data: {
         date: string; time: string; guests: number;
         guestName: string; guestPhone: string; sectionPreference?: string;
-        tableId?: string; linkedTableId?: string; thirdTableId?: string;
+        tableId?: string; linkedTableId?: string; thirdTableId?: string; fourthTableId?: string;
         notes?: string; occasion?: string;
     }) => {
         if (!userId) return;
@@ -197,7 +197,7 @@ export default function AdminPage() {
     const createReservation = async (data: {
         guestName: string; guestPhone: string; date: string; time: string;
         guests: number; sectionPreference?: string; notes?: string; occasion?: string;
-        isLargeGroup?: boolean; tableId?: string; linkedTableId?: string; thirdTableId?: string;
+        isLargeGroup?: boolean; tableId?: string; linkedTableId?: string; thirdTableId?: string; fourthTableId?: string;
     }) => {
         if (!userId) return;
         const res = await fetch("/api/admin/reservations", {
@@ -217,9 +217,10 @@ export default function AdminPage() {
             headers: { "Content-Type": "application/json", "x-user-id": userId },
             body: JSON.stringify({
                 action:            "move-table",
-                tableId:           selection?.tableId ?? null,
+                tableId:           selection?.tableId       ?? null,
                 linkedTableId:     selection?.linkedTableId ?? null,
-                thirdTableId:      selection?.thirdTableId ?? null,
+                thirdTableId:      selection?.thirdTableId  ?? null,
+                fourthTableId:     selection?.fourthTableId ?? null,
                 sectionPreference,
             }),
         });
@@ -575,7 +576,9 @@ function MoveTableModal({
     };
 
     const selLabel = selection
-        ? selection.thirdTableNumber
+        ? selection.fourthTableNumber
+            ? `M${selection.tableNumber} + M${selection.linkedTableNumber} + M${selection.thirdTableNumber} + M${selection.fourthTableNumber}`
+            : selection.thirdTableNumber
             ? `M${selection.tableNumber} + M${selection.linkedTableNumber} + M${selection.thirdTableNumber}`
             : selection.linkedTableNumber
             ? `M${selection.tableNumber} + M${selection.linkedTableNumber}`
@@ -710,7 +713,7 @@ function MoveTableModal({
 type EditData = {
     date: string; time: string; guests: number;
     guestName: string; guestPhone: string; sectionPreference?: string;
-    tableId?: string; linkedTableId?: string; thirdTableId?: string;
+    tableId?: string; linkedTableId?: string; thirdTableId?: string; fourthTableId?: string;
     notes?: string; occasion?: string;
 };
 
@@ -780,7 +783,9 @@ function EditReservationModal({
     }, [section, date, time, guests, fetchAvailability]);
 
     const selLabel = selection
-        ? selection.thirdTableNumber
+        ? selection.fourthTableNumber
+            ? `M${selection.tableNumber} + M${selection.linkedTableNumber} + M${selection.thirdTableNumber} + M${selection.fourthTableNumber}`
+            : selection.thirdTableNumber
             ? `M${selection.tableNumber} + M${selection.linkedTableNumber} + M${selection.thirdTableNumber}`
             : selection.linkedTableNumber
             ? `M${selection.tableNumber} + M${selection.linkedTableNumber}`
@@ -794,11 +799,12 @@ function EditReservationModal({
             await onSave({
                 date, time, guests, guestName, guestPhone,
                 sectionPreference: section || undefined,
-                tableId:           selection?.tableId,
-                linkedTableId:     selection?.linkedTableId,
-                thirdTableId:      selection?.thirdTableId,
-                notes:             notes    || undefined,
-                occasion:          occasion || undefined,
+                tableId:            selection?.tableId,
+                linkedTableId:      selection?.linkedTableId,
+                thirdTableId:       selection?.thirdTableId,
+                fourthTableId:      selection?.fourthTableId,
+                notes:              notes    || undefined,
+                occasion:           occasion || undefined,
             });
         } catch (e: unknown) {
             setError(e instanceof Error ? e.message : "Error al guardar");
@@ -927,7 +933,7 @@ function EditReservationModal({
 
 // ── Modal Nueva Reserva (hostess, sin restricciones) ───────────────────────
 const NR_SECTIONS  = ["Terraza", "Planta Alta", "Salón", "Privado"] as const;
-const NR_PARTY     = [1, 2, 3, 4, 5, 6, 7, 8];
+const NR_PARTY     = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 const NR_OCCASIONS = ["", "Cumpleaños", "Aniversario", "Cena de negocios", "Pedida de mano", "Otro"];
 const NR_SLOTS     = (() => {
     const pad = (n: number) => String(n).padStart(2, "0");
@@ -946,7 +952,7 @@ function NewReservationModal({
     onCreate: (data: {
         guestName: string; guestPhone: string; date: string; time: string;
         guests: number; sectionPreference?: string; notes?: string; occasion?: string;
-        isLargeGroup?: boolean; tableId?: string; linkedTableId?: string; thirdTableId?: string;
+        isLargeGroup?: boolean; tableId?: string; linkedTableId?: string; thirdTableId?: string; fourthTableId?: string;
     }) => Promise<void>;
 }) {
     const todayMx = new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
@@ -986,7 +992,7 @@ function NewReservationModal({
             const res  = await fetch(`/api/reservations/available-tables?${params}`);
             const data = await res.json();
             if (!data.success) throw new Error(data.error);
-            if (guests > 8) {
+            if (guests > 15) {
                 if (!data.data.hasAvailability) {
                     setSearchError(`El área ${section} ya tiene una reserva de grupo grande ese día.`);
                     return;
@@ -1004,7 +1010,7 @@ function NewReservationModal({
         }
     };
 
-    const doCreate = async (extra: { isLargeGroup?: boolean; tableId?: string; linkedTableId?: string; thirdTableId?: string }) => {
+    const doCreate = async (extra: { isLargeGroup?: boolean; tableId?: string; linkedTableId?: string; thirdTableId?: string; fourthTableId?: string }) => {
         setSaveError(null);
         setSaving(true);
         try {
@@ -1023,7 +1029,9 @@ function NewReservationModal({
     };
 
     const selLabel = selection
-        ? selection.thirdTableNumber
+        ? selection.fourthTableNumber
+            ? `M${selection.tableNumber} + M${selection.linkedTableNumber} + M${selection.thirdTableNumber} + M${selection.fourthTableNumber}`
+            : selection.thirdTableNumber
             ? `M${selection.tableNumber} + M${selection.linkedTableNumber} + M${selection.thirdTableNumber}`
             : selection.linkedTableNumber
             ? `M${selection.tableNumber} + M${selection.linkedTableNumber}`
@@ -1093,22 +1101,22 @@ function NewReservationModal({
                                 <select style={{ ...fs, cursor: "pointer", flex: 1 }} value={guests} onChange={(e) => setGuests(Number(e.target.value))}>
                                     {NR_PARTY.map((n) => <option key={n} value={n}>{n} {n === 1 ? "persona" : "personas"}</option>)}
                                 </select>
-                                <button type="button" onClick={() => { setLargeGroupMode(true); setCustomGuests(""); setGuests(9); }}
+                                <button type="button" onClick={() => { setLargeGroupMode(true); setCustomGuests(""); setGuests(16); }}
                                     style={{ whiteSpace: "nowrap", padding: "0 12px", background: "rgba(186,132,60,0.12)", border: "1px solid rgba(186,132,60,0.35)", borderRadius: 8, color: "#ba843c", fontSize: "0.7rem", fontWeight: 600, cursor: "pointer" }}>
-                                    +8 personas
+                                    +15 personas
                                 </button>
                             </div>
                         ) : (
                             <div style={{ display: "flex", gap: 8 }}>
-                                <input style={{ ...fs, flex: 1 }} type="number" min={9} placeholder="Ej. 20" value={customGuests}
-                                    onChange={(e) => { setCustomGuests(e.target.value); const n = parseInt(e.target.value); if (!isNaN(n) && n >= 9) setGuests(n); }} />
+                                <input style={{ ...fs, flex: 1 }} type="number" min={16} placeholder="Ej. 20" value={customGuests}
+                                    onChange={(e) => { setCustomGuests(e.target.value); const n = parseInt(e.target.value); if (!isNaN(n) && n >= 16) setGuests(n); }} />
                                 <button type="button" onClick={() => { setLargeGroupMode(false); setCustomGuests(""); setGuests(2); }}
                                     style={{ whiteSpace: "nowrap", padding: "0 12px", background: "transparent", border: "1px solid rgba(245,241,232,0.15)", borderRadius: 8, color: "rgba(245,241,232,0.4)", fontSize: "0.7rem", cursor: "pointer" }}>
                                     Cancelar
                                 </button>
                             </div>
                         )}
-                        {largeGroupMode && <p style={{ margin: "5px 0 0", fontSize: "0.68rem", color: "rgba(186,132,60,0.75)", lineHeight: 1.4 }}>Grupos de +8 personas reservan el área completa por todo el día.</p>}
+                        {largeGroupMode && <p style={{ margin: "5px 0 0", fontSize: "0.68rem", color: "rgba(186,132,60,0.75)", lineHeight: 1.4 }}>Grupos de +15 personas reservan el área completa por todo el día.</p>}
                     </div>
 
                     {/* Sección */}
@@ -1162,7 +1170,7 @@ function NewReservationModal({
                     {saveError && <p style={{ margin: 0, color: "#e05555", fontSize: "0.82rem" }}>⚠ {saveError}</p>}
                     <div style={{ display: "flex", gap: 10 }}>
                         <button onClick={onClose} style={btnCancel}>Cancelar</button>
-                        <button disabled={!selection || saving} onClick={() => doCreate({ tableId: selection?.tableId, linkedTableId: selection?.linkedTableId, thirdTableId: selection?.thirdTableId })} style={btnPrimary(!selection || saving)}>
+                        <button disabled={!selection || saving} onClick={() => doCreate({ tableId: selection?.tableId, linkedTableId: selection?.linkedTableId, thirdTableId: selection?.thirdTableId, fourthTableId: selection?.fourthTableId })} style={btnPrimary(!selection || saving)}>
                             {saving ? "Creando…" : "Confirmar Reserva"}
                         </button>
                     </div>

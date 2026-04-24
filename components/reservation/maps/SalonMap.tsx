@@ -1,26 +1,29 @@
 "use client";
 import { BlobTable } from "@/components/reservation/BlobTable";
 import type { TableState } from "@/components/reservation/TableDot";
-import type { AvailableTable, AvailablePair, AvailableTriple, TableSelection } from "@/components/reservation/types";
-import { COMBINED_MAX_CAPACITY, TRIPLE_MIN_GUESTS, TRIPLE_MAX_CAPACITY } from "@/lib/tableAdjacency";
+import type { AvailableTable, AvailablePair, AvailableTriple, AvailableQuad, TableSelection } from "@/components/reservation/types";
+import { COMBINED_MAX_CAPACITY, TRIPLE_MIN_GUESTS, TRIPLE_MAX_CAPACITY, QUAD_MIN_GUESTS, QUAD_MAX_CAPACITY } from "@/lib/tableAdjacency";
 
 interface Props {
   tables:    AvailableTable[];
   pairs:     AvailablePair[];
   triples:   AvailableTriple[];
+  quads:     AvailableQuad[];
   guests:    number;
   selection: TableSelection | null;
   onSelect:  (sel: TableSelection) => void;
 }
 
-export function SalonMap({ tables, pairs, triples, guests, selection, onSelect }: Props) {
+export function SalonMap({ tables, pairs, triples, quads, guests, selection, onSelect }: Props) {
   const byNumber = new Map(tables.map((t) => [t.number, t]));
   const pairIds   = new Set(pairs.flatMap((p) => [p.tableA.id, p.tableB.id]));
   const tripleIds = new Set(triples.flatMap((t) => [t.tableA.id, t.tableB.id, t.tableC.id]));
+  const quadIds   = new Set(quads.flatMap((q) => [q.tableA.id, q.tableB.id, q.tableC.id, q.tableD.id]));
 
   function getState(t: AvailableTable): TableState {
     if (t.status === "occupied") return "occupied";
-    if (selection?.tableId === t.id || selection?.linkedTableId === t.id || selection?.thirdTableId === t.id) return "selected";
+    if (selection?.tableId === t.id || selection?.linkedTableId === t.id || selection?.thirdTableId === t.id || selection?.fourthTableId === t.id) return "selected";
+    if (guests >= QUAD_MIN_GUESTS && guests <= QUAD_MAX_CAPACITY && quadIds.has(t.id)) return "quad";
     if (guests >= TRIPLE_MIN_GUESTS && guests <= TRIPLE_MAX_CAPACITY && tripleIds.has(t.id)) return "triple";
     if (guests >= 5 && guests <= COMBINED_MAX_CAPACITY && pairIds.has(t.id)) return "pair";
     if (t.capacity >= guests) return "available";
@@ -29,6 +32,13 @@ export function SalonMap({ tables, pairs, triples, guests, selection, onSelect }
 
   function handleClick(t: AvailableTable) {
     if (t.status === "occupied") return;
+    if (guests >= QUAD_MIN_GUESTS && guests <= QUAD_MAX_CAPACITY) {
+      const quad = quads.find((q) => q.tableA.id === t.id || q.tableB.id === t.id || q.tableC.id === t.id || q.tableD.id === t.id);
+      if (quad) {
+        onSelect({ tableId: quad.tableA.id, tableNumber: quad.tableA.number, linkedTableId: quad.tableB.id, linkedTableNumber: quad.tableB.number, thirdTableId: quad.tableC.id, thirdTableNumber: quad.tableC.number, fourthTableId: quad.tableD.id, fourthTableNumber: quad.tableD.number });
+        return;
+      }
+    }
     if (guests >= TRIPLE_MIN_GUESTS && guests <= TRIPLE_MAX_CAPACITY) {
       const triple = triples.find((tr) => tr.tableA.id === t.id || tr.tableB.id === t.id || tr.tableC.id === t.id);
       if (triple) {

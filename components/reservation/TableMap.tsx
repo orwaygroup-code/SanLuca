@@ -4,7 +4,7 @@ import { TerrazaMap }    from "@/components/reservation/maps/TerrazaMap";
 import { PlantaAltaMap } from "@/components/reservation/maps/PlantaAltaMap";
 import { PrivadoSelect } from "@/components/reservation/maps/PrivadoSelect";
 import type { AvailabilityData, TableSelection } from "@/components/reservation/types";
-import { TRIPLE_MIN_GUESTS } from "@/lib/tableAdjacency";
+import { TRIPLE_MIN_GUESTS, QUAD_MIN_GUESTS } from "@/lib/tableAdjacency";
 
 interface Props {
   data:      AvailabilityData;
@@ -14,7 +14,7 @@ interface Props {
 }
 
 export function TableMap({ data, guests, selection, onSelect }: Props) {
-  const props = { tables: data.tables ?? [], pairs: data.pairs ?? [], triples: data.triples ?? [], guests, selection, onSelect };
+  const props = { tables: data.tables ?? [], pairs: data.pairs ?? [], triples: data.triples ?? [], quads: data.quads ?? [], guests, selection, onSelect };
 
   const legend = (
     <div style={{ display: "flex", gap: 20, flexWrap: "wrap", marginTop: 10, justifyContent: "center" }}>
@@ -23,8 +23,11 @@ export function TableMap({ data, guests, selection, onSelect }: Props) {
         guests >= 5 && guests < TRIPLE_MIN_GUESTS
           ? { bg: "#3d3020", border: "1px solid rgba(186,132,60,0.6)", label: "Par combinable" }
           : null,
-        guests >= TRIPLE_MIN_GUESTS
+        guests >= TRIPLE_MIN_GUESTS && guests < QUAD_MIN_GUESTS
           ? { bg: "#1e3020", border: "1px solid rgba(100,200,80,0.6)", label: "Triple combinable" }
+          : null,
+        guests >= QUAD_MIN_GUESTS
+          ? { bg: "#1a2040", border: "1px solid rgba(80,140,220,0.6)", label: "Cuádruple combinable" }
           : null,
         { bg: "#ba843c", border: "none",                              label: "Seleccionada" },
         { bg: "#1e2426", border: "none",                              label: "Ocupada" },

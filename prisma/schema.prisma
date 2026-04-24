@@ -81,6 +81,7 @@ model Table {
   reservations       Reservation[] @relation("PrimaryTable")
   linkedReservations Reservation[] @relation("LinkedTable")
   thirdReservations  Reservation[] @relation("ThirdTable")
+  fourthReservations Reservation[] @relation("FourthTable")
   createdAt          DateTime      @default(now())
   block              TableBlock?
 
@@ -120,12 +121,14 @@ model Reservation {
   linkedTable       Table?            @relation("LinkedTable", fields: [linkedTableId], references: [id], onDelete: SetNull)
   thirdTableId      String?           // tercera mesa cuando se combinan tres
   thirdTable        Table?            @relation("ThirdTable", fields: [thirdTableId], references: [id], onDelete: SetNull)
+  fourthTableId     String?           // cuarta mesa cuando se combinan cuatro
+  fourthTable       Table?            @relation("FourthTable", fields: [fourthTableId], references: [id], onDelete: SetNull)
 
   // ── Detalles del turno ─────────────────
   date              DateTime          // fecha + hora exacta
   duration          Int               @default(90)  // minutos que ocupa la mesa
   guests            Int               // número de comensales
-  isLargeGroup      Boolean           @default(false) // >8 personas: reserva área completa por día
+  isLargeGroup      Boolean           @default(false) // >15 personas: reserva área completa por día
 
   // ── Preferencias del cliente ───────────
   sectionPreference String?           // "Terraza" | "Planta Alta" | "Salón" (no garantizada)
