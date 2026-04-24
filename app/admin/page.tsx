@@ -24,6 +24,18 @@ interface Reservation {
 }
 
 // ── Status config ──────────────────────────────────────────────────────
+const OCCASION_CONFIG: Record<string, { emoji: string; color: string; bg: string; border: string }> = {
+    "Cumpleaños":        { emoji: "🎂", color: "#f472b6", bg: "rgba(244,114,182,0.10)", border: "rgba(244,114,182,0.45)" },
+    "Aniversario":       { emoji: "🥂", color: "#c084fc", bg: "rgba(192,132,252,0.10)", border: "rgba(192,132,252,0.45)" },
+    "Cena de negocios":  { emoji: "💼", color: "#60a5fa", bg: "rgba(96,165,250,0.10)",  border: "rgba(96,165,250,0.45)"  },
+    "Pedida de mano":    { emoji: "💍", color: "#f59e0b", bg: "rgba(245,158,11,0.10)",  border: "rgba(245,158,11,0.45)"  },
+    "Otro":              { emoji: "✨", color: "#ba843c", bg: "rgba(186,132,60,0.10)",  border: "rgba(186,132,60,0.45)"  },
+};
+
+function getOccasionConfig(occasion: string) {
+    return OCCASION_CONFIG[occasion] ?? { emoji: "✨", color: "#ba843c", bg: "rgba(186,132,60,0.10)", border: "rgba(186,132,60,0.45)" };
+}
+
 const STATUS_LABEL: Record<string, string> = {
     PENDING:     "PENDIENTE",
     CONFIRMED:   "CONFIRMADA",
@@ -392,6 +404,26 @@ export default function AdminPage() {
 
                                                         <div className="adm-card-date">{fmtDate(r.date)}</div>
                                                         <div className="adm-card-time">{fmtTime(r.date)}</div>
+
+                                                        {r.occasion && (() => {
+                                                            const oc = getOccasionConfig(r.occasion);
+                                                            return (
+                                                                <div style={{
+                                                                    display: "flex", alignItems: "center", gap: 10,
+                                                                    padding: "10px 14px",
+                                                                    background: oc.bg,
+                                                                    border: `1px solid ${oc.border}`,
+                                                                    borderRadius: 10,
+                                                                    marginTop: 4,
+                                                                }}>
+                                                                    <span style={{ fontSize: "1.35rem", lineHeight: 1, flexShrink: 0 }}>{oc.emoji}</span>
+                                                                    <div>
+                                                                        <p style={{ margin: 0, fontSize: "0.6rem", letterSpacing: "0.18em", textTransform: "uppercase", color: oc.color, fontWeight: 700, opacity: 0.75 }}>Celebración</p>
+                                                                        <p style={{ margin: "1px 0 0", fontSize: "0.9rem", fontWeight: 800, color: oc.color, letterSpacing: "0.03em" }}>{r.occasion}</p>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })()}
 
                                                         <div className="adm-details">
                                                             <Row label="TITULAR"  val={r.guestName} />
