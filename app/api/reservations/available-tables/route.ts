@@ -13,10 +13,12 @@ import {
   QUAD_MAX_CAPACITY,
 } from "@/lib/tableAdjacency";
 import { getShiftWindow } from "@/lib/shifts";
+import { expirePendingPayments } from "@/lib/expirePendingPayments";
 import type { ApiResponse } from "@/types";
 
 export async function GET(request: NextRequest) {
   try {
+    await expirePendingPayments();
     const { searchParams } = new URL(request.url);
     const section   = searchParams.get("section");
     const date      = searchParams.get("date");

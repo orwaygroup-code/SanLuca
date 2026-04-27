@@ -141,8 +141,12 @@ model Reservation {
 
   // ── Pago ───────────────────────────────
   paymentStatus     PaymentStatus     @default(UNPAID)
-  paymentIntentId   String?           // ID de Stripe
+  paymentIntentId   String?           // ID externo (MercadoPago preferenceId)
   amountPaid        Decimal?          @db.Decimal(10, 2)
+  requiresPayment   Boolean           @default(false) // fecha especial con cobro
+  creditUsed        Float             @default(0)     // crédito aplicado a esta reserva
+  expiresAt         DateTime?         // expira el apartado si no se paga (PENDING_PAYMENT)
+  payment           Payment?          @relation("ReservationPayment")
 
   // ── Check-in con QR ────────────────────
   // El QR contiene la URL: /checkin/[qrToken]
@@ -198,13 +202,14 @@ model ReservationItem {
 // ============================================
 
 enum ReservationStatus {
-  PENDING      // recién creada, esperando confirmación + pago
-  CONFIRMED    // reserva confirmada
-  IN_PROGRESS  // cliente está en el restaurante (EN CURSO)
-  DELAYED      // cliente avisó retraso (RETRASO)
-  CANCELLED    // cancelada por cliente o admin
-  COMPLETED    // cliente asistió (check-in realizado)
-  NO_SHOW      // no se presentó
+  PENDING_PAYMENT // esperando pago MP en fechas especiales (con expiresAt)
+  PENDING         // recién creada, esperando confirmación
+  CONFIRMED       // reserva confirmada
+  IN_PROGRESS     // cliente está en el restaurante (EN CURSO)
+  DELAYED         // cliente avisó retraso (RETRASO)
+  CANCELLED       // cancelada por cliente o admin
+  COMPLETED       // cliente asistió (check-in realizado)
+  NO_SHOW         // no se presentó
 }
 
 enum PaymentStatus {
@@ -212,4 +217,66 @@ enum PaymentStatus {
   PAID        // pago completado
   REFUNDED    // reembolso realizado
   PARTIAL     // pagó el depósito pero no los platillos
+}
+
+// ============================================
+// FECHAS ESPECIALES (con cobro anticipado)
+// ============================================
+
+model SpecialDate {
+  id        String   @id @default(cuid())
+  month     Int      // 1-12
+  day       Int      // 1-31
+  label     String   // "Día de las Madres", "San Valentín"...
+  amount    Float    @default(500) // monto a cobrar por reserva
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([month, day])
+}
+
+// ============================================
+// PAGOS (MercadoPago)
+// ============================================
+
+model Payment {
+  id              String       @id @default(cuid())
+  mpPaymentId     String?      @unique // ID del pago en MP (después del cobro)
+  mpPreferenceId  String?      @unique // ID de la preferencia (antes del cobro)
+  amount          Float
+  status          String       // "pending" | "approved" | "rejected" | "cancelled"
+  customerEmail   String
+  customerName    String
+  customerPhone   String
+  reservationId   String?      @unique
+  reservation     Reservation? @relation("ReservationPayment", fields: [reservationId], references: [id], onDelete: SetNull)
+  rawData         Json?        // respuesta completa MP para debugging
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([customerEmail])
+  @@index([customerPhone])
+  @@index([status])
+}
+
+// ============================================
+// CRÉDITOS (por cancelación de reservas pagadas)
+// ============================================
+
+model Credit {
+  id                   String    @id @default(cuid())
+  customerEmail        String
+  customerPhone        String
+  amount               Float
+  used                 Boolean   @default(false)
+  source               String    // "cancelled_reservation"
+  originReservationId  String?   // reserva cancelada que originó el crédito
+  appliedReservationId String?   // reserva que consumió el crédito
+  notes                String?
+  createdAt            DateTime  @default(now())
+  usedAt               DateTime?
+
+  @@index([customerEmail, used])
+  @@index([customerPhone, used])
 }

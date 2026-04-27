@@ -227,6 +227,14 @@ export async function PATCH(
             },
         });
 
+        // Si se cancela una reserva pagada, generar crédito a favor del cliente
+        if (status === "CANCELLED") {
+            const { createCreditFromCancelledReservation } = await import("@/lib/credits");
+            await createCreditFromCancelledReservation(params.id).catch((e) =>
+                console.error("[Credits] error generating credit:", e)
+            );
+        }
+
         // Enviar QR por WhatsApp al confirmar
         if (status === "CONFIRMED") {
             sendReservationQR({

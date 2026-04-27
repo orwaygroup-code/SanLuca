@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { TableMap } from "@/components/reservation/TableMap";
 import type { AvailabilityData, TableSelection } from "@/components/reservation/types";
@@ -61,9 +61,46 @@ export function ReservationForm() {
   const [confirming, setConfirming] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [authRequired, setAuthRequired] = useState(false);
+  const [specialDates, setSpecialDates] = useState<{ month: number; day: number; label: string; amount: number }[]>([]);
+  const [creditAvailable, setCreditAvailable] = useState(0);
+  const [paymentRedirecting, setPaymentRedirecting] = useState(false);
 
   const set = <K extends keyof FormData>(field: K, value: FormData[K]) =>
     setForm((prev) => ({ ...prev, [field]: value }));
+
+  // Cargar fechas especiales una sola vez
+  useEffect(() => {
+    fetch("/api/special-dates")
+      .then((r) => r.json())
+      .then((d) => Array.isArray(d?.dates) && setSpecialDates(d.dates))
+      .catch(() => {});
+  }, []);
+
+  // Lookup de crédito cuando hay phone + auth
+  useEffect(() => {
+    const phone = form.guestPhone.replace(/\D/g, "");
+    if (phone.length < 10) { setCreditAvailable(0); return; }
+    const userId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
+    if (!userId) { setCreditAvailable(0); return; }
+    let cancelled = false;
+    fetch(`/api/credits/lookup?phone=${encodeURIComponent(phone)}`, {
+      headers: { "x-user-id": userId },
+    })
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled) setCreditAvailable(d?.amount ?? 0); })
+      .catch(() => { if (!cancelled) setCreditAvailable(0); });
+    return () => { cancelled = true; };
+  }, [form.guestPhone]);
+
+  // Detectar si la fecha seleccionada es especial
+  const selectedSpecial = (() => {
+    if (!form.date) return null;
+    const [, mm, dd] = form.date.split("-").map((n) => parseInt(n, 10));
+    return specialDates.find((s) => s.month === mm && s.day === dd) || null;
+  })();
+  const paymentDue = selectedSpecial
+    ? Math.max(0, selectedSpecial.amount - creditAvailable)
+    : 0;
 
   // Slots de horario según el día seleccionado
   const { timeSlots, isDayClosed } = (() => {
@@ -180,6 +217,11 @@ export function ReservationForm() {
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
+      if (data.data?.needsPayment && data.data?.initPoint) {
+        setPaymentRedirecting(true);
+        window.location.href = data.data.initPoint;
+        return;
+      }
       router.push("/dashboard");
     } catch (e: unknown) {
       setConfirmError(e instanceof Error ? e.message : "Error al crear la reserva");
@@ -212,6 +254,11 @@ export function ReservationForm() {
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
+      if (data.data?.needsPayment && data.data?.initPoint) {
+        setPaymentRedirecting(true);
+        window.location.href = data.data.initPoint;
+        return;
+      }
       router.push("/dashboard");
     } catch (e: unknown) {
       setConfirmError(e instanceof Error ? e.message : "Error al crear la reserva");
@@ -384,6 +431,37 @@ export function ReservationForm() {
               </div>
             </div>
 
+            {selectedSpecial && (
+              <div style={{
+                background: "linear-gradient(135deg, rgba(186,132,60,0.18), rgba(186,132,60,0.08))",
+                border: "1px solid rgba(186,132,60,0.5)",
+                borderRadius: 10,
+                padding: "12px 14px",
+                display: "flex",
+                gap: 12,
+                alignItems: "flex-start",
+              }}>
+                <div style={{ fontSize: "1.4rem", lineHeight: 1 }}>✨</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: "0.8rem", color: "#ba843c", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 4 }}>
+                    {selectedSpecial.label} · Fecha especial
+                  </div>
+                  <div style={{ fontSize: "0.78rem", color: "rgba(245,241,232,0.85)", lineHeight: 1.45 }}>
+                    Esta fecha requiere un apartado de <b>${selectedSpecial.amount.toFixed(0)} MXN</b> por reserva.
+                    {creditAvailable > 0 && (
+                      <>
+                        {" "}Tienes <b style={{ color: "#ba843c" }}>${creditAvailable.toFixed(0)}</b> de crédito disponible
+                        {paymentDue > 0
+                          ? ` — pagarás $${paymentDue.toFixed(0)} con MercadoPago.`
+                          : " — se aplicará automáticamente, sin pago adicional."}
+                      </>
+                    )}
+                    {creditAvailable === 0 && " Te redirigiremos a MercadoPago para completar el apartado."}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="rf-label">¿Qué festejamos?</label>
               <GoldSelect
@@ -424,8 +502,12 @@ export function ReservationForm() {
               </div>
             )}
 
-            <button className="rf-submit" onClick={handleSearch} disabled={searching}>
-              {searching ? "Verificando disponibilidad..." : "Buscar Disponibilidad"}
+            <button className="rf-submit" onClick={handleSearch} disabled={searching || paymentRedirecting}>
+              {searching
+                ? "Verificando disponibilidad..."
+                : paymentRedirecting
+                ? "Redirigiendo a MercadoPago..."
+                : "Buscar Disponibilidad"}
             </button>
           </>
         )}

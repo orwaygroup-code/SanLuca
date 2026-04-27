@@ -63,6 +63,9 @@ export async function GET(request: NextRequest) {
                 notes:             true,
                 status:            true,
                 paymentStatus:     true,
+                requiresPayment:   true,
+                creditUsed:        true,
+                amountPaid:        true,
                 checkedInAt:       true,
                 qrToken:           true,
                 table: {

@@ -4,10 +4,15 @@ import { prisma } from "@/lib/prisma";
 import { createReservationSchema } from "@/lib/validations";
 import { getShiftWindow } from "@/lib/shifts";
 import { autoAssignTable } from "@/lib/autoAssignTable";
+import { expirePendingPayments } from "@/lib/expirePendingPayments";
+import { getSpecialDateForDateStr } from "@/lib/specialDates";
+import { getAvailableCredit, applyCreditsToReservation } from "@/lib/credits";
+import { createReservationPreference } from "@/lib/mercadopago";
 import type { ApiResponse } from "@/types";
 
 const MAX_ACTIVE_RESERVATIONS = 2;
-const ACTIVE_STATUSES = ["PENDING", "CONFIRMED"] as const;
+const ACTIVE_STATUSES = ["PENDING", "CONFIRMED", "PENDING_PAYMENT"] as const;
+const PAYMENT_HOLD_MINUTES = 15;
 
 // ──────────────────────────────────────────────
 // POST /api/reservations
@@ -15,6 +20,8 @@ const ACTIVE_STATUSES = ["PENDING", "CONFIRMED"] as const;
 // ──────────────────────────────────────────────
 export async function POST(request: NextRequest) {
     try {
+        await expirePendingPayments();
+
         // 1. Verificar autenticación
         // NOTA: Adapta esto a tu sistema de auth (NextAuth, Clerk, JWT, etc.)
         // Por ahora usamos el header x-user-id para testing manual con curl/Postman
@@ -223,7 +230,27 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        // 10. Crear la reserva normal
+        // 10. Detectar fecha especial (cobro anticipado por MercadoPago)
+        const special = await getSpecialDateForDateStr(date);
+        const customerEmail = (user.email ?? "").toLowerCase();
+        const customerPhone = (rest.guestPhone ?? "").replace(/\D/g, "");
+
+        let creditUsed = 0;
+        let needsPayment = false;
+        let amountToPay = 0;
+
+        if (special) {
+            const available = await getAvailableCredit(customerEmail, customerPhone);
+            if (available >= special.amount) {
+                creditUsed = special.amount; // se aplica DESPUÉS de crear la reserva
+            } else {
+                creditUsed = available;
+                amountToPay = special.amount - available;
+                needsPayment = true;
+            }
+        }
+
+        // 11. Crear la reserva
         const reservation = await prisma.reservation.create({
             data: {
                 userId,
@@ -233,6 +260,20 @@ export async function POST(request: NextRequest) {
                 ...(assignedThirdTableId  ? { thirdTableId:  assignedThirdTableId }  : {}),
                 ...(assignedFourthTableId ? { fourthTableId: assignedFourthTableId } : {}),
                 ...rest,
+                requiresPayment: !!special,
+                ...(needsPayment
+                    ? {
+                          status: "PENDING_PAYMENT" as const,
+                          expiresAt: new Date(Date.now() + PAYMENT_HOLD_MINUTES * 60 * 1000),
+                      }
+                    : {}),
+                ...(special && !needsPayment
+                    ? {
+                          status: "CONFIRMED" as const,
+                          paymentStatus: "PAID" as const,
+                          confirmedAt: new Date(),
+                      }
+                    : {}),
             },
             select: {
                 id: true,
@@ -250,10 +291,82 @@ export async function POST(request: NextRequest) {
             },
         });
 
+        // Aplicar crédito (parcial o total) — después de tener el id
+        if (creditUsed > 0) {
+            const applied = await applyCreditsToReservation(
+                customerEmail,
+                customerPhone,
+                creditUsed,
+                reservation.id
+            );
+            await prisma.reservation.update({
+                where: { id: reservation.id },
+                data: { creditUsed: applied },
+            });
+        }
+
+        // Si requiere pago, crear preferencia MP y devolver initPoint
+        if (needsPayment && special) {
+            const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+            try {
+                const { preferenceId, initPoint } = await createReservationPreference({
+                    reservationId: reservation.id,
+                    amount: amountToPay,
+                    customerName: rest.guestName,
+                    customerEmail,
+                    description: `Apartado reserva San Luca · ${special.label}`,
+                    appUrl,
+                });
+                await prisma.payment.create({
+                    data: {
+                        mpPreferenceId: preferenceId,
+                        amount: amountToPay,
+                        status: "pending",
+                        customerEmail,
+                        customerName: rest.guestName,
+                        customerPhone,
+                        reservationId: reservation.id,
+                    },
+                });
+                await prisma.reservation.update({
+                    where: { id: reservation.id },
+                    data: { paymentIntentId: preferenceId },
+                });
+                return NextResponse.json<ApiResponse>(
+                    {
+                        success: true,
+                        data: {
+                            ...reservation,
+                            needsPayment: true,
+                            initPoint,
+                            amountToPay,
+                            specialDateLabel: special.label,
+                        },
+                    },
+                    { status: 201 }
+                );
+            } catch (mpErr) {
+                console.error("[MP] preference error:", mpErr);
+                // rollback: cancelar la reserva pendiente
+                await prisma.reservation.update({
+                    where: { id: reservation.id },
+                    data: { status: "CANCELLED", cancelReason: "MercadoPago error" },
+                });
+                return NextResponse.json<ApiResponse>(
+                    { success: false, error: "No se pudo iniciar el pago. Inténtalo de nuevo." },
+                    { status: 502 }
+                );
+            }
+        }
+
         return NextResponse.json<ApiResponse>(
             {
                 success: true,
-                data: reservation,
+                data: {
+                    ...reservation,
+                    creditApplied: creditUsed > 0 ? creditUsed : undefined,
+                    specialDateLabel: special?.label,
+                },
             },
             { status: 201 }
         );

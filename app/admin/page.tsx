@@ -30,6 +30,9 @@ interface Reservation {
     notes:             string | null;
     status:            string;
     paymentStatus:     string;
+    requiresPayment?:  boolean;
+    creditUsed?:       number;
+    amountPaid?:       number | string | null;
     checkedInAt:       string | null;
     qrToken:           string;
     table:             { number: number; section: { name: string } } | null;
@@ -50,6 +53,7 @@ function getOccasionConfig(occasion: string) {
 }
 
 const STATUS_LABEL: Record<string, string> = {
+    PENDING_PAYMENT: "ESPERA PAGO",
     PENDING:     "PENDIENTE",
     CONFIRMED:   "CONFIRMADA",
     IN_PROGRESS: "EN CURSO",
@@ -59,6 +63,7 @@ const STATUS_LABEL: Record<string, string> = {
     NO_SHOW:     "NO SE PRESENTÓ",
 };
 const STATUS_COLOR: Record<string, string> = {
+    PENDING_PAYMENT: "#d97706",
     PENDING:     "#ba843c",
     CONFIRMED:   "#4a9eca",
     IN_PROGRESS: "#4caf50",
@@ -281,6 +286,14 @@ export default function AdminPage() {
                     >
                         🗺 Mapa
                     </button>
+                    {userRole === "ADMIN" && (
+                        <button
+                            onClick={() => router.push("/admin/fechas-especiales")}
+                            style={{ padding: "8px 14px", background: "rgba(186,132,60,0.12)", border: "1px solid rgba(186,132,60,0.35)", borderRadius: 8, color: "#ba843c", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}
+                        >
+                            ✨ Fechas
+                        </button>
+                    )}
                     <button
                         onClick={() => setShowNewModal(true)}
                         style={{ padding: "8px 14px", background: "rgba(186,132,60,0.85)", border: "1px solid #ba843c", borderRadius: 8, color: "#fff", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}
@@ -437,6 +450,35 @@ export default function AdminPage() {
                                                                 </div>
                                                             );
                                                         })()}
+
+                                                        {r.requiresPayment && (
+                                                            <div style={{
+                                                                display: "flex", alignItems: "center", gap: 10,
+                                                                padding: "8px 12px",
+                                                                background: "rgba(186,132,60,0.10)",
+                                                                border: "1px solid rgba(186,132,60,0.45)",
+                                                                borderRadius: 10,
+                                                                marginTop: 4,
+                                                            }}>
+                                                                <span style={{ fontSize: "1.1rem", lineHeight: 1 }}>💳</span>
+                                                                <div style={{ flex: 1 }}>
+                                                                    <p style={{ margin: 0, fontSize: "0.58rem", letterSpacing: "0.18em", textTransform: "uppercase", color: "#ba843c", fontWeight: 700, opacity: 0.75 }}>
+                                                                        Apartado fecha especial
+                                                                    </p>
+                                                                    <p style={{ margin: "1px 0 0", fontSize: "0.78rem", color: "#f5f1e8", fontWeight: 600 }}>
+                                                                        {r.amountPaid && Number(r.amountPaid) > 0 && (
+                                                                            <>Pagado: <b style={{ color: "#5fa15f" }}>${Number(r.amountPaid).toFixed(0)}</b></>
+                                                                        )}
+                                                                        {r.creditUsed && r.creditUsed > 0 && (
+                                                                            <> · Crédito: <b style={{ color: "#ba843c" }}>${r.creditUsed.toFixed(0)}</b></>
+                                                                        )}
+                                                                        {r.status === "PENDING_PAYMENT" && (
+                                                                            <span style={{ color: "#d97706" }}>Esperando confirmación de pago</span>
+                                                                        )}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        )}
 
                                                         <div className="adm-details">
                                                             <Row label="TITULAR"  val={r.guestName} />
