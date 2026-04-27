@@ -4,6 +4,9 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { TableMap } from "@/components/reservation/TableMap";
 import type { AvailabilityData, TableSelection } from "@/components/reservation/types";
+import { GoldSelect } from "@/components/ui/GoldSelect";
+import type { SelectOption } from "@/components/ui/GoldSelect";
+import { GuestsPicker } from "@/components/ui/GuestsPicker";
 
 // ── Types ──────────────────────────────────────────────────────────────
 interface Reservation {
@@ -881,7 +884,7 @@ function EditReservationModal({
                 </div>
 
                 {/* Fecha, hora, personas */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                     <div>
                         <label style={lbl}>Fecha</label>
                         <input type="date" style={{ ...inp, colorScheme: "dark" }} value={date} onChange={(e) => { setDate(e.target.value); setTime(""); }} />
@@ -891,18 +894,34 @@ function EditReservationModal({
                         {isDayClosed ? (
                             <p style={{ color: "#e05555", fontSize: "0.8rem", margin: "6px 0 0" }}>Lunes cerrado</p>
                         ) : (
-                            <select style={{ ...inp, cursor: "pointer" }} value={time} onChange={(e) => setTime(e.target.value)} disabled={!date}>
-                                <option value="" disabled>{date ? "Selecciona hora" : "Elige fecha primero"}</option>
-                                {timeSlots.map((t) => (
-                                    <option key={t} value={t} style={{ background: "#1b2224" }}>{t}</option>
-                                ))}
-                            </select>
+                            <GoldSelect
+                                value={time}
+                                onChange={setTime}
+                                disabled={!date}
+                                placeholder={date ? "Selecciona hora" : "Elige fecha primero"}
+                                options={timeSlots.map((t): SelectOption => ({
+                                    value: t,
+                                    label: t,
+                                    group: parseInt(t) < 14 ? "Brunch  ·  8:00 — 13:30" : "Cena  ·  14:00 — Cierre",
+                                }))}
+                            />
                         )}
                     </div>
-                    <div>
-                        <label style={lbl}>Personas</label>
-                        <input type="number" min={1} max={50} style={inp} value={guests} onChange={(e) => setGuests(parseInt(e.target.value) || 1)} />
-                    </div>
+                </div>
+                <div>
+                    <label style={lbl}>Personas</label>
+                    {guests <= 15 ? (
+                        <GuestsPicker
+                            value={guests}
+                            onChange={setGuests}
+                            onLargeGroup={() => setGuests(16)}
+                        />
+                    ) : (
+                        <div style={{ display: "flex", gap: 8 }}>
+                            <input type="number" min={16} max={500} style={{ ...inp, flex: 1 }} value={guests} onChange={(e) => setGuests(parseInt(e.target.value) || 16)} />
+                            <button type="button" onClick={() => setGuests(2)} style={{ whiteSpace: "nowrap", padding: "0 12px", background: "transparent", border: "1px solid rgba(245,241,232,0.15)", borderRadius: 8, color: "rgba(245,241,232,0.4)", fontSize: "0.7rem", cursor: "pointer" }}>← Volver</button>
+                        </div>
+                    )}
                 </div>
 
                 {/* Notas y ocasión */}
@@ -965,7 +984,7 @@ function EditReservationModal({
 
 // ── Modal Nueva Reserva (hostess, sin restricciones) ───────────────────────
 const NR_SECTIONS  = ["Terraza", "Planta Alta", "Salón", "Privado"] as const;
-const NR_PARTY     = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+
 const NR_OCCASIONS = ["", "Cumpleaños", "Aniversario", "Cena de negocios", "Pedida de mano", "Otro"];
 const NR_SLOTS     = (() => {
     const pad = (n: number) => String(n).padStart(2, "0");
@@ -1117,38 +1136,43 @@ function NewReservationModal({
                             <span style={ls}>Fecha *</span>
                             <input style={{ ...fs, colorScheme: "dark" }} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
                         </label>
-                        <label>
+                        <div>
                             <span style={ls}>Hora *</span>
-                            <select style={{ ...fs, cursor: "pointer" }} value={time} onChange={(e) => setTime(e.target.value)}>
-                                {NR_SLOTS.map((s) => <option key={s} value={s}>{s}</option>)}
-                            </select>
-                        </label>
+                            <GoldSelect
+                                value={time}
+                                onChange={setTime}
+                                placeholder="Selecciona hora"
+                                options={NR_SLOTS.map((s): SelectOption => ({
+                                    value: s,
+                                    label: s,
+                                    group: parseInt(s) < 14 ? "Brunch  ·  8:00 — 13:30" : "Cena  ·  14:00 — Cierre",
+                                }))}
+                            />
+                        </div>
                     </div>
 
                     {/* Personas */}
                     <div>
                         <span style={ls}>Personas *</span>
                         {!largeGroupMode ? (
-                            <div style={{ display: "flex", gap: 8 }}>
-                                <select style={{ ...fs, cursor: "pointer", flex: 1 }} value={guests} onChange={(e) => setGuests(Number(e.target.value))}>
-                                    {NR_PARTY.map((n) => <option key={n} value={n}>{n} {n === 1 ? "persona" : "personas"}</option>)}
-                                </select>
-                                <button type="button" onClick={() => { setLargeGroupMode(true); setCustomGuests(""); setGuests(16); }}
-                                    style={{ whiteSpace: "nowrap", padding: "0 12px", background: "rgba(186,132,60,0.12)", border: "1px solid rgba(186,132,60,0.35)", borderRadius: 8, color: "#ba843c", fontSize: "0.7rem", fontWeight: 600, cursor: "pointer" }}>
-                                    +15 personas
-                                </button>
-                            </div>
+                            <GuestsPicker
+                                value={guests}
+                                onChange={setGuests}
+                                onLargeGroup={() => { setLargeGroupMode(true); setCustomGuests(""); setGuests(16); }}
+                            />
                         ) : (
-                            <div style={{ display: "flex", gap: 8 }}>
-                                <input style={{ ...fs, flex: 1 }} type="number" min={16} placeholder="Ej. 20" value={customGuests}
-                                    onChange={(e) => { setCustomGuests(e.target.value); const n = parseInt(e.target.value); if (!isNaN(n) && n >= 16) setGuests(n); }} />
-                                <button type="button" onClick={() => { setLargeGroupMode(false); setCustomGuests(""); setGuests(2); }}
-                                    style={{ whiteSpace: "nowrap", padding: "0 12px", background: "transparent", border: "1px solid rgba(245,241,232,0.15)", borderRadius: 8, color: "rgba(245,241,232,0.4)", fontSize: "0.7rem", cursor: "pointer" }}>
-                                    Cancelar
-                                </button>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                <div style={{ display: "flex", gap: 8 }}>
+                                    <input style={{ ...fs, flex: 1 }} type="number" min={16} placeholder="Ej. 20" value={customGuests}
+                                        onChange={(e) => { setCustomGuests(e.target.value); const n = parseInt(e.target.value); if (!isNaN(n) && n >= 16) setGuests(n); }} />
+                                    <button type="button" onClick={() => { setLargeGroupMode(false); setCustomGuests(""); setGuests(2); }}
+                                        style={{ whiteSpace: "nowrap", padding: "0 12px", background: "transparent", border: "1px solid rgba(245,241,232,0.15)", borderRadius: 8, color: "rgba(245,241,232,0.4)", fontSize: "0.7rem", cursor: "pointer" }}>
+                                        Cancelar
+                                    </button>
+                                </div>
+                                <p style={{ margin: 0, fontSize: "0.68rem", color: "rgba(186,132,60,0.75)", lineHeight: 1.4 }}>Grupos de +15 personas reservan el área completa por todo el día.</p>
                             </div>
                         )}
-                        {largeGroupMode && <p style={{ margin: "5px 0 0", fontSize: "0.68rem", color: "rgba(186,132,60,0.75)", lineHeight: 1.4 }}>Grupos de +15 personas reservan el área completa por todo el día.</p>}
                     </div>
 
                     {/* Sección */}

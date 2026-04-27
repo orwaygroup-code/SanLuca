@@ -4,6 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { TableMap } from "@/components/reservation/TableMap";
 import type { AvailabilityData, TableSelection } from "@/components/reservation/types";
+import { GoldSelect } from "@/components/ui/GoldSelect";
+import type { SelectOption } from "@/components/ui/GoldSelect";
+import { GuestsPicker } from "@/components/ui/GuestsPicker";
 
 const SECTIONS = ["Terraza", "Planta Alta", "Salón", "Privado"] as const;
 type Section = (typeof SECTIONS)[number];
@@ -15,7 +18,6 @@ const SECTION_IMAGES: Record<Section, string> = {
   "Privado":    "/images/areas/privado.jpg",
 };
 
-const PARTY_SIZES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 
 interface FormData {
   guestName: string;
@@ -307,99 +309,58 @@ export function ReservationForm() {
                 {isDayClosed ? (
                   <div className="rf-error" style={{ marginTop: 4 }}>Los lunes estamos cerrados.</div>
                 ) : (
-                  <select className="rf-select" value={form.time}
-                    onChange={(e) => set("time", e.target.value)}
-                    disabled={!form.date}>
-                    <option value="" disabled>{form.date ? "Selecciona hora" : "Elige fecha primero"}</option>
-                    {timeSlots.map((t) => (
-                      <option key={t} value={t} style={{ background: "#1b2224" }}>{t}</option>
-                    ))}
-                  </select>
+                  <GoldSelect
+                    value={form.time}
+                    onChange={(v) => set("time", v)}
+                    disabled={!form.date}
+                    placeholder={form.date ? "Selecciona hora" : "Elige fecha primero"}
+                    options={timeSlots.map((t): SelectOption => ({
+                      value: t,
+                      label: t,
+                      group: parseInt(t) < 14 ? "Brunch  ·  8:00 — 13:30" : "Cena  ·  14:00 — Cierre",
+                    }))}
+                  />
                 )}
               </div>
 
               {/* ── Selector de personas ── */}
-              <div>
+              <div style={{ gridColumn: "1 / -1" }}>
                 <label className="rf-label">Personas</label>
                 {!largeGroupMode ? (
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <select
-                      className="rf-select"
-                      value={form.guests}
-                      onChange={(e) => set("guests", Number(e.target.value))}
-                      style={{ flex: 1 }}
-                    >
-                      {PARTY_SIZES.map((n) => (
-                        <option key={n} value={n} style={{ background: "#1b2224" }}>
-                          {n} {n === 1 ? "persona" : "personas"}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLargeGroupMode(true);
-                        setCustomGuestsInput("");
-                        set("guests", 16);
-                      }}
-                      style={{
-                        whiteSpace: "nowrap",
-                        padding: "0 10px",
-                        background: "rgba(186,132,60,0.12)",
-                        border: "1px solid rgba(186,132,60,0.35)",
-                        borderRadius: 8,
-                        color: "#ba843c",
-                        fontSize: "0.68rem",
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        letterSpacing: "0.02em",
-                      }}
-                    >
-                      +15 personas
-                    </button>
-                  </div>
+                  <GuestsPicker
+                    value={form.guests}
+                    onChange={(n) => set("guests", n)}
+                    onLargeGroup={() => { setLargeGroupMode(true); setCustomGuestsInput(""); set("guests", 16); }}
+                  />
                 ) : (
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <input
-                      className="rf-input"
-                      type="number"
-                      min={16}
-                      max={500}
-                      placeholder="Ej. 20"
-                      value={customGuestsInput}
-                      onChange={(e) => {
-                        setCustomGuestsInput(e.target.value);
-                        const n = parseInt(e.target.value);
-                        if (!isNaN(n) && n >= 16) set("guests", n);
-                      }}
-                      style={{ flex: 1 }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLargeGroupMode(false);
-                        setCustomGuestsInput("");
-                        set("guests", 2);
-                      }}
-                      style={{
-                        whiteSpace: "nowrap",
-                        padding: "0 10px",
-                        background: "transparent",
-                        border: "1px solid rgba(245,241,232,0.15)",
-                        borderRadius: 8,
-                        color: "rgba(245,241,232,0.4)",
-                        fontSize: "0.68rem",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Cancelar
-                    </button>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <input
+                        className="rf-input"
+                        type="number"
+                        min={16}
+                        max={500}
+                        placeholder="Ej. 20 personas"
+                        value={customGuestsInput}
+                        onChange={(e) => {
+                          setCustomGuestsInput(e.target.value);
+                          const n = parseInt(e.target.value);
+                          if (!isNaN(n) && n >= 16) set("guests", n);
+                        }}
+                        style={{ flex: 1 }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => { setLargeGroupMode(false); setCustomGuestsInput(""); set("guests", 2); }}
+                        style={{ whiteSpace: "nowrap", padding: "0 12px", background: "transparent", border: "1px solid rgba(245,241,232,0.15)", borderRadius: 8, color: "rgba(245,241,232,0.4)", fontSize: "0.68rem", cursor: "pointer" }}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                    <p style={{ fontSize: "0.68rem", color: "rgba(186,132,60,0.75)", margin: 0, lineHeight: 1.4 }}>
+                      Grupos de +15 personas reservan el área completa por todo el día.
+                    </p>
                   </div>
-                )}
-                {largeGroupMode && (
-                  <p style={{ fontSize: "0.68rem", color: "rgba(186,132,60,0.75)", margin: "5px 0 0", lineHeight: 1.4 }}>
-                    Grupos de +15 personas reservan el área completa por todo el día.
-                  </p>
                 )}
               </div>
             </div>
