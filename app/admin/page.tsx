@@ -7,6 +7,16 @@ import type { AvailabilityData, TableSelection } from "@/components/reservation/
 import { GoldSelect } from "@/components/ui/GoldSelect";
 import type { SelectOption } from "@/components/ui/GoldSelect";
 import { GuestsPicker } from "@/components/ui/GuestsPicker";
+import { DatePicker } from "@/components/ui/DatePicker";
+
+const OCCASION_OPTIONS: SelectOption[] = [
+  { value: "",                  label: "— Sin celebración —"  },
+  { value: "Cumpleaños",        label: "🎂  Cumpleaños"        },
+  { value: "Aniversario",       label: "🥂  Aniversario"       },
+  { value: "Cena de negocios",  label: "💼  Cena de negocios"  },
+  { value: "Pedida de mano",    label: "💍  Pedida de mano"    },
+  { value: "Otro",              label: "✨  Otro"              },
+];
 
 // ── Types ──────────────────────────────────────────────────────────────
 interface Reservation {
@@ -887,7 +897,7 @@ function EditReservationModal({
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                     <div>
                         <label style={lbl}>Fecha</label>
-                        <input type="date" style={{ ...inp, colorScheme: "dark" }} value={date} onChange={(e) => { setDate(e.target.value); setTime(""); }} />
+                        <DatePicker value={date} onChange={(v) => { setDate(v); setTime(""); }} placeholder="Selecciona fecha" />
                     </div>
                     <div>
                         <label style={lbl}>Hora</label>
@@ -927,8 +937,13 @@ function EditReservationModal({
                 {/* Notas y ocasión */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                     <div>
-                        <label style={lbl}>Ocasión</label>
-                        <input style={inp} value={occasion} onChange={(e) => setOccasion(e.target.value)} placeholder="Cumpleaños, aniversario…" />
+                        <label style={lbl}>¿Qué festejamos?</label>
+                        <GoldSelect
+                            value={occasion}
+                            onChange={setOccasion}
+                            options={OCCASION_OPTIONS}
+                            placeholder="— Sin celebración —"
+                        />
                     </div>
                     <div>
                         <label style={lbl}>Notas</label>
@@ -985,7 +1000,6 @@ function EditReservationModal({
 // ── Modal Nueva Reserva (hostess, sin restricciones) ───────────────────────
 const NR_SECTIONS  = ["Terraza", "Planta Alta", "Salón", "Privado"] as const;
 
-const NR_OCCASIONS = ["", "Cumpleaños", "Aniversario", "Cena de negocios", "Pedida de mano", "Otro"];
 const NR_SLOTS     = (() => {
     const pad = (n: number) => String(n).padStart(2, "0");
     const s: string[] = [];
@@ -1132,10 +1146,10 @@ function NewReservationModal({
 
                     {/* Fecha + Hora */}
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                        <label>
+                        <div>
                             <span style={ls}>Fecha *</span>
-                            <input style={{ ...fs, colorScheme: "dark" }} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-                        </label>
+                            <DatePicker value={date} onChange={setDate} placeholder="Selecciona fecha" />
+                        </div>
                         <div>
                             <span style={ls}>Hora *</span>
                             <GoldSelect
@@ -1192,12 +1206,15 @@ function NewReservationModal({
                     </div>
 
                     {/* Ocasión */}
-                    <label>
-                        <span style={ls}>Ocasión (opcional)</span>
-                        <select style={{ ...fs, cursor: "pointer" }} value={occasion} onChange={(e) => setOccasion(e.target.value)}>
-                            {NR_OCCASIONS.map((o) => <option key={o} value={o}>{o || "— Ninguna —"}</option>)}
-                        </select>
-                    </label>
+                    <div>
+                        <span style={ls}>¿Qué festejamos?</span>
+                        <GoldSelect
+                            value={occasion}
+                            onChange={setOccasion}
+                            options={OCCASION_OPTIONS}
+                            placeholder="— Sin celebración —"
+                        />
+                    </div>
 
                     {/* Notas */}
                     <label>

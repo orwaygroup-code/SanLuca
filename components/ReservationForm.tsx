@@ -7,6 +7,7 @@ import type { AvailabilityData, TableSelection } from "@/components/reservation/
 import { GoldSelect } from "@/components/ui/GoldSelect";
 import type { SelectOption } from "@/components/ui/GoldSelect";
 import { GuestsPicker } from "@/components/ui/GuestsPicker";
+import { DatePicker } from "@/components/ui/DatePicker";
 
 const SECTIONS = ["Terraza", "Planta Alta", "Salón", "Privado"] as const;
 type Section = (typeof SECTIONS)[number];
@@ -19,6 +20,17 @@ const SECTION_IMAGES: Record<Section, string> = {
 };
 
 
+const OCCASIONS: SelectOption[] = [
+  { value: "",                  label: "— Sin celebración —"  },
+  { value: "Cumpleaños",        label: "🎂  Cumpleaños"        },
+  { value: "Aniversario",       label: "🥂  Aniversario"       },
+  { value: "Cena de negocios",  label: "💼  Cena de negocios"  },
+  { value: "Pedida de mano",    label: "💍  Pedida de mano"    },
+  { value: "Otro",              label: "✨  Otro"              },
+];
+
+const TODAY = new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
+
 interface FormData {
   guestName: string;
   guestPhone: string;
@@ -26,6 +38,7 @@ interface FormData {
   time: string;
   guests: number;
   sectionPreference: Section;
+  occasion: string;
   notes: string;
 }
 
@@ -37,7 +50,7 @@ export function ReservationForm() {
   const [step, setStep] = useState<Step>("form");
   const [form, setForm] = useState<FormData>({
     guestName: "", guestPhone: "", date: "", time: "",
-    guests: 2, sectionPreference: "Terraza", notes: "",
+    guests: 2, sectionPreference: "Terraza", occasion: "", notes: "",
   });
   const [largeGroupMode, setLargeGroupMode] = useState(false);
   const [customGuestsInput, setCustomGuestsInput] = useState("");
@@ -157,6 +170,7 @@ export function ReservationForm() {
           time: form.time,
           guests: form.guests,
           sectionPreference: form.sectionPreference,
+          occasion: form.occasion || undefined,
           notes: form.notes || undefined,
           tableId:        selection.tableId,
           linkedTableId:  selection.linkedTableId,
@@ -191,6 +205,7 @@ export function ReservationForm() {
           time: form.time,
           guests: form.guests,
           sectionPreference: form.sectionPreference,
+          occasion: form.occasion || undefined,
           notes: form.notes || undefined,
           isLargeGroup: true,
         }),
@@ -300,9 +315,13 @@ export function ReservationForm() {
             <div className="rf-row-three">
               <div>
                 <label className="rf-label">Fecha</label>
-                <input className="rf-input" type="date" value={form.date}
-                  style={{ colorScheme: "dark" }}
-                  onChange={(e) => { set("date", e.target.value); set("time", ""); }} />
+                <DatePicker
+                  value={form.date}
+                  onChange={(v) => { set("date", v); set("time", ""); }}
+                  min={TODAY}
+                  disabledDow={[1]}
+                  placeholder="Selecciona fecha"
+                />
               </div>
               <div>
                 <label className="rf-label">Hora</label>
@@ -363,6 +382,16 @@ export function ReservationForm() {
                   </div>
                 )}
               </div>
+            </div>
+
+            <div>
+              <label className="rf-label">¿Qué festejamos?</label>
+              <GoldSelect
+                value={form.occasion}
+                onChange={(v) => set("occasion", v)}
+                options={OCCASIONS}
+                placeholder="— Sin celebración —"
+              />
             </div>
 
             <div>
