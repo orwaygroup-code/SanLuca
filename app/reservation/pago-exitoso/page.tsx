@@ -1,9 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
-export default function PagoExitosoPage() {
+function PagoExitosoInner() {
   const params = useSearchParams();
   const reservationId = params.get("r") || "";
   const [status, setStatus] = useState<"checking" | "confirmed" | "pending">("checking");
@@ -91,5 +91,13 @@ export default function PagoExitosoPage() {
         </Link>
       </div>
     </div>
+  );
+}
+
+export default function PagoExitosoPage() {
+  return (
+    <Suspense fallback={null}>
+      <PagoExitosoInner />
+    </Suspense>
   );
 }
