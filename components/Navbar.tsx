@@ -4,14 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { colors, fonts } from "@/config/theme";
-
-const NAV_LINKS = [
-  { label: "Filosofía", href: "#filosofia" },
-  { label: "Menú", href: "/menu" },
-  { label: "Historia", href: "#historia" },
-  { label: "Reservar", href: "/reservation" },
-  { label: "Contacto", href: "/contact" },
-];
+import { useTranslation } from "@/lib/i18n";
+import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 
 function NavLink({
   label,
@@ -50,12 +44,21 @@ function NavLink({
 
 export default function Navbar() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [show, setShow] = useState(true);
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
   const [isDark, setIsDark] = useState(true);
   const lastY = useRef(0);
+
+  const NAV_LINKS = [
+    { label: t.nav.philosophy, href: "#filosofia" },
+    { label: t.nav.menu,       href: "/menu" },
+    { label: t.nav.history,    href: "#historia" },
+    { label: t.nav.reserve,    href: "/reservation" },
+    { label: t.nav.contact,    href: "/contact" },
+  ];
 
   useEffect(() => {
     const check = () => {
@@ -120,22 +123,27 @@ export default function Navbar() {
           justifyContent: "space-between",
         }}
       >
-        {/* Logo */}
-        <Link
-          href="/"
-          style={{
-            fontFamily: fonts.primary,
-            fontWeight: 500,
-            fontSize: "0.85rem",
-            color: isDark ? colors.cream : "#1e3a52",
-            textDecoration: "none",
-            transition: "color 0.4s ease",
-          }}
-        >
-          SAN
-          <br />
-          LUCA
-        </Link>
+        {/* Logo + selector de idioma (izquierda) */}
+        <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
+          <Link
+            href="/"
+            style={{
+              fontFamily: fonts.primary,
+              fontWeight: 500,
+              fontSize: "0.85rem",
+              color: isDark ? colors.cream : "#1e3a52",
+              textDecoration: "none",
+              transition: "color 0.4s ease",
+            }}
+          >
+            SAN
+            <br />
+            LUCA
+          </Link>
+          <div className="nav-lang-desktop">
+            <LanguageSwitcher isDark={isDark} />
+          </div>
+        </div>
 
         {/* Desktop */}
         <div
@@ -161,7 +169,7 @@ export default function Navbar() {
                   textTransform: "uppercase",
                   color: colors.peru,
                 }}>
-                  Hola, {userName.split(" ")[0]}
+                  {t.nav.greeting}, {userName.split(" ")[0]}
                 </span>
                 <Link href="/dashboard" style={{
                   fontFamily: fonts.primary,
@@ -175,7 +183,7 @@ export default function Navbar() {
                   padding: "6px 14px",
                   transition: "all 0.2s",
                 }}>
-                  Mis Reservas
+                  {t.nav.myReservations}
                 </Link>
                 <button onClick={handleLogout} style={{
                   fontFamily: fonts.primary,
@@ -188,7 +196,7 @@ export default function Navbar() {
                   cursor: "pointer",
                   transition: "color 0.2s",
                 }}>
-                  Salir
+                  {t.nav.logout}
                 </button>
               </>
             ) : (
@@ -202,7 +210,7 @@ export default function Navbar() {
                   textDecoration: "none",
                   transition: "color 0.2s",
                 }}>
-                  Iniciar Sesión
+                  {t.nav.login}
                 </Link>
                 <Link href="/login?mode=register" style={{
                   fontFamily: fonts.primary,
@@ -216,7 +224,7 @@ export default function Navbar() {
                   padding: "6px 14px",
                   transition: "background 0.2s",
                 }}>
-                  Registrar
+                  {t.nav.register}
                 </Link>
               </>
             )}
@@ -303,27 +311,29 @@ export default function Navbar() {
 
             <div style={{ width: "100%", height: 1, background: "rgba(186,132,60,0.2)" }} />
 
+            <LanguageSwitcher isDark={isDark} />
+
             {userName ? (
               <>
                 <span style={{
                   fontFamily: fonts.primary, fontSize: "0.65rem",
                   fontWeight: 800, textTransform: "uppercase", color: colors.peru,
                 }}>
-                  Hola, {userName.split(" ")[0]}
+                  {t.nav.greeting}, {userName.split(" ")[0]}
                 </span>
-                <NavLink label="Mis Reservas" href="/dashboard" isDark={isDark} onClick={() => setOpen(false)} />
+                <NavLink label={t.nav.myReservations} href="/dashboard" isDark={isDark} onClick={() => setOpen(false)} />
                 <button onClick={() => { handleLogout(); setOpen(false); }} style={{
                   fontFamily: fonts.primary, fontSize: "0.62rem", fontWeight: 800,
                   textTransform: "uppercase", color: "rgba(245,241,232,0.4)",
                   background: "none", border: "none", cursor: "pointer",
                 }}>
-                  Cerrar Sesión
+                  {t.nav.logout}
                 </button>
               </>
             ) : (
               <>
-                <NavLink label="Iniciar Sesión" href="/login?mode=login" isDark={isDark} onClick={() => setOpen(false)} />
-                <NavLink label="Registrar" href="/login?mode=register" isDark={isDark} onClick={() => setOpen(false)} />
+                <NavLink label={t.nav.login}    href="/login?mode=login"    isDark={isDark} onClick={() => setOpen(false)} />
+                <NavLink label={t.nav.register} href="/login?mode=register" isDark={isDark} onClick={() => setOpen(false)} />
               </>
             )}
           </div>

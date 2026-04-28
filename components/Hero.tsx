@@ -5,6 +5,7 @@ import { colors, fonts } from "@/config/theme";
 import { Texture, Label, GoldLine } from "@/components/ui/Editorial";
 import Button from "@/components/ui/Button";
 import Image from "next/image";
+import { useTranslation } from "@/lib/i18n";
 
 const images = [
   "/images/hero/1b.png",
@@ -27,6 +28,7 @@ const randomImageResponsive = imagesResponsive[Math.floor(Math.random() * images
 
 
 export default function Hero() {
+  const { t } = useTranslation();
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -175,7 +177,7 @@ export default function Hero() {
             transition: "all 1s ease 1.4s",
           }}
         >
-          La mejor gastronomia del mundo en tu mesa
+          {t.hero.subtitle}
         </p>
 
         {/* CTAs */}
@@ -190,10 +192,10 @@ export default function Hero() {
           }}
         >
           <Button dark href="/reservation" style={{ padding: "clamp(12px, 3vw, 16px) clamp(28px, 5vw, 44px)", fontSize: "clamp(0.7rem, 3vw, 0.9rem)" }}>
-            Reservar Mesa
+            {t.hero.cta}
           </Button>
           <Button href="/menu" style={{ padding: "clamp(12px, 3vw, 16px) clamp(28px, 5vw, 44px)", fontSize: "clamp(0.7rem, 3vw, 0.9rem)" }}>
-            Descubrir el Menú
+            {t.hero.ctaSecondary}
           </Button>
         </div>
       </div >

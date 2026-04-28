@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import { fonts } from "@/config/theme";
+import { useTranslation } from "@/lib/i18n";
 
 const BLUE = "#6b8dab";
 const BLUE_HOVER = "#7a9dbd";
@@ -25,6 +26,7 @@ export default function DishCardBlue({
     weight,
     imageUrl,
 }: DishCardBlueProps) {
+    const { price: fmtPrice } = useTranslation();
     const [hovered, setHovered] = useState(false);
 
     return (
@@ -133,7 +135,7 @@ export default function DishCardBlue({
                                 color: TEXT,
                             }}
                         >
-                            ${price.toFixed(0)}
+                            {fmtPrice(price)}
                         </span>
                         {weight && (
                             <span

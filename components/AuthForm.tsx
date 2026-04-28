@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useTranslation } from "@/lib/i18n";
 
-const MODES = ["Iniciar Sesión", "Registrar"] as const;
+const MODES = ["login", "register"] as const;
 type Mode = (typeof MODES)[number];
 
 interface LoginData {
@@ -45,11 +46,13 @@ function EyeIcon({ open }: { open: boolean }) {
 
 export function AuthForm() {
     const router = useRouter();
+    const { t } = useTranslation();
     const searchParams = useSearchParams();
     const redirect = searchParams.get("redirect") ?? "/reservation";
-    const initialMode = searchParams.get("mode") === "login" ? "Iniciar Sesión" : "Registrar";
+    const initialMode: Mode = searchParams.get("mode") === "login" ? "login" : "register";
 
     const [mode, setMode] = useState<Mode>(initialMode);
+    const MODE_LABELS: Record<Mode, string> = { login: t.auth.login, register: t.auth.register };
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [imgIdx, setImgIdx] = useState(0);
@@ -210,7 +213,7 @@ export function AuthForm() {
                                     className={`rf-switch-btn${mode === m ? " rf-switch-btn--active" : ""}`}
                                     onClick={() => { setMode(m); setError(null); }}
                                 >
-                                    {m}
+                                    {MODE_LABELS[m]}
                                 </button>
                             ))}
                         </div>
@@ -221,17 +224,17 @@ export function AuthForm() {
             {/* ── Panel derecho ── */}
             <div className="rf-right">
 
-                {mode === "Iniciar Sesión" ? (
+                {mode === "login" ? (
                     <>
                         <div>
-                            <h2 className="rf-form-title">Iniciar Sesión</h2>
-                            <p className="rf-form-sub">Comienza tu experiencia culinaria</p>
+                            <h2 className="rf-form-title">{t.auth.login}</h2>
+                            <p className="rf-form-sub">{t.reservation.subtitle}</p>
                         </div>
 
                         <div className="rf-divider" />
 
                         <div>
-                            <label className="rf-label">Email</label>
+                            <label className="rf-label">{t.auth.email}</label>
                             <input
                                 className="rf-input"
                                 type="email"
@@ -242,7 +245,7 @@ export function AuthForm() {
                         </div>
 
                         <div>
-                            <label className="rf-label">Contraseña</label>
+                            <label className="rf-label">{t.auth.password}</label>
                             <div style={{ position: "relative" }}>
                                 <input
                                     className="rf-input"
@@ -266,9 +269,9 @@ export function AuthForm() {
                                 {error.endsWith("__REGISTER__") && (
                                     <button
                                         className="auth-error-action"
-                                        onClick={() => { setError(null); setMode("Registrar"); }}
+                                        onClick={() => { setError(null); setMode("register"); }}
                                     >
-                                        Registrarme →
+                                        {t.auth.register} →
                                     </button>
                                 )}
                             </div>
@@ -279,14 +282,14 @@ export function AuthForm() {
                             onClick={handleLogin}
                             disabled={loading}
                         >
-                            {loading ? "Iniciando..." : "Iniciar"}
+                            {loading ? t.auth.loading : t.auth.submit}
                         </button>
 
                         <button
                             className="auth-forgot"
                             onClick={() => { }}
                         >
-                            Olvidé mi contraseña
+                            {t.auth.forgotPass}
                         </button>
 
                         <button
@@ -299,30 +302,30 @@ export function AuthForm() {
                                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                             </svg>
-                            Continuar con Google
+                            {t.auth.googleBtn}
                         </button>
                     </>
                 ) : (
                     <>
                         <div>
-                            <h2 className="rf-form-title">Regístrate</h2>
-                            <p className="rf-form-sub">Comienza tu experiencia culinaria</p>
+                            <h2 className="rf-form-title">{t.auth.register}</h2>
+                            <p className="rf-form-sub">{t.reservation.subtitle}</p>
                         </div>
 
                         <div className="rf-divider" />
 
                         <div>
-                            <label className="rf-label">Nombre</label>
+                            <label className="rf-label">{t.auth.name}</label>
                             <input
                                 className="rf-input"
-                                placeholder="Ej. María González"
+                                placeholder={t.reservation.namePlaceholder}
                                 value={register.name}
                                 onChange={(e) => setR("name", e.target.value)}
                             />
                         </div>
 
                         <div>
-                            <label className="rf-label">Email</label>
+                            <label className="rf-label">{t.auth.email}</label>
                             <input
                                 className="rf-input"
                                 type="email"
@@ -334,7 +337,7 @@ export function AuthForm() {
 
                         <div className="rf-row-two">
                             <div>
-                                <label className="rf-label">Número Celular</label>
+                                <label className="rf-label">{t.auth.phone}</label>
                                 <input
                                     className="rf-input"
                                     type="tel"
@@ -344,7 +347,7 @@ export function AuthForm() {
                                 />
                             </div>
                             <div>
-                                <label className="rf-label">Fecha de Nacimiento</label>
+                                <label className="rf-label">{t.auth.birthDate}</label>
                                 <input
                                     className="rf-input"
                                     type="date"
@@ -356,7 +359,7 @@ export function AuthForm() {
                         </div>
 
                         <div>
-                            <label className="rf-label">Contraseña</label>
+                            <label className="rf-label">{t.auth.password}</label>
                             <div style={{ position: "relative" }}>
                                 <input
                                     className="rf-input"
@@ -374,7 +377,7 @@ export function AuthForm() {
                         </div>
 
                         <div>
-                            <label className="rf-label">Confirmar Contraseña</label>
+                            <label className="rf-label">{t.auth.confirmPassword}</label>
                             <div style={{ position: "relative" }}>
                                 <input
                                     className="rf-input"
@@ -399,7 +402,7 @@ export function AuthForm() {
                             onClick={handleRegister}
                             disabled={loading}
                         >
-                            {loading ? "Registrando..." : "Registrar"}
+                            {loading ? t.auth.loading : t.auth.register}
                         </button>
 
                         <button
@@ -412,7 +415,7 @@ export function AuthForm() {
                                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                             </svg>
-                            Continuar con Google
+                            {t.auth.googleBtn}
                         </button>
                     </>
                 )}

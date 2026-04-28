@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { fonts, colors } from "@/config/theme";
 import Image from "next/image";
+import { useTranslation } from "@/lib/i18n";
 
 type InsigniaItem = {
     id: string;
@@ -25,6 +26,7 @@ type PlatosInsigniaProps = {
 };
 
 export default function PlatosInsignia({ dishes }: PlatosInsigniaProps) {
+    const { price: fmtPrice } = useTranslation();
     const [activeCard, setActiveCard] = useState(1); // 0-indexed, card del medio activo por default
 
     const featured = dishes.slice(0, 3);
@@ -233,7 +235,7 @@ export default function PlatosInsignia({ dishes }: PlatosInsigniaProps) {
                                         transition: "color 0.3s ease",
                                     }}
                                 >
-                                    ${dish.price.toFixed(0)}
+                                    {fmtPrice(dish.price)}
                                 </span>
 
                                 <div

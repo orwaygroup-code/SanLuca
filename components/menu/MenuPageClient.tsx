@@ -12,6 +12,7 @@ import { useState, useRef, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { fonts, colors } from "@/config/theme";
 import { BRUNCH_GROUPS, COMIDA_GROUPS } from "@/config/Menustructure";
+import { useTranslation } from "@/lib/i18n";
 
 type InsigniaItem = {
     id: string;
@@ -523,6 +524,7 @@ function PlatosInsignia({
     hoveredCard: number | null;
     setHoveredCard: (i: number | null) => void;
 }) {
+    const { price: fmtPrice } = useTranslation();
     const featured = dishes;
 
     return (
@@ -650,7 +652,7 @@ function PlatosInsignia({
                                     </div>
                                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "2rem", paddingTop: "1.25rem", borderTop: `1px solid ${isActive ? t.borderAccent : t.border}` }}>
                                         <span style={{ fontFamily: fonts.primary, fontSize: isCenter ? "1.5rem" : "1.2rem", fontWeight: 600, color: isActive ? (mode === "comida" ? colors.peru : "#ffffff") : "rgba(255,255,255,0.6)", transition: "color 0.3s ease" }}>
-                                            ${dish.price.toFixed(0)}
+                                            {fmtPrice(dish.price)}
                                         </span>
                                         <div style={{ width: "40px", height: "1px", background: isActive ? t.accent : "rgba(255,255,255,0.2)", transition: "background 0.3s ease" }} />
                                     </div>

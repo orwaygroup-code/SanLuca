@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import { fonts } from "@/config/theme";
+import { useTranslation } from "@/lib/i18n";
 
 const GOLD = "#c9a44a";
 const GOLD_HOVER = "#d4b560";
@@ -27,6 +28,7 @@ export default function DishCardGold({
     imageUrl,
     priceUnit,
 }: DishCardGoldProps) {
+    const { price: fmtPrice } = useTranslation();
     const [hovered, setHovered] = useState(false);
 
     return (
@@ -133,7 +135,7 @@ export default function DishCardGold({
                                 transition: "color 0.25s ease",
                             }}
                         >
-                            ${price.toFixed(0)}
+                            {fmtPrice(price)}
                         </span>
                         {priceUnit && (
                             <span

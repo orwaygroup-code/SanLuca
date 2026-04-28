@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { colors, fonts } from "@/config/theme";
+import { useTranslation } from "@/lib/i18n";
 
 function FooterColumn({
   title,
@@ -68,6 +69,7 @@ function SocialLink({ label }: { label: string }) {
 }
 
 export default function Footer() {
+  const { t } = useTranslation();
   return (
     <footer
       style={{
@@ -116,7 +118,7 @@ export default function Footer() {
           </div>
 
           <FooterColumn
-            title="Visítanos"
+            title={t.footer.sections.visit}
             lines={[
               "Paseos de las Maravillas 113",
               "El llano",
@@ -125,17 +127,12 @@ export default function Footer() {
           />
 
           <FooterColumn
-            title="Horario"
-            lines={[
-              "Lunes: Cerrado",
-              "Mar–Jue: 8:00–23:00",
-              "Vie–Sáb: 8:00–00:00",
-              "Dom: 8:00–21:00",
-            ]}
+            title={t.footer.hours}
+            lines={t.footer.schedule}
           />
 
           <FooterColumn
-            title="Contacto"
+            title={t.footer.contactTitle}
             lines={[
               "+52 449 287 3674",
               "sanlucaterrazza@gmail.com",
@@ -163,7 +160,7 @@ export default function Footer() {
               color: "rgba(245,241,232,0.2)",
             }}
           >
-            © 2026 San Luca Ristorante | Desarrollado por OrwayGroup
+            © 2026 San Luca Ristorante | {t.footer.developedBy}
           </span>
           <div style={{ display: "flex", gap: 20 }}>
             <SocialLink label="Instagram" />

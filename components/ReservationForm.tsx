@@ -8,6 +8,7 @@ import { GoldSelect } from "@/components/ui/GoldSelect";
 import type { SelectOption } from "@/components/ui/GoldSelect";
 import { GuestsPicker } from "@/components/ui/GuestsPicker";
 import { DatePicker } from "@/components/ui/DatePicker";
+import { useTranslation } from "@/lib/i18n";
 
 const SECTIONS = ["Terraza", "Planta Alta", "Salón", "Privado"] as const;
 type Section = (typeof SECTIONS)[number];
@@ -18,16 +19,6 @@ const SECTION_IMAGES: Record<Section, string> = {
   "Salón":      "/images/areas/salon.jpg",
   "Privado":    "/images/areas/privado.jpg",
 };
-
-
-const OCCASIONS: SelectOption[] = [
-  { value: "",                  label: "— Sin celebración —"  },
-  { value: "Cumpleaños",        label: "🎂  Cumpleaños"        },
-  { value: "Aniversario",       label: "🥂  Aniversario"       },
-  { value: "Cena de negocios",  label: "💼  Cena de negocios"  },
-  { value: "Pedida de mano",    label: "💍  Pedida de mano"    },
-  { value: "Otro",              label: "✨  Otro"              },
-];
 
 const TODAY = new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
 
@@ -46,6 +37,16 @@ type Step = "form" | "map" | "large-confirm";
 
 export function ReservationForm() {
   const router = useRouter();
+  const { t } = useTranslation();
+
+  const OCCASIONS: SelectOption[] = [
+    { value: "",                 label: t.reservation.occasionNone        },
+    { value: "Cumpleaños",       label: t.reservation.occasions.birthday    },
+    { value: "Aniversario",      label: t.reservation.occasions.anniversary },
+    { value: "Cena de negocios", label: t.reservation.occasions.business    },
+    { value: "Pedida de mano",   label: t.reservation.occasions.proposal    },
+    { value: "Otro",             label: t.reservation.occasions.other       },
+  ];
 
   const [step, setStep] = useState<Step>("form");
   const [form, setForm] = useState<FormData>({
@@ -295,8 +296,8 @@ export function ReservationForm() {
       {/* ── Panel izquierdo ── */}
       <div className="rf-left">
         <div>
-          <h1 className="rf-hero-title">Reservar Mesa</h1>
-          <p className="rf-hero-sub">Tu mejor experiencia culinaria</p>
+          <h1 className="rf-hero-title">{t.reservation.title}</h1>
+          <p className="rf-hero-sub">{t.reservation.subtitle}</p>
         </div>
 
         <div className="rf-image-wrapper">
@@ -326,7 +327,7 @@ export function ReservationForm() {
                   className={`rf-switch-btn${form.sectionPreference === sec ? " rf-switch-btn--active" : ""}`}
                   onClick={() => { set("sectionPreference", sec as Section); setStep("form"); setAvailability(null); setSelection(null); }}
                 >
-                  {sec}
+                  {t.reservation.sections[sec]}
                 </button>
               ))}
             </div>
@@ -341,49 +342,51 @@ export function ReservationForm() {
         {step === "form" && (
           <>
             <div>
-              <h2 className="rf-form-title">Crea tu Reserva</h2>
-              <p className="rf-form-sub">Tu reservación desde tu móvil</p>
+              <h2 className="rf-form-title">{t.reservation.formTitle}</h2>
+              <p className="rf-form-sub">{t.reservation.formSubtitle}</p>
             </div>
 
             <div className="rf-divider" />
 
             <div>
-              <label className="rf-label">Nombre</label>
-              <input className="rf-input" placeholder="Ej. María González" value={form.guestName}
+              <label className="rf-label">{t.reservation.name}</label>
+              <input className="rf-input" placeholder={t.reservation.namePlaceholder} value={form.guestName}
                 onChange={(e) => set("guestName", e.target.value)} />
             </div>
 
             <div>
-              <label className="rf-label">Número celular</label>
-              <input className="rf-input" type="tel" placeholder=" 55 0000 0000" value={form.guestPhone}
+              <label className="rf-label">{t.reservation.phone}</label>
+              <input className="rf-input" type="tel" placeholder={t.reservation.phonePlaceholder} value={form.guestPhone}
                 onChange={(e) => set("guestPhone", e.target.value)} />
             </div>
 
             <div className="rf-row-three">
               <div>
-                <label className="rf-label">Fecha</label>
+                <label className="rf-label">{t.reservation.date}</label>
                 <DatePicker
                   value={form.date}
                   onChange={(v) => { set("date", v); set("time", ""); }}
                   min={TODAY}
                   disabledDow={[1]}
-                  placeholder="Selecciona fecha"
+                  placeholder={t.reservation.datePlaceholder}
                 />
               </div>
               <div>
-                <label className="rf-label">Hora</label>
+                <label className="rf-label">{t.reservation.time}</label>
                 {isDayClosed ? (
-                  <div className="rf-error" style={{ marginTop: 4 }}>Los lunes estamos cerrados.</div>
+                  <div className="rf-error" style={{ marginTop: 4 }}>{t.reservation.closedMonday}</div>
                 ) : (
                   <GoldSelect
                     value={form.time}
                     onChange={(v) => set("time", v)}
                     disabled={!form.date}
-                    placeholder={form.date ? "Selecciona hora" : "Elige fecha primero"}
-                    options={timeSlots.map((t): SelectOption => ({
-                      value: t,
-                      label: t,
-                      group: parseInt(t) < 14 ? "Brunch  ·  8:00 — 13:30" : "Cena  ·  14:00 — Cierre",
+                    placeholder={form.date ? t.reservation.timePlaceholder : t.reservation.timeDisabled}
+                    options={timeSlots.map((slot): SelectOption => ({
+                      value: slot,
+                      label: slot,
+                      group: parseInt(slot) < 14
+                        ? `${t.menu.sectionTitles.brunch}  ·  8:00 — 13:30`
+                        : `${t.menu.sectionTitles.cena}  ·  14:00 — Cierre`,
                     }))}
                   />
                 )}
@@ -391,12 +394,13 @@ export function ReservationForm() {
 
               {/* ── Selector de personas ── */}
               <div style={{ gridColumn: "1 / -1" }}>
-                <label className="rf-label">Personas</label>
+                <label className="rf-label">{t.reservation.guests}</label>
                 {!largeGroupMode ? (
                   <GuestsPicker
                     value={form.guests}
                     onChange={(n) => set("guests", n)}
                     onLargeGroup={() => { setLargeGroupMode(true); setCustomGuestsInput(""); set("guests", 16); }}
+                    largeGroupLabel={t.reservation.largeGroupBtn}
                   />
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -406,7 +410,7 @@ export function ReservationForm() {
                         type="number"
                         min={16}
                         max={500}
-                        placeholder="Ej. 20 personas"
+                        placeholder={t.reservation.largeGroupPlaceholder}
                         value={customGuestsInput}
                         onChange={(e) => {
                           setCustomGuestsInput(e.target.value);
@@ -420,11 +424,11 @@ export function ReservationForm() {
                         onClick={() => { setLargeGroupMode(false); setCustomGuestsInput(""); set("guests", 2); }}
                         style={{ whiteSpace: "nowrap", padding: "0 12px", background: "transparent", border: "1px solid rgba(245,241,232,0.15)", borderRadius: 8, color: "rgba(245,241,232,0.4)", fontSize: "0.68rem", cursor: "pointer" }}
                       >
-                        Cancelar
+                        {t.reservation.largeGroupCancel}
                       </button>
                     </div>
                     <p style={{ fontSize: "0.68rem", color: "rgba(186,132,60,0.75)", margin: 0, lineHeight: 1.4 }}>
-                      Grupos de +15 personas reservan el área completa por todo el día.
+                      {t.reservation.largeGroupHint}
                     </p>
                   </div>
                 )}
@@ -444,37 +448,37 @@ export function ReservationForm() {
                 <div style={{ fontSize: "1.4rem", lineHeight: 1 }}>✨</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: "0.8rem", color: "#ba843c", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 4 }}>
-                    {selectedSpecial.label} · Fecha especial
+                    {selectedSpecial.label} · {t.reservation.specialDate.title}
                   </div>
                   <div style={{ fontSize: "0.78rem", color: "rgba(245,241,232,0.85)", lineHeight: 1.45 }}>
-                    Esta fecha requiere un apartado de <b>${selectedSpecial.amount.toFixed(0)} MXN</b> por reserva.
+                    {t.reservation.specialDate.requires} <b>${selectedSpecial.amount.toFixed(0)} MXN</b> {t.reservation.specialDate.perReservation}
                     {creditAvailable > 0 && (
                       <>
-                        {" "}Tienes <b style={{ color: "#ba843c" }}>${creditAvailable.toFixed(0)}</b> de crédito disponible
+                        {" "}{t.reservation.specialDate.youHave} <b style={{ color: "#ba843c" }}>${creditAvailable.toFixed(0)}</b> {t.reservation.specialDate.ofCredit}
                         {paymentDue > 0
-                          ? ` — pagarás $${paymentDue.toFixed(0)} con MercadoPago.`
-                          : " — se aplicará automáticamente, sin pago adicional."}
+                          ? ` ${t.reservation.specialDate.willPay} $${paymentDue.toFixed(0)} ${t.reservation.specialDate.withMP}`
+                          : ` ${t.reservation.specialDate.autoApply}`}
                       </>
                     )}
-                    {creditAvailable === 0 && " Te redirigiremos a MercadoPago para completar el apartado."}
+                    {creditAvailable === 0 && ` ${t.reservation.specialDate.redirect}`}
                   </div>
                 </div>
               </div>
             )}
 
             <div>
-              <label className="rf-label">¿Qué festejamos?</label>
+              <label className="rf-label">{t.reservation.occasion}</label>
               <GoldSelect
                 value={form.occasion}
                 onChange={(v) => set("occasion", v)}
                 options={OCCASIONS}
-                placeholder="— Sin celebración —"
+                placeholder={t.reservation.occasionNone}
               />
             </div>
 
             <div>
-              <label className="rf-label">Solicitud especial</label>
-              <textarea className="rf-textarea" placeholder="Alergias, decoración, peticiones especiales..."
+              <label className="rf-label">{t.reservation.notes}</label>
+              <textarea className="rf-textarea" placeholder={t.reservation.notesPlaceholder}
                 value={form.notes} onChange={(e) => set("notes", e.target.value)} maxLength={500} />
             </div>
 
@@ -483,20 +487,20 @@ export function ReservationForm() {
             {authRequired && (
               <div style={{ background: "rgba(186,132,60,0.08)", border: "1px solid rgba(186,132,60,0.4)", borderRadius: 10, padding: "14px 16px" }}>
                 <p style={{ margin: "0 0 10px", fontSize: "0.8rem", color: "#f5f1e8", textAlign: "center" }}>
-                  Para continuar debes iniciar sesión o crear una cuenta.
+                  {t.reservation.authNeeded}
                 </p>
                 <div style={{ display: "flex", gap: 10 }}>
                   <button
                     onClick={() => router.push("/login?redirect=/reservation")}
                     style={{ flex: 1, padding: "9px 0", background: "#ba843c", border: "none", borderRadius: 8, color: "#fff", fontWeight: 700, fontSize: "0.8rem", cursor: "pointer", letterSpacing: "0.04em" }}
                   >
-                    Iniciar Sesión
+                    {t.nav.login}
                   </button>
                   <button
                     onClick={() => router.push("/register?redirect=/reservation")}
                     style={{ flex: 1, padding: "9px 0", background: "transparent", border: "1px solid rgba(186,132,60,0.5)", borderRadius: 8, color: "rgba(245,241,232,0.8)", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", letterSpacing: "0.04em" }}
                   >
-                    Registrarse
+                    {t.nav.register}
                   </button>
                 </div>
               </div>
@@ -504,10 +508,10 @@ export function ReservationForm() {
 
             <button className="rf-submit" onClick={handleSearch} disabled={searching || paymentRedirecting}>
               {searching
-                ? "Verificando disponibilidad..."
+                ? t.reservation.searching
                 : paymentRedirecting
-                ? "Redirigiendo a MercadoPago..."
-                : "Buscar Disponibilidad"}
+                ? t.reservation.redirecting
+                : t.reservation.searchBtn}
             </button>
           </>
         )}
@@ -520,11 +524,11 @@ export function ReservationForm() {
                 onClick={() => { setStep("form"); setSelection(null); }}
                 style={{ background: "none", border: "1px solid rgba(186,132,60,0.4)", borderRadius: 8, color: "rgba(245,241,232,0.7)", padding: "6px 14px", cursor: "pointer", fontSize: "0.75rem" }}
               >
-                ← Volver
+                ← {t.common.back}
               </button>
               <div>
-                <h2 className="rf-form-title" style={{ margin: 0 }}>Selecciona tu Mesa</h2>
-                <p className="rf-form-sub" style={{ margin: 0 }}>{form.sectionPreference} · {form.guests} {form.guests === 1 ? "persona" : "personas"} · {form.date} {form.time}</p>
+                <h2 className="rf-form-title" style={{ margin: 0 }}>{t.reservation.confirm.summary}</h2>
+                <p className="rf-form-sub" style={{ margin: 0 }}>{t.reservation.sections[form.sectionPreference]} · {form.guests} {t.dashboard.guestsLbl} · {form.date} {form.time}</p>
               </div>
             </div>
 
@@ -551,7 +555,7 @@ export function ReservationForm() {
               disabled={!selection || confirming}
               style={{ opacity: selection ? 1 : 0.4 }}
             >
-              {confirming ? "Confirmando..." : "Confirmar Reserva"}
+              {confirming ? t.reservation.confirm.confirming : t.reservation.confirm.confirmBtn}
             </button>
           </>
         )}
@@ -564,11 +568,11 @@ export function ReservationForm() {
                 onClick={() => setStep("form")}
                 style={{ background: "none", border: "1px solid rgba(186,132,60,0.4)", borderRadius: 8, color: "rgba(245,241,232,0.7)", padding: "6px 14px", cursor: "pointer", fontSize: "0.75rem" }}
               >
-                ← Volver
+                ← {t.common.back}
               </button>
               <div>
-                <h2 className="rf-form-title" style={{ margin: 0 }}>Reserva de Grupo</h2>
-                <p className="rf-form-sub" style={{ margin: 0 }}>{form.sectionPreference} · {form.guests} personas</p>
+                <h2 className="rf-form-title" style={{ margin: 0 }}>{t.reservation.largeGroupConfirmTitle}</h2>
+                <p className="rf-form-sub" style={{ margin: 0 }}>{t.reservation.sections[form.sectionPreference]} · {form.guests} {t.dashboard.guestsLbl}</p>
               </div>
             </div>
 
@@ -577,13 +581,13 @@ export function ReservationForm() {
             {/* Resumen */}
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {[
-                ["Titular", form.guestName],
-                ["Teléfono", form.guestPhone],
-                ["Fecha", readableDate],
-                ["Hora", form.time],
-                ["Personas", `${form.guests} personas`],
-                ["Área", form.sectionPreference],
-                ...(form.notes ? [["Notas", form.notes] as [string, string]] : []),
+                [t.reservation.name,  form.guestName],
+                [t.reservation.phone, form.guestPhone],
+                [t.reservation.date,  readableDate],
+                [t.reservation.time,  form.time],
+                [t.reservation.guests, `${form.guests} ${t.dashboard.guestsLbl}`],
+                [t.dashboard.section, t.reservation.sections[form.sectionPreference]],
+                ...(form.notes ? [[t.reservation.notes, form.notes] as [string, string]] : []),
               ].map(([label, value]) => (
                 <div key={label} style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
                   <span style={{ fontSize: "0.75rem", color: "rgba(245,241,232,0.4)", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>{label}</span>
@@ -605,14 +609,10 @@ export function ReservationForm() {
               gap: 8,
             }}>
               <p style={{ margin: 0, fontSize: "0.78rem", fontWeight: 700, color: "#ba843c", letterSpacing: "0.04em" }}>
-                RESERVA EXCLUSIVA DE ÁREA
+                {t.reservation.largeGroupConfirmTitle.toUpperCase()}
               </p>
               <p style={{ margin: 0, fontSize: "0.8rem", color: "rgba(245,241,232,0.65)", lineHeight: 1.6 }}>
-                Al confirmar, el área completa de <strong style={{ color: "rgba(245,241,232,0.85)" }}>{form.sectionPreference}</strong> quedará bloqueada para tu grupo durante todo el{" "}
-                <strong style={{ color: "rgba(245,241,232,0.85)" }}>{readableDate}</strong>.
-              </p>
-              <p style={{ margin: 0, fontSize: "0.8rem", color: "rgba(245,241,232,0.5)", lineHeight: 1.6 }}>
-                Ninguna otra reserva podrá realizarse en esa área ese día. Nuestro equipo acomodará el espacio para {form.guests} personas.
+                {t.reservation.largeGroupConfirmBody}
               </p>
             </div>
 
@@ -623,7 +623,7 @@ export function ReservationForm() {
               onClick={handleConfirmLargeGroup}
               disabled={confirming}
             >
-              {confirming ? "Confirmando..." : `Confirmar Reserva para ${form.guests} Personas`}
+              {confirming ? t.reservation.confirm.confirming : `${t.reservation.confirm.confirmBtn} · ${form.guests} ${t.dashboard.guestsLbl}`}
             </button>
           </>
         )}

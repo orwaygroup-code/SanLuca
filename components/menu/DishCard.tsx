@@ -8,6 +8,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import { fonts, colors } from "@/config/theme";
+import { useTranslation } from "@/lib/i18n";
 
 type DishCardProps = {
     name: string;
@@ -26,6 +27,7 @@ export default function DishCard({
     imageUrl,
     allergens,
 }: DishCardProps) {
+    const { price: fmtPrice } = useTranslation();
     const [hovered, setHovered] = useState(false);
 
     return (
@@ -162,7 +164,7 @@ export default function DishCard({
                             color: colors.peru,
                         }}
                     >
-                        ${price.toFixed(2)}
+                        {fmtPrice(price)}
                     </span>
 
                     {weight && (

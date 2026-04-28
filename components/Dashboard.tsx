@@ -3,20 +3,18 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslation, type Locale } from "@/lib/i18n";
 
 const MAX_ACTIVE = 2;
-const ACTIVE_STATUSES = ["PENDING", "CONFIRMED"];
+const ACTIVE_STATUSES = ["PENDING", "PENDING_PAYMENT", "CONFIRMED"];
 
-const STATUS_LABEL: Record<string, string> = {
-    PENDING: "Pendiente",
-    CONFIRMED: "Confirmada",
-    CANCELLED: "Cancelada",
-    COMPLETED: "Completada",
-    NO_SHOW: "No se presentó",
+const LOCALE_TO_BCP47: Record<Locale, string> = {
+    es: "es-MX", en: "en-US", ja: "ja-JP", zh: "zh-CN", de: "de-DE",
 };
 
 const STATUS_CLASS: Record<string, string> = {
     PENDING: "dash-badge--pending",
+    PENDING_PAYMENT: "dash-badge--pending",
     CONFIRMED: "dash-badge--confirmed",
     CANCELLED: "dash-badge--cancelled",
     COMPLETED: "dash-badge--completed",
@@ -40,6 +38,8 @@ interface Reservation {
 
 export function Dashboard() {
     const router = useRouter();
+    const { t, locale } = useTranslation();
+    const dateLocale = LOCALE_TO_BCP47[locale];
     const [userName, setUserName] = useState("");
     const [reservations, setReservations] = useState<Reservation[]>([]);
     const [loading, setLoading] = useState(true);
@@ -67,7 +67,7 @@ export function Dashboard() {
     if (loading) {
         return (
             <div className="dash-loading">
-                <span>Cargando...</span>
+                <span>{t.common.loading}</span>
             </div>
         );
     }
@@ -78,12 +78,12 @@ export function Dashboard() {
             {/* ── Header ── */}
             <div className="dash-header">
                 <div className="dash-header__left">
-                    <h1 className="dash-title">Mis Reservas</h1>
-                    <p className="dash-subtitle">Bienvenido, {userName}</p>
+                    <h1 className="dash-title">{t.dashboard.title}</h1>
+                    <p className="dash-subtitle">{t.nav.greeting}, {userName}</p>
                 </div>
                 <div className="dash-header__right">
                     <div className="dash-slots">
-                        <div className="dash-slots__label">Reservas activas</div>
+                        <div className="dash-slots__label">{t.dashboard.upcoming}</div>
                         <div className="dash-slots__bar">
                             {Array.from({ length: MAX_ACTIVE }).map((_, i) => (
                                 <div
@@ -98,9 +98,8 @@ export function Dashboard() {
                         href="/reservation"
                         className={`dash-new-btn${!canReserve ? " dash-new-btn--disabled" : ""}`}
                         onClick={(e) => { if (!canReserve) e.preventDefault(); }}
-                        title={!canReserve ? "Ya tienes 2 reservas activas" : ""}
                     >
-                        + Nueva Reserva
+                        + {t.dashboard.cta}
                     </Link>
                 </div>
             </div>
@@ -113,9 +112,9 @@ export function Dashboard() {
             {/* ── Empty state ── */}
             {!error && reservations.length === 0 && (
                 <div className="dash-empty">
-                    <p className="dash-empty__text">Aún no tienes reservas.</p>
+                    <p className="dash-empty__text">{t.dashboard.empty}</p>
                     <Link href="/reservation" className="dash-new-btn">
-                        Crear mi primera reserva
+                        {t.dashboard.cta}
                     </Link>
                 </div>
             )}
@@ -134,7 +133,7 @@ export function Dashboard() {
 
                             {/* Status badge */}
                             <div className={`dash-badge ${STATUS_CLASS[r.status] ?? ""}`}>
-                                {STATUS_LABEL[r.status] ?? r.status}
+                                {(t.dashboard.status as Record<string, string>)[r.status] ?? r.status}
                             </div>
 
                             <div className="dash-card__body">
@@ -142,7 +141,7 @@ export function Dashboard() {
                                 {/* Left: details */}
                                 <div className="dash-card__info">
                                     <div className="dash-card__date">
-                                        {date.toLocaleDateString("es-MX", {
+                                        {date.toLocaleDateString(dateLocale, {
                                             weekday: "long",
                                             day: "numeric",
                                             month: "long",
@@ -150,30 +149,30 @@ export function Dashboard() {
                                         })}
                                     </div>
                                     <div className="dash-card__time">
-                                        {date.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}
+                                        {date.toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit" })}
                                     </div>
 
                                     <div className="dash-card__row">
-                                        <span className="dash-card__label">Titular</span>
+                                        <span className="dash-card__label">{t.reservation.name}</span>
                                         <span className="dash-card__val">{r.guestName}</span>
                                     </div>
                                     <div className="dash-card__row">
-                                        <span className="dash-card__label">Celular</span>
+                                        <span className="dash-card__label">{t.reservation.phone}</span>
                                         <span className="dash-card__val">{r.guestPhone}</span>
                                     </div>
                                     <div className="dash-card__row">
-                                        <span className="dash-card__label">Personas</span>
+                                        <span className="dash-card__label">{t.reservation.guests}</span>
                                         <span className="dash-card__val">{r.guests}</span>
                                     </div>
                                     {r.sectionPreference && (
                                         <div className="dash-card__row">
-                                            <span className="dash-card__label">Sección</span>
+                                            <span className="dash-card__label">{t.dashboard.section}</span>
                                             <span className="dash-card__val">{r.sectionPreference}</span>
                                         </div>
                                     )}
                                     {r.table && (
                                         <div className="dash-card__row">
-                                            <span className="dash-card__label">Mesa</span>
+                                            <span className="dash-card__label">{t.dashboard.section}</span>
                                             <span className="dash-card__val">
                                                 #{r.table.number} — {r.table.section.name}
                                             </span>
@@ -181,25 +180,16 @@ export function Dashboard() {
                                     )}
                                     {r.occasion && (
                                         <div className="dash-card__row">
-                                            <span className="dash-card__label">Ocasión</span>
+                                            <span className="dash-card__label">{t.reservation.occasion}</span>
                                             <span className="dash-card__val">{r.occasion}</span>
                                         </div>
                                     )}
                                     {r.notes && (
                                         <div className="dash-card__notes">
-                                            <span className="dash-card__label">Notas</span>
+                                            <span className="dash-card__label">{t.reservation.notes}</span>
                                             <p className="dash-card__notes-text">{r.notes}</p>
                                         </div>
                                     )}
-                                    <div className="dash-card__row">
-                                        <span className="dash-card__label">Pago</span>
-                                        <span className={`dash-card__val dash-pay--${r.paymentStatus.toLowerCase()}`}>
-                                            {r.paymentStatus === "UNPAID" ? "Pendiente"
-                                                : r.paymentStatus === "PAID" ? "Pagado"
-                                                    : r.paymentStatus === "REFUNDED" ? "Reembolsado"
-                                                        : "Parcial"}
-                                        </span>
-                                    </div>
                                 </div>
 
                                 {/* Right: QR — solo si está confirmada */}
@@ -211,11 +201,11 @@ export function Dashboard() {
                                                 alt="QR Check-in"
                                                 className="dash-card__qr-img"
                                             />
-                                            <p className="dash-card__qr-label">Check-in QR</p>
+                                            <p className="dash-card__qr-label">{t.dashboard.qrBtn}</p>
                                         </>
                                     ) : (
                                         <p className="dash-card__qr-label" style={{ opacity: 0.4, fontSize: "0.7rem", textAlign: "center" }}>
-                                            QR disponible al confirmar
+                                            {t.dashboard.qrBtn}
                                         </p>
                                     )}
                                 </div>

@@ -4,11 +4,12 @@ interface GuestsPickerProps {
   value: number;
   onChange: (n: number) => void;
   onLargeGroup?: () => void;
+  largeGroupLabel?: string;
 }
 
 const ICONS: Record<number, string> = { 1: "👤", 2: "👥" };
 
-export function GuestsPicker({ value, onChange, onLargeGroup }: GuestsPickerProps) {
+export function GuestsPicker({ value, onChange, onLargeGroup, largeGroupLabel }: GuestsPickerProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       <div style={{
@@ -97,7 +98,7 @@ export function GuestsPicker({ value, onChange, onLargeGroup }: GuestsPickerProp
             e.currentTarget.style.color = "rgba(186,132,60,0.8)";
           }}
         >
-          16 o más · Reservar área completa
+          {largeGroupLabel ?? "16 o más · Reservar área completa"}
         </button>
       )}
     </div>

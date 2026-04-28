@@ -8,6 +8,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { fonts, colors } from "@/config/theme";
+import { useTranslation } from "@/lib/i18n";
 
 type MenuHeroProps = {
     backgroundImage?: string;
@@ -16,6 +17,7 @@ type MenuHeroProps = {
 export default function MenuHero({
     backgroundImage = "/images/hero-menu.jpg",
 }: MenuHeroProps) {
+    const { t, locale } = useTranslation();
     const [hovered, setHovered] = useState<"comida" | "brunch" | null>(null);
 
     return (
@@ -153,7 +155,7 @@ export default function MenuHero({
                                 color: "#fff",
                             }}
                         >
-                            Comida
+                            {t.menu.sectionTitles.comida}
                         </button>
                     </Link>
 
@@ -177,10 +179,28 @@ export default function MenuHero({
                                 boxShadow: "0 2px 12px rgba(0,0,0,0.2)",
                             }}
                         >
-                            Brunch
+                            {t.menu.sectionTitles.brunch}
                         </button>
                     </Link>
                 </div>
+
+                {locale !== "es" && (
+                    <div style={{
+                        marginTop: 28,
+                        padding: "8px 18px",
+                        borderRadius: 999,
+                        background: "rgba(255,255,255,0.08)",
+                        border: "1px solid rgba(255,255,255,0.12)",
+                        color: "rgba(255,255,255,0.75)",
+                        fontFamily: fonts.primary,
+                        fontSize: "0.7rem",
+                        letterSpacing: "0.18em",
+                        textTransform: "uppercase",
+                        fontWeight: 600,
+                    }}>
+                        {t.menu.pricesNote}
+                    </div>
+                )}
             </div>
         </section>
     );

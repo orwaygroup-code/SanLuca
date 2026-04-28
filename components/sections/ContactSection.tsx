@@ -4,15 +4,7 @@ import { useState } from "react";
 import { colors, fonts } from "@/config/theme";
 import Button from "@/components/ui/Button";
 import { SectionHead, Divider } from "@/components/ui/SectionHead";
-
-
-/* ─── Hours Data ─── */
-const HOURS = [
-  { day: "Lunes",           time: "Cerrado" },
-  { day: "Martes – Jueves", time: "8:00 – 23:00" },
-  { day: "Viernes – Sábado", time: "8:00 – 00:00" },
-  { day: "Domingo",         time: "8:00 – 21:00" },
-];
+import { useTranslation } from "@/lib/i18n";
 
 /* ─── Shared Input Style ─── */
 const inputBase: React.CSSProperties = {
@@ -246,6 +238,11 @@ function InfoCard({
    CONTACT PAGE
    ═══════════════════════════════════════════ */
 export default function ContactPage() {
+  const { t } = useTranslation();
+  const HOURS = t.footer.schedule.map((line) => {
+    const [day, time] = line.split(":");
+    return { day: day.trim(), time: time?.trim() ?? "" };
+  });
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -347,14 +344,14 @@ export default function ContactPage() {
               textTransform: "uppercase", margin: "0 0 16px", lineHeight: 1.05,
             }}
           >
-            Contacto
+            {t.contact.title}
           </h1>
           <Divider color="rgba(186,132,60,0.35)" />
           <p style={{
             fontFamily: fonts.primary, fontSize: "1.05rem", fontWeight: 400,
             color: "rgba(245,241,232,0.5)", maxWidth: 480, margin: "16px auto 0", lineHeight: 1.7,
           }}>
-            Estamos para servirte. Contáctanos para reservaciones, eventos privados o cualquier consulta.
+            {t.contact.subtitle}
           </p>
         </div>
       </section>
@@ -374,18 +371,18 @@ export default function ContactPage() {
         }}>
           {/* ── Form ── */}
           <div>
-            <SectionHead script="Scrivici" title="Envíanos un Mensaje" />
+            <SectionHead script="Scrivici" title={t.contact.title} />
             <div style={{
               display: "flex", flexDirection: "column", gap: 18,
               background: colors.white, padding: "clamp(28px, 4vw, 44px)",
               boxShadow: "0 6px 28px rgba(28,38,40,0.05)", border: "1px solid rgba(28,38,40,0.03)",
             }}>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 18 }}>
-                <Field label="Nombre" name="name" value={form.name} onChange={update("name")} error={errors.name} />
-                <Field label="Correo electrónico" name="email" type="email" value={form.email} onChange={update("email")} error={errors.email} />
+                <Field label={t.contact.name}  name="name"  value={form.name}  onChange={update("name")}  error={errors.name} />
+                <Field label={t.contact.email} name="email" type="email" value={form.email} onChange={update("email")} error={errors.email} />
               </div>
 
-              <Field label="Mensaje" name="message" textarea value={form.message} onChange={update("message")} error={errors.message} />
+              <Field label={t.contact.message} name="message" textarea value={form.message} onChange={update("message")} error={errors.message} />
 
               {apiError && (
                 <p style={{
@@ -398,13 +395,13 @@ export default function ContactPage() {
 
               <div style={{ marginTop: 8 }}>
                 <Button onClick={handleSubmit} style={{ width: "100%" }}>
-                  {status === "sending" ? "Enviando..." : status === "sent" ? "¡Mensaje Enviado!" : "Enviar Mensaje"}
+                  {status === "sending" ? t.contact.sending : status === "sent" ? t.contact.sent : t.contact.sendBtn}
                 </Button>
               </div>
 
               {status === "sent" && (
                 <p style={{ fontFamily: fonts.primary, fontSize: "0.9rem", color: colors.peru, textAlign: "center", margin: 0 }}>
-                  Gracias por contactarnos. Te responderemos a la brevedad.
+                  {t.contact.sent}
                 </p>
               )}
             </div>
@@ -412,7 +409,7 @@ export default function ContactPage() {
 
           {/* ── Hours + Map ── */}
           <div>
-            <SectionHead script="Orario" title="Horario" />
+            <SectionHead script="Orario" title={t.footer.hours} />
             <div style={{
               background: colors.dark, padding: "36px 32px", marginBottom: 24,
               position: "relative", overflow: "hidden",

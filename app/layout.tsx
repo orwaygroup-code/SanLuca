@@ -13,6 +13,7 @@ import "@/styles/san-luca.css";
 
 // ✅ AGREGAR: LayoutWrapper (maneja Navbar y Footer condicionalmente)
 import { LayoutWrapper } from "@/components/LayoutWrapper";
+import { LanguageProvider } from "@/lib/i18n";
 
 export const metadata: Metadata = {
   title: "San Luca Ristorante — Auténtica Cocina Italiana",
@@ -44,7 +45,9 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <LayoutWrapper>{children}</LayoutWrapper>
+        <LanguageProvider>
+          <LayoutWrapper>{children}</LayoutWrapper>
+        </LanguageProvider>
       </body>
     </html>
   );
