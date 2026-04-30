@@ -133,27 +133,25 @@ async function main() {
         price: 255,
         description: "Crepas a la bolognesa de Cross Wagyu.",
         position: 1,
-        imageUrl: "/images/menu/brunch/Alimentos/especiales/lasagna-de-crepas.jpg",
+        imageUrl: "/images/menu/brunch/Alimentos/especiales/lasagna-de-crepas.png",
     });
     await updateDish(especiales.id, "Crepes di ricotta e spinaci gratinate ai quattro formaggi", {
         price: 215,
-        imageUrl: "/images/menu/brunch/Alimentos/especiales/crepes-ricotta.jpg",
+        imageUrl: "/images/menu/brunch/Alimentos/especiales/crepes-di-ricotta.png",
     });
     await updateDish(especiales.id, "Polpette al sugo", {
         price: 255,
-        imageUrl: "/images/menu/brunch/Alimentos/especiales/polpette-al-sugo.jpg",
+        imageUrl: "/images/menu/brunch/Alimentos/especiales/polpette-al-sugo.png",
     });
     await updateDish(especiales.id, "Brioche di brisket en salsa gravy", {
         price: 252,
-
     });
     await updateDish(especiales.id, "Crostoni casarecci", {
         price: 225,
-
     });
     await updateDish(especiales.id, "Bagel con salmone Oraking e formaggio cremoso", {
         price: 350,
-        imageUrl: "/images/menu/brunch/Alimentos/especiales/bagel-con-salmone.jpg",
+        imageUrl: "/images/menu/brunch/Alimentos/especiales/bagel-con-salmone.png",
     });
     // Eliminar Ratatouille (no está en la carta actual)
     const ratatouille = await prisma.dish.findFirst({ where: { name: "Ratatouille", categoryId: especiales.id } });
@@ -165,19 +163,24 @@ async function main() {
     // ── PANETTERIA & DOLCI ────────────────────────────────────────────────────
     console.log("\n📋 Panetteria & Dolci (Brunch)");
     const panetteria = await findCategory("Panetteria & Dolci (Brunch)");
+    await prisma.menuCategory.update({ where: { id: panetteria.id }, data: { imageUrl: "/images/menu/brunch/portadas/panateria%26dolci.png" } });
+    console.log("  ✓ Portada: panateria&dolci.png");
 
-    await updateDish(panetteria.id, "Affogato al Gelato", { price: 179, imageUrl: "/images/menu/brunch/Alimentos/panetteria-dolci/affogato.jpg" });
+    await updateDish(panetteria.id, "Affogato al Gelato", {
+        price: 179,
+        imageUrl: "/images/menu/brunch/Alimentos/panetteria%26dolci/affogato.png",
+    });
 
     // Nuevos
     await upsertDish(panetteria.id, "Crepas de cajeta", {
         price: 155,
         position: 4,
-        imageUrl: "/images/menu/brunch/Alimentos/panetteria-dolci/crepas-de-cajeta.jpg",
+        imageUrl: "/images/menu/brunch/Alimentos/panetteria%26dolci/crepas-de-cajeta.png",
     });
     await upsertDish(panetteria.id, "Crepas de cajeta con gelato extra", {
         price: 215,
         position: 5,
-
+        imageUrl: "/images/menu/brunch/Alimentos/panetteria%26dolci/crepas-de-cajeta-con-gelato.jpg",
     });
 
     console.log("\n✅ Menú brunch actualizado correctamente.");
