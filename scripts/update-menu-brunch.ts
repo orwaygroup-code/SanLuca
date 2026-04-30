@@ -149,6 +149,10 @@ async function main() {
     await updateDish(especiales.id, "Crostoni casarecci", {
         price: 225,
     });
+    await updateDish(especiales.id, "Focaccia ripiena e stracciatella", {
+        price: 252,
+        imageUrl: "/images/menu/brunch/Alimentos/especiales/focaccia-ripiena.png",
+    });
     await updateDish(especiales.id, "Bagel con salmone Oraking e formaggio cremoso", {
         price: 350,
         imageUrl: "/images/menu/brunch/Alimentos/especiales/bagel-con-salmone.png",
@@ -163,24 +167,27 @@ async function main() {
     // ── PANETTERIA & DOLCI ────────────────────────────────────────────────────
     console.log("\n📋 Panetteria & Dolci (Brunch)");
     const panetteria = await findCategory("Panetteria & Dolci (Brunch)");
-    await prisma.menuCategory.update({ where: { id: panetteria.id }, data: { imageUrl: "/images/menu/brunch/portadas/panateria%26dolci.png" } });
-    console.log("  ✓ Portada: panateria&dolci.png");
+    await prisma.menuCategory.update({ where: { id: panetteria.id }, data: { imageUrl: "/images/menu/brunch/portadas/panetteria-dolci.png" } });
+    console.log("  ✓ Portada: panetteria-dolci.png");
 
     await updateDish(panetteria.id, "Affogato al Gelato", {
         price: 179,
-        imageUrl: "/images/menu/brunch/Alimentos/panetteria%26dolci/affogato.png",
+        imageUrl: "/images/menu/brunch/Alimentos/panetteria-dolci/affogato.png",
+    });
+    await updateDish(panetteria.id, "Hot Cakes", {
+        imageUrl: "/images/menu/brunch/Alimentos/panetteria-dolci/hot-cakes.png",
     });
 
     // Nuevos
     await upsertDish(panetteria.id, "Crepas de cajeta", {
         price: 155,
         position: 4,
-        imageUrl: "/images/menu/brunch/Alimentos/panetteria%26dolci/crepas-de-cajeta.png",
+        imageUrl: "/images/menu/brunch/Alimentos/panetteria-dolci/crepas-de-cajeta.png",
     });
     await upsertDish(panetteria.id, "Crepas de cajeta con gelato extra", {
         price: 215,
         position: 5,
-        imageUrl: "/images/menu/brunch/Alimentos/panetteria%26dolci/crepas-de-cajeta-con-gelato.jpg",
+        imageUrl: "/images/menu/brunch/Alimentos/panetteria-dolci/crepas-de-cajeta-con-gelato.jpg",
     });
 
     console.log("\n✅ Menú brunch actualizado correctamente.");
