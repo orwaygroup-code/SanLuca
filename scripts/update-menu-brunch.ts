@@ -133,21 +133,27 @@ async function main() {
         price: 255,
         description: "Crepas a la bolognesa de Cross Wagyu.",
         position: 1,
+        imageUrl: "/images/menu/brunch/Alimentos/especiales/lasagna-de-crepas.jpg",
     });
     await updateDish(especiales.id, "Crepes di ricotta e spinaci gratinate ai quattro formaggi", {
         price: 215,
+        imageUrl: "/images/menu/brunch/Alimentos/especiales/crepes-ricotta.jpg",
     });
     await updateDish(especiales.id, "Polpette al sugo", {
         price: 255,
+        imageUrl: "/images/menu/brunch/Alimentos/especiales/polpette-al-sugo.jpg",
     });
     await updateDish(especiales.id, "Brioche di brisket en salsa gravy", {
         price: 252,
+
     });
     await updateDish(especiales.id, "Crostoni casarecci", {
         price: 225,
+
     });
     await updateDish(especiales.id, "Bagel con salmone Oraking e formaggio cremoso", {
         price: 350,
+        imageUrl: "/images/menu/brunch/Alimentos/especiales/bagel-con-salmone.jpg",
     });
     // Eliminar Ratatouille (no está en la carta actual)
     const ratatouille = await prisma.dish.findFirst({ where: { name: "Ratatouille", categoryId: especiales.id } });
@@ -160,16 +166,18 @@ async function main() {
     console.log("\n📋 Panetteria & Dolci (Brunch)");
     const panetteria = await findCategory("Panetteria & Dolci (Brunch)");
 
-    await updateDish(panetteria.id, "Affogato al Gelato", { price: 179 });
+    await updateDish(panetteria.id, "Affogato al Gelato", { price: 179, imageUrl: "/images/menu/brunch/Alimentos/panetteria-dolci/affogato.jpg" });
 
     // Nuevos
     await upsertDish(panetteria.id, "Crepas de cajeta", {
         price: 155,
         position: 4,
+        imageUrl: "/images/menu/brunch/Alimentos/panetteria-dolci/crepas-de-cajeta.jpg",
     });
     await upsertDish(panetteria.id, "Crepas de cajeta con gelato extra", {
         price: 215,
         position: 5,
+
     });
 
     console.log("\n✅ Menú brunch actualizado correctamente.");
@@ -178,12 +186,12 @@ async function main() {
     console.log("\n📋 Portadas Comida (Clásica)");
 
     const comidaPortadas: { name: string; imageUrl: string }[] = [
-        { name: "Antipasti",        imageUrl: "/images/menu/clasica/antipaste.png" },
-        { name: "Paste",            imageUrl: "/images/menu/clasica/paste.png" },
-        { name: "Pizza",            imageUrl: "/images/menu/clasica/pizza.png" },
-        { name: "Risotto",          imageUrl: "/images/menu/clasica/risoto.png" },
-        { name: "Insalate",         imageUrl: "/images/menu/clasica/ensalada.png" },
-        { name: "Terra",            imageUrl: "/images/menu/clasica/terra.png" },
+        { name: "Antipasti", imageUrl: "/images/menu/clasica/antipaste.png" },
+        { name: "Paste", imageUrl: "/images/menu/clasica/paste.png" },
+        { name: "Pizza", imageUrl: "/images/menu/clasica/pizza.png" },
+        { name: "Risotto", imageUrl: "/images/menu/clasica/risoto.png" },
+        { name: "Insalate", imageUrl: "/images/menu/clasica/ensalada.png" },
+        { name: "Terra", imageUrl: "/images/menu/clasica/terra.png" },
         { name: "Pesce Del Giorno", imageUrl: "/images/menu/clasica/pesce.png" },
     ];
 
