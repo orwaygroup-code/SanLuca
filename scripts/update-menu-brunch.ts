@@ -151,7 +151,7 @@ async function main() {
     });
     await updateDish(especiales.id, "Focaccia ripiena e stracciatella", {
         price: 252,
-        imageUrl: "/images/menu/brunch/Alimentos/especiales/focaccia-ripiena.png",
+        imageUrl: null,
     });
     await updateDish(especiales.id, "Bagel con salmone Oraking e formaggio cremoso", {
         price: 350,
