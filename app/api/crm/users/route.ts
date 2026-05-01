@@ -63,19 +63,30 @@ async function getUserDetail(id: string) {
     select: {
       id: true, name: true, email: true, phone: true, googleId: true, createdAt: true,
       reservations: {
-        select: { id: true, status: true, date: true, occasion: true, sectionPreference: true, guests: true, notes: true },
+        select: {
+          id: true, status: true, date: true, guests: true, duration: true,
+          guestName: true, guestPhone: true,
+          sectionPreference: true, occasion: true, notes: true,
+          isLargeGroup: true, requiresPayment: true,
+          paymentStatus: true, amountPaid: true, creditUsed: true,
+          createdAt: true, confirmedAt: true, cancelledAt: true, cancelReason: true,
+          checkedInAt: true,
+          table:        { select: { number: true, section: { select: { name: true } } } },
+          linkedTable:  { select: { number: true } },
+          thirdTable:   { select: { number: true } },
+          fourthTable:  { select: { number: true } },
+        },
         orderBy: { date: "desc" },
       },
     },
   });
   if (!user) return { error: "not_found" };
 
-  const totalVisits  = user.reservations.length;
-  const confirmed    = user.reservations.filter((r) => ["CONFIRMED", "COMPLETED", "IN_PROGRESS"].includes(r.status)).length;
-  const cancelled    = user.reservations.filter((r) => r.status === "CANCELLED").length;
-  const noShow       = user.reservations.filter((r) => r.status === "NO_SHOW").length;
+  const totalVisits = user.reservations.length;
+  const confirmed   = user.reservations.filter((r) => ["CONFIRMED", "COMPLETED", "IN_PROGRESS"].includes(r.status)).length;
+  const cancelled   = user.reservations.filter((r) => r.status === "CANCELLED").length;
+  const noShow      = user.reservations.filter((r) => r.status === "NO_SHOW").length;
 
-  // Preferencias derivadas — sección + occasion más frecuentes
   const secCount: Record<string, number> = {};
   const occCount: Record<string, number> = {};
   for (const r of user.reservations) {
@@ -84,9 +95,6 @@ async function getUserDetail(id: string) {
   }
   const sortKv = (o: Record<string, number>) =>
     Object.entries(o).sort((a, b) => b[1] - a[1]).map(([k, v]) => ({ label: k, value: v }));
-
-  // Última actividad
-  const lastReservation = user.reservations[0];
 
   return {
     user: {
@@ -101,14 +109,35 @@ async function getUserDetail(id: string) {
       totalVisits,
       confirmed,
       cancelled: cancelled + noShow,
-      lastReservation: lastReservation?.date ?? null,
+      lastReservation: user.reservations[0]?.date ?? null,
     },
     preferences: {
       sections: sortKv(secCount).slice(0, 3),
       occasions: sortKv(occCount).slice(0, 3),
     },
-    recent: user.reservations.slice(0, 5).map((r) => ({
-      id: r.id, status: r.status, date: r.date, occasion: r.occasion, section: r.sectionPreference, guests: r.guests, notes: r.notes,
+    reservations: user.reservations.map((r) => ({
+      id: r.id,
+      status: r.status,
+      date: r.date,
+      guests: r.guests,
+      duration: r.duration,
+      guestName: r.guestName,
+      guestPhone: r.guestPhone,
+      sectionPreference: r.sectionPreference,
+      occasion: r.occasion,
+      notes: r.notes,
+      isLargeGroup: r.isLargeGroup,
+      requiresPayment: r.requiresPayment,
+      paymentStatus: r.paymentStatus,
+      amountPaid: r.amountPaid ? Number(r.amountPaid) : 0,
+      creditUsed: r.creditUsed,
+      createdAt: r.createdAt,
+      confirmedAt: r.confirmedAt,
+      cancelledAt: r.cancelledAt,
+      cancelReason: r.cancelReason,
+      checkedInAt: r.checkedInAt,
+      tables: [r.table?.number, r.linkedTable?.number, r.thirdTable?.number, r.fourthTable?.number].filter(Boolean) as number[],
+      tableSection: r.table?.section.name ?? null,
     })),
   };
 }
