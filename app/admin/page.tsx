@@ -287,12 +287,20 @@ export default function AdminPage() {
                         🗺 Mapa
                     </button>
                     {userRole === "ADMIN" && (
-                        <button
-                            onClick={() => router.push("/admin/fechas-especiales")}
-                            style={{ padding: "8px 14px", background: "rgba(186,132,60,0.12)", border: "1px solid rgba(186,132,60,0.35)", borderRadius: 8, color: "#ba843c", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}
-                        >
-                            ✨ Fechas
-                        </button>
+                        <>
+                            <button
+                                onClick={() => router.push("/admin/fechas-especiales")}
+                                style={{ padding: "8px 14px", background: "rgba(186,132,60,0.12)", border: "1px solid rgba(186,132,60,0.35)", borderRadius: 8, color: "#ba843c", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}
+                            >
+                                ✨ Fechas
+                            </button>
+                            <button
+                                onClick={() => router.push("/crm")}
+                                style={{ padding: "8px 14px", background: "rgba(186,132,60,0.12)", border: "1px solid rgba(186,132,60,0.35)", borderRadius: 8, color: "#ba843c", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}
+                            >
+                                📊 CRM
+                            </button>
+                        </>
                     )}
                     <button
                         onClick={() => setShowNewModal(true)}
