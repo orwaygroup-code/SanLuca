@@ -11,6 +11,7 @@ interface UserRow {
   visits: number;
   source: "web" | "whatsapp";
   login:  "google" | "email";
+  role:   "CUSTOMER" | "HOSTES" | "ADMIN";
 }
 
 interface Reservation {
@@ -134,8 +135,17 @@ export default function UsuariosPage() {
                 borderColor: selected === u.id ? "rgba(186,132,60,0.45)" : "rgba(255,255,255,0.04)",
               }}>
                 <div style={{ flex: 1, textAlign: "left" }}>
-                  <div style={{ fontSize: "0.9rem", fontWeight: 600, color: "#f5f1e8" }}>{u.name || "Sin nombre"}</div>
-                  <div style={{ fontSize: "0.72rem", color: "rgba(245,241,232,0.5)", marginTop: 2 }}>{u.visits} visita{u.visits === 1 ? "" : "s"}</div>
+                  <div style={{ fontSize: "0.9rem", fontWeight: 600, color: "#f5f1e8", display: "flex", alignItems: "center", gap: 8 }}>
+                    {u.name || "Sin nombre"}
+                    {u.role !== "CUSTOMER" && (
+                      <span style={{ fontSize: "0.55rem", padding: "2px 6px", border: "1px solid #ba843c", color: "#ba843c", borderRadius: 4, letterSpacing: "0.08em" }}>
+                        {u.role}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: "0.72rem", color: "rgba(245,241,232,0.5)", marginTop: 2 }}>
+                    {u.visits} reserva{u.visits === 1 ? "" : "s"} creada{u.visits === 1 ? "" : "s"}
+                  </div>
                 </div>
                 {selected !== u.id && <span style={{ color: "#ba843c", fontSize: "0.6rem" }}>●</span>}
               </button>

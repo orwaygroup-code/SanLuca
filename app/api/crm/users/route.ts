@@ -20,9 +20,10 @@ export async function GET(req: NextRequest) {
 
   if (detailId) return NextResponse.json(await getUserDetail(detailId));
 
+  // Solo usuarios que HAN CREADO al menos 1 reserva
   const users = await prisma.user.findMany({
     where: {
-      role: "CUSTOMER",
+      reservations: { some: {} },
       ...(source === "web"      ? { source: "WEB" }      : {}),
       ...(source === "whatsapp" ? { source: "WHATSAPP" } : {}),
       ...(search
@@ -35,20 +36,26 @@ export async function GET(req: NextRequest) {
           }
         : {}),
     },
-    orderBy: { createdAt: "desc" },
     select: {
       id: true, name: true, email: true, phone: true,
-      googleId: true, source: true, createdAt: true,
+      googleId: true, source: true, role: true, createdAt: true,
       _count: { select: { reservations: true } },
     },
-    take: 100,
+    take: 200,
   });
 
-  // Counters por canal (para badges en la UI)
+  // Sort por # reservas desc, luego por más reciente
+  users.sort((a, b) => {
+    const c = b._count.reservations - a._count.reservations;
+    return c !== 0 ? c : b.createdAt.getTime() - a.createdAt.getTime();
+  });
+
+  // Counters por canal (solo usuarios con reservas)
+  const baseWhere = { reservations: { some: {} } } as const;
   const [totalAll, totalWeb, totalWa] = await Promise.all([
-    prisma.user.count({ where: { role: "CUSTOMER" } }),
-    prisma.user.count({ where: { role: "CUSTOMER", source: "WEB" } }),
-    prisma.user.count({ where: { role: "CUSTOMER", source: "WHATSAPP" } }),
+    prisma.user.count({ where: baseWhere }),
+    prisma.user.count({ where: { ...baseWhere, source: "WEB" } }),
+    prisma.user.count({ where: { ...baseWhere, source: "WHATSAPP" } }),
   ]);
 
   return NextResponse.json({
@@ -61,6 +68,7 @@ export async function GET(req: NextRequest) {
       visits: u._count.reservations,
       source: u.source.toLowerCase(),
       login:  u.googleId ? "google" : "email",
+      role:   u.role,
       createdAt: u.createdAt,
     })),
   });
