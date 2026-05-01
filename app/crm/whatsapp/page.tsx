@@ -1,24 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CrmPageHead } from "@/components/crm/CrmPageHead";
 
 interface Row {
   id: string;
+  name: string;
   phone: string;
-  probability: number; // 0-100
+  probability: number;
   topic: string;
   status: "CLIENTE" | "ASESORIA" | "FIDELIZADO" | "ESPECTADOR" | "POR CERRAR";
+  lastDate: string | null;
+  totalReservations: number;
 }
-
-// MOCK — reemplazar con fetch a /api/crm/whatsapp/conversations cuando exista la fuente
-const MOCK: Row[] = [
-  { id: "1", phone: "+52 449 578 0669", probability: 78, topic: "Reservación",  status: "CLIENTE"     },
-  { id: "2", phone: "+52 449 234 4596", probability: 50, topic: "Evento P.",    status: "ASESORIA"    },
-  { id: "3", phone: "+52 449 578 7858", probability: 92, topic: "Entrega",      status: "FIDELIZADO"  },
-  { id: "4", phone: "+52 449 785 4575", probability: 18, topic: "Informativo",  status: "ESPECTADOR"  },
-  { id: "5", phone: "+52 449 586 4758", probability: 70, topic: "Entrega",      status: "POR CERRAR"  },
-];
 
 const STATUS_COLOR: Record<Row["status"], string> = {
   CLIENTE:     "#5fa15f",
@@ -29,12 +23,25 @@ const STATUS_COLOR: Record<Row["status"], string> = {
 };
 
 export default function WhatsappPage() {
+  const [rows, setRows]     = useState<Row[]>([]);
+  const [loading, setLoad]  = useState(true);
   const [search, setSearch] = useState("");
-  const filtered = MOCK.filter((r) => r.phone.includes(search) || r.topic.toLowerCase().includes(search.toLowerCase()));
+
+  useEffect(() => {
+    const id = typeof window !== "undefined" ? localStorage.getItem("userId") : "";
+    fetch("/api/crm/whatsapp", { headers: { "x-user-id": id ?? "" } })
+      .then((r) => r.json())
+      .then((d) => setRows(d.rows ?? []))
+      .finally(() => setLoad(false));
+  }, []);
+
+  const filtered = rows.filter(
+    (r) => r.phone.includes(search) || r.topic.toLowerCase().includes(search.toLowerCase()) || r.name.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <>
-      <CrmPageHead accent="WHATSAPP" title="CRM" sub="Bandeja de entrada" />
+      <CrmPageHead accent="WHATSAPP" title="CRM" sub={`Bandeja · ${rows.length} usuario(s) WhatsApp`} />
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: 14, marginBottom: 18, alignItems: "center" }}>
         <div style={{ position: "relative" }}>
@@ -55,26 +62,42 @@ export default function WhatsappPage() {
         <span style={{ textAlign: "right" }}>Status</span>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {filtered.map((r) => (
-          <div key={r.id} style={row}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={avatar}>👤</div>
-              <span style={{ fontWeight: 500 }}>{r.phone}</span>
-            </div>
-            <div>
+      {loading ? (
+        <p style={{ color: "rgba(245,241,232,0.4)", textAlign: "center", padding: 24 }}>Cargando…</p>
+      ) : filtered.length === 0 ? (
+        <div style={{
+          background: "#22302e", border: "1px solid rgba(255,255,255,0.04)", borderRadius: 14,
+          padding: 60, textAlign: "center", color: "rgba(245,241,232,0.4)",
+        }}>
+          {rows.length === 0
+            ? "Aún no hay usuarios registrados desde WhatsApp. El bot debe crear usuarios con source=WHATSAPP."
+            : "Sin resultados para tu búsqueda"}
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {filtered.map((r) => (
+            <div key={r.id} style={row}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={avatar}>👤</div>
+                <div>
+                  <div style={{ fontWeight: 600 }}>{r.name || r.phone}</div>
+                  <div style={{ fontSize: "0.7rem", color: "rgba(245,241,232,0.5)" }}>
+                    {r.phone} · {r.totalReservations} reserva{r.totalReservations === 1 ? "" : "s"}
+                  </div>
+                </div>
+              </div>
               <Bar value={r.probability} />
+              <div style={{ color: "rgba(245,241,232,0.85)" }}>{r.topic}</div>
+              <div style={{ textAlign: "right" }}>
+                <span style={{ ...badge, borderColor: STATUS_COLOR[r.status], color: STATUS_COLOR[r.status] }}>{r.status}</span>
+              </div>
             </div>
-            <div style={{ color: "rgba(245,241,232,0.85)" }}>{r.topic}</div>
-            <div style={{ textAlign: "right" }}>
-              <span style={{ ...badge, borderColor: STATUS_COLOR[r.status], color: STATUS_COLOR[r.status] }}>{r.status}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       <p style={{ marginTop: 26, color: "rgba(245,241,232,0.4)", fontSize: "0.78rem" }}>
-        ⓘ Datos de ejemplo. Conectar con n8n / WhatsApp Business API para conversaciones reales.
+        ⓘ Probabilidad y tema derivados de las reservas. Para conversaciones reales conectar n8n / WhatsApp Business API.
       </p>
     </>
   );

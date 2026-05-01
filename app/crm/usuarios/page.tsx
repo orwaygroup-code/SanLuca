@@ -9,7 +9,8 @@ interface UserRow {
   email: string;
   phone: string;
   visits: number;
-  channel: "google" | "email";
+  source: "web" | "whatsapp";
+  login:  "google" | "email";
 }
 
 interface Reservation {
@@ -38,7 +39,7 @@ interface Reservation {
 }
 
 interface Detail {
-  user: { id: string; name: string; email: string; phone: string; channel: string; createdAt: string };
+  user: { id: string; name: string; email: string; phone: string; source: string; login: string; createdAt: string };
   stats: { totalVisits: number; confirmed: number; cancelled: number; lastReservation: string | null };
   preferences: { sections: { label: string; value: number }[]; occasions: { label: string; value: number }[] };
   reservations: Reservation[];
@@ -67,8 +68,9 @@ const STATUS_COLOR: Record<string, string> = {
 
 export default function UsuariosPage() {
   const [users, setUsers]       = useState<UserRow[]>([]);
+  const [counts, setCounts]     = useState({ todos: 0, web: 0, whatsapp: 0 });
   const [search, setSearch]     = useState("");
-  const [channel, setChannel]   = useState<"todos" | "google" | "email">("todos");
+  const [source, setSource]     = useState<"todos" | "web" | "whatsapp">("todos");
   const [selected, setSelected] = useState<string | null>(null);
   const [detail, setDetail]     = useState<Detail | null>(null);
 
@@ -78,15 +80,16 @@ export default function UsuariosPage() {
   }
 
   useEffect(() => {
-    const params = new URLSearchParams({ search, channel });
+    const params = new URLSearchParams({ search, source });
     fetch(`/api/crm/users?${params}`, { headers: authHeaders() })
       .then((r) => r.json())
       .then((d) => {
         setUsers(d.users ?? []);
+        setCounts(d.counts ?? { todos: 0, web: 0, whatsapp: 0 });
         if (d.users?.[0] && !selected) setSelected(d.users[0].id);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, channel]);
+  }, [search, source]);
 
   useEffect(() => {
     if (!selected) { setDetail(null); return; }
@@ -111,14 +114,14 @@ export default function UsuariosPage() {
           </div>
 
           <div style={{ display: "flex", background: "#22302e", borderRadius: 999, padding: 4, marginBottom: 12 }}>
-            {(["todos", "google", "email"] as const).map((c) => (
-              <button key={c} onClick={() => setChannel(c)} style={{
+            {(["todos", "web", "whatsapp"] as const).map((c) => (
+              <button key={c} onClick={() => setSource(c)} style={{
                 flex: 1, padding: "8px 0", border: "none", borderRadius: 999, cursor: "pointer", fontFamily: "inherit",
-                background: channel === c ? "#ba843c" : "transparent",
-                color:      channel === c ? "#1c2628" : "rgba(245,241,232,0.6)",
-                fontWeight: channel === c ? 700 : 500, fontSize: "0.72rem", letterSpacing: "0.06em", textTransform: "uppercase",
+                background: source === c ? "#ba843c" : "transparent",
+                color:      source === c ? "#1c2628" : "rgba(245,241,232,0.6)",
+                fontWeight: source === c ? 700 : 500, fontSize: "0.7rem", letterSpacing: "0.06em", textTransform: "uppercase",
               }}>
-                {c === "todos" ? "Todos" : c === "google" ? "Google" : "Email"}
+                {c === "todos" ? `Todos (${counts.todos})` : c === "web" ? `Web (${counts.web})` : `WA (${counts.whatsapp})`}
               </button>
             ))}
           </div>
@@ -178,7 +181,10 @@ function UserDetail({ d }: { d: Detail }) {
             🗓 Cliente desde {new Date(d.user.createdAt).toLocaleDateString("es-MX", { month: "long", year: "numeric" })}
           </div>
         </div>
-        <span style={{ ...badgePill, color: "#ba843c", borderColor: "#ba843c", textTransform: "uppercase" }}>{d.user.channel}</span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end" }}>
+          <span style={{ ...badgePill, color: "#ba843c", borderColor: "#ba843c", textTransform: "uppercase" }}>{d.user.source}</span>
+          <span style={{ ...badgePill, color: "rgba(245,241,232,0.6)", borderColor: "rgba(245,241,232,0.25)", textTransform: "uppercase", fontSize: "0.6rem" }}>{d.user.login}</span>
+        </div>
       </div>
 
       {/* Stat cards */}

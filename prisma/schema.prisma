@@ -20,6 +20,7 @@ model User {
   passwordHash String?
   googleId     String?       @unique
   role         Role          @default(CUSTOMER)
+  source       UserSource    @default(WEB) // canal por el que llegó: web o whatsapp bot
   reservations Reservation[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
@@ -29,6 +30,11 @@ enum Role {
   CUSTOMER
   HOSTES
   ADMIN
+}
+
+enum UserSource {
+  WEB
+  WHATSAPP
 }
 
 // ============================================

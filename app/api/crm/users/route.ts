@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const search   = searchParams.get("search") ?? "";
-  const channel  = searchParams.get("channel") ?? "todos"; // todos | google | email
+  const source   = searchParams.get("source") ?? "todos"; // todos | web | whatsapp
   const detailId = searchParams.get("id");
 
   if (detailId) return NextResponse.json(await getUserDetail(detailId));
@@ -23,8 +23,8 @@ export async function GET(req: NextRequest) {
   const users = await prisma.user.findMany({
     where: {
       role: "CUSTOMER",
-      ...(channel === "google" ? { googleId: { not: null } } : {}),
-      ...(channel === "email"  ? { googleId: null,  passwordHash: { not: null } } : {}),
+      ...(source === "web"      ? { source: "WEB" }      : {}),
+      ...(source === "whatsapp" ? { source: "WHATSAPP" } : {}),
       ...(search
         ? {
             OR: [
@@ -38,20 +38,29 @@ export async function GET(req: NextRequest) {
     orderBy: { createdAt: "desc" },
     select: {
       id: true, name: true, email: true, phone: true,
-      googleId: true, createdAt: true,
+      googleId: true, source: true, createdAt: true,
       _count: { select: { reservations: true } },
     },
     take: 100,
   });
 
+  // Counters por canal (para badges en la UI)
+  const [totalAll, totalWeb, totalWa] = await Promise.all([
+    prisma.user.count({ where: { role: "CUSTOMER" } }),
+    prisma.user.count({ where: { role: "CUSTOMER", source: "WEB" } }),
+    prisma.user.count({ where: { role: "CUSTOMER", source: "WHATSAPP" } }),
+  ]);
+
   return NextResponse.json({
+    counts: { todos: totalAll, web: totalWeb, whatsapp: totalWa },
     users: users.map((u) => ({
       id: u.id,
       name: u.name,
       email: u.email,
       phone: u.phone,
       visits: u._count.reservations,
-      channel: u.googleId ? "google" : "email",
+      source: u.source.toLowerCase(),
+      login:  u.googleId ? "google" : "email",
       createdAt: u.createdAt,
     })),
   });
@@ -61,7 +70,7 @@ async function getUserDetail(id: string) {
   const user = await prisma.user.findUnique({
     where: { id },
     select: {
-      id: true, name: true, email: true, phone: true, googleId: true, createdAt: true,
+      id: true, name: true, email: true, phone: true, googleId: true, source: true, createdAt: true,
       reservations: {
         select: {
           id: true, status: true, date: true, guests: true, duration: true,
@@ -102,7 +111,8 @@ async function getUserDetail(id: string) {
       name: user.name,
       email: user.email,
       phone: user.phone,
-      channel: user.googleId ? "google" : "email",
+      source: user.source.toLowerCase(),
+      login:  user.googleId ? "google" : "email",
       createdAt: user.createdAt,
     },
     stats: {

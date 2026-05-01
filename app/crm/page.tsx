@@ -66,32 +66,49 @@ function StatCard({ label, value, growth, icon, mock }: { label: string; value: 
 }
 
 function Chart({ data }: { data: { label: string; value: number }[] }) {
-  const max = Math.max(1, ...data.map((d) => d.value));
+  const max   = Math.max(1, ...data.map((d) => d.value));
+  const total = data.reduce((s, d) => s + d.value, 0);
   return (
     <div style={panel}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-        <span style={{ color: "rgba(245,241,232,0.55)", fontSize: "0.7rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 600 }}>
-          Reservas últimos 7 días
-        </span>
+        <div>
+          <div style={{ color: "rgba(245,241,232,0.55)", fontSize: "0.7rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 600 }}>
+            Reservas últimos 7 días
+          </div>
+          <div style={{ color: "#f5f1e8", fontSize: "1.4rem", fontWeight: 600, marginTop: 4 }}>
+            {total} <span style={{ color: "rgba(245,241,232,0.45)", fontSize: "0.78rem", fontWeight: 400 }}>total</span>
+          </div>
+        </div>
         <span style={{ color: "rgba(245,241,232,0.5)", fontSize: "0.75rem" }}>POR DÍA ▾</span>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.max(1, data.length)}, 1fr)`, alignItems: "end", gap: 12, height: 240 }}>
         {data.map((d, i) => (
           <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-            <div
-              style={{
-                width: "100%",
-                height: `${(d.value / max) * 100}%`,
-                minHeight: 4,
-                background: "linear-gradient(180deg, #d09a52 0%, #ba843c 100%)",
-                borderRadius: "4px 4px 0 0",
-              }}
-              title={`${d.value}`}
-            />
+            <div style={{ flex: 1, width: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+              <div style={{ color: d.value > 0 ? "#ba843c" : "rgba(245,241,232,0.3)", fontSize: "0.75rem", fontWeight: 600, textAlign: "center", marginBottom: 4 }}>
+                {d.value}
+              </div>
+              <div
+                style={{
+                  width: "100%",
+                  height: `${Math.max(2, (d.value / max) * 100)}%`,
+                  minHeight: d.value === 0 ? 2 : 8,
+                  background: d.value === 0
+                    ? "rgba(245,241,232,0.06)"
+                    : "linear-gradient(180deg, #d09a52 0%, #ba843c 100%)",
+                  borderRadius: "4px 4px 0 0",
+                }}
+              />
+            </div>
             <span style={{ color: "rgba(245,241,232,0.55)", fontSize: "0.7rem", textTransform: "uppercase" }}>{d.label}</span>
           </div>
         ))}
       </div>
+      {total === 0 && (
+        <p style={{ marginTop: 14, textAlign: "center", color: "rgba(245,241,232,0.4)", fontSize: "0.78rem" }}>
+          Sin reservas esta semana
+        </p>
+      )}
     </div>
   );
 }
