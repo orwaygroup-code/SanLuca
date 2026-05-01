@@ -14,6 +14,8 @@ export const metadata: Metadata = {
   description: "Explora nuestro menú de cocina italiana premium",
 };
 
+export const revalidate = 60;
+
 function mapDish(d: any) {
   return {
     id: d.id,
