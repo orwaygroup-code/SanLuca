@@ -55,6 +55,11 @@ if [ -f scripts/update-menu-brunch.ts ]; then
   npx tsx scripts/update-menu-brunch.ts
   ok "Menú actualizado"
 fi
+if [ -f scripts/backfill-created-by.ts ]; then
+  log "Backfill Reservation.createdById"
+  npx tsx scripts/backfill-created-by.ts
+  ok "Backfill completo"
+fi
 
 # 7. Restart
 log "PM2 restart"

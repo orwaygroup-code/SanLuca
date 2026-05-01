@@ -1,5 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
+
+const detailSelect = {
+  id: true, status: true, date: true, guests: true, duration: true,
+  guestName: true, guestPhone: true,
+  sectionPreference: true, occasion: true, notes: true,
+  isLargeGroup: true, requiresPayment: true,
+  paymentStatus: true, amountPaid: true, creditUsed: true,
+  createdAt: true, confirmedAt: true, cancelledAt: true, cancelReason: true,
+  checkedInAt: true,
+  table:        { select: { number: true, section: { select: { name: true } } } },
+  linkedTable:  { select: { number: true } },
+  thirdTable:   { select: { number: true } },
+  fourthTable:  { select: { number: true } },
+} satisfies Prisma.ReservationSelect;
 
 async function isAdmin(req: NextRequest) {
   const userId = req.headers.get("x-user-id");
@@ -20,42 +35,52 @@ export async function GET(req: NextRequest) {
 
   if (detailId) return NextResponse.json(await getUserDetail(detailId));
 
-  // Solo usuarios que HAN CREADO al menos 1 reserva
+  // Usuarios que han CREADO al menos 1 reserva (incluye staff que reservó por terceros)
   const users = await prisma.user.findMany({
     where: {
-      reservations: { some: {} },
+      OR: [
+        { createdReservations: { some: {} } },
+        { reservations:        { some: {} } }, // fallback para data antigua sin createdById
+      ],
       ...(source === "web"      ? { source: "WEB" }      : {}),
       ...(source === "whatsapp" ? { source: "WHATSAPP" } : {}),
       ...(search
         ? {
-            OR: [
-              { name:  { contains: search, mode: "insensitive" } },
-              { email: { contains: search, mode: "insensitive" } },
-              { phone: { contains: search } },
-            ],
+            AND: [{
+              OR: [
+                { name:  { contains: search, mode: "insensitive" } },
+                { email: { contains: search, mode: "insensitive" } },
+                { phone: { contains: search } },
+              ],
+            }],
           }
         : {}),
     },
     select: {
       id: true, name: true, email: true, phone: true,
       googleId: true, source: true, role: true, createdAt: true,
-      _count: { select: { reservations: true } },
+      _count: { select: { createdReservations: true, reservations: true } },
     },
     take: 200,
   });
 
-  // Sort por # reservas desc, luego por más reciente
+  // Sort por # creadas desc (incluye fallback a reservations cuando createdById es null)
   users.sort((a, b) => {
-    const c = b._count.reservations - a._count.reservations;
+    const aTotal = a._count.createdReservations || a._count.reservations;
+    const bTotal = b._count.createdReservations || b._count.reservations;
+    const c = bTotal - aTotal;
     return c !== 0 ? c : b.createdAt.getTime() - a.createdAt.getTime();
   });
 
-  // Counters por canal (solo usuarios con reservas)
-  const baseWhere = { reservations: { some: {} } } as const;
+  // Counters por canal
+  const baseOr = [
+    { createdReservations: { some: {} } },
+    { reservations:        { some: {} } },
+  ];
   const [totalAll, totalWeb, totalWa] = await Promise.all([
-    prisma.user.count({ where: baseWhere }),
-    prisma.user.count({ where: { ...baseWhere, source: "WEB" } }),
-    prisma.user.count({ where: { ...baseWhere, source: "WHATSAPP" } }),
+    prisma.user.count({ where: { OR: baseOr } }),
+    prisma.user.count({ where: { OR: baseOr, source: "WEB" } }),
+    prisma.user.count({ where: { OR: baseOr, source: "WHATSAPP" } }),
   ]);
 
   return NextResponse.json({
@@ -78,35 +103,32 @@ async function getUserDetail(id: string) {
   const user = await prisma.user.findUnique({
     where: { id },
     select: {
-      id: true, name: true, email: true, phone: true, googleId: true, source: true, createdAt: true,
+      id: true, name: true, email: true, phone: true, googleId: true, source: true, role: true, createdAt: true,
+      // Mostramos las reservas que el usuario CREÓ (incluye las hechas por staff a nombre de otros)
+      // + fallback a las que es dueño (data antigua sin createdById).
+      createdReservations: {
+        select: detailSelect,
+        orderBy: { date: "desc" },
+      },
       reservations: {
-        select: {
-          id: true, status: true, date: true, guests: true, duration: true,
-          guestName: true, guestPhone: true,
-          sectionPreference: true, occasion: true, notes: true,
-          isLargeGroup: true, requiresPayment: true,
-          paymentStatus: true, amountPaid: true, creditUsed: true,
-          createdAt: true, confirmedAt: true, cancelledAt: true, cancelReason: true,
-          checkedInAt: true,
-          table:        { select: { number: true, section: { select: { name: true } } } },
-          linkedTable:  { select: { number: true } },
-          thirdTable:   { select: { number: true } },
-          fourthTable:  { select: { number: true } },
-        },
+        select: detailSelect,
         orderBy: { date: "desc" },
       },
     },
   });
   if (!user) return { error: "not_found" };
 
-  const totalVisits = user.reservations.length;
-  const confirmed   = user.reservations.filter((r) => ["CONFIRMED", "COMPLETED", "IN_PROGRESS"].includes(r.status)).length;
-  const cancelled   = user.reservations.filter((r) => r.status === "CANCELLED").length;
-  const noShow      = user.reservations.filter((r) => r.status === "NO_SHOW").length;
+  // Si tiene createdReservations usamos esas; si no (data antigua) caemos a las owned.
+  const list = user.createdReservations.length > 0 ? user.createdReservations : user.reservations;
+
+  const totalVisits = list.length;
+  const confirmed   = list.filter((r) => ["CONFIRMED", "COMPLETED", "IN_PROGRESS"].includes(r.status)).length;
+  const cancelled   = list.filter((r) => r.status === "CANCELLED").length;
+  const noShow      = list.filter((r) => r.status === "NO_SHOW").length;
 
   const secCount: Record<string, number> = {};
   const occCount: Record<string, number> = {};
-  for (const r of user.reservations) {
+  for (const r of list) {
     if (r.sectionPreference) secCount[r.sectionPreference] = (secCount[r.sectionPreference] || 0) + 1;
     if (r.occasion)          occCount[r.occasion]          = (occCount[r.occasion]          || 0) + 1;
   }

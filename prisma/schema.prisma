@@ -21,7 +21,8 @@ model User {
   googleId     String?       @unique
   role         Role          @default(CUSTOMER)
   source       UserSource    @default(WEB) // canal por el que llegó: web o whatsapp bot
-  reservations Reservation[]
+  reservations        Reservation[] @relation("OwnedReservations")
+  createdReservations Reservation[] @relation("CreatedReservations")
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 }
@@ -110,9 +111,13 @@ model TableBlock {
 model Reservation {
   id                String            @id @default(cuid())
 
-  // ── Cuenta que hizo la reserva ─────────
+  // ── Cuenta dueña de la reserva (comensal) ─────────
   userId            String
-  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User              @relation("OwnedReservations", fields: [userId], references: [id], onDelete: Cascade)
+
+  // ── Quién la creó (puede ser staff distinto del comensal) ─────────
+  createdById       String?
+  createdBy         User?             @relation("CreatedReservations", fields: [createdById], references: [id], onDelete: SetNull)
 
   // ── Titular de la reserva ──────────────
   // Independiente del perfil del usuario,

@@ -141,6 +141,7 @@ export async function POST(request: NextRequest) {
         const reservation = await prisma.reservation.create({
             data: {
                 userId:            user.id,
+                createdById:       adminId,
                 guestName,
                 guestPhone:        phone,
                 guests,
