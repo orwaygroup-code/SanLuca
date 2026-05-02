@@ -83,7 +83,8 @@ const STATUS_GROUPS: { key: string; label: string; color: string }[] = [
     { key: "CANCELLED",   label: "CANCELADAS",           color: "rgba(255,255,255,0.18)" },
 ];
 
-const DELETABLE_STATUSES = ["CANCELLED", "NO_SHOW", "COMPLETED"];
+const DELETABLE_STATUSES  = ["CANCELLED", "NO_SHOW", "COMPLETED"];
+const ARCHIVED_STATUSES   = ["CANCELLED", "NO_SHOW", "COMPLETED"]; // se mueven a /admin/historial
 
 const SECTIONS = ["Todas", "Terraza", "Planta Alta", "Salón", "Privado"];
 const NEXT_STATUSES: Record<string, { label: string; value: string }[]> = {
@@ -266,8 +267,9 @@ export default function AdminPage() {
     if (!userId) return null;
 
     const pendingCount = reservations.filter((r) => r.status === "PENDING").length;
+    const archivedCount = reservations.filter((r) => ARCHIVED_STATUSES.includes(r.status)).length;
     const displayed    = reservations.filter((r) =>
-        !onlyPending || r.status === "PENDING"
+        !ARCHIVED_STATUSES.includes(r.status) && (!onlyPending || r.status === "PENDING")
     );
     const groups = groupByDate(displayed);
 
@@ -285,6 +287,12 @@ export default function AdminPage() {
                         style={{ padding: "8px 14px", background: "rgba(186,132,60,0.12)", border: "1px solid rgba(186,132,60,0.35)", borderRadius: 8, color: "#ba843c", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}
                     >
                         🗺 Mapa
+                    </button>
+                    <button
+                        onClick={() => router.push("/admin/historial")}
+                        style={{ padding: "8px 14px", background: "rgba(186,132,60,0.12)", border: "1px solid rgba(186,132,60,0.35)", borderRadius: 8, color: "#ba843c", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}
+                    >
+                        📋 Historial{archivedCount > 0 ? ` (${archivedCount})` : ""}
                     </button>
                     {userRole === "ADMIN" && (
                         <>
@@ -542,15 +550,7 @@ export default function AdminPage() {
                                                                     {updating === r.id ? "…" : action.label.toUpperCase()}
                                                                 </button>
                                                             ))}
-                                                            {DELETABLE_STATUSES.includes(r.status) && (
-                                                                <button
-                                                                    className="adm-btn-delete"
-                                                                    disabled={deleting === r.id}
-                                                                    onClick={() => deleteReservation(r.id)}
-                                                                >
-                                                                    {deleting === r.id ? "…" : "🗑 Eliminar"}
-                                                                </button>
-                                                            )}
+                                                            {/* Eliminar movido a /admin/historial para evitar borrados accidentales */}
                                                         </div>
                                                     </div>
                                                 ))}
