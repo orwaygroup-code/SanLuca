@@ -19,9 +19,10 @@ export async function GET(request: NextRequest) {
         }
 
         const { searchParams } = new URL(request.url);
-        const section = searchParams.get("section");   // "Terraza" | "Planta Alta" | "Salón" | null = todas
-        const date    = searchParams.get("date");      // "2026-04-02"
-        const search  = searchParams.get("search");    // nombre o teléfono
+        const section  = searchParams.get("section");   // "Terraza" | "Planta Alta" | "Salón" | null = todas
+        const date     = searchParams.get("date");      // "2026-04-02"
+        const search   = searchParams.get("search");    // nombre o teléfono
+        const archived = searchParams.get("archived");  // "1" → solo terminales, sin filtro de fecha
 
         const where: Record<string, unknown> = {};
 
@@ -29,7 +30,10 @@ export async function GET(request: NextRequest) {
             where.sectionPreference = section;
         }
 
-        if (date) {
+        if (archived === "1") {
+            where.status = { in: ["CANCELLED", "NO_SHOW", "COMPLETED"] };
+            // Sin filtro de fecha — incluye pasadas
+        } else if (date) {
             // Interpretar la fecha en timezone de México (UTC-6 fijo, sin horario de verano)
             const start = new Date(`${date}T00:00:00.000-06:00`);
             const end   = new Date(`${date}T23:59:59.999-06:00`);
@@ -51,7 +55,7 @@ export async function GET(request: NextRequest) {
 
         const reservations = await prisma.reservation.findMany({
             where,
-            orderBy: { date: "asc" },
+            orderBy: { date: archived === "1" ? "desc" : "asc" },
             select: {
                 id:                true,
                 guestName:         true,

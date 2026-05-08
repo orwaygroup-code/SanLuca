@@ -155,7 +155,6 @@ export default function AdminPage() {
     const [date, setDate]                 = useState("");
     const [search, setSearch]             = useState("");
     const [updating, setUpdating]         = useState<string | null>(null);
-    const [deleting, setDeleting]         = useState<string | null>(null);
     const [onlyPending, setOnlyPending]   = useState(false);
     const [moveTarget, setMoveTarget]       = useState<Reservation | null>(null);
     const [editTarget, setEditTarget]       = useState<Reservation | null>(null);
@@ -196,17 +195,7 @@ export default function AdminPage() {
         setUpdating(null);
     };
 
-    const deleteReservation = async (id: string) => {
-        if (!userId) return;
-        if (!confirm("¿Eliminar esta reserva permanentemente?")) return;
-        setDeleting(id);
-        await fetch(`/api/admin/reservations/${id}`, {
-            method:  "DELETE",
-            headers: { "x-user-id": userId },
-        });
-        await fetchReservations();
-        setDeleting(null);
-    };
+    // Eliminar reservas se hace ahora desde /admin/historial
 
     const editReservation = async (id: string, data: {
         date: string; time: string; guests: number;
@@ -267,7 +256,6 @@ export default function AdminPage() {
     if (!userId) return null;
 
     const pendingCount = reservations.filter((r) => r.status === "PENDING").length;
-    const archivedCount = reservations.filter((r) => ARCHIVED_STATUSES.includes(r.status)).length;
     const displayed    = reservations.filter((r) =>
         !ARCHIVED_STATUSES.includes(r.status) && (!onlyPending || r.status === "PENDING")
     );
@@ -292,7 +280,7 @@ export default function AdminPage() {
                         onClick={() => router.push("/admin/historial")}
                         style={{ padding: "8px 14px", background: "rgba(186,132,60,0.12)", border: "1px solid rgba(186,132,60,0.35)", borderRadius: 8, color: "#ba843c", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}
                     >
-                        📋 Historial{archivedCount > 0 ? ` (${archivedCount})` : ""}
+                        📋 Historial
                     </button>
                     {userRole === "ADMIN" && (
                         <>

@@ -48,11 +48,9 @@ export default function HistorialPage() {
   async function load() {
     setLoad(true);
     try {
-      const r = await fetch("/api/admin/reservations", { headers: authHeaders() });
+      const r = await fetch("/api/admin/reservations?archived=1", { headers: authHeaders() });
       const d = await r.json();
-      if (d.success) {
-        setItems(d.data.filter((x: Reservation) => ["CANCELLED", "NO_SHOW", "COMPLETED"].includes(x.status)));
-      }
+      if (d.success) setItems(d.data);
     } finally {
       setLoad(false);
     }
