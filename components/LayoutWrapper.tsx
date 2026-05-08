@@ -6,7 +6,7 @@ import Footer from "./Footer";
 import { WhatsAppFloat } from "./WhatsAppFloat";
 
 const BARE_PATHS = ["/login"];
-const BARE_PREFIXES = ["/checkin/", "/admin"];
+const BARE_PREFIXES = ["/checkin/", "/admin", "/crm"];
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();

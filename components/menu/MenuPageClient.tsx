@@ -103,10 +103,9 @@ export default function MenuPageClient({ comidaDishes, brunchDishes, dbCategorie
         if (m === "brunch" || m === "comida") setMode(m);
     }, [searchParams]);
 
-    // Notifica al Navbar el tema actual para que ajuste sus colores
+    // Notifica al Navbar el tema actual. Sin cleanup: la siguiente página sobreescribe.
     useEffect(() => {
         document.body.dataset.navTheme = mode;
-        return () => { delete document.body.dataset.navTheme; };
     }, [mode]);
 
     const t = THEME[mode];

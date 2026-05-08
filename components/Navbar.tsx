@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { colors, fonts } from "@/config/theme";
 import { useTranslation } from "@/lib/i18n";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
@@ -44,6 +44,7 @@ function NavLink({
 
 export default function Navbar() {
   const router = useRouter();
+  const pathname = usePathname();
   const { t } = useTranslation();
   const [show, setShow] = useState(true);
   const [scrolled, setScrolled] = useState(false);
@@ -51,6 +52,9 @@ export default function Navbar() {
   const [userName, setUserName] = useState<string | null>(null);
   const [isDark, setIsDark] = useState(true);
   const lastY = useRef(0);
+
+  // El tema brunch (claro) solo aplica en /menu/*. Fuera de ahí siempre dark.
+  const allowsThemeSwitch = pathname?.startsWith("/menu") ?? false;
 
   const NAV_LINKS = [
     { label: t.nav.philosophy, href: "#filosofia" },
@@ -62,13 +66,14 @@ export default function Navbar() {
 
   useEffect(() => {
     const check = () => {
+      if (!allowsThemeSwitch) { setIsDark(true); return; }
       setIsDark(document.body.dataset.navTheme !== "brunch");
     };
     check();
     const observer = new MutationObserver(check);
     observer.observe(document.body, { attributes: true, attributeFilter: ["data-nav-theme"] });
     return () => observer.disconnect();
-  }, []);
+  }, [allowsThemeSwitch]);
 
   useEffect(() => {
     const syncAuth = () => setUserName(localStorage.getItem("userName"));
