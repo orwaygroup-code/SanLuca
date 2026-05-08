@@ -10,6 +10,8 @@ import Philosophy from "@/components/Philosophy";
 import ChefStory from "@/components/ChefStory";
 import Origin from "@/components/Origin";
 import AdminRedirect from "@/components/AdminRedirect";
+import { ImagePrefetcher } from "@/components/ImagePrefetcher";
+import { PREFETCH_AFTER_HERO } from "@/config/prefetchImages";
 
 export default function HomePage() {
   return (
@@ -19,6 +21,7 @@ export default function HomePage() {
       <Philosophy />
       <ChefStory />
       <Origin />
+      <ImagePrefetcher urls={PREFETCH_AFTER_HERO} />
     </>
   );
 }

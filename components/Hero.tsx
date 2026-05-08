@@ -54,6 +54,10 @@ export default function Hero() {
 
       {/* Radial color accents */}
 
+      {/* Preload hint — el browser comienza a descargar antes de evaluar React */}
+      <link rel="preload" as="image" href={randomImage}          fetchPriority="high" media="(min-width: 640px)" />
+      <link rel="preload" as="image" href={randomImageResponsive} fetchPriority="high" media="(max-width: 639px)" />
+
       {/* Imagen móvil — visible solo en pantallas < 640px */}
       <div className="hero-img-mobile">
         <Image
@@ -61,9 +65,10 @@ export default function Hero() {
           alt="San Luca Ristorante"
           fill
           priority
+          fetchPriority="high"
           sizes="100vw"
           style={{ objectFit: "cover", objectPosition: "center" }}
-          quality={85}
+          quality={75}
         />
         <div className="hero-img-overlay" />
       </div>
@@ -75,9 +80,10 @@ export default function Hero() {
           alt="San Luca Ristorante"
           fill
           priority
+          fetchPriority="high"
           sizes="100vw"
           style={{ objectFit: "cover", objectPosition: "center" }}
-          quality={85}
+          quality={75}
         />
         <div className="hero-img-overlay" />
       </div>
