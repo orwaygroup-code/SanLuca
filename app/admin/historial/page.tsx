@@ -21,21 +21,32 @@ interface Reservation {
 }
 
 const STATUS_LABEL: Record<string, string> = {
-  CANCELLED: "Cancelada",
-  NO_SHOW:   "No se presentó",
-  COMPLETED: "Completada",
+  PENDING_PAYMENT: "Espera pago",
+  PENDING:     "Pendiente",
+  CONFIRMED:   "Confirmada",
+  IN_PROGRESS: "En curso",
+  DELAYED:     "Retraso",
+  CANCELLED:   "Cancelada",
+  NO_SHOW:     "No se presentó",
+  COMPLETED:   "Completada",
 };
 const STATUS_COLOR: Record<string, string> = {
-  CANCELLED: "#c85050",
-  NO_SHOW:   "#c0392b",
-  COMPLETED: "#5fa15f",
+  PENDING_PAYMENT: "#d97706",
+  PENDING:     "#ba843c",
+  CONFIRMED:   "#4a9eca",
+  IN_PROGRESS: "#5fa15f",
+  DELAYED:     "#e05555",
+  CANCELLED:   "#c85050",
+  NO_SHOW:     "#c0392b",
+  COMPLETED:   "rgba(245,241,232,0.5)",
 };
+const ACTIVE_STATUSES = ["PENDING_PAYMENT", "PENDING", "CONFIRMED", "IN_PROGRESS", "DELAYED"];
 
 export default function HistorialPage() {
   const router = useRouter();
   const [items, setItems]       = useState<Reservation[]>([]);
   const [loading, setLoad]      = useState(true);
-  const [filter, setFilter]     = useState<"todas" | "CANCELLED" | "NO_SHOW" | "COMPLETED">("todas");
+  const [filter, setFilter]     = useState<"todas" | "activas" | "CANCELLED" | "NO_SHOW" | "COMPLETED">("todas");
   const [search, setSearch]     = useState("");
   const [deleting, setDeleting] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
@@ -48,7 +59,7 @@ export default function HistorialPage() {
   async function load() {
     setLoad(true);
     try {
-      const r = await fetch("/api/admin/reservations?archived=1", { headers: authHeaders() });
+      const r = await fetch("/api/admin/reservations?all=1", { headers: authHeaders() });
       const d = await r.json();
       if (d.success) setItems(d.data);
     } finally {
@@ -74,13 +85,15 @@ export default function HistorialPage() {
   }
 
   const filtered = items.filter((r) => {
-    if (filter !== "todas" && r.status !== filter) return false;
+    if (filter === "activas" && !ACTIVE_STATUSES.includes(r.status))    return false;
+    if (filter !== "todas" && filter !== "activas" && r.status !== filter) return false;
     if (search && !r.guestName.toLowerCase().includes(search.toLowerCase()) && !r.guestPhone.includes(search)) return false;
     return true;
   });
 
   const counts = {
     todas:     items.length,
+    activas:   items.filter((r) => ACTIVE_STATUSES.includes(r.status)).length,
     CANCELLED: items.filter((r) => r.status === "CANCELLED").length,
     NO_SHOW:   items.filter((r) => r.status === "NO_SHOW").length,
     COMPLETED: items.filter((r) => r.status === "COMPLETED").length,
@@ -97,7 +110,7 @@ export default function HistorialPage() {
             </Link>
             <h1 style={{ margin: "6px 0 0", fontSize: "1.6rem", letterSpacing: "0.05em" }}>Historial de Reservas</h1>
             <p style={{ margin: "4px 0 0", color: "rgba(245,241,232,0.55)", fontSize: "0.82rem" }}>
-              Reservas terminadas, canceladas y no-shows. Aquí se elimina (con confirmación) para mantener el registro CRM limpio.
+              Todas las reservas (pasadas y futuras). Solo se pueden eliminar las terminadas/canceladas para preservar el registro CRM.
             </p>
           </div>
         </div>
@@ -106,6 +119,7 @@ export default function HistorialPage() {
         <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
           {([
             ["todas",     `Todas (${counts.todas})`],
+            ["activas",   `Activas (${counts.activas})`],
             ["COMPLETED", `Completadas (${counts.COMPLETED})`],
             ["CANCELLED", `Canceladas (${counts.CANCELLED})`],
             ["NO_SHOW",   `No-show (${counts.NO_SHOW})`],
@@ -171,7 +185,11 @@ export default function HistorialPage() {
                       {r.occasion}
                     </span>
                   )}
-                  {confirmId === r.id ? (
+                  {ACTIVE_STATUSES.includes(r.status) ? (
+                    <span style={{ fontSize: "0.65rem", color: "rgba(245,241,232,0.35)", fontStyle: "italic" }}>
+                      Activa
+                    </span>
+                  ) : confirmId === r.id ? (
                     <div style={{ display: "flex", gap: 6 }}>
                       <button onClick={() => remove(r.id)} disabled={deleting === r.id} style={btnDanger}>
                         {deleting === r.id ? "…" : "Confirmar"}

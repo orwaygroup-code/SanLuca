@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
         const date     = searchParams.get("date");      // "2026-04-02"
         const search   = searchParams.get("search");    // nombre o teléfono
         const archived = searchParams.get("archived");  // "1" → solo terminales, sin filtro de fecha
+        const all      = searchParams.get("all");        // "1" → todas las reservas (cualquier estado/fecha)
 
         const where: Record<string, unknown> = {};
 
@@ -30,7 +31,9 @@ export async function GET(request: NextRequest) {
             where.sectionPreference = section;
         }
 
-        if (archived === "1") {
+        if (all === "1") {
+            // Sin filtro de estado ni fecha — todas las reservas
+        } else if (archived === "1") {
             where.status = { in: ["CANCELLED", "NO_SHOW", "COMPLETED"] };
             // Sin filtro de fecha — incluye pasadas
         } else if (date) {
@@ -55,7 +58,7 @@ export async function GET(request: NextRequest) {
 
         const reservations = await prisma.reservation.findMany({
             where,
-            orderBy: { date: archived === "1" ? "desc" : "asc" },
+            orderBy: { date: (archived === "1" || all === "1") ? "desc" : "asc" },
             select: {
                 id:                true,
                 guestName:         true,
