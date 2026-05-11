@@ -33,10 +33,10 @@ export default function DishCardGold({
 
     return (
         <article
+            className="dish-card-h"
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
             style={{
-                display: "flex",
                 borderRadius: "12px",
                 overflow: "hidden",
                 background: hovered ? CARD_BG_HOVER : CARD_BG,
@@ -46,18 +46,13 @@ export default function DishCardGold({
                     ? "0 8px 28px rgba(0,0,0,0.45)"
                     : "0 2px 10px rgba(0,0,0,0.3)",
                 cursor: "pointer",
-                minHeight: "110px",
             }}
         >
             {/* Área izquierda — imagen / placeholder dorado */}
             <div
+                className="dish-card-h__image"
                 style={{
-                    position: "relative",
-                    width: "130px",
-                    flexShrink: 0,
                     background: GOLD,
-                    overflow: "hidden",
-                    borderRadius: "10px 0 0 10px",
                 }}
             >
                 {(imageUrl ?? "/images/menu/vinos/vinosTintos/1.png") ? (
@@ -65,7 +60,7 @@ export default function DishCardGold({
                         src={imageUrl ?? "/images/menu/vinos/vinosTintos/1.png"}
                         alt={name}
                         fill
-                        sizes="130px"
+                        sizes="(max-width: 480px) 100vw, 130px"
                         style={{
                             objectFit: "cover",
                             transform: hovered ? "scale(1.07)" : "scale(1)",
@@ -76,15 +71,7 @@ export default function DishCardGold({
             </div>
 
             {/* Área derecha — contenido */}
-            <div
-                style={{
-                    flex: 1,
-                    padding: "1rem 1.25rem",
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "space-between",
-                }}
-            >
+            <div className="dish-card-h__content">
                 {/* Nombre + descripción */}
                 <div>
                     <h3

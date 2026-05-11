@@ -111,14 +111,7 @@ export default function ComidaSectionsClient({
                     padding: "0 clamp(1rem, 3vw, 3rem)",
                 }}
             >
-                <div
-                    style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(4, 1fr)",
-                        gridAutoRows: "220px",
-                        gap: "6px",
-                    }}
-                >
+                <div className="menu-section-grid">
                     {categoriesWithImages.map((cat, i) => (
                         <CategoryImageCard
                             key={cat.slug}

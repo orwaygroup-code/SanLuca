@@ -101,14 +101,7 @@ export default function BrunchSectionsClient({
                     padding: "0 clamp(1rem, 3vw, 3rem)",
                 }}
             >
-                <div
-                    style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 280px), 1fr))",
-                        gridAutoRows: "220px",
-                        gap: "6px",
-                    }}
-                >
+                <div className="menu-section-grid">
                     {categoriesWithImages.map((cat) => (
                         <BrunchCategoryCard
                             key={cat.slug}

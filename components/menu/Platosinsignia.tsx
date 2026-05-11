@@ -112,15 +112,7 @@ export default function PlatosInsignia({ dishes }: PlatosInsigniaProps) {
             </div>
 
             {/* ── 3 CARDS ── */}
-            <div
-                style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(3, 1fr)",
-                    gap: "1px",
-                    maxWidth: "1320px",
-                    margin: "0 auto",
-                }}
-            >
+            <div className="platos-insignia-grid">
                 {featured.map((dish, i) => {
                     const isActive = activeCard === i;
                     const numStr = String(i + 1).padStart(2, "0");

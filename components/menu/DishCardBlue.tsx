@@ -31,10 +31,10 @@ export default function DishCardBlue({
 
     return (
         <article
+            className="dish-card-h"
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
             style={{
-                display: "flex",
                 borderRadius: "14px",
                 overflow: "hidden",
                 background: CARD_BG,
@@ -44,18 +44,13 @@ export default function DishCardBlue({
                     ? "0 8px 28px rgba(30,58,82,0.2)"
                     : "0 2px 10px rgba(30,58,82,0.1)",
                 cursor: "pointer",
-                minHeight: "110px",
             }}
         >
             {/* Área izquierda — imagen / placeholder */}
             <div
+                className="dish-card-h__image"
                 style={{
-                    position: "relative",
-                    width: "130px",
-                    flexShrink: 0,
                     background: BLUE_IMG,
-                    overflow: "hidden",
-                    borderRadius: "12px 0 0 12px",
                 }}
             >
                 {imageUrl ? (
@@ -63,7 +58,7 @@ export default function DishCardBlue({
                         src={imageUrl}
                         alt={name}
                         fill
-                        sizes="130px"
+                        sizes="(max-width: 480px) 100vw, 130px"
                         style={{
                             objectFit: "cover",
                             transform: hovered ? "scale(1.07)" : "scale(1)",
@@ -74,15 +69,7 @@ export default function DishCardBlue({
             </div>
 
             {/* Área derecha — contenido */}
-            <div
-                style={{
-                    flex: 1,
-                    padding: "1rem 1.25rem",
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "space-between",
-                }}
-            >
+            <div className="dish-card-h__content">
                 {/* Nombre + descripción */}
                 <div>
                     <h3
