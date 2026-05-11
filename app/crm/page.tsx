@@ -32,7 +32,7 @@ export default function CrmDashboardPage() {
         <StatCard label="Nuevos mensajes"   value={data?.cards.messages.value ?? "—"}     growth={data?.cards.messages.growth} icon="💬" mock={data?.cards.messages.mock} />
       </div>
 
-      <div style={chartGrid}>
+      <div className="crm-chart-grid">
         <Chart data={data?.chart ?? []} />
         <Donut conv={data?.conversion} />
       </div>
@@ -123,7 +123,7 @@ function Donut({ conv }: { conv?: Dashboard["conversion"] }) {
         Tasa de conversión
       </span>
       <div style={{ display: "flex", justifyContent: "center", margin: "20px 0 16px" }}>
-        <svg width="160" height="160" viewBox="0 0 160 160">
+        <svg viewBox="0 0 160 160" style={{ width: "100%", maxWidth: 160, height: "auto" }}>
           <circle cx="80" cy="80" r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="14" />
           <circle
             cx="80" cy="80" r={r} fill="none"
@@ -148,11 +148,6 @@ const grid: React.CSSProperties = {
   gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
   gap: 18,
   marginBottom: 22,
-};
-const chartGrid: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "2fr 1fr",
-  gap: 18,
 };
 const card: React.CSSProperties = {
   background: "#22302e",

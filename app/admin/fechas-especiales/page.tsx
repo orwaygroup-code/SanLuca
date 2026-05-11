@@ -115,16 +115,12 @@ export default function FechasEspecialesPage() {
         </div>
 
         {/* Crear */}
-        <form onSubmit={handleCreate} style={{
+        <form onSubmit={handleCreate} className="adm-special-form" style={{
           background: "#161e20",
           border: "1px solid rgba(186,132,60,0.25)",
           borderRadius: 12,
           padding: "20px",
           marginBottom: 24,
-          display: "grid",
-          gridTemplateColumns: "1fr 100px 100px 110px auto",
-          gap: 12,
-          alignItems: "end",
         }}>
           <div>
             <label style={labelStyle}>Nombre</label>
@@ -187,19 +183,15 @@ export default function FechasEspecialesPage() {
         ) : items.length === 0 ? (
           <div style={{ color: "rgba(245,241,232,0.5)", textAlign: "center", padding: "40px 0" }}>No hay fechas especiales registradas.</div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div className="crm-table-wrap" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {items.map((it) => {
               const isEditing = editId === it.id;
               return (
-                <div key={it.id} style={{
+                <div key={it.id} className="adm-special-row" style={{
                   background: "#161e20",
                   border: `1px solid ${it.isActive ? "rgba(186,132,60,0.3)" : "rgba(255,255,255,0.08)"}`,
                   borderRadius: 10,
                   padding: "14px 18px",
-                  display: "grid",
-                  gridTemplateColumns: "auto 1fr auto auto auto",
-                  gap: 16,
-                  alignItems: "center",
                   opacity: it.isActive ? 1 : 0.55,
                 }}>
                   <div style={{

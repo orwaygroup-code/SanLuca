@@ -212,13 +212,10 @@ export default function MapaPage() {
                                             <div
                                                 key={t.id}
                                                 onClick={clickable ? () => { setNote(""); setSelected(t); } : undefined}
+                                                className="adm-map-table"
                                                 style={{
-                                                    width: 120, minHeight: 100, borderRadius: 12, padding: "12px 14px",
                                                     background: S_BG[t.status], border: `1.5px solid ${S_BORDER[t.status]}`,
                                                     cursor: clickable ? "pointer" : "default",
-                                                    display: "flex", flexDirection: "column", gap: 4,
-                                                    transition: "opacity 0.15s, transform 0.1s",
-                                                    userSelect: "none",
                                                 }}
                                                 onMouseEnter={(e) => { if (clickable) (e.currentTarget as HTMLDivElement).style.opacity = "0.8"; }}
                                                 onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.opacity = "1"; }}
@@ -330,9 +327,9 @@ const modalTitle: React.CSSProperties = { margin: 0, fontSize: "1.05rem", fontWe
 
 function Modal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
     return (
-        <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+        <div className="adm-modal-backdrop"
             onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-            <div style={{ background: "#1a2628", border: "1px solid rgba(186,132,60,0.2)", borderRadius: 16, padding: "28px 24px", width: "100%", maxWidth: 400, display: "flex", flexDirection: "column", gap: 16 }}>
+            <div className="adm-modal-card">
                 {children}
             </div>
         </div>

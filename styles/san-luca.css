@@ -1738,3 +1738,114 @@ textarea::placeholder {
     flex-shrink: 0;
   }
 }
+
+/* ══════════════════════════════════════════════
+   CRM Chart grid (panel principal)
+   ══════════════════════════════════════════════ */
+.crm-chart-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 18px;
+}
+@media (max-width: 767px) {
+  .crm-chart-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   Admin Historial — fila stack en mobile
+   ══════════════════════════════════════════════ */
+.adm-historial-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto auto;
+  align-items: center;
+  gap: 16px;
+}
+.adm-historial-search {
+  margin-left: auto;
+  min-width: 240px;
+}
+@media (max-width: 767px) {
+  .adm-historial-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    align-items: stretch;
+  }
+  .adm-historial-search {
+    margin-left: 0;
+    min-width: 0;
+    width: 100%;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   Admin Fechas Especiales — form responsive + scroll items
+   ══════════════════════════════════════════════ */
+.adm-special-form {
+  display: grid;
+  grid-template-columns: 1fr 100px 100px 110px auto;
+  gap: 12px;
+  align-items: end;
+}
+.adm-special-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto auto;
+  gap: 16px;
+  align-items: center;
+}
+@media (max-width: 767px) {
+  .adm-special-form {
+    grid-template-columns: 1fr 1fr;
+  }
+  .adm-special-form > *:first-child {
+    grid-column: 1 / -1;
+  }
+  .adm-special-form > *:last-of-type {
+    grid-column: 1 / -1;
+  }
+  .adm-special-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    align-items: stretch;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   Admin Mapa — modal responsive + mesas con clamp
+   ══════════════════════════════════════════════ */
+.adm-map-table {
+  width: clamp(96px, 22vw, 120px);
+  min-height: 100px;
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: opacity 0.15s, transform 0.1s;
+  user-select: none;
+}
+.adm-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0,0,0,0.8);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.adm-modal-card {
+  background: #1a2628;
+  border: 1px solid rgba(186,132,60,0.2);
+  border-radius: 16px;
+  padding: 28px 24px;
+  width: 100%;
+  max-width: min(400px, 92vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}

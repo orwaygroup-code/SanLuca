@@ -134,8 +134,9 @@ export default function HistorialPage() {
             </button>
           ))}
           <input
+            className="adm-historial-search"
             value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar nombre o teléfono"
-            style={{ marginLeft: "auto", padding: "10px 14px", background: "#161e20", border: "1px solid rgba(186,132,60,0.25)", borderRadius: 8, color: "#f5f1e8", fontFamily: "inherit", fontSize: "0.82rem", minWidth: 240 }}
+            style={{ padding: "10px 14px", background: "#161e20", border: "1px solid rgba(186,132,60,0.25)", borderRadius: 8, color: "#f5f1e8", fontFamily: "inherit", fontSize: "0.82rem" }}
           />
         </div>
 
@@ -152,16 +153,12 @@ export default function HistorialPage() {
               const date  = new Date(r.date);
               const color = STATUS_COLOR[r.status];
               return (
-                <div key={r.id} style={{
+                <div key={r.id} className="adm-historial-row" style={{
                   background: "#161e20",
                   border: `1px solid rgba(255,255,255,0.04)`,
                   borderLeft: `3px solid ${color}`,
                   borderRadius: 10,
                   padding: "14px 18px",
-                  display: "grid",
-                  gridTemplateColumns: "auto 1fr auto auto auto",
-                  alignItems: "center",
-                  gap: 16,
                 }}>
                   <span style={{ padding: "4px 12px", border: `1px solid ${color}`, color, borderRadius: 999, fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>
                     {STATUS_LABEL[r.status]}
