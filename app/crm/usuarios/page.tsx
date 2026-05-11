@@ -326,7 +326,7 @@ const statusBadge: React.CSSProperties = {
 function Stat({ label, big, sub, accent, bad, small }: { label: string; big: number | string; sub?: string; accent?: boolean; bad?: boolean; small?: boolean }) {
   const color = bad ? "#c85050" : accent ? "#ba843c" : "#f5f1e8";
   return (
-    <div style={panelStyle}>
+    <div className="crm-panel">
       <div style={{ color: "rgba(245,241,232,0.55)", fontSize: "0.68rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 600 }}>{label}</div>
       <div style={{ fontSize: small ? "1.4rem" : "2.2rem", fontWeight: 600, marginTop: 6, color }}>{big}</div>
       {sub && <div style={{ marginTop: 4, fontSize: "0.7rem", color: "rgba(245,241,232,0.45)" }}>{sub}</div>}
@@ -336,7 +336,7 @@ function Stat({ label, big, sub, accent, bad, small }: { label: string; big: num
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={panelStyle}>
+    <div className="crm-panel">
       <div style={{ color: "rgba(245,241,232,0.55)", fontSize: "0.7rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, marginBottom: 14 }}>{title}</div>
       {children}
     </div>
@@ -373,9 +373,6 @@ const userItem: React.CSSProperties = {
   display: "flex", alignItems: "center", gap: 12,
   padding: "14px 16px", borderRadius: 12, border: "1px solid",
   cursor: "pointer", fontFamily: "inherit",
-};
-const panelStyle: React.CSSProperties = {
-  background: "#22302e", border: "1px solid rgba(255,255,255,0.04)", borderRadius: 14, padding: "18px 20px",
 };
 const badgePill: React.CSSProperties = {
   padding: "6px 16px", border: "1px solid", borderRadius: 999, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.06em",

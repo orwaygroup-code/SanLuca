@@ -43,7 +43,7 @@ export default function CrmDashboardPage() {
 function StatCard({ label, value, growth, icon, mock }: { label: string; value: number | string; growth?: number; icon: string; mock?: boolean }) {
   const positive = (growth ?? 0) >= 0;
   return (
-    <div style={card}>
+    <div className="crm-card">
       <div style={{ fontSize: "2rem", opacity: 0.65 }}>{icon}</div>
       <div style={{ flex: 1 }}>
         <div style={{ color: "rgba(245,241,232,0.55)", fontSize: "0.7rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 600 }}>
@@ -68,7 +68,7 @@ function Chart({ data }: { data: { label: string; value: number }[] }) {
   const max   = Math.max(1, ...data.map((d) => d.value));
   const total = data.reduce((s, d) => s + d.value, 0);
   return (
-    <div style={panel}>
+    <div className="crm-panel">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
         <div>
           <div style={{ color: "rgba(245,241,232,0.55)", fontSize: "0.7rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 600 }}>
@@ -118,7 +118,7 @@ function Donut({ conv }: { conv?: Dashboard["conversion"] }) {
   const c = 2 * Math.PI * r;
   const dash = (pct / 100) * c;
   return (
-    <div style={panel}>
+    <div className="crm-panel">
       <span style={{ color: "rgba(245,241,232,0.55)", fontSize: "0.7rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 600 }}>
         Tasa de conversión
       </span>
@@ -148,19 +148,4 @@ const grid: React.CSSProperties = {
   gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
   gap: 18,
   marginBottom: 22,
-};
-const card: React.CSSProperties = {
-  background: "#22302e",
-  border: "1px solid rgba(255,255,255,0.04)",
-  borderRadius: 14,
-  padding: "20px 22px",
-  display: "flex",
-  alignItems: "center",
-  gap: 18,
-};
-const panel: React.CSSProperties = {
-  background: "#22302e",
-  border: "1px solid rgba(255,255,255,0.04)",
-  borderRadius: 14,
-  padding: "22px 24px",
 };

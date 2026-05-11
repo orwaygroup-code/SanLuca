@@ -1700,6 +1700,46 @@ textarea::placeholder {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  position: relative;
+}
+.adm-header__hamburger {
+  display: none;
+  width: 44px;
+  height: 44px;
+  background: rgba(186,132,60,0.12);
+  border: 1px solid rgba(186,132,60,0.45);
+  border-radius: 8px;
+  color: #ba843c;
+  font-size: 1.3rem;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-family: inherit;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.adm-header__dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: #1a2224;
+  border: 1px solid rgba(186,132,60,0.35);
+  border-radius: 10px;
+  padding: 8px;
+  min-width: 200px;
+  z-index: 50;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.45);
+  flex-direction: column;
+  gap: 4px;
+}
+.adm-header__dropdown--open {
+  display: flex;
+}
+.adm-header__dropdown > button {
+  text-align: left;
+  width: 100%;
 }
 
 @media (max-width: 767px) {
@@ -1737,12 +1777,15 @@ textarea::placeholder {
     gap: 14px;
   }
   .adm-header__actions {
-    overflow-x: auto;
     flex-wrap: nowrap;
-    padding-bottom: 4px;
+    justify-content: flex-end;
   }
-  .adm-header__actions > * {
-    flex-shrink: 0;
+  /* Mostrar solo botones marcados como críticos + hamburger; resto va al dropdown */
+  .adm-header__actions > :not(.adm-header__primary):not(.adm-header__hamburger):not(.adm-header__dropdown) {
+    display: none;
+  }
+  .adm-header__hamburger {
+    display: flex;
   }
 }
 
@@ -1757,6 +1800,48 @@ textarea::placeholder {
 @media (max-width: 767px) {
   .crm-chart-grid {
     grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   CRM paneles (panel/card) — compactos en mobile
+   ══════════════════════════════════════════════ */
+.crm-panel {
+  background: #22302e;
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 14px;
+  padding: 18px 20px;
+}
+.crm-card {
+  background: #22302e;
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+@media (max-width: 767px) {
+  .crm-panel {
+    padding: 14px 14px;
+    border-radius: 12px;
+  }
+  .crm-card {
+    padding: 14px 14px;
+    gap: 12px;
+    border-radius: 12px;
+  }
+  /* Compactar grids del CRM */
+  .crm-2col,
+  .crm-stat-grid,
+  .crm-users-layout,
+  .crm-chart-grid {
+    gap: 12px;
+  }
+  /* Main del CrmShell aún más compacto lateralmente */
+  .crm-shell__main {
+    padding: 64px 12px 32px;
   }
 }
 
@@ -1794,27 +1879,37 @@ textarea::placeholder {
   grid-template-columns: 1fr 100px 100px 110px auto;
   gap: 12px;
   align-items: end;
+  min-width: 0;
+}
+.adm-special-form > * {
+  min-width: 0;
 }
 .adm-special-row {
   display: grid;
   grid-template-columns: auto 1fr auto auto auto;
   gap: 16px;
   align-items: center;
+  min-width: 0;
+}
+.adm-special-row > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 @media (max-width: 767px) {
   .adm-special-form {
     grid-template-columns: 1fr 1fr;
+    padding: 14px !important;
   }
-  .adm-special-form > *:first-child {
-    grid-column: 1 / -1;
-  }
-  .adm-special-form > *:last-of-type {
+  /* Nombre (primer hijo) y submit button (último hijo) full-width */
+  .adm-special-form > *:first-child,
+  .adm-special-form > button[type="submit"] {
     grid-column: 1 / -1;
   }
   .adm-special-row {
     grid-template-columns: 1fr;
     gap: 10px;
     align-items: stretch;
+    padding: 12px 14px !important;
   }
 }
 

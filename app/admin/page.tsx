@@ -161,6 +161,7 @@ export default function AdminPage() {
     const [moveTarget, setMoveTarget]       = useState<Reservation | null>(null);
     const [editTarget, setEditTarget]       = useState<Reservation | null>(null);
     const [showNewModal, setShowNewModal]   = useState(false);
+    const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
 
     useEffect(() => {
         if (session.loading) return;
@@ -304,14 +305,64 @@ export default function AdminPage() {
                         </>
                     )}
                     <button
+                        className="adm-header__primary"
                         onClick={() => setShowNewModal(true)}
                         style={{ padding: "8px 14px", background: "rgba(186,132,60,0.85)", border: "1px solid #ba843c", borderRadius: 8, color: "#fff", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}
                     >
-                        + Nueva Reserva
+                        + Nueva
                     </button>
                     <button className="adm-logout" onClick={async () => { await session.logout(); router.push("/login?mode=login"); }}>
                         Salir
                     </button>
+
+                    {/* Hamburger (solo mobile) */}
+                    <button
+                        type="button"
+                        className="adm-header__hamburger"
+                        aria-label={headerMenuOpen ? "Cerrar menú" : "Abrir menú"}
+                        aria-expanded={headerMenuOpen}
+                        onClick={() => setHeaderMenuOpen((v) => !v)}
+                    >
+                        {headerMenuOpen ? "✕" : "☰"}
+                    </button>
+
+                    {/* Dropdown mobile */}
+                    <div className={`adm-header__dropdown${headerMenuOpen ? " adm-header__dropdown--open" : ""}`}>
+                        <button
+                            onClick={() => { setHeaderMenuOpen(false); router.push("/admin/mapa"); }}
+                            style={{ padding: "10px 14px", background: "rgba(186,132,60,0.12)", border: "1px solid rgba(186,132,60,0.35)", borderRadius: 8, color: "#ba843c", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}
+                        >
+                            🗺 Mapa
+                        </button>
+                        <button
+                            onClick={() => { setHeaderMenuOpen(false); router.push("/admin/historial"); }}
+                            style={{ padding: "10px 14px", background: "rgba(186,132,60,0.12)", border: "1px solid rgba(186,132,60,0.35)", borderRadius: 8, color: "#ba843c", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}
+                        >
+                            📋 Historial
+                        </button>
+                        {userRole === "ADMIN" && (
+                            <>
+                                <button
+                                    onClick={() => { setHeaderMenuOpen(false); router.push("/admin/fechas-especiales"); }}
+                                    style={{ padding: "10px 14px", background: "rgba(186,132,60,0.12)", border: "1px solid rgba(186,132,60,0.35)", borderRadius: 8, color: "#ba843c", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}
+                                >
+                                    ✨ Fechas
+                                </button>
+                                <button
+                                    onClick={() => { setHeaderMenuOpen(false); router.push("/crm"); }}
+                                    style={{ padding: "10px 14px", background: "rgba(186,132,60,0.12)", border: "1px solid rgba(186,132,60,0.35)", borderRadius: 8, color: "#ba843c", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}
+                                >
+                                    📊 CRM
+                                </button>
+                            </>
+                        )}
+                        <button
+                            onClick={async () => { setHeaderMenuOpen(false); await session.logout(); router.push("/login?mode=login"); }}
+                            style={{ padding: "10px 14px", background: "transparent", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 8, color: "rgba(245,241,232,0.7)", fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", letterSpacing: "0.06em" }}
+                        >
+                            Salir
+                        </button>
+                    </div>
                 </div>
             </div>
 
