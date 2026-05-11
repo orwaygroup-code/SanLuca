@@ -36,10 +36,10 @@ export default function MarketingPage() {
     <>
       <CrmPageHead accent="MARKETING" title="PANEL" sub="Mensajes masivos en WhatsApp" />
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+      <div className="crm-2col">
         {/* Media drop */}
         <div>
-          <div style={dropBox}>
+          <div className="crm-marketing-dropbox">
             <span style={{ fontSize: "3rem", color: "rgba(245,241,232,0.25)" }}>+</span>
           </div>
           <div style={pillBar}>
@@ -88,7 +88,7 @@ export default function MarketingPage() {
 
 function Field({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", alignItems: "center", gap: 12 }}>
+    <div className="crm-marketing-field">
       <span style={{ color: "rgba(245,241,232,0.7)", fontSize: "0.85rem", fontWeight: 600 }}>{label}:</span>
       <select value={value} onChange={(e) => onChange(e.target.value)} style={select}>
         {options.map((o) => <option key={o}>{o}</option>)}
@@ -97,15 +97,6 @@ function Field({ label, value, onChange, options }: { label: string; value: stri
   );
 }
 
-const dropBox: React.CSSProperties = {
-  background: "#22302e",
-  border: "1px solid rgba(255,255,255,0.04)",
-  borderRadius: 14,
-  height: 360,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-};
 const pillBar: React.CSSProperties = {
   marginTop: 14,
   background: "#22302e",

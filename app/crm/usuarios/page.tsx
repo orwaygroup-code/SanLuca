@@ -98,7 +98,7 @@ export default function UsuariosPage() {
     <>
       <CrmPageHead accent="DATOS" title="DE USUARIO" sub="Clasificación de datos por usuarios" />
 
-      <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 20 }}>
+      <div className="crm-users-layout">
         {/* Sidebar list */}
         <div>
           <div style={{ position: "relative", marginBottom: 14 }}>
@@ -193,7 +193,7 @@ function UserDetail({ d }: { d: Detail }) {
       </div>
 
       {/* Stat cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
+      <div className="crm-stat-grid">
         <Stat label="Total reservas" big={d.stats.totalVisits} sub={d.stats.lastReservation ? `Última: ${new Date(d.stats.lastReservation).toLocaleDateString("es-MX")}` : ""} />
         <Stat label="Confirmadas"     big={d.stats.confirmed} accent />
         <Stat label="Canceladas / NS" big={d.stats.cancelled} bad />
@@ -205,7 +205,7 @@ function UserDetail({ d }: { d: Detail }) {
         {d.preferences.occasions.length === 0 && d.preferences.sections.length === 0 ? (
           <p style={muted}>Sin datos suficientes</p>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
+          <div className="crm-detail-grid">
             <div>
               {d.preferences.sections.map((p, i) => <PrefBar key={p.label} label={p.label} value={p.value} max={d.stats.totalVisits} color={["#4a9eca", "#5fa15f", "#d4b35f"][i] ?? "#ba843c"} />)}
             </div>
@@ -283,7 +283,7 @@ function ReservationCard({ r, expanded, onToggle }: { r: Reservation; expanded: 
       </button>
 
       {expanded && (
-        <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", padding: "14px 16px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div className="crm-fields-grid" style={{ borderTop: "1px solid rgba(255,255,255,0.05)", padding: "14px 16px" }}>
           <Field label="Titular reserva"  v={r.guestName} />
           <Field label="Tel. reserva"     v={r.guestPhone} />
           <Field label="Mesa(s)"          v={`${tablesLabel}${r.tableSection ? ` · ${r.tableSection}` : ""}`} />

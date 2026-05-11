@@ -42,7 +42,7 @@ export default function WhatsappPage() {
     <>
       <CrmPageHead accent="WHATSAPP" title="CRM" sub={`Bandeja · ${rows.length} usuario(s) WhatsApp`} />
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: 14, marginBottom: 18, alignItems: "center" }}>
+      <div className="crm-wa-header">
         <div style={{ position: "relative" }}>
           <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "rgba(245,241,232,0.4)" }}>🔍</span>
           <input
@@ -54,7 +54,7 @@ export default function WhatsappPage() {
         <BtnPill label="Modo entrenamiento" />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 2fr 1.4fr 1fr", gap: 14, padding: "0 18px 10px", color: "rgba(245,241,232,0.5)", fontSize: "0.72rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 600 }}>
+      <div className="crm-wa-head-row">
         <span>Nombre o número</span>
         <span>Probabilidad de cierre</span>
         <span>Tema</span>
@@ -75,7 +75,7 @@ export default function WhatsappPage() {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {filtered.map((r) => (
-            <div key={r.id} style={row}>
+            <div key={r.id} className="crm-wa-row">
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <div style={avatar}>👤</div>
                 <div>
@@ -122,16 +122,6 @@ function Bar({ value }: { value: number }) {
   );
 }
 
-const row: React.CSSProperties = {
-  background: "#22302e",
-  border: "1px solid rgba(255,255,255,0.04)",
-  borderRadius: 14,
-  padding: "16px 18px",
-  display: "grid",
-  gridTemplateColumns: "2fr 2fr 1.4fr 1fr",
-  alignItems: "center",
-  gap: 14,
-};
 const avatar: React.CSSProperties = {
   width: 36, height: 36, borderRadius: "50%", background: "#f5f1e8", color: "#1c2628",
   display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
