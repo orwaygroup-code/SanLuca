@@ -80,7 +80,8 @@ export function AuthForm() {
     useEffect(() => {
         // Si ya hay sesión activa
         if (session.user) {
-            router.push(redirect);
+            const role = session.user.role;
+            router.push(role === "ADMIN" || role === "HOSTES" ? "/admin" : redirect);
             return;
         }
 

@@ -49,6 +49,8 @@ export default function Navbar() {
   const { t } = useTranslation();
   const session = useSession();
   const userName = session.user?.name ?? null;
+  const userRole = session.user?.role ?? null;
+  const isStaff  = userRole === "ADMIN" || userRole === "HOSTES";
   const [show, setShow] = useState(true);
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
@@ -169,19 +171,20 @@ export default function Navbar() {
                 }}>
                   {t.nav.greeting}, {userName.split(" ")[0]}
                 </span>
-                <Link href="/dashboard" style={{
+                <Link href={isStaff ? "/admin" : "/dashboard"} style={{
                   fontFamily: fonts.primary,
                   fontSize: "0.62rem",
                   fontWeight: 800,
                   textTransform: "uppercase",
-                  color: colors.cream,
+                  color: isStaff ? "#1c2628" : colors.cream,
                   textDecoration: "none",
                   border: `1px solid ${colors.peru}`,
                   borderRadius: 999,
                   padding: "6px 14px",
+                  background: isStaff ? colors.peru : "transparent",
                   transition: "all 0.2s",
                 }}>
-                  {t.nav.myReservations}
+                  {isStaff ? "Panel Admin" : t.nav.myReservations}
                 </Link>
                 <button onClick={handleLogout} style={{
                   fontFamily: fonts.primary,
@@ -319,7 +322,12 @@ export default function Navbar() {
                 }}>
                   {t.nav.greeting}, {userName.split(" ")[0]}
                 </span>
-                <NavLink label={t.nav.myReservations} href="/dashboard" isDark={isDark} onClick={() => setOpen(false)} />
+                <NavLink
+                  label={isStaff ? "Panel Admin" : t.nav.myReservations}
+                  href={isStaff ? "/admin" : "/dashboard"}
+                  isDark={isDark}
+                  onClick={() => setOpen(false)}
+                />
                 <button onClick={() => { handleLogout(); setOpen(false); }} style={{
                   fontFamily: fonts.primary, fontSize: "0.62rem", fontWeight: 800,
                   textTransform: "uppercase", color: "rgba(245,241,232,0.4)",
