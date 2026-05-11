@@ -280,13 +280,13 @@ export default function AdminPage() {
                         onClick={() => router.push("/admin/mapa")}
                         style={{ padding: "8px 14px", background: "rgba(186,132,60,0.12)", border: "1px solid rgba(186,132,60,0.35)", borderRadius: 8, color: "#ba843c", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}
                     >
-                        🗺 Mapa
+                        Mapa
                     </button>
                     <button
                         onClick={() => router.push("/admin/historial")}
                         style={{ padding: "8px 14px", background: "rgba(186,132,60,0.12)", border: "1px solid rgba(186,132,60,0.35)", borderRadius: 8, color: "#ba843c", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}
                     >
-                        📋 Historial
+                        Historial
                     </button>
                     {userRole === "ADMIN" && (
                         <>
@@ -294,13 +294,13 @@ export default function AdminPage() {
                                 onClick={() => router.push("/admin/fechas-especiales")}
                                 style={{ padding: "8px 14px", background: "rgba(186,132,60,0.12)", border: "1px solid rgba(186,132,60,0.35)", borderRadius: 8, color: "#ba843c", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}
                             >
-                                ✨ Fechas
+                                Fechas
                             </button>
                             <button
                                 onClick={() => router.push("/crm")}
                                 style={{ padding: "8px 14px", background: "rgba(186,132,60,0.12)", border: "1px solid rgba(186,132,60,0.35)", borderRadius: 8, color: "#ba843c", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}
                             >
-                                📊 CRM
+                                CRM
                             </button>
                         </>
                     )}
@@ -332,13 +332,13 @@ export default function AdminPage() {
                             onClick={() => { setHeaderMenuOpen(false); router.push("/admin/mapa"); }}
                             style={{ padding: "10px 14px", background: "rgba(186,132,60,0.12)", border: "1px solid rgba(186,132,60,0.35)", borderRadius: 8, color: "#ba843c", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}
                         >
-                            🗺 Mapa
+                            Mapa
                         </button>
                         <button
                             onClick={() => { setHeaderMenuOpen(false); router.push("/admin/historial"); }}
                             style={{ padding: "10px 14px", background: "rgba(186,132,60,0.12)", border: "1px solid rgba(186,132,60,0.35)", borderRadius: 8, color: "#ba843c", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}
                         >
-                            📋 Historial
+                            Historial
                         </button>
                         {userRole === "ADMIN" && (
                             <>
@@ -346,13 +346,13 @@ export default function AdminPage() {
                                     onClick={() => { setHeaderMenuOpen(false); router.push("/admin/fechas-especiales"); }}
                                     style={{ padding: "10px 14px", background: "rgba(186,132,60,0.12)", border: "1px solid rgba(186,132,60,0.35)", borderRadius: 8, color: "#ba843c", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}
                                 >
-                                    ✨ Fechas
+                                    Fechas
                                 </button>
                                 <button
                                     onClick={() => { setHeaderMenuOpen(false); router.push("/crm"); }}
                                     style={{ padding: "10px 14px", background: "rgba(186,132,60,0.12)", border: "1px solid rgba(186,132,60,0.35)", borderRadius: 8, color: "#ba843c", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}
                                 >
-                                    📊 CRM
+                                    CRM
                                 </button>
                             </>
                         )}
@@ -407,7 +407,7 @@ export default function AdminPage() {
                         onChange={(e) => setSearch(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && fetchReservations()}
                     />
-                    <button className="adm-search-btn" onClick={fetchReservations}>🔍 Buscar</button>
+                    <button className="adm-search-btn" onClick={fetchReservations}>Buscar</button>
                 </div>
 
                 {(section !== "Todas" || date || search) && (

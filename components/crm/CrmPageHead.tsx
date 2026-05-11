@@ -16,11 +16,11 @@ export function CrmPageHead({ title, accent, sub }: { title: string; accent: str
           </button>
         )}
         <Link href="/admin" style={{ ...btn, textDecoration: "none", display: "inline-block" }}>
-          🏠 Panel admin
+          Panel admin
         </Link>
         {!isRoot && (
           <Link href="/crm" style={{ ...btn, textDecoration: "none", display: "inline-block" }}>
-            📊 Inicio CRM
+            Inicio CRM
           </Link>
         )}
       </div>

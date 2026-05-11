@@ -184,7 +184,7 @@ export default function MapaPage() {
                                             onClick={() => { setNote(""); setSectionModal(sec); }}
                                             style={{ marginLeft: "auto", padding: "4px 14px", borderRadius: 20, fontSize: "0.68rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em", textTransform: "uppercase", border: allBlocked ? "1px solid rgba(76,175,80,0.5)" : "1px solid rgba(180,60,180,0.45)", background: allBlocked ? "rgba(76,175,80,0.08)" : "rgba(180,60,180,0.08)", color: allBlocked ? "#4caf50" : "#c060c0" }}
                                         >
-                                            {allBlocked ? "🔓 Liberar área" : "🚫 Bloquear área"}
+                                            {allBlocked ? "Liberar área" : "Bloquear área"}
                                         </button>
                                     )}
                                 </div>
@@ -192,7 +192,7 @@ export default function MapaPage() {
                                 {/* Banner grupo grande */}
                                 {sec.largeGroup && (
                                     <div style={{ marginBottom: 14, padding: "12px 16px", background: "rgba(180,60,180,0.07)", border: "1px solid rgba(180,60,180,0.28)", borderRadius: 10, display: "flex", alignItems: "center", gap: 12 }}>
-                                        <span style={{ fontSize: "1.1rem" }}>🚫</span>
+                                        
                                         <div>
                                             <p style={{ margin: 0, fontSize: "0.8rem", fontWeight: 700, color: "#d080d0" }}>
                                                 Área completa bloqueada — Grupo grande

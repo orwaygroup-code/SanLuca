@@ -192,7 +192,7 @@ export default function HistorialPage() {
                       <button onClick={() => setConfirmId(null)} style={btnGhost}>Cancelar</button>
                     </div>
                   ) : (
-                    <button onClick={() => setConfirmId(r.id)} style={btnGhost}>🗑 Eliminar</button>
+                    <button onClick={() => setConfirmId(r.id)} style={btnGhost}>Eliminar</button>
                   )}
                 </div>
               );
