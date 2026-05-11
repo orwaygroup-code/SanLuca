@@ -176,8 +176,9 @@ export default function UsuariosPage() {
 }
 
 function UserDetail({ d }: { d: Detail }) {
-  const [expanded, setExpanded] = useState<string | null>(null);
-  const [filter,   setFilter]   = useState<"todas" | "activas" | "completadas" | "canceladas">("todas");
+  const [expanded,      setExpanded]      = useState<string | null>(null);
+  const [filter,        setFilter]        = useState<"todas" | "activas" | "completadas" | "canceladas">("todas");
+  const [reservasOpen,  setReservasOpen]  = useState(false);
 
   const filtered = d.reservations.filter((r) => {
     if (filter === "todas")       return true;
@@ -231,32 +232,55 @@ function UserDetail({ d }: { d: Detail }) {
         )}
       </Panel>
 
-      {/* Reservations */}
-      <Panel title={`Reservas (${d.reservations.length})`}>
-        <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
-          {(["todas", "activas", "completadas", "canceladas"] as const).map((f) => (
-            <button key={f} onClick={() => setFilter(f)} style={{
-              padding: "6px 14px", borderRadius: 999, border: "1px solid",
-              background:   filter === f ? "rgba(186,132,60,0.18)" : "transparent",
-              borderColor:  filter === f ? "#ba843c"               : "rgba(245,241,232,0.18)",
-              color:        filter === f ? "#ba843c"               : "rgba(245,241,232,0.6)",
-              fontSize: "0.7rem", letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer", fontFamily: "inherit", fontWeight: 600,
-            }}>
-              {f}
-            </button>
-          ))}
-        </div>
+      {/* Reservations — colapsable */}
+      <div className="crm-panel">
+        <button
+          onClick={() => setReservasOpen((v) => !v)}
+          style={{
+            width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+            background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0,
+          }}
+          aria-expanded={reservasOpen}
+        >
+          <span style={{ color: "rgba(245,241,232,0.55)", fontSize: "0.7rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+            Reservas ({d.reservations.length})
+          </span>
+          <span style={{
+            fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase",
+            color: "#ba843c", display: "flex", alignItems: "center", gap: 6,
+          }}>
+            {reservasOpen ? "Ocultar ▾" : `Ver reservas ▸`}
+          </span>
+        </button>
 
-        {filtered.length === 0 ? (
-          <p style={muted}>No hay reservas en esta categoría</p>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {filtered.map((r) => (
-              <ReservationCard key={r.id} r={r} expanded={expanded === r.id} onToggle={() => setExpanded(expanded === r.id ? null : r.id)} />
-            ))}
+        {reservasOpen && (
+          <div style={{ marginTop: 14 }}>
+            <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
+              {(["todas", "activas", "completadas", "canceladas"] as const).map((f) => (
+                <button key={f} onClick={() => setFilter(f)} style={{
+                  padding: "6px 14px", borderRadius: 999, border: "1px solid",
+                  background:  filter === f ? "rgba(186,132,60,0.18)" : "transparent",
+                  borderColor: filter === f ? "#ba843c"               : "rgba(245,241,232,0.18)",
+                  color:       filter === f ? "#ba843c"               : "rgba(245,241,232,0.6)",
+                  fontSize: "0.7rem", letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer", fontFamily: "inherit", fontWeight: 600,
+                }}>
+                  {f}
+                </button>
+              ))}
+            </div>
+
+            {filtered.length === 0 ? (
+              <p style={muted}>No hay reservas en esta categoría</p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {filtered.map((r) => (
+                  <ReservationCard key={r.id} r={r} expanded={expanded === r.id} onToggle={() => setExpanded(expanded === r.id ? null : r.id)} />
+                ))}
+              </div>
+            )}
           </div>
         )}
-      </Panel>
+      </div>
     </div>
   );
 }
