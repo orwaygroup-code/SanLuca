@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { registerSchema } from "@/lib/validations";
 import { hashPassword } from "@/lib/auth";
+import { signSession, sessionCookieString, type Role } from "@/lib/session";
 import type { ApiResponse } from "@/types";
 
 export async function POST(request: NextRequest) {
@@ -39,13 +40,16 @@ export async function POST(request: NextRequest) {
                 birthDate: birthDate ? new Date(birthDate) : undefined,
                 passwordHash,
             },
-            select: { id: true, name: true, email: true },
+            select: { id: true, name: true, email: true, role: true },
         });
 
-        return NextResponse.json<ApiResponse>(
+        const token = signSession({ sub: user.id, role: user.role as Role });
+        const res = NextResponse.json<ApiResponse>(
             { success: true, data: user },
             { status: 201 }
         );
+        res.headers.set("Set-Cookie", sessionCookieString(token));
+        return res;
     } catch (error) {
         console.error("[API] POST /api/auth/register error:", error);
         return NextResponse.json<ApiResponse>(
