@@ -127,15 +127,7 @@ export default function Origin() {
                 </div>
 
                 {/* Mapa */}
-                <div
-                    style={{
-                        position: "relative",
-                        width: "70%",
-                        margin: "3rem auto 0",
-                        borderRadius: "8px",
-                        overflow: "hidden",
-                    }}
-                >
+                <div className="origin-map">
                     <img
                         src="/images/mapamundi.png"
                         alt="Mapa de orígenes San Luca"

@@ -1909,3 +1909,19 @@ textarea::placeholder {
     height: 180px;
   }
 }
+
+/* ══════════════════════════════════════════════
+   Origin landing — mapa mundi responsive
+   ══════════════════════════════════════════════ */
+.origin-map {
+  position: relative;
+  width: 70%;
+  margin: 3rem auto 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+@media (max-width: 768px) {
+  .origin-map {
+    width: 100%;
+  }
+}
