@@ -23,15 +23,18 @@ const imagesResponsive = [
   "/images/hero/responsive/3-responsive.png",
   "/images/hero/responsive/4-responsive.png",
 ];
-const randomImage = images[Math.floor(Math.random() * images.length)];
-const randomImageResponsive = imagesResponsive[Math.floor(Math.random() * imagesResponsive.length)];
 
 
 export default function Hero() {
   const { t } = useTranslation();
   const [loaded, setLoaded] = useState(false);
+  // Empezar con la primera imagen (determinístico para SSR), randomizar tras mount
+  const [randomImage, setRandomImage] = useState(images[0]);
+  const [randomImageResponsive, setRandomImageResponsive] = useState(imagesResponsive[0]);
 
   useEffect(() => {
+    setRandomImage(images[Math.floor(Math.random() * images.length)]);
+    setRandomImageResponsive(imagesResponsive[Math.floor(Math.random() * imagesResponsive.length)]);
     const t = setTimeout(() => setLoaded(true), 100);
     return () => clearTimeout(t);
   }, []);

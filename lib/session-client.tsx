@@ -20,17 +20,14 @@ const Ctx = createContext<SessionState | null>(null);
 
 /**
  * Hidrata desde /api/auth/me (cookie httpOnly) y expone helpers.
- * Sincroniza con localStorage para minimizar flicker mientras /me responde,
- * y para compatibilidad con código viejo que aún lee userId/userName/userRole.
+ *
+ * IMPORTANTE: el state inicial DEBE ser null para que el HTML del servidor
+ * coincida con el primer render del cliente (evita hydration mismatch
+ * React #418). Después del mount, useEffect hidrata desde localStorage
+ * (cache rápido) y verifica con /api/auth/me.
  */
 export function SessionProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<SessionUser | null>(() => {
-    if (typeof window === "undefined") return null;
-    const id   = localStorage.getItem("userId");
-    const name = localStorage.getItem("userName");
-    const role = localStorage.getItem("userRole") as SessionUser["role"] | null;
-    return id && name && role ? { id, name, email: "", role } : null;
-  });
+  const [user, setUser] = useState<SessionUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
@@ -63,7 +60,17 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     try { localStorage.removeItem("userId"); localStorage.removeItem("userName"); localStorage.removeItem("userRole"); } catch {}
   }, []);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    // 1) Hidratar cache rápido de localStorage DESPUÉS de mount (no afecta hidratación)
+    try {
+      const id   = localStorage.getItem("userId");
+      const name = localStorage.getItem("userName");
+      const role = localStorage.getItem("userRole") as SessionUser["role"] | null;
+      if (id && name && role) setUser({ id, name, email: "", role });
+    } catch {}
+    // 2) Verificar con servidor (fuente de verdad)
+    refresh();
+  }, [refresh]);
 
   return <Ctx.Provider value={{ user, loading, refresh, logout }}>{children}</Ctx.Provider>;
 }
