@@ -2,13 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendReservationQR } from "@/lib/whatsapp";
 import { autoAssignTable } from "@/lib/autoAssignTable";
+import { requireStaff } from "@/lib/auth-server";
 import type { ApiResponse } from "@/types";
 
 async function verifyHostes(request: NextRequest) {
-    const userId = request.headers.get("x-user-id");
-    if (!userId) return null;
-    const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
-    return ["HOSTES", "ADMIN"].includes(user?.role as string) ? userId : null;
+    const s = await requireStaff(request);
+    return s?.userId ?? null;
 }
 
 // PATCH /api/admin/reservations/[id]

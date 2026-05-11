@@ -75,14 +75,9 @@ export default function UsuariosPage() {
   const [selected, setSelected] = useState<string | null>(null);
   const [detail, setDetail]     = useState<Detail | null>(null);
 
-  function authHeaders() {
-    const id = typeof window !== "undefined" ? localStorage.getItem("userId") : "";
-    return { "x-user-id": id ?? "" };
-  }
-
   useEffect(() => {
     const params = new URLSearchParams({ search, source });
-    fetch(`/api/crm/users?${params}`, { headers: authHeaders() })
+    fetch(`/api/crm/users?${params}`, { credentials: "same-origin" })
       .then((r) => r.json())
       .then((d) => {
         setUsers(d.users ?? []);
@@ -94,7 +89,7 @@ export default function UsuariosPage() {
 
   useEffect(() => {
     if (!selected) { setDetail(null); return; }
-    fetch(`/api/crm/users?id=${selected}`, { headers: authHeaders() })
+    fetch(`/api/crm/users?id=${selected}`, { credentials: "same-origin" })
       .then((r) => r.json())
       .then((d) => setDetail(d.error ? null : d));
   }, [selected]);

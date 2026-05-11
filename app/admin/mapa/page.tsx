@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "@/lib/session-client";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type TableStatus = "available" | "reserved" | "in_progress" | "walk_in" | "area_blocked";
@@ -54,7 +55,8 @@ const LG_LABEL: Record<string, string> = {
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function MapaPage() {
     const router = useRouter();
-    const [userId,       setUserId]       = useState<string | null>(null);
+    const session = useSession();
+    const userId = session.user?.id ?? null;
     const [data,         setData]         = useState<LiveSection[]>([]);
     const [loading,      setLoading]      = useState(true);
     const [lastUpdate,   setLastUpdate]   = useState<Date | null>(null);
@@ -65,15 +67,15 @@ export default function MapaPage() {
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     useEffect(() => {
-        const uid  = localStorage.getItem("userId");
-        const role = localStorage.getItem("userRole");
-        if (!uid || !["ADMIN", "HOSTES"].includes(role ?? "")) { router.push("/login?mode=login"); return; }
-        setUserId(uid);
-    }, [router]);
+        if (session.loading) return;
+        if (!session.user || !["ADMIN", "HOSTES"].includes(session.user.role)) {
+            router.push("/login?mode=login");
+        }
+    }, [router, session.loading, session.user]);
 
-    const fetchMap = useCallback(async (uid: string) => {
+    const fetchMap = useCallback(async () => {
         try {
-            const res  = await fetch("/api/admin/map", { headers: { "x-user-id": uid } });
+            const res  = await fetch("/api/admin/map", { credentials: "same-origin" });
             const json = await res.json();
             if (json.success) { setData(json.data); setLastUpdate(new Date()); }
         } catch { /* silent */ } finally { setLoading(false); }
@@ -81,8 +83,8 @@ export default function MapaPage() {
 
     useEffect(() => {
         if (!userId) return;
-        fetchMap(userId);
-        timerRef.current = setInterval(() => fetchMap(userId), 20_000);
+        fetchMap();
+        timerRef.current = setInterval(() => fetchMap(), 20_000);
         return () => { if (timerRef.current) clearInterval(timerRef.current); };
     }, [userId, fetchMap]);
 
@@ -91,14 +93,15 @@ export default function MapaPage() {
         setBlocking(true);
         await fetch("/api/admin/map", {
             method: "PATCH",
-            headers: { "Content-Type": "application/json", "x-user-id": userId },
+            credentials: "same-origin",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body),
         });
         setBlocking(false);
         setSelected(null);
         setSectionModal(null);
         setNote("");
-        fetchMap(userId);
+        fetchMap();
     };
 
     if (!userId) return null;
@@ -129,7 +132,7 @@ export default function MapaPage() {
                     )}
                     <button
                         className="adm-logout"
-                        onClick={() => userId && fetchMap(userId)}
+                        onClick={() => userId && fetchMap()}
                         style={{ borderColor: "rgba(186,132,60,0.4)", color: "#ba843c" }}
                     >
                         ↺ Refrescar

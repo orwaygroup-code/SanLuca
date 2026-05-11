@@ -8,6 +8,7 @@ import { GoldSelect } from "@/components/ui/GoldSelect";
 import type { SelectOption } from "@/components/ui/GoldSelect";
 import { GuestsPicker } from "@/components/ui/GuestsPicker";
 import { DatePicker } from "@/components/ui/DatePicker";
+import { useSession } from "@/lib/session-client";
 
 const OCCASION_OPTIONS: SelectOption[] = [
   { value: "",                  label: "— Sin celebración —"  },
@@ -147,8 +148,9 @@ function groupByDate(reservations: Reservation[]): DateGroup[] {
 // ── Main component ─────────────────────────────────────────────────────
 export default function AdminPage() {
     const router = useRouter();
-    const [userId, setUserId]             = useState<string | null>(null);
-    const [userRole, setUserRole]         = useState<string | null>(null);
+    const session = useSession();
+    const userId   = session.user?.id   ?? null;
+    const userRole = session.user?.role ?? null;
     const [reservations, setReservations] = useState<Reservation[]>([]);
     const [loading, setLoading]           = useState(true);
     const [section, setSection]           = useState("Todas");
@@ -161,12 +163,11 @@ export default function AdminPage() {
     const [showNewModal, setShowNewModal]   = useState(false);
 
     useEffect(() => {
-        const uid  = localStorage.getItem("userId");
-        const role = localStorage.getItem("userRole");
-        if (!uid || !["ADMIN", "HOSTES"].includes(role ?? "")) { router.push("/login?mode=login"); return; }
-        setUserId(uid);
-        setUserRole(role);
-    }, [router]);
+        if (session.loading) return;
+        if (!session.user || !["ADMIN", "HOSTES"].includes(session.user.role)) {
+            router.push("/login?mode=login");
+        }
+    }, [router, session.loading, session.user]);
 
     const fetchReservations = useCallback(async () => {
         if (!userId) return;
@@ -175,7 +176,7 @@ export default function AdminPage() {
         if (section !== "Todas") params.set("section", section);
         if (date)   params.set("date",   date);
         if (search) params.set("search", search);
-        const res  = await fetch(`/api/admin/reservations?${params}`, { headers: { "x-user-id": userId } });
+        const res  = await fetch(`/api/admin/reservations?${params}`, { credentials: "same-origin" });
         const data = await res.json();
         if (data.success) setReservations(data.data);
         setLoading(false);
@@ -188,7 +189,8 @@ export default function AdminPage() {
         setUpdating(id);
         await fetch(`/api/admin/reservations/${id}`, {
             method:  "PATCH",
-            headers: { "Content-Type": "application/json", "x-user-id": userId },
+            credentials: "same-origin",
+            headers: { "Content-Type": "application/json" },
             body:    JSON.stringify({ status }),
         });
         await fetchReservations();
@@ -206,7 +208,8 @@ export default function AdminPage() {
         if (!userId) return;
         const res = await fetch(`/api/admin/reservations/${id}`, {
             method:  "PATCH",
-            headers: { "Content-Type": "application/json", "x-user-id": userId },
+            credentials: "same-origin",
+            headers: { "Content-Type": "application/json" },
             body:    JSON.stringify({ action: "edit-reservation", ...data }),
         });
         const json = await res.json();
@@ -222,7 +225,8 @@ export default function AdminPage() {
         if (!userId) return;
         const res = await fetch("/api/admin/reservations", {
             method:  "POST",
-            headers: { "Content-Type": "application/json", "x-user-id": userId },
+            credentials: "same-origin",
+            headers: { "Content-Type": "application/json" },
             body:    JSON.stringify(data),
         });
         const json = await res.json();
@@ -234,7 +238,8 @@ export default function AdminPage() {
         if (!userId) return;
         const res = await fetch(`/api/admin/reservations/${id}`, {
             method:  "PATCH",
-            headers: { "Content-Type": "application/json", "x-user-id": userId },
+            credentials: "same-origin",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 action:            "move-table",
                 tableId:           selection?.tableId       ?? null,
@@ -304,7 +309,7 @@ export default function AdminPage() {
                     >
                         + Nueva Reserva
                     </button>
-                    <button className="adm-logout" onClick={() => { localStorage.clear(); router.push("/login?mode=login"); }}>
+                    <button className="adm-logout" onClick={async () => { await session.logout(); router.push("/login?mode=login"); }}>
                         Salir
                     </button>
                 </div>

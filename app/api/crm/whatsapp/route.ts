@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth-server";
 
 async function isAdmin(req: NextRequest) {
-  const userId = req.headers.get("x-user-id");
-  if (!userId) return false;
-  const u = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
-  return u?.role === "ADMIN";
+  return (await requireAdmin(req)) !== null;
 }
 
 /**

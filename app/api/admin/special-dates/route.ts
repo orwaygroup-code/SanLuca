@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ensureSpecialDatesSeeded } from "@/lib/specialDates";
+import { requireAdmin } from "@/lib/auth-server";
 import type { ApiResponse } from "@/types";
 
 async function verifyAdmin(request: NextRequest) {
-  const userId = request.headers.get("x-user-id");
-  if (!userId) return null;
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { role: true },
-  });
-  return user && user.role === "ADMIN" ? userId : null;
+  const s = await requireAdmin(request);
+  return s?.userId ?? null;
 }
 
 export async function GET(request: NextRequest) {

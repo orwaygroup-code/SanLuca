@@ -26,14 +26,14 @@ export default function FechasEspecialesPage() {
   const [editDraft, setEditDraft] = useState<{ label: string; amount: number; month: number; day: number } | null>(null);
 
   function authHeaders() {
-    const userId = typeof window !== "undefined" ? localStorage.getItem("userId") : "";
-    return { "Content-Type": "application/json", "x-user-id": userId ?? "" };
+    return { "Content-Type": "application/json" };
   }
+  const fetchOpts = { credentials: "same-origin" as const };
 
   async function load() {
     setLoading(true);
     try {
-      const r = await fetch("/api/admin/special-dates", { headers: authHeaders() });
+      const r = await fetch("/api/admin/special-dates", { ...fetchOpts });
       const d = await r.json();
       if (d.success) setItems(d.data);
     } finally {
@@ -50,6 +50,7 @@ export default function FechasEspecialesPage() {
     try {
       const r = await fetch("/api/admin/special-dates", {
         method: "POST",
+        ...fetchOpts,
         headers: authHeaders(),
         body: JSON.stringify(form),
       });
@@ -65,6 +66,7 @@ export default function FechasEspecialesPage() {
   async function toggleActive(item: SpecialDate) {
     await fetch(`/api/admin/special-dates/${item.id}`, {
       method: "PATCH",
+      ...fetchOpts,
       headers: authHeaders(),
       body: JSON.stringify({ isActive: !item.isActive }),
     });
@@ -75,6 +77,7 @@ export default function FechasEspecialesPage() {
     if (!editDraft) return;
     await fetch(`/api/admin/special-dates/${id}`, {
       method: "PATCH",
+      ...fetchOpts,
       headers: authHeaders(),
       body: JSON.stringify(editDraft),
     });
@@ -87,7 +90,7 @@ export default function FechasEspecialesPage() {
     if (!confirm("¿Eliminar esta fecha especial?")) return;
     await fetch(`/api/admin/special-dates/${id}`, {
       method: "DELETE",
-      headers: authHeaders(),
+      ...fetchOpts,
     });
     load();
   }

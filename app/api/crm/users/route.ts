@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
+import { requireAdmin } from "@/lib/auth-server";
 
 const detailSelect = {
   id: true, status: true, date: true, guests: true, duration: true,
@@ -17,10 +18,7 @@ const detailSelect = {
 } satisfies Prisma.ReservationSelect;
 
 async function isAdmin(req: NextRequest) {
-  const userId = req.headers.get("x-user-id");
-  if (!userId) return false;
-  const u = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
-  return u?.role === "ADMIN";
+  return (await requireAdmin(req)) !== null;
 }
 
 export async function GET(req: NextRequest) {

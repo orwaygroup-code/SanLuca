@@ -28,8 +28,7 @@ export default function WhatsappPage() {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    const id = typeof window !== "undefined" ? localStorage.getItem("userId") : "";
-    fetch("/api/crm/whatsapp", { headers: { "x-user-id": id ?? "" } })
+    fetch("/api/crm/whatsapp", { credentials: "same-origin" })
       .then((r) => r.json())
       .then((d) => setRows(d.rows ?? []))
       .finally(() => setLoad(false));

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { useSession } from "@/lib/session-client";
 
 const STATUS_LABEL: Record<string, string> = {
     PENDING: "Pendiente",
@@ -37,15 +38,15 @@ interface Reservation {
 
 export default function CheckinPage() {
     const { token } = useParams<{ token: string }>();
+    const session = useSession();
+    const isHostes = session.user?.role === "HOSTES";
     const [reservation, setReservation] = useState<Reservation | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [confirming, setConfirming] = useState(false);
     const [done, setDone] = useState(false);
-    const [isHostes, setIsHostes] = useState(false);
 
     useEffect(() => {
-        setIsHostes(localStorage.getItem("userRole") === "HOSTES");
         fetch(`/api/checkin/${token}`)
             .then((r) => r.json())
             .then((data) => {
@@ -60,10 +61,9 @@ export default function CheckinPage() {
     const handleCheckin = async () => {
         setConfirming(true);
         try {
-            const userId = localStorage.getItem("userId") ?? "";
             const res = await fetch(`/api/checkin/${token}`, {
                 method: "PATCH",
-                headers: { "x-user-id": userId },
+                credentials: "same-origin",
             });
             const data = await res.json();
             if (!data.success) throw new Error(data.error);

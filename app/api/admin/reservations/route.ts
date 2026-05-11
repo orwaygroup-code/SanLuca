@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { autoAssignTable } from "@/lib/autoAssignTable";
+import { requireStaff } from "@/lib/auth-server";
 import type { ApiResponse } from "@/types";
 
 async function verifyStaff(request: NextRequest) {
-    const userId = request.headers.get("x-user-id");
-    if (!userId) return null;
-    const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
-    return user && ["ADMIN", "HOSTES"].includes(user.role) ? userId : null;
+    const s = await requireStaff(request);
+    return s?.userId ?? null;
 }
 
 // GET /api/admin/reservations?section=Terraza&date=2026-04-02&search=juan

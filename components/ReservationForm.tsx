@@ -9,6 +9,7 @@ import type { SelectOption } from "@/components/ui/GoldSelect";
 import { GuestsPicker } from "@/components/ui/GuestsPicker";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { useTranslation } from "@/lib/i18n";
+import { useSession } from "@/lib/session-client";
 
 const SECTIONS = ["Terraza", "Planta Alta", "Salón", "Privado"] as const;
 type Section = (typeof SECTIONS)[number];
@@ -38,6 +39,7 @@ type Step = "form" | "map" | "large-confirm";
 export function ReservationForm() {
   const router = useRouter();
   const { t } = useTranslation();
+  const session = useSession();
 
   const OCCASIONS: SelectOption[] = [
     { value: "",                 label: t.reservation.occasionNone        },
@@ -81,11 +83,10 @@ export function ReservationForm() {
   useEffect(() => {
     const phone = form.guestPhone.replace(/\D/g, "");
     if (phone.length < 10) { setCreditAvailable(0); return; }
-    const userId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
-    if (!userId) { setCreditAvailable(0); return; }
+    if (!session.user) { setCreditAvailable(0); return; }
     let cancelled = false;
     fetch(`/api/credits/lookup?phone=${encodeURIComponent(phone)}`, {
-      headers: { "x-user-id": userId },
+      credentials: "same-origin",
     })
       .then((r) => r.json())
       .then((d) => { if (!cancelled) setCreditAvailable(d?.amount ?? 0); })
@@ -119,7 +120,7 @@ export function ReservationForm() {
 
   // ── Helpers de autenticación y validación ─────
   function checkAuth() {
-    if (!localStorage.getItem("userId")) {
+    if (!session.user) {
       setAuthRequired(true);
       return false;
     }
@@ -197,10 +198,10 @@ export function ReservationForm() {
     setConfirmError(null);
     setConfirming(true);
     try {
-      const userId = localStorage.getItem("userId") ?? "";
       const res = await fetch("/api/reservations", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-user-id": userId },
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           guestName: form.guestName,
           guestPhone: form.guestPhone,
@@ -237,10 +238,10 @@ export function ReservationForm() {
     setConfirmError(null);
     setConfirming(true);
     try {
-      const userId = localStorage.getItem("userId") ?? "";
       const res = await fetch("/api/reservations", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-user-id": userId },
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           guestName: form.guestName,
           guestPhone: form.guestPhone,

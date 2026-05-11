@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAvailableCredit } from "@/lib/credits";
+import { getSession } from "@/lib/auth-server";
 
 /**
  * Returns credit balance for a customer.
- * Resolves email from x-user-id (preferred) or email query.
+ * Resolves email from the session (preferred) or email query.
  * Phone always comes from query.
  */
 export async function GET(request: NextRequest) {
@@ -13,10 +14,10 @@ export async function GET(request: NextRequest) {
   let email = url.searchParams.get("email") || "";
 
   if (!email) {
-    const userId = request.headers.get("x-user-id");
-    if (userId) {
+    const s = await getSession(request);
+    if (s) {
       const user = await prisma.user.findUnique({
-        where: { id: userId },
+        where: { id: s.userId },
         select: { email: true },
       });
       if (user?.email) email = user.email;

@@ -17,8 +17,7 @@ export default function CrmDashboardPage() {
   const [data, setData] = useState<Dashboard | null>(null);
 
   useEffect(() => {
-    const userId = localStorage.getItem("userId") ?? "";
-    fetch("/api/crm/dashboard", { headers: { "x-user-id": userId } })
+    fetch("/api/crm/dashboard", { credentials: "same-origin" })
       .then((r) => r.json())
       .then(setData)
       .catch(() => {});

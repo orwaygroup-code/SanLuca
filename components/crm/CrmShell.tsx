@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useSession } from "@/lib/session-client";
 
 const NAV = [
   { label: "Inicio",        href: "/crm" },
@@ -18,16 +19,17 @@ const NAV_BOTTOM = [
 export function CrmShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const session = useSession();
   const [authorized, setAuthorized] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const role = typeof window !== "undefined" ? localStorage.getItem("userRole") : null;
-    if (role !== "ADMIN") {
+    if (session.loading) return;
+    if (session.user?.role !== "ADMIN") {
       router.replace("/login?mode=login&redirect=/crm");
       return;
     }
     setAuthorized(true);
-  }, [router]);
+  }, [router, session.loading, session.user]);
 
   if (!authorized) {
     return <div style={loading}>Verificando acceso…</div>;

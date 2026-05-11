@@ -8,6 +8,7 @@ import { expirePendingPayments } from "@/lib/expirePendingPayments";
 import { getSpecialDateForDateStr } from "@/lib/specialDates";
 import { getAvailableCredit, applyCreditsToReservation } from "@/lib/credits";
 import { createReservationPreference } from "@/lib/mercadopago";
+import { getSession } from "@/lib/auth-server";
 import type { ApiResponse } from "@/types";
 
 const MAX_ACTIVE_RESERVATIONS = 2;
@@ -22,20 +23,15 @@ export async function POST(request: NextRequest) {
     try {
         await expirePendingPayments();
 
-        // 1. Verificar autenticación
-        // NOTA: Adapta esto a tu sistema de auth (NextAuth, Clerk, JWT, etc.)
-        // Por ahora usamos el header x-user-id para testing manual con curl/Postman
-        const userId =
-            request.headers.get("x-user-id") ??
-            // request.headers.get("authorization") ?? // para JWT
-            null;
-
-        if (!userId) {
+        // 1. Verificar autenticación (cookie httpOnly)
+        const session = await getSession(request);
+        if (!session) {
             return NextResponse.json<ApiResponse>(
                 { success: false, error: "No autenticado" },
                 { status: 401 }
             );
         }
+        const userId = session.userId;
 
         // 2. Verificar que el usuario existe
         const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -386,14 +382,14 @@ export async function POST(request: NextRequest) {
 // ──────────────────────────────────────────────
 export async function GET(request: NextRequest) {
     try {
-        const userId = request.headers.get("x-user-id");
-
-        if (!userId) {
+        const session = await getSession(request);
+        if (!session) {
             return NextResponse.json<ApiResponse>(
                 { success: false, error: "No autenticado" },
                 { status: 401 }
             );
         }
+        const userId = session.userId;
 
         const reservations = await prisma.reservation.findMany({
             where: { userId },

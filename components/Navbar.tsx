@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { colors, fonts } from "@/config/theme";
 import { useTranslation } from "@/lib/i18n";
+import { useSession } from "@/lib/session-client";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 
 function NavLink({
@@ -46,10 +47,11 @@ export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
   const { t } = useTranslation();
+  const session = useSession();
+  const userName = session.user?.name ?? null;
   const [show, setShow] = useState(true);
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
-  const [userName, setUserName] = useState<string | null>(null);
   const [isDark, setIsDark] = useState(true);
   const lastY = useRef(0);
 
@@ -76,13 +78,6 @@ export default function Navbar() {
   }, [allowsThemeSwitch]);
 
   useEffect(() => {
-    const syncAuth = () => setUserName(localStorage.getItem("userName"));
-    syncAuth();
-    window.addEventListener("storage", syncAuth);
-    return () => window.removeEventListener("storage", syncAuth);
-  }, []);
-
-  useEffect(() => {
     const handler = () => {
       const y = window.scrollY;
       setShow(y < 100 || y < lastY.current);
@@ -94,10 +89,8 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handler);
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("userId");
-    localStorage.removeItem("userName");
-    setUserName(null);
+  const handleLogout = async () => {
+    await session.logout();
     router.push("/");
   };
 

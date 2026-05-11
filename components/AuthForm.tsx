@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useTranslation } from "@/lib/i18n";
+import { useSession } from "@/lib/session-client";
 
 const MODES = ["login", "register"] as const;
 type Mode = (typeof MODES)[number];
@@ -47,6 +48,7 @@ function EyeIcon({ open }: { open: boolean }) {
 export function AuthForm() {
     const router = useRouter();
     const { t } = useTranslation();
+    const session = useSession();
     const searchParams = useSearchParams();
     const redirect = searchParams.get("redirect") ?? "/reservation";
     const initialMode: Mode = searchParams.get("mode") === "login" ? "login" : "register";
@@ -77,19 +79,19 @@ export function AuthForm() {
 
     useEffect(() => {
         // Si ya hay sesión activa
-        const userId = localStorage.getItem("userId");
-        if (userId) { router.push(redirect); return; }
+        if (session.user) {
+            router.push(redirect);
+            return;
+        }
 
         // Si viene de Google OAuth con un token de corta duración
         const gt = searchParams.get("gt");
         if (gt) {
-            fetch(`/api/auth/google/exchange?token=${encodeURIComponent(gt)}`)
+            fetch(`/api/auth/google/exchange?token=${encodeURIComponent(gt)}`, { credentials: "same-origin" })
                 .then((r) => r.json())
-                .then((data) => {
+                .then(async (data) => {
                     if (data.success) {
-                        localStorage.setItem("userId", data.data.userId);
-                        localStorage.setItem("userName", data.data.userName);
-                        localStorage.setItem("userRole", data.data.userRole ?? "CUSTOMER");
+                        await session.refresh();
                         router.push(["ADMIN", "HOSTES"].includes(data.data.userRole) ? "/admin" : redirect);
                     }
                 })
@@ -99,7 +101,7 @@ export function AuthForm() {
         // Error de Google
         const err = searchParams.get("error");
         if (err === "google_failed") setError("Error al iniciar sesión con Google. Intenta de nuevo.");
-    }, [redirect, router, searchParams]);
+    }, [redirect, router, searchParams, session]);
 
     const setL = <K extends keyof LoginData>(f: K, v: LoginData[K]) =>
         setLogin((p) => ({ ...p, [f]: v }));
@@ -112,6 +114,7 @@ export function AuthForm() {
         try {
             const res = await fetch("/api/auth/login", {
                 method: "POST",
+                credentials: "same-origin",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(login),
             });
@@ -128,9 +131,7 @@ export function AuthForm() {
                 }
                 throw new Error(data.error);
             }
-            localStorage.setItem("userId", data.data.id);
-            localStorage.setItem("userName", data.data.name);
-            localStorage.setItem("userRole", data.data.role ?? "CUSTOMER");
+            await session.refresh();
             router.push(["ADMIN", "HOSTES"].includes(data.data.role) ? "/admin" : "/dashboard");
         } catch (e: unknown) {
             setError(e instanceof Error ? e.message : "Error al iniciar sesión");
@@ -151,13 +152,13 @@ export function AuthForm() {
         try {
             const res = await fetch("/api/auth/register", {
                 method: "POST",
+                credentials: "same-origin",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(register),
             });
             const data = await res.json();
             if (!data.success) throw new Error(data.error);
-            localStorage.setItem("userId", data.data.id);
-            localStorage.setItem("userName", data.data.name);
+            await session.refresh();
             router.push("/reservation");
         } catch (e: unknown) {
             setError(e instanceof Error ? e.message : "Error al registrarse");

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession } from "@/lib/session-client";
 
 interface Reservation {
   id: string;
@@ -44,6 +45,7 @@ const ACTIVE_STATUSES = ["PENDING_PAYMENT", "PENDING", "CONFIRMED", "IN_PROGRESS
 
 export default function HistorialPage() {
   const router = useRouter();
+  const session = useSession();
   const [items, setItems]       = useState<Reservation[]>([]);
   const [loading, setLoad]      = useState(true);
   const [filter, setFilter]     = useState<"todas" | "activas" | "CANCELLED" | "NO_SHOW" | "COMPLETED">("todas");
@@ -51,15 +53,10 @@ export default function HistorialPage() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
-  function authHeaders() {
-    const id = typeof window !== "undefined" ? localStorage.getItem("userId") : "";
-    return { "x-user-id": id ?? "" };
-  }
-
   async function load() {
     setLoad(true);
     try {
-      const r = await fetch("/api/admin/reservations?all=1", { headers: authHeaders() });
+      const r = await fetch("/api/admin/reservations?all=1", { credentials: "same-origin" });
       const d = await r.json();
       if (d.success) setItems(d.data);
     } finally {
@@ -67,16 +64,17 @@ export default function HistorialPage() {
     }
   }
   useEffect(() => {
-    const role = localStorage.getItem("userRole");
+    if (session.loading) return;
+    const role = session.user?.role;
     if (role !== "ADMIN" && role !== "HOSTES") { router.replace("/login?mode=login"); return; }
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [session.loading, session.user]);
 
   async function remove(id: string) {
     setDeleting(id);
     try {
-      await fetch(`/api/admin/reservations/${id}`, { method: "DELETE", headers: authHeaders() });
+      await fetch(`/api/admin/reservations/${id}`, { method: "DELETE", credentials: "same-origin" });
       setItems((prev) => prev.filter((r) => r.id !== id));
     } finally {
       setDeleting(null);

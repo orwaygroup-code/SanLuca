@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth-server";
 import type { ApiResponse } from "@/types";
 
 const RESERVATION_SELECT = {
@@ -53,14 +54,12 @@ export async function PATCH(
     req: NextRequest,
     { params }: { params: { token: string } }
 ) {
-    const userId = req.headers.get("x-user-id");
-    if (userId) {
-        const staff = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
-        if (!staff || staff.role !== "HOSTES") {
-            return NextResponse.json<ApiResponse>({ success: false, error: "Solo el personal Hostess puede hacer check-in" }, { status: 403 });
-        }
-    } else {
+    const s = await getSession(req);
+    if (!s) {
         return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 401 });
+    }
+    if (s.role !== "HOSTES") {
+        return NextResponse.json<ApiResponse>({ success: false, error: "Solo el personal Hostess puede hacer check-in" }, { status: 403 });
     }
 
     const reservation = await prisma.reservation.findUnique({

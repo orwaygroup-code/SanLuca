@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslation, type Locale } from "@/lib/i18n";
+import { useSession } from "@/lib/session-client";
 
 const MAX_ACTIVE = 2;
 const ACTIVE_STATUSES = ["PENDING", "PENDING_PAYMENT", "CONFIRMED"];
@@ -40,18 +41,17 @@ export function Dashboard() {
     const router = useRouter();
     const { t, locale } = useTranslation();
     const dateLocale = LOCALE_TO_BCP47[locale];
-    const [userName, setUserName] = useState("");
+    const session = useSession();
+    const userName = session.user?.name ?? "";
     const [reservations, setReservations] = useState<Reservation[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const userId = localStorage.getItem("userId");
-        const name = localStorage.getItem("userName") ?? "";
-        if (!userId) { router.push("/login?redirect=/dashboard"); return; }
-        setUserName(name);
+        if (session.loading) return;
+        if (!session.user) { router.push("/login?redirect=/dashboard"); return; }
 
-        fetch("/api/reservations", { headers: { "x-user-id": userId } })
+        fetch("/api/reservations", { credentials: "same-origin" })
             .then((r) => r.json())
             .then((data) => {
                 if (!data.success) throw new Error(data.error);
@@ -59,7 +59,7 @@ export function Dashboard() {
             })
             .catch((e) => setError(e.message))
             .finally(() => setLoading(false));
-    }, [router]);
+    }, [router, session.loading, session.user]);
 
     const activeCount = reservations.filter((r) => ACTIVE_STATUSES.includes(r.status)).length;
     const canReserve = activeCount < MAX_ACTIVE;
