@@ -5,7 +5,7 @@
    Solo agrega las líneas marcadas con ✅
    ═══════════════════════════════════════════════════════════ */
 
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { fonts } from "@/config/theme";
 
 // ✅ AGREGAR: estilos globales de San Luca v2
@@ -28,6 +28,12 @@ export const metadata: Metadata = {
   openGraph: {
     images: ["/images/og-logo.png"],   // imagen que aparece al compartir en redes / Google
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
 };
 
 export default function RootLayout({
