@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { CrmPageHead } from "@/components/crm/CrmPageHead";
 
 interface UserRow {
@@ -124,26 +124,41 @@ export default function UsuariosPage() {
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {users.map((u) => (
-              <button key={u.id} onClick={() => setSelected(u.id)} style={{
-                ...userItem,
-                background: selected === u.id ? "#2a3a37" : "#22302e",
-                borderColor: selected === u.id ? "rgba(186,132,60,0.45)" : "rgba(255,255,255,0.04)",
-              }}>
-                <div style={{ flex: 1, textAlign: "left" }}>
-                  <div style={{ fontSize: "0.9rem", fontWeight: 600, color: "#f5f1e8", display: "flex", alignItems: "center", gap: 8 }}>
-                    {u.name || "Sin nombre"}
-                    {u.role !== "CUSTOMER" && (
-                      <span style={{ fontSize: "0.55rem", padding: "2px 6px", border: "1px solid #ba843c", color: "#ba843c", borderRadius: 4, letterSpacing: "0.08em" }}>
-                        {u.role}
-                      </span>
-                    )}
+              <Fragment key={u.id}>
+                <button
+                  onClick={() => setSelected(selected === u.id ? null : u.id)}
+                  style={{
+                    ...userItem,
+                    background: selected === u.id ? "#2a3a37" : "#22302e",
+                    borderColor: selected === u.id ? "rgba(186,132,60,0.45)" : "rgba(255,255,255,0.04)",
+                  }}
+                  aria-expanded={selected === u.id}
+                >
+                  <div style={{ flex: 1, textAlign: "left" }}>
+                    <div style={{ fontSize: "0.9rem", fontWeight: 600, color: "#f5f1e8", display: "flex", alignItems: "center", gap: 8 }}>
+                      {u.name || "Sin nombre"}
+                      {u.role !== "CUSTOMER" && (
+                        <span style={{ fontSize: "0.55rem", padding: "2px 6px", border: "1px solid #ba843c", color: "#ba843c", borderRadius: 4, letterSpacing: "0.08em" }}>
+                          {u.role}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: "0.72rem", color: "rgba(245,241,232,0.5)", marginTop: 2 }}>
+                      {u.visits} reserva{u.visits === 1 ? "" : "s"} creada{u.visits === 1 ? "" : "s"}
+                    </div>
                   </div>
-                  <div style={{ fontSize: "0.72rem", color: "rgba(245,241,232,0.5)", marginTop: 2 }}>
-                    {u.visits} reserva{u.visits === 1 ? "" : "s"} creada{u.visits === 1 ? "" : "s"}
+                  <span style={{ color: "#ba843c", fontSize: "0.85rem", lineHeight: 1 }}>
+                    {selected === u.id ? "▾" : "▸"}
+                  </span>
+                </button>
+
+                {/* Detalle inline (solo mobile, cuando el user está seleccionado) */}
+                {selected === u.id && detail && detail.user.id === u.id && (
+                  <div className="crm-users-detail-inline">
+                    <UserDetail d={detail} />
                   </div>
-                </div>
-                {selected !== u.id && <span style={{ color: "#ba843c", fontSize: "0.6rem" }}>●</span>}
-              </button>
+                )}
+              </Fragment>
             ))}
             {users.length === 0 && (
               <p style={{ color: "rgba(245,241,232,0.4)", textAlign: "center", padding: 24 }}>Sin usuarios</p>
@@ -151,8 +166,8 @@ export default function UsuariosPage() {
           </div>
         </div>
 
-        {/* Detail */}
-        <div>
+        {/* Detail sidebar (solo desktop ≥48em) */}
+        <div className="crm-users-detail-desktop">
           {detail ? <UserDetail d={detail} /> : <div style={{ color: "rgba(245,241,232,0.4)" }}>Selecciona un usuario</div>}
         </div>
       </div>
