@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { withApp } from "@/lib/prismaApp";
+import { runWithSession } from "@/lib/session-context";
 import { requireAdmin } from "@/lib/auth-server";
-
-async function isAdmin(req: NextRequest) {
-  return (await requireAdmin(req)) !== null;
-}
 
 /**
  * Inbox de "conversaciones" derivadas: usuarios cuyo `source=WHATSAPP`,
@@ -14,11 +11,11 @@ async function isAdmin(req: NextRequest) {
  * confirmadas/totales y recencia. Reemplazar cuando exista lógica del bot.
  */
 export async function GET(req: NextRequest) {
-  if (!(await isAdmin(req))) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
-  }
+  const s = await requireAdmin(req);
+  if (!s) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
-  const users = await prisma.user.findMany({
+  return runWithSession(s, async () => {
+  const users = await withApp((db) => db.user.findMany({
     where: { role: "CUSTOMER", source: "WHATSAPP" },
     orderBy: { updatedAt: "desc" },
     select: {
@@ -31,7 +28,7 @@ export async function GET(req: NextRequest) {
       _count: { select: { reservations: true } },
     },
     take: 100,
-  });
+  }));
 
   const rows = users.map((u) => {
     const last = u.reservations[0];
@@ -66,4 +63,5 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json({ rows, totalUsers: rows.length });
+  });
 }

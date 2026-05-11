@@ -1,37 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { withApp } from "@/lib/prismaApp";
+import { runWithSession } from "@/lib/session-context";
 import { ensureSpecialDatesSeeded } from "@/lib/specialDates";
 import { requireAdmin } from "@/lib/auth-server";
 import type { ApiResponse } from "@/types";
 
-async function verifyAdmin(request: NextRequest) {
-  const s = await requireAdmin(request);
-  return s?.userId ?? null;
-}
-
 export async function GET(request: NextRequest) {
-  const adminId = await verifyAdmin(request);
-  if (!adminId) {
-    return NextResponse.json<ApiResponse>(
-      { success: false, error: "No autorizado" },
-      { status: 403 }
-    );
-  }
+  const s = await requireAdmin(request);
+  if (!s) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
+
   await ensureSpecialDatesSeeded();
-  const dates = await prisma.specialDate.findMany({
-    orderBy: [{ month: "asc" }, { day: "asc" }],
-  });
+  const dates = await runWithSession(s, () =>
+    withApp((db) => db.specialDate.findMany({ orderBy: [{ month: "asc" }, { day: "asc" }] }))
+  );
   return NextResponse.json<ApiResponse>({ success: true, data: dates });
 }
 
 export async function POST(request: NextRequest) {
-  const adminId = await verifyAdmin(request);
-  if (!adminId) {
-    return NextResponse.json<ApiResponse>(
-      { success: false, error: "No autorizado" },
-      { status: 403 }
-    );
-  }
+  const s = await requireAdmin(request);
+  if (!s) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
+
   const body = await request.json();
   const { month, day, label, amount, isActive } = body || {};
   if (
@@ -40,21 +28,15 @@ export async function POST(request: NextRequest) {
     typeof label !== "string" || !label.trim() ||
     typeof amount !== "number" || amount < 0
   ) {
-    return NextResponse.json<ApiResponse>(
-      { success: false, error: "Datos inválidos" },
-      { status: 400 }
-    );
+    return NextResponse.json<ApiResponse>({ success: false, error: "Datos inválidos" }, { status: 400 });
   }
 
   try {
-    const created = await prisma.specialDate.create({
-      data: {
-        month, day,
-        label: label.trim(),
-        amount,
-        isActive: isActive !== false,
-      },
-    });
+    const created = await runWithSession(s, () =>
+      withApp((db) => db.specialDate.create({
+        data: { month, day, label: label.trim(), amount, isActive: isActive !== false },
+      }))
+    );
     return NextResponse.json<ApiResponse>({ success: true, data: created }, { status: 201 });
   } catch (e) {
     const msg = e instanceof Error && e.message.includes("Unique")

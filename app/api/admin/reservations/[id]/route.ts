@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { withApp } from "@/lib/prismaApp";
+import { runWithSession } from "@/lib/session-context";
 import { sendReservationQR } from "@/lib/whatsapp";
 import { autoAssignTable } from "@/lib/autoAssignTable";
 import { requireStaff } from "@/lib/auth-server";
 import type { ApiResponse } from "@/types";
-
-async function verifyHostes(request: NextRequest) {
-    const s = await requireStaff(request);
-    return s?.userId ?? null;
-}
 
 // PATCH /api/admin/reservations/[id]
 // Body: { status: "CONFIRMED" | ... }          → cambiar estado
@@ -18,12 +14,14 @@ export async function PATCH(
     { params }: { params: { id: string } }
 ) {
     try {
-        const adminId = await verifyHostes(request);
-        if (!adminId) {
+        const s = await requireStaff(request);
+        if (!s) {
             return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
         }
 
         const body = await request.json();
+
+        return runWithSession(s, () => withApp(async (db) => {
 
         // ── Editar reserva completa ───────────────────────────────────
         if (body.action === "edit-reservation") {
@@ -65,7 +63,7 @@ export async function PATCH(
             if (finalTableId) {
                 // Verificar que la mesa elegida no esté ocupada (excluyendo esta reserva)
                 const allIds = [finalTableId, finalLinkedTableId, finalThirdTableId, finalFourthTableId].filter(Boolean) as string[];
-                const conflict = await prisma.reservation.findFirst({
+                const conflict = await db.reservation.findFirst({
                     where: {
                         id:     { not: params.id },
                         status: { notIn: ["CANCELLED", "NO_SHOW"] },
@@ -89,7 +87,7 @@ export async function PATCH(
                 }
             }
 
-            const updated = await prisma.reservation.update({
+            const updated = await db.reservation.update({
                 where: { id: params.id },
                 data: {
                     date:              reservationDate,
@@ -126,7 +124,7 @@ export async function PATCH(
 
             // Sin tableId → solo actualizar sección (grupo grande)
             if (!tableId) {
-                const updated = await prisma.reservation.update({
+                const updated = await db.reservation.update({
                     where: { id: params.id },
                     data: {
                         tableId:       null,
@@ -145,7 +143,7 @@ export async function PATCH(
             }
 
             // Obtener la reserva actual para saber fecha/hora y excluirla del check de conflictos
-            const current = await prisma.reservation.findUnique({
+            const current = await db.reservation.findUnique({
                 where: { id: params.id },
                 select: { id: true, date: true, status: true },
             });
@@ -163,7 +161,7 @@ export async function PATCH(
             const allNewIds = [tableId, linkedTableId, thirdTableId, fourthTableId].filter(Boolean) as string[];
 
             // Verificar conflictos en la nueva mesa (excluyendo esta misma reserva)
-            const conflict = await prisma.reservation.findFirst({
+            const conflict = await db.reservation.findFirst({
                 where: {
                     id:     { not: params.id },
                     status: { notIn: ["CANCELLED", "NO_SHOW"] },
@@ -184,7 +182,7 @@ export async function PATCH(
                 );
             }
 
-            const updated = await prisma.reservation.update({
+            const updated = await db.reservation.update({
                 where: { id: params.id },
                 data: {
                     tableId,
@@ -217,7 +215,7 @@ export async function PATCH(
         if (status === "COMPLETED")   extra.checkedInAt  = new Date();
         if (status === "IN_PROGRESS") extra.checkedInAt  = new Date();
 
-        const reservation = await prisma.reservation.update({
+        const reservation = await db.reservation.update({
             where: { id: params.id },
             data:  { status, ...extra },
             select: {
@@ -247,6 +245,7 @@ export async function PATCH(
         }
 
         return NextResponse.json<ApiResponse>({ success: true, data: reservation });
+        }));
     } catch (error) {
         console.error("[Admin] PATCH /api/admin/reservations/[id]", error);
         return NextResponse.json<ApiResponse>({ success: false, error: "Error al actualizar reserva" }, { status: 500 });
@@ -260,31 +259,33 @@ export async function DELETE(
     { params }: { params: { id: string } }
 ) {
     try {
-        const adminId = await verifyHostes(request);
-        if (!adminId) {
+        const s = await requireStaff(request);
+        if (!s) {
             return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
         }
 
-        const reservation = await prisma.reservation.findUnique({
-            where: { id: params.id },
-            select: { status: true },
-        });
+        return runWithSession(s, () => withApp(async (db) => {
+            const reservation = await db.reservation.findUnique({
+                where: { id: params.id },
+                select: { status: true },
+            });
 
-        if (!reservation) {
-            return NextResponse.json<ApiResponse>({ success: false, error: "Reserva no encontrada" }, { status: 404 });
-        }
+            if (!reservation) {
+                return NextResponse.json<ApiResponse>({ success: false, error: "Reserva no encontrada" }, { status: 404 });
+            }
 
-        const deletable = ["CANCELLED", "NO_SHOW", "COMPLETED"];
-        if (!deletable.includes(reservation.status)) {
-            return NextResponse.json<ApiResponse>(
-                { success: false, error: "Solo se pueden eliminar reservas canceladas, no presentadas o completadas" },
-                { status: 400 }
-            );
-        }
+            const deletable = ["CANCELLED", "NO_SHOW", "COMPLETED"];
+            if (!deletable.includes(reservation.status)) {
+                return NextResponse.json<ApiResponse>(
+                    { success: false, error: "Solo se pueden eliminar reservas canceladas, no presentadas o completadas" },
+                    { status: 400 }
+                );
+            }
 
-        await prisma.reservation.delete({ where: { id: params.id } });
+            await db.reservation.delete({ where: { id: params.id } });
 
-        return NextResponse.json<ApiResponse>({ success: true, data: { id: params.id } });
+            return NextResponse.json<ApiResponse>({ success: true, data: { id: params.id } });
+        }));
     } catch (error) {
         console.error("[Admin] DELETE /api/admin/reservations/[id]", error);
         return NextResponse.json<ApiResponse>({ success: false, error: "Error al eliminar reserva" }, { status: 500 });

@@ -3,21 +3,17 @@
 // PATCH → bloquear / desbloquear mesa manualmente (walk-in)
 
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { getShiftWindow } from "@/lib/shifts";
+import { withApp } from "@/lib/prismaApp";
+import { runWithSession } from "@/lib/session-context";
 import { requireStaff } from "@/lib/auth-server";
 import type { ApiResponse } from "@/types";
 
-async function verifyHostes(request: NextRequest) {
-    const s = await requireStaff(request);
-    return s?.userId ?? null;
-}
-
 export async function GET(request: NextRequest) {
     try {
-        const adminId = await verifyHostes(request);
-        if (!adminId) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
+        const s = await requireStaff(request);
+        if (!s) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
 
+        return runWithSession(s, () => withApp(async (db) => {
         const now    = new Date();
         const mxDate = now.toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
 
@@ -26,7 +22,7 @@ export async function GET(request: NextRequest) {
         const dayEnd   = new Date(`${mxDate}T23:59:59.999-06:00`);
 
         // Grupos grandes activos hoy → bloquean toda su sección
-        const largeGroupReservations = await prisma.reservation.findMany({
+        const largeGroupReservations = await db.reservation.findMany({
             where: {
                 isLargeGroup: true,
                 status: { in: ["PENDING", "CONFIRMED", "IN_PROGRESS", "DELAYED"] },
@@ -52,7 +48,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Reservas normales activas hoy con mesa asignada
-        const activeReservations = await prisma.reservation.findMany({
+        const activeReservations = await db.reservation.findMany({
             where: {
                 isLargeGroup: false,
                 status: { in: ["PENDING", "CONFIRMED", "IN_PROGRESS", "DELAYED"] },
@@ -71,7 +67,7 @@ export async function GET(request: NextRequest) {
         });
 
         // Bloqueos manuales (walk-in)
-        const blocks = await prisma.tableBlock.findMany({ select: { tableId: true, note: true, createdAt: true } });
+        const blocks = await db.tableBlock.findMany({ select: { tableId: true, note: true, createdAt: true } });
         const blockMap = new Map(blocks.map((b) => [b.tableId, b]));
 
         // Mapear reservas normales a tablas
@@ -89,7 +85,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Secciones con sus mesas
-        const sections = await prisma.section.findMany({
+        const sections = await db.section.findMany({
             where:   { isActive: true },
             orderBy: { name: "asc" },
             include: {
@@ -139,6 +135,7 @@ export async function GET(request: NextRequest) {
         });
 
         return NextResponse.json<ApiResponse>({ success: true, data });
+        }));
     } catch (e) {
         console.error("[map GET]", e);
         return NextResponse.json<ApiResponse>({ success: false, error: "Error" }, { status: 500 });
@@ -147,8 +144,8 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
     try {
-        const adminId = await verifyHostes(request);
-        if (!adminId) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
+        const s = await requireStaff(request);
+        if (!s) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
 
         const body = await request.json() as {
             action:     "block" | "unblock" | "block-section" | "unblock-section";
@@ -158,11 +155,12 @@ export async function PATCH(request: NextRequest) {
         };
         const { action, note } = body;
 
+        return runWithSession(s, () => withApp(async (db) => {
         // ── Bloqueo / liberación de sección completa ──────────────────
         if (action === "block-section" || action === "unblock-section") {
             if (!body.sectionId) return NextResponse.json<ApiResponse>({ success: false, error: "Falta sectionId" }, { status: 400 });
 
-            const section = await prisma.section.findUnique({
+            const section = await db.section.findUnique({
                 where:   { id: body.sectionId },
                 include: { tables: { where: { isActive: true }, select: { id: true } } },
             });
@@ -173,7 +171,7 @@ export async function PATCH(request: NextRequest) {
             if (action === "block-section") {
                 await Promise.all(
                     tableIds.map((tid) =>
-                        prisma.tableBlock.upsert({
+                        db.tableBlock.upsert({
                             where:  { tableId: tid },
                             update: { note: note ?? "Bloqueo de área", createdAt: new Date() },
                             create: { tableId: tid, note: note ?? "Bloqueo de área" },
@@ -181,7 +179,7 @@ export async function PATCH(request: NextRequest) {
                     )
                 );
             } else {
-                await prisma.tableBlock.deleteMany({ where: { tableId: { in: tableIds } } });
+                await db.tableBlock.deleteMany({ where: { tableId: { in: tableIds } } });
             }
 
             return NextResponse.json<ApiResponse>({ success: true, data: null });
@@ -191,16 +189,17 @@ export async function PATCH(request: NextRequest) {
         if (!body.tableId) return NextResponse.json<ApiResponse>({ success: false, error: "Falta tableId" }, { status: 400 });
 
         if (action === "block") {
-            await prisma.tableBlock.upsert({
+            await db.tableBlock.upsert({
                 where:  { tableId: body.tableId },
                 update: { note: note ?? null, createdAt: new Date() },
                 create: { tableId: body.tableId, note: note ?? null },
             });
         } else {
-            await prisma.tableBlock.deleteMany({ where: { tableId: body.tableId } });
+            await db.tableBlock.deleteMany({ where: { tableId: body.tableId } });
         }
 
         return NextResponse.json<ApiResponse>({ success: true, data: null });
+        }));
     } catch (e) {
         console.error("[map PATCH]", e);
         return NextResponse.json<ApiResponse>({ success: false, error: "Error" }, { status: 500 });

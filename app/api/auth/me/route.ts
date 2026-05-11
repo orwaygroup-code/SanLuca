@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { withApp } from "@/lib/prismaApp";
+import { runWithSession } from "@/lib/session-context";
 import { getSession } from "@/lib/auth-server";
 
 /**
@@ -10,11 +11,12 @@ export async function GET(request: NextRequest) {
   const s = await getSession(request);
   if (!s) return NextResponse.json({ authenticated: false }, { status: 401 });
 
-  const user = await prisma.user.findUnique({
-    where:  { id: s.userId },
-    select: { id: true, name: true, email: true, role: true },
+  return runWithSession(s, async () => {
+    const user = await withApp((db) => db.user.findUnique({
+      where:  { id: s.userId },
+      select: { id: true, name: true, email: true, role: true },
+    }));
+    if (!user) return NextResponse.json({ authenticated: false }, { status: 401 });
+    return NextResponse.json({ authenticated: true, user });
   });
-  if (!user) return NextResponse.json({ authenticated: false }, { status: 401 });
-
-  return NextResponse.json({ authenticated: true, user });
 }

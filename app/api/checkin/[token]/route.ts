@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { withApp } from "@/lib/prismaApp";
+import { runWithSession } from "@/lib/session-context";
 import { getSession } from "@/lib/auth-server";
 import type { ApiResponse } from "@/types";
 
@@ -62,30 +64,32 @@ export async function PATCH(
         return NextResponse.json<ApiResponse>({ success: false, error: "Solo el personal Hostess puede hacer check-in" }, { status: 403 });
     }
 
-    const reservation = await prisma.reservation.findUnique({
-        where: { qrToken: params.token },
-        select: { id: true, status: true },
-    });
+    return runWithSession(s, () => withApp(async (db) => {
+        const reservation = await db.reservation.findUnique({
+            where: { qrToken: params.token },
+            select: { id: true, status: true },
+        });
 
-    if (!reservation) {
-        return NextResponse.json<ApiResponse>(
-            { success: false, error: "Reserva no encontrada" },
-            { status: 404 }
-        );
-    }
+        if (!reservation) {
+            return NextResponse.json<ApiResponse>(
+                { success: false, error: "Reserva no encontrada" },
+                { status: 404 }
+            );
+        }
 
-    if (!["PENDING", "CONFIRMED"].includes(reservation.status)) {
-        return NextResponse.json<ApiResponse>(
-            { success: false, error: `La reserva ya tiene estado: ${reservation.status}` },
-            { status: 409 }
-        );
-    }
+        if (!["PENDING", "CONFIRMED"].includes(reservation.status)) {
+            return NextResponse.json<ApiResponse>(
+                { success: false, error: `La reserva ya tiene estado: ${reservation.status}` },
+                { status: 409 }
+            );
+        }
 
-    const updated = await prisma.reservation.update({
-        where: { id: reservation.id },
-        data: { status: "COMPLETED", checkedInAt: new Date() },
-        select: RESERVATION_SELECT,
-    });
+        const updated = await db.reservation.update({
+            where: { id: reservation.id },
+            data: { status: "COMPLETED", checkedInAt: new Date() },
+            select: RESERVATION_SELECT,
+        });
 
-    return NextResponse.json<ApiResponse>({ success: true, data: updated });
+        return NextResponse.json<ApiResponse>({ success: true, data: updated });
+    }));
 }

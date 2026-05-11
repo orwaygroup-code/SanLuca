@@ -1,24 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-server";
-import { prisma } from "@/lib/prisma";
+import { withApp } from "@/lib/prismaApp";
+import { runWithSession } from "@/lib/session-context";
 import type { ApiResponse } from "@/types";
-
-async function verifyAdmin(request: NextRequest) {
-  const s = await requireAdmin(request);
-  return s?.userId ?? null;
-}
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const adminId = await verifyAdmin(request);
-  if (!adminId) {
-    return NextResponse.json<ApiResponse>(
-      { success: false, error: "No autorizado" },
-      { status: 403 }
-    );
-  }
+  const s = await requireAdmin(request);
+  if (!s) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
+
   const body = await request.json();
   const data: Record<string, unknown> = {};
   if (typeof body.label === "string") data.label = body.label.trim();
@@ -28,23 +20,16 @@ export async function PATCH(
   if (typeof body.day === "number" && body.day >= 1 && body.day <= 31) data.day = body.day;
 
   if (Object.keys(data).length === 0) {
-    return NextResponse.json<ApiResponse>(
-      { success: false, error: "Sin cambios" },
-      { status: 400 }
-    );
+    return NextResponse.json<ApiResponse>({ success: false, error: "Sin cambios" }, { status: 400 });
   }
 
   try {
-    const updated = await prisma.specialDate.update({
-      where: { id: params.id },
-      data,
-    });
+    const updated = await runWithSession(s, () =>
+      withApp((db) => db.specialDate.update({ where: { id: params.id }, data }))
+    );
     return NextResponse.json<ApiResponse>({ success: true, data: updated });
   } catch {
-    return NextResponse.json<ApiResponse>(
-      { success: false, error: "Error al actualizar" },
-      { status: 400 }
-    );
+    return NextResponse.json<ApiResponse>({ success: false, error: "Error al actualizar" }, { status: 400 });
   }
 }
 
@@ -52,20 +37,15 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const adminId = await verifyAdmin(request);
-  if (!adminId) {
-    return NextResponse.json<ApiResponse>(
-      { success: false, error: "No autorizado" },
-      { status: 403 }
-    );
-  }
+  const s = await requireAdmin(request);
+  if (!s) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
+
   try {
-    await prisma.specialDate.delete({ where: { id: params.id } });
+    await runWithSession(s, () =>
+      withApp((db) => db.specialDate.delete({ where: { id: params.id } }))
+    );
     return NextResponse.json<ApiResponse>({ success: true });
   } catch {
-    return NextResponse.json<ApiResponse>(
-      { success: false, error: "Error al eliminar" },
-      { status: 400 }
-    );
+    return NextResponse.json<ApiResponse>({ success: false, error: "Error al eliminar" }, { status: 400 });
   }
 }

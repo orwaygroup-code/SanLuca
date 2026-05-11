@@ -1,19 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { withApp } from "@/lib/prismaApp";
+import { runWithSession } from "@/lib/session-context";
 import { autoAssignTable } from "@/lib/autoAssignTable";
 import { requireStaff } from "@/lib/auth-server";
 import type { ApiResponse } from "@/types";
 
-async function verifyStaff(request: NextRequest) {
-    const s = await requireStaff(request);
-    return s?.userId ?? null;
-}
-
 // GET /api/admin/reservations?section=Terraza&date=2026-04-02&search=juan
 export async function GET(request: NextRequest) {
     try {
-        const adminId = await verifyStaff(request);
-        if (!adminId) {
+        const s = await requireStaff(request);
+        if (!s) {
             return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
         }
 
@@ -55,34 +51,36 @@ export async function GET(request: NextRequest) {
             ];
         }
 
-        const reservations = await prisma.reservation.findMany({
-            where,
-            orderBy: { date: (archived === "1" || all === "1") ? "desc" : "asc" },
-            select: {
-                id:                true,
-                guestName:         true,
-                guestPhone:        true,
-                date:              true,
-                guests:            true,
-                sectionPreference: true,
-                occasion:          true,
-                notes:             true,
-                status:            true,
-                paymentStatus:     true,
-                requiresPayment:   true,
-                creditUsed:        true,
-                amountPaid:        true,
-                checkedInAt:       true,
-                qrToken:           true,
-                table: {
-                    select: {
-                        number:  true,
-                        section: { select: { name: true } },
+        const reservations = await runWithSession(s, () =>
+            withApp((db) => db.reservation.findMany({
+                where,
+                orderBy: { date: (archived === "1" || all === "1") ? "desc" : "asc" },
+                select: {
+                    id:                true,
+                    guestName:         true,
+                    guestPhone:        true,
+                    date:              true,
+                    guests:            true,
+                    sectionPreference: true,
+                    occasion:          true,
+                    notes:             true,
+                    status:            true,
+                    paymentStatus:     true,
+                    requiresPayment:   true,
+                    creditUsed:        true,
+                    amountPaid:        true,
+                    checkedInAt:       true,
+                    qrToken:           true,
+                    table: {
+                        select: {
+                            number:  true,
+                            section: { select: { name: true } },
+                        },
                     },
+                    user: { select: { name: true, email: true, phone: true } },
                 },
-                user: { select: { name: true, email: true, phone: true } },
-            },
-        });
+            }))
+        );
 
         return NextResponse.json<ApiResponse>({ success: true, data: reservations });
     } catch (error) {
@@ -94,8 +92,9 @@ export async function GET(request: NextRequest) {
 // POST /api/admin/reservations — crea reserva sin restricciones (solo hostess/admin)
 export async function POST(request: NextRequest) {
     try {
-        const adminId = await verifyStaff(request);
-        if (!adminId) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
+        const s = await requireStaff(request);
+        if (!s) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
+        const adminId = s.userId;
 
         const body = await request.json() as {
             guestName:          string;
@@ -123,50 +122,53 @@ export async function POST(request: NextRequest) {
             return NextResponse.json<ApiResponse>({ success: false, error: "Fecha u hora inválida" }, { status: 400 });
         }
 
-        // Buscar o crear usuario por teléfono
         const phone = guestPhone.replace(/\D/g, "").slice(-10);
-        let user = await prisma.user.findFirst({ where: { phone } });
-        if (!user) {
-            const guestEmail = `${phone}@hostes.guest`;
-            user = await prisma.user.upsert({
-                where:  { email: guestEmail },
-                update: { name: guestName },
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                create: { name: guestName, email: guestEmail, phone, role: "CUSTOMER" } as any,
+
+        const reservation = await runWithSession(s, () => withApp(async (db) => {
+            // Buscar o crear usuario por teléfono — RLS staff puede insertar/leer
+            let user = await db.user.findFirst({ where: { phone } });
+            if (!user) {
+                const guestEmail = `${phone}@hostes.guest`;
+                user = await db.user.upsert({
+                    where:  { email: guestEmail },
+                    update: { name: guestName },
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    create: { name: guestName, email: guestEmail, phone, role: "CUSTOMER" } as any,
+                });
+            }
+
+            // Auto-asignar mesa solo si no se envía tableId y no es grupo grande
+            let assignedTableId = tableId ?? null;
+            let assignedSection = sectionPreference ?? null;
+            if (!assignedTableId && !isLargeGroup) {
+                const assigned = await autoAssignTable(reservationDate, guests, sectionPreference ?? null);
+                if (assigned) { assignedTableId = assigned.tableId; assignedSection = assigned.sectionName; }
+            }
+
+            return db.reservation.create({
+                data: {
+                    userId:            user.id,
+                    createdById:       adminId,
+                    guestName,
+                    guestPhone:        phone,
+                    guests,
+                    date:              reservationDate,
+                    isLargeGroup:      isLargeGroup ?? false,
+                    sectionPreference: assignedSection,
+                    notes:             notes ?? null,
+                    occasion:          occasion ?? null,
+                    status:            "CONFIRMED",
+                    paymentStatus:     "UNPAID",
+                    ...(assignedTableId ? { tableId: assignedTableId } : {}),
+                    ...(linkedTableId   ? { linkedTableId }            : {}),
+                    ...(thirdTableId    ? { thirdTableId }             : {}),
+                    ...(fourthTableId   ? { fourthTableId }            : {}),
+                },
+                include: {
+                    table: { select: { number: true, section: { select: { name: true } } } },
+                },
             });
-        }
-
-        // Auto-asignar mesa solo si no se envía tableId y no es grupo grande
-        let assignedTableId = tableId ?? null;
-        let assignedSection = sectionPreference ?? null;
-        if (!assignedTableId && !isLargeGroup) {
-            const assigned = await autoAssignTable(reservationDate, guests, sectionPreference ?? null);
-            if (assigned) { assignedTableId = assigned.tableId; assignedSection = assigned.sectionName; }
-        }
-
-        const reservation = await prisma.reservation.create({
-            data: {
-                userId:            user.id,
-                createdById:       adminId,
-                guestName,
-                guestPhone:        phone,
-                guests,
-                date:              reservationDate,
-                isLargeGroup:      isLargeGroup ?? false,
-                sectionPreference: assignedSection,
-                notes:             notes ?? null,
-                occasion:          occasion ?? null,
-                status:            "CONFIRMED",
-                paymentStatus:     "UNPAID",
-                ...(assignedTableId ? { tableId: assignedTableId } : {}),
-                ...(linkedTableId   ? { linkedTableId }            : {}),
-                ...(thirdTableId    ? { thirdTableId }             : {}),
-                ...(fourthTableId   ? { fourthTableId }            : {}),
-            },
-            include: {
-                table: { select: { number: true, section: { select: { name: true } } } },
-            },
-        });
+        }));
 
         return NextResponse.json<ApiResponse>({ success: true, data: reservation });
     } catch (error) {

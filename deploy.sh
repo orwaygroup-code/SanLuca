@@ -34,6 +34,13 @@ npx prisma db push --accept-data-loss=false --skip-generate
 npx prisma generate
 ok "Prisma sincronizado"
 
+# 3b. RLS policies (idempotentes — re-ejecutables sin riesgo)
+if [ -f prisma/sql/rls.sql ]; then
+  log "Aplicando RLS policies"
+  psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f prisma/sql/rls.sql >/dev/null
+  ok "RLS aplicado"
+fi
+
 # 4. Build
 log "Next build"
 NODE_OPTIONS="--max-old-space-size=2048" npm run build

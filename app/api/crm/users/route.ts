@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { withApp } from "@/lib/prismaApp";
+import { runWithSession } from "@/lib/session-context";
 import { Prisma } from "@prisma/client";
-import { requireAdmin } from "@/lib/auth-server";
+import { requireAdmin, type ServerSession } from "@/lib/auth-server";
 
 const detailSelect = {
   id: true, status: true, date: true, guests: true, duration: true,
@@ -17,24 +18,21 @@ const detailSelect = {
   fourthTable:  { select: { number: true } },
 } satisfies Prisma.ReservationSelect;
 
-async function isAdmin(req: NextRequest) {
-  return (await requireAdmin(req)) !== null;
-}
-
 export async function GET(req: NextRequest) {
-  if (!(await isAdmin(req))) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
-  }
+  const s = await requireAdmin(req);
+  if (!s) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+
+  return runWithSession(s, async () => {
 
   const { searchParams } = new URL(req.url);
   const search   = searchParams.get("search") ?? "";
   const source   = searchParams.get("source") ?? "todos"; // todos | web | whatsapp
   const detailId = searchParams.get("id");
 
-  if (detailId) return NextResponse.json(await getUserDetail(detailId));
+  if (detailId) return NextResponse.json(await getUserDetail(detailId, s));
 
   // Usuarios que han CREADO al menos 1 reserva (incluye staff que reservó por terceros)
-  const users = await prisma.user.findMany({
+  const users = await withApp((db) => db.user.findMany({
     where: {
       OR: [
         { createdReservations: { some: {} } },
@@ -60,7 +58,7 @@ export async function GET(req: NextRequest) {
       _count: { select: { createdReservations: true, reservations: true } },
     },
     take: 200,
-  });
+  }));
 
   // Sort por # creadas desc (incluye fallback a reservations cuando createdById es null)
   users.sort((a, b) => {
@@ -75,11 +73,11 @@ export async function GET(req: NextRequest) {
     { createdReservations: { some: {} } },
     { reservations:        { some: {} } },
   ];
-  const [totalAll, totalWeb, totalWa] = await Promise.all([
-    prisma.user.count({ where: { OR: baseOr } }),
-    prisma.user.count({ where: { OR: baseOr, source: "WEB" } }),
-    prisma.user.count({ where: { OR: baseOr, source: "WHATSAPP" } }),
-  ]);
+  const [totalAll, totalWeb, totalWa] = await withApp((db) => Promise.all([
+    db.user.count({ where: { OR: baseOr } }),
+    db.user.count({ where: { OR: baseOr, source: "WEB" } }),
+    db.user.count({ where: { OR: baseOr, source: "WHATSAPP" } }),
+  ]));
 
   return NextResponse.json({
     counts: { todos: totalAll, web: totalWeb, whatsapp: totalWa },
@@ -95,25 +93,20 @@ export async function GET(req: NextRequest) {
       createdAt: u.createdAt,
     })),
   });
+  });
 }
 
-async function getUserDetail(id: string) {
-  const user = await prisma.user.findUnique({
-    where: { id },
-    select: {
-      id: true, name: true, email: true, phone: true, googleId: true, source: true, role: true, createdAt: true,
-      // Mostramos las reservas que el usuario CREÓ (incluye las hechas por staff a nombre de otros)
-      // + fallback a las que es dueño (data antigua sin createdById).
-      createdReservations: {
-        select: detailSelect,
-        orderBy: { date: "desc" },
+async function getUserDetail(id: string, s: ServerSession) {
+  const user = await runWithSession(s, () =>
+    withApp((db) => db.user.findUnique({
+      where: { id },
+      select: {
+        id: true, name: true, email: true, phone: true, googleId: true, source: true, role: true, createdAt: true,
+        createdReservations: { select: detailSelect, orderBy: { date: "desc" } },
+        reservations:        { select: detailSelect, orderBy: { date: "desc" } },
       },
-      reservations: {
-        select: detailSelect,
-        orderBy: { date: "desc" },
-      },
-    },
-  });
+    }))
+  );
   if (!user) return { error: "not_found" };
 
   // Si tiene createdReservations usamos esas; si no (data antigua) caemos a las owned.

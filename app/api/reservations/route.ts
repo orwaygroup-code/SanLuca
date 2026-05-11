@@ -1,6 +1,8 @@
 // app/api/reservations/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { withApp } from "@/lib/prismaApp";
+import { runWithSession } from "@/lib/session-context";
 import { createReservationSchema } from "@/lib/validations";
 import { getShiftWindow } from "@/lib/shifts";
 import { autoAssignTable } from "@/lib/autoAssignTable";
@@ -391,7 +393,8 @@ export async function GET(request: NextRequest) {
         }
         const userId = session.userId;
 
-        const reservations = await prisma.reservation.findMany({
+        return runWithSession(session, () => withApp(async (db) => {
+        const reservations = await db.reservation.findMany({
             where: { userId },
             orderBy: { date: "asc" },
             select: {
@@ -420,6 +423,7 @@ export async function GET(request: NextRequest) {
             success: true,
             data: reservations,
         });
+        }));
     } catch (error) {
         console.error("[API] GET /api/reservations error:", error);
         return NextResponse.json<ApiResponse>(
