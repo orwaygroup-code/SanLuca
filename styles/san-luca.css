@@ -1010,7 +1010,7 @@ textarea::placeholder {
 .adm-page {
   min-height: 100vh;
   background: #151c1e;
-  padding: 32px 24px 60px;
+  padding: clamp(20px, 3vw, 32px) clamp(12px, 3vw, 24px) clamp(40px, 5vw, 60px);
   font-family: var(--font-primary, sans-serif);
 }
 
@@ -1060,7 +1060,9 @@ textarea::placeholder {
   border-radius: 30px;
   padding: 4px;
   height: 40px;
-  min-width: 320px;
+  min-width: min(320px, 100%);
+  flex: 1 1 auto;
+  max-width: 100%;
 }
 .adm-switch-thumb {
   position: absolute;
@@ -1594,7 +1596,8 @@ textarea::placeholder {
   display: block;
 }
 
-@media (max-width: 767px) {
+/* En viewports estrechos (relativo a font-size), el sidebar se vuelve drawer overlay */
+@media (max-width: 60em) {
   .crm-shell {
     grid-template-columns: 1fr;
   }
@@ -1607,7 +1610,7 @@ textarea::placeholder {
     transform: translateX(-100%);
     transition: transform 0.25s ease;
     z-index: 180;
-    padding-top: 72px;
+    padding-top: clamp(56px, 10vw, 72px);
     overflow-y: auto;
   }
   .crm-shell--open .crm-shell__aside {
@@ -1617,54 +1620,63 @@ textarea::placeholder {
     display: flex;
   }
   .crm-shell__main {
-    padding: 72px 16px 40px;
+    padding: clamp(56px, 10vw, 72px) clamp(12px, 3vw, 24px) clamp(28px, 5vw, 48px);
   }
 }
 
 /* ══════════════════════════════════════════════
-   CRM page responsive helpers
+   CRM page — fluid responsive (auto-fit/minmax)
+   Sin breakpoints rígidos: las celdas envuelven solas según el ancho disponible
    ══════════════════════════════════════════════ */
 .crm-2col {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: clamp(12px, 2vw, 20px);
 }
 .crm-stat-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: clamp(10px, 1.5vw, 14px);
 }
 .crm-users-layout {
   display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: clamp(12px, 2vw, 20px);
 }
-.crm-detail-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 18px;
-}
+.crm-detail-grid,
 .crm-fields-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: clamp(10px, 1.5vw, 18px);
 }
 .crm-marketing-field {
-  display: grid;
-  grid-template-columns: 120px 1fr;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: clamp(6px, 1vw, 12px);
+}
+.crm-marketing-field > :first-child {
+  flex: 0 0 auto;
+  min-width: 110px;
+}
+.crm-marketing-field > :last-child {
+  flex: 1 1 200px;
+  min-width: 0;
 }
 .crm-wa-header {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(8px, 1.5vw, 14px);
   margin-bottom: 18px;
   align-items: center;
 }
+.crm-wa-header > :first-child {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+/* Header de columnas: solo cuando hay espacio para 4 columnas */
 .crm-wa-head-row {
-  display: grid;
-  grid-template-columns: 2fr 2fr 1.4fr 1fr;
+  display: none;
   gap: 14px;
   padding: 0 18px 10px;
   color: rgba(245,241,232,0.5);
@@ -1673,16 +1685,31 @@ textarea::placeholder {
   text-transform: uppercase;
   font-weight: 600;
 }
+@media (min-width: 60em) {
+  .crm-wa-head-row {
+    display: grid;
+    grid-template-columns: 2fr 2fr 1.4fr 1fr;
+  }
+}
 .crm-wa-row {
-  display: grid;
-  grid-template-columns: 2fr 2fr 1.4fr 1fr;
-  gap: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(10px, 1.5vw, 14px);
+  row-gap: 10px;
   align-items: center;
   background: #22302e;
   border: 1px solid rgba(255,255,255,0.04);
   border-radius: 14px;
-  padding: 16px 18px;
+  padding: clamp(12px, 2vw, 16px) clamp(14px, 2vw, 18px);
 }
+.crm-wa-row > * {
+  min-width: 0;
+}
+.crm-wa-row > :nth-child(1) { flex: 2 1 220px; }
+.crm-wa-row > :nth-child(2) { flex: 2 1 200px; }
+.crm-wa-row > :nth-child(3) { flex: 1 1 140px; }
+.crm-wa-row > :nth-child(4) { flex: 0 1 120px; text-align: left; }
+
 .crm-table-wrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -1691,226 +1718,142 @@ textarea::placeholder {
   background: #22302e;
   border: 1px solid rgba(255,255,255,0.04);
   border-radius: 14px;
-  height: clamp(220px, 36vw, 360px);
+  height: clamp(180px, 36vw, 360px);
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* ══════════════════════════════════════════════
+   Admin header — flex-wrap natural (los botones bajan solos)
+   El hamburger queda deshabilitado: ya no hace falta porque
+   con flex-wrap los botones se acomodan según haya espacio.
+   ══════════════════════════════════════════════ */
+.adm-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(10px, 2vw, 14px);
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: clamp(20px, 3vw, 32px);
 }
 .adm-header__actions {
   display: flex;
-  gap: 8px;
   flex-wrap: wrap;
+  gap: 8px;
   position: relative;
+  justify-content: flex-end;
 }
-.adm-header__hamburger {
-  display: none;
-  width: 44px;
-  height: 44px;
-  background: rgba(186,132,60,0.12);
-  border: 1px solid rgba(186,132,60,0.45);
-  border-radius: 8px;
-  color: #ba843c;
-  font-size: 1.3rem;
-  cursor: pointer;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  font-family: inherit;
-  flex-shrink: 0;
-  line-height: 1;
-}
+.adm-header__hamburger,
 .adm-header__dropdown {
-  display: none;
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  background: #1a2224;
-  border: 1px solid rgba(186,132,60,0.35);
-  border-radius: 10px;
-  padding: 8px;
-  min-width: 200px;
-  z-index: 50;
-  box-shadow: 0 10px 24px rgba(0,0,0,0.45);
-  flex-direction: column;
-  gap: 4px;
-}
-.adm-header__dropdown--open {
-  display: flex;
-}
-.adm-header__dropdown > button {
-  text-align: left;
-  width: 100%;
-}
-
-@media (max-width: 767px) {
-  .crm-2col,
-  .crm-users-layout,
-  .crm-detail-grid,
-  .crm-fields-grid {
-    grid-template-columns: 1fr;
-  }
-  .crm-stat-grid {
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  }
-  .crm-marketing-field {
-    grid-template-columns: 1fr;
-    gap: 6px;
-  }
-  .crm-wa-header {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-  .crm-wa-head-row {
-    display: none;
-  }
-  .crm-wa-row {
-    grid-template-columns: 1fr;
-    gap: 10px;
-    text-align: left;
-  }
-  .crm-wa-row > *:last-child {
-    text-align: left;
-  }
-  .adm-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 14px;
-  }
-  .adm-header__actions {
-    flex-wrap: nowrap;
-    justify-content: flex-end;
-  }
-  /* Mostrar solo botones marcados como críticos + hamburger; resto va al dropdown */
-  .adm-header__actions > :not(.adm-header__primary):not(.adm-header__hamburger):not(.adm-header__dropdown) {
-    display: none;
-  }
-  .adm-header__hamburger {
-    display: flex;
-  }
+  display: none !important;
 }
 
 /* ══════════════════════════════════════════════
-   CRM Chart grid (panel principal)
+   CRM Chart grid — fluid: 2 columnas si caben, 1 si no
    ══════════════════════════════════════════════ */
 .crm-chart-grid {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-  gap: 18px;
-}
-@media (max-width: 767px) {
-  .crm-chart-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: clamp(12px, 2vw, 18px);
 }
 
 /* ══════════════════════════════════════════════
-   CRM paneles (panel/card) — compactos en mobile
+   CRM paneles (panel/card) — padding fluido con clamp
    ══════════════════════════════════════════════ */
 .crm-panel {
   background: #22302e;
   border: 1px solid rgba(255,255,255,0.04);
-  border-radius: 14px;
-  padding: 18px 20px;
+  border-radius: clamp(12px, 1.5vw, 14px);
+  padding: clamp(14px, 2.4vw, 20px);
+  min-width: 0;
 }
 .crm-card {
   background: #22302e;
   border: 1px solid rgba(255,255,255,0.04);
-  border-radius: 14px;
-  padding: 18px 20px;
+  border-radius: clamp(12px, 1.5vw, 14px);
+  padding: clamp(14px, 2.4vw, 20px);
   display: flex;
   align-items: center;
-  gap: 18px;
-}
-@media (max-width: 767px) {
-  .crm-panel {
-    padding: 14px 14px;
-    border-radius: 12px;
-  }
-  .crm-card {
-    padding: 14px 14px;
-    gap: 12px;
-    border-radius: 12px;
-  }
-  /* Compactar grids del CRM */
-  .crm-2col,
-  .crm-stat-grid,
-  .crm-users-layout,
-  .crm-chart-grid {
-    gap: 12px;
-  }
-  /* Main del CrmShell aún más compacto lateralmente */
-  .crm-shell__main {
-    padding: 64px 12px 32px;
-  }
+  gap: clamp(12px, 2vw, 18px);
+  min-width: 0;
 }
 
 /* ══════════════════════════════════════════════
-   Admin Historial — fila stack en mobile
+   Admin Historial — flex-wrap fluido
    ══════════════════════════════════════════════ */
 .adm-historial-row {
-  display: grid;
-  grid-template-columns: auto 1fr auto auto auto;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
+  gap: clamp(10px, 1.5vw, 16px);
+  row-gap: 10px;
+}
+.adm-historial-row > * {
+  min-width: 0;
+}
+.adm-historial-row > :nth-child(2) {
+  flex: 1 1 220px;
 }
 .adm-historial-search {
-  margin-left: auto;
-  min-width: 240px;
-}
-@media (max-width: 767px) {
-  .adm-historial-row {
-    grid-template-columns: 1fr;
-    gap: 10px;
-    align-items: stretch;
-  }
-  .adm-historial-search {
-    margin-left: 0;
-    min-width: 0;
-    width: 100%;
-  }
+  flex: 1 1 220px;
+  min-width: 0;
+  width: 100%;
 }
 
 /* ══════════════════════════════════════════════
-   Admin Fechas Especiales — form responsive + scroll items
+   Admin Fechas Especiales — form y rows flex-wrap fluido
+   Sin breakpoints rígidos: los campos envuelven solos
    ══════════════════════════════════════════════ */
 .adm-special-form {
-  display: grid;
-  grid-template-columns: 1fr 100px 100px 110px auto;
+  display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   align-items: end;
-  min-width: 0;
 }
 .adm-special-form > * {
   min-width: 0;
 }
+/* Campos del form: cada uno tiene un mínimo razonable y crece */
+.adm-special-form > div {
+  flex: 1 1 110px;
+}
+/* Nombre (primer campo): más ancho */
+.adm-special-form > div:first-child {
+  flex: 3 1 220px;
+}
+/* Botón Agregar: tamaño fijo */
+.adm-special-form > button[type="submit"] {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+/* Error: ocupa toda la fila */
+.adm-special-form > div[style*="grid-column"] {
+  flex: 1 1 100%;
+}
+
 .adm-special-row {
-  display: grid;
-  grid-template-columns: auto 1fr auto auto auto;
-  gap: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(10px, 1.5vw, 16px);
+  row-gap: 10px;
   align-items: center;
-  min-width: 0;
 }
 .adm-special-row > * {
   min-width: 0;
   overflow-wrap: anywhere;
 }
-@media (max-width: 767px) {
-  .adm-special-form {
-    grid-template-columns: 1fr 1fr;
-    padding: 14px !important;
-  }
-  /* Nombre (primer hijo) y submit button (último hijo) full-width */
-  .adm-special-form > *:first-child,
-  .adm-special-form > button[type="submit"] {
-    grid-column: 1 / -1;
-  }
-  .adm-special-row {
-    grid-template-columns: 1fr;
-    gap: 10px;
-    align-items: stretch;
-    padding: 12px 14px !important;
-  }
+/* Fecha box: tamaño compacto */
+.adm-special-row > :nth-child(1) {
+  flex: 0 0 auto;
+}
+/* Label: crece */
+.adm-special-row > :nth-child(2) {
+  flex: 1 1 180px;
+}
+/* Precio, pill, botones: tamaño natural */
+.adm-special-row > :nth-child(n+3) {
+  flex: 0 1 auto;
 }
 
 /* ══════════════════════════════════════════════
