@@ -19,11 +19,13 @@ export async function GET(req: NextRequest) {
     const prevEnd     = monthStart;
 
     return withApp(async (db) => {
-      const [newUsers, prevUsers, newRes, prevRes] = await Promise.all([
+      const [newUsers, prevUsers, newRes, prevRes, newMsgs, prevMsgs] = await Promise.all([
         db.user.count({ where: { createdAt: { gte: monthStart } } }),
         db.user.count({ where: { createdAt: { gte: prevStart, lt: prevEnd } } }),
         db.reservation.count({ where: { createdAt: { gte: monthStart } } }),
         db.reservation.count({ where: { createdAt: { gte: prevStart, lt: prevEnd } } }),
+        db.whatsAppMessage.count({ where: { createdAt: { gte: monthStart }, direction: "INBOUND" } }),
+        db.whatsAppMessage.count({ where: { createdAt: { gte: prevStart, lt: prevEnd }, direction: "INBOUND" } }),
       ]);
 
       const [resByStatus, totalRes] = await Promise.all([
@@ -40,6 +42,27 @@ export async function GET(req: NextRequest) {
       const confirmed = resByStatus.find((r) => r.status === "CONFIRMED")?._count ?? 0;
       const successful = completed + confirmed;
       const conversionPct = totalRes > 0 ? Math.round((successful / totalRes) * 100) : 0;
+
+      // ── Conversión WhatsApp: conversaciones que terminaron en reserva ──
+      const waConvs = await db.whatsAppConversation.findMany({
+        where: { createdAt: { gte: monthStart } },
+        select: { phone: true },
+      });
+      const phones = waConvs.map((c) => c.phone);
+      const totalWaConvs = phones.length;
+      const convertedRows = phones.length > 0
+        ? await db.reservation.findMany({
+            where: {
+              guestPhone: { in: phones },
+              status: { in: ["CONFIRMED", "COMPLETED", "IN_PROGRESS", "PENDING"] },
+              createdAt: { gte: monthStart },
+            },
+            select: { guestPhone: true },
+            distinct: ["guestPhone"],
+          })
+        : [];
+      const convertedWa = convertedRows.length;
+      const waConversionPct = totalWaConvs > 0 ? Math.round((convertedWa / totalWaConvs) * 100) : 0;
 
       const weekStart = new Date(now);
       weekStart.setDate(weekStart.getDate() - 6);
@@ -61,9 +84,9 @@ export async function GET(req: NextRequest) {
 
       return NextResponse.json({
         cards: {
-          users:    { value: newUsers, growth: pct(newUsers, prevUsers) },
-          messages: { value: 0,        growth: 0,                          mock: true },
-          reservations: { value: newRes, growth: pct(newRes, prevRes) },
+          users:        { value: newUsers, growth: pct(newUsers, prevUsers) },
+          messages:     { value: newMsgs,  growth: pct(newMsgs,  prevMsgs)  },
+          reservations: { value: newRes,   growth: pct(newRes,   prevRes)   },
         },
         chart: buckets.map((b) => ({ label: b.label, value: b.count })),
         conversion: {
@@ -71,6 +94,11 @@ export async function GET(req: NextRequest) {
           total: totalRes,
           successful,
           cancelled: cancelled + noShow,
+        },
+        whatsappConversion: {
+          pct: waConversionPct,
+          totalConversations: totalWaConvs,
+          converted: convertedWa,
         },
       });
     });

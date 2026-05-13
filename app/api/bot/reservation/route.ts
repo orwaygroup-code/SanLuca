@@ -86,10 +86,11 @@ export async function POST(request: NextRequest) {
             update: { name: titular },
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             create: {
-                name:  titular,
-                email: guestEmail,
+                name:   titular,
+                email:  guestEmail,
                 phone,
-                role:  "CUSTOMER",
+                role:   "CUSTOMER",
+                source: "WHATSAPP",
             } as any,
         });
     }

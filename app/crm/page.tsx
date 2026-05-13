@@ -11,6 +11,7 @@ interface Dashboard {
   };
   chart: { label: string; value: number }[];
   conversion: { pct: number; total: number; successful: number; cancelled: number };
+  whatsappConversion?: { pct: number; totalConversations: number; converted: number };
 }
 
 export default function CrmDashboardPage() {
@@ -34,7 +35,7 @@ export default function CrmDashboardPage() {
 
       <div className="crm-chart-grid">
         <Chart data={data?.chart ?? []} />
-        <Donut conv={data?.conversion} />
+        <Donut conv={data?.conversion} wa={data?.whatsappConversion} />
       </div>
     </>
   );
@@ -112,32 +113,64 @@ function Chart({ data }: { data: { label: string; value: number }[] }) {
   );
 }
 
-function Donut({ conv }: { conv?: Dashboard["conversion"] }) {
-  const pct = conv?.pct ?? 0;
+function Donut({ conv, wa }: { conv?: Dashboard["conversion"]; wa?: Dashboard["whatsappConversion"] }) {
+  const pct  = conv?.pct ?? 0;
+  const waPct = wa?.pct ?? 0;
   const r = 60;
   const c = 2 * Math.PI * r;
-  const dash = (pct / 100) * c;
+  const dash   = (pct / 100) * c;
+  const waDash = (waPct / 100) * c;
   return (
     <div className="crm-panel">
       <span style={{ color: "rgba(245,241,232,0.55)", fontSize: "0.7rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 600 }}>
         Tasa de conversión
       </span>
-      <div style={{ display: "flex", justifyContent: "center", margin: "20px 0 16px" }}>
-        <svg viewBox="0 0 160 160" style={{ width: "100%", maxWidth: 160, height: "auto" }}>
-          <circle cx="80" cy="80" r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="14" />
-          <circle
-            cx="80" cy="80" r={r} fill="none"
-            stroke="#ba843c" strokeWidth="14"
-            strokeDasharray={`${dash} ${c}`} strokeDashoffset={c / 4} strokeLinecap="round"
-            transform="rotate(-90 80 80)"
-          />
-          <text x="80" y="88" textAnchor="middle" fill="#f5f1e8" fontSize="22" fontWeight="600">{pct}%</text>
-        </svg>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, margin: "20px 0 16px" }}>
+        {/* Donut general */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <svg viewBox="0 0 160 160" style={{ width: "100%", maxWidth: 130, height: "auto" }}>
+            <circle cx="80" cy="80" r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="14" />
+            <circle
+              cx="80" cy="80" r={r} fill="none"
+              stroke="#ba843c" strokeWidth="14"
+              strokeDasharray={`${dash} ${c}`} strokeDashoffset={c / 4} strokeLinecap="round"
+              transform="rotate(-90 80 80)"
+            />
+            <text x="80" y="88" textAnchor="middle" fill="#f5f1e8" fontSize="22" fontWeight="600">{pct}%</text>
+          </svg>
+          <span style={{ marginTop: 6, fontSize: "0.65rem", color: "rgba(245,241,232,0.55)", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 600 }}>
+            General
+          </span>
+        </div>
+
+        {/* Donut WhatsApp */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <svg viewBox="0 0 160 160" style={{ width: "100%", maxWidth: 130, height: "auto" }}>
+            <circle cx="80" cy="80" r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="14" />
+            <circle
+              cx="80" cy="80" r={r} fill="none"
+              stroke="#25d366" strokeWidth="14"
+              strokeDasharray={`${waDash} ${c}`} strokeDashoffset={c / 4} strokeLinecap="round"
+              transform="rotate(-90 80 80)"
+            />
+            <text x="80" y="88" textAnchor="middle" fill="#f5f1e8" fontSize="22" fontWeight="600">{waPct}%</text>
+          </svg>
+          <span style={{ marginTop: 6, fontSize: "0.65rem", color: "rgba(245,241,232,0.55)", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 600 }}>
+            WhatsApp
+          </span>
+        </div>
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem", color: "rgba(245,241,232,0.55)" }}>
-        <span>Total: <b style={{ color: "#f5f1e8" }}>{conv?.total ?? 0}</b></span>
-        <span>OK: <b style={{ color: "#ba843c" }}>{conv?.successful ?? 0}</b></span>
-        <span>Canc: <b style={{ color: "#c85050" }}>{conv?.cancelled ?? 0}</b></span>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: "0.72rem", color: "rgba(245,241,232,0.55)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <span style={{ color: "#ba843c", fontWeight: 600 }}>General</span>
+          <span>Total: <b style={{ color: "#f5f1e8" }}>{conv?.total ?? 0}</b> · OK: <b style={{ color: "#ba843c" }}>{conv?.successful ?? 0}</b> · Canc: <b style={{ color: "#c85050" }}>{conv?.cancelled ?? 0}</b></span>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <span style={{ color: "#25d366", fontWeight: 600 }}>WhatsApp</span>
+          <span>Conv: <b style={{ color: "#f5f1e8" }}>{wa?.totalConversations ?? 0}</b> · Reservas: <b style={{ color: "#25d366" }}>{wa?.converted ?? 0}</b></span>
+        </div>
       </div>
     </div>
   );
