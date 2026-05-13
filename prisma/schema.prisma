@@ -21,8 +21,9 @@ model User {
   googleId     String?       @unique
   role         Role          @default(CUSTOMER)
   source       UserSource    @default(WEB) // canal por el que llegó: web o whatsapp bot
-  reservations        Reservation[] @relation("OwnedReservations")
-  createdReservations Reservation[] @relation("CreatedReservations")
+  reservations        Reservation[]          @relation("OwnedReservations")
+  createdReservations Reservation[]          @relation("CreatedReservations")
+  whatsappConversations WhatsAppConversation[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 }
@@ -269,6 +270,41 @@ model Payment {
   @@index([customerEmail])
   @@index([customerPhone])
   @@index([status])
+}
+
+// ============================================
+// WHATSAPP — conversaciones e historial de mensajes
+// ============================================
+
+model WhatsAppConversation {
+  id        String            @id @default(cuid())
+  phone     String            @unique
+  userId    String?
+  user      User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  messages  WhatsAppMessage[]
+  updatedAt DateTime          @updatedAt
+  createdAt DateTime          @default(now())
+
+  @@index([updatedAt])
+}
+
+model WhatsAppMessage {
+  id             String               @id @default(cuid())
+  conversationId String
+  conversation   WhatsAppConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  direction      MessageDirection
+  body           String
+  messageType    String               @default("text")
+  waMessageId    String?              @unique
+  sentAt         DateTime
+  createdAt      DateTime             @default(now())
+
+  @@index([conversationId, sentAt])
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
 }
 
 // ============================================
