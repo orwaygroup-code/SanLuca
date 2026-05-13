@@ -43,24 +43,21 @@ export async function GET(req: NextRequest) {
       const successful = completed + confirmed;
       const conversionPct = totalRes > 0 ? Math.round((successful / totalRes) * 100) : 0;
 
-      // ── Conversión WhatsApp: conversaciones que terminaron en reserva ──
-      const waConvs = await db.whatsAppConversation.findMany({
+      // ── Conversión WhatsApp ──
+      // Total = conversaciones únicas (cada phone es una conversación)
+      // Convertidas = phones que tienen al menos 1 reserva con source=WHATSAPP este mes
+      const totalWaConvs = await db.whatsAppConversation.count({
         where: { createdAt: { gte: monthStart } },
-        select: { phone: true },
       });
-      const phones = waConvs.map((c) => c.phone);
-      const totalWaConvs = phones.length;
-      const convertedRows = phones.length > 0
-        ? await db.reservation.findMany({
-            where: {
-              guestPhone: { in: phones },
-              status: { in: ["CONFIRMED", "COMPLETED", "IN_PROGRESS", "PENDING"] },
-              createdAt: { gte: monthStart },
-            },
-            select: { guestPhone: true },
-            distinct: ["guestPhone"],
-          })
-        : [];
+      const convertedRows = await db.reservation.findMany({
+        where: {
+          source: "WHATSAPP",
+          status: { in: ["CONFIRMED", "COMPLETED", "IN_PROGRESS", "PENDING"] },
+          createdAt: { gte: monthStart },
+        },
+        select: { guestPhone: true },
+        distinct: ["guestPhone"],
+      });
       const convertedWa = convertedRows.length;
       const waConversionPct = totalWaConvs > 0 ? Math.round((convertedWa / totalWaConvs) * 100) : 0;
 

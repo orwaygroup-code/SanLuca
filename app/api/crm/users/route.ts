@@ -31,26 +31,45 @@ export async function GET(req: NextRequest) {
 
   if (detailId) return NextResponse.json(await getUserDetail(detailId, s));
 
+  // Filtro por origen: matchea por user.source O por al menos una reserva con ese source
+  const sourceFilter =
+    source === "whatsapp"
+      ? {
+          OR: [
+            { source: "WHATSAPP" as const },
+            { reservations: { some: { source: "WHATSAPP" as const } } },
+          ],
+        }
+      : source === "web"
+      ? {
+          AND: [
+            { source: "WEB" as const },
+            { reservations: { none: { source: "WHATSAPP" as const } } },
+          ],
+        }
+      : {};
+
   // Usuarios que han CREADO al menos 1 reserva (incluye staff que reservó por terceros)
   const users = await withApp((db) => db.user.findMany({
     where: {
-      OR: [
-        { createdReservations: { some: {} } },
-        { reservations:        { some: {} } }, // fallback para data antigua sin createdById
-      ],
-      ...(source === "web"      ? { source: "WEB" }      : {}),
-      ...(source === "whatsapp" ? { source: "WHATSAPP" } : {}),
-      ...(search
-        ? {
-            AND: [{
+      AND: [
+        {
+          OR: [
+            { createdReservations: { some: {} } },
+            { reservations:        { some: {} } },
+          ],
+        },
+        sourceFilter,
+        ...(search
+          ? [{
               OR: [
-                { name:  { contains: search, mode: "insensitive" } },
-                { email: { contains: search, mode: "insensitive" } },
+                { name:  { contains: search, mode: "insensitive" as const } },
+                { email: { contains: search, mode: "insensitive" as const } },
                 { phone: { contains: search } },
               ],
-            }],
-          }
-        : {}),
+            }]
+          : []),
+      ],
     },
     select: {
       id: true, name: true, email: true, phone: true,
@@ -68,16 +87,28 @@ export async function GET(req: NextRequest) {
     return c !== 0 ? c : b.createdAt.getTime() - a.createdAt.getTime();
   });
 
-  // Counters por canal
+  // Counters por canal — WhatsApp = users con cualquier reserva via bot
   const baseOr = [
     { createdReservations: { some: {} } },
     { reservations:        { some: {} } },
   ];
-  const [totalAll, totalWeb, totalWa] = await withApp((db) => Promise.all([
+  const [totalAll, totalWa] = await withApp((db) => Promise.all([
     db.user.count({ where: { OR: baseOr } }),
-    db.user.count({ where: { OR: baseOr, source: "WEB" } }),
-    db.user.count({ where: { OR: baseOr, source: "WHATSAPP" } }),
+    db.user.count({
+      where: {
+        AND: [
+          { OR: baseOr },
+          {
+            OR: [
+              { source: "WHATSAPP" },
+              { reservations: { some: { source: "WHATSAPP" } } },
+            ],
+          },
+        ],
+      },
+    }),
   ]));
+  const totalWeb = totalAll - totalWa;
 
   return NextResponse.json({
     counts: { todos: totalAll, web: totalWeb, whatsapp: totalWa },

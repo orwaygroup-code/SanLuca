@@ -109,6 +109,7 @@ export async function POST(request: NextRequest) {
             date:              reservationDate,
             status:            "PENDING",
             paymentStatus:     "UNPAID",
+            source:            "WHATSAPP",
             ...(assigned ? { tableId: assigned.tableId } : {}),
         },
         include: {

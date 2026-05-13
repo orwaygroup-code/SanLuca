@@ -173,6 +173,9 @@ model Reservation {
   cancelledAt       DateTime?
   cancelReason      String?
 
+  // ── Canal de origen de la reserva (independiente del user.source) ──
+  source            ReservationSource @default(WEB)
+
   // ── Platillos pre-ordenados ────────────
   items             ReservationItem[]
 
@@ -229,6 +232,11 @@ enum PaymentStatus {
   PAID        // pago completado
   REFUNDED    // reembolso realizado
   PARTIAL     // pagó el depósito pero no los platillos
+}
+
+enum ReservationSource {
+  WEB       // creada desde el sitio web o panel admin
+  WHATSAPP  // creada por el bot via WhatsApp
 }
 
 // ============================================
