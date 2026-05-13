@@ -160,6 +160,7 @@ export default function AdminPage() {
     const [onlyPending, setOnlyPending]   = useState(false);
     const [moveTarget, setMoveTarget]       = useState<Reservation | null>(null);
     const [editTarget, setEditTarget]       = useState<Reservation | null>(null);
+    const [noteTarget, setNoteTarget]       = useState<Reservation | null>(null);
     const [showNewModal, setShowNewModal]   = useState(false);
     const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
 
@@ -549,12 +550,31 @@ export default function AdminPage() {
                                                                 label="MESA"
                                                                 val={r.table ? `#${r.table.number} - ${r.table.section.name.toUpperCase()}` : "Sin asignar"}
                                                             />
-                                                            <Row
-                                                                label="PAGO"
-                                                                val={r.paymentStatus === "PAID"    ? "Pagado"
-                                                                   : r.paymentStatus === "UNPAID"  ? "Pendiente"
-                                                                   : r.paymentStatus === "PARTIAL" ? "Parcial" : "Reembolsado"}
-                                                            />
+                                                            <div className="adm-row">
+                                                                <span className="adm-row-label">NOTAS:</span>
+                                                                {r.notes ? (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setNoteTarget(r)}
+                                                                        style={{
+                                                                            background: "transparent",
+                                                                            border: "1px solid rgba(186,132,60,0.5)",
+                                                                            color: "#ba843c",
+                                                                            padding: "2px 10px",
+                                                                            borderRadius: 999,
+                                                                            fontSize: "0.7rem",
+                                                                            fontWeight: 600,
+                                                                            letterSpacing: "0.04em",
+                                                                            cursor: "pointer",
+                                                                            fontFamily: "inherit",
+                                                                        }}
+                                                                    >
+                                                                        Ver más…
+                                                                    </button>
+                                                                ) : (
+                                                                    <span className="adm-row-val" style={{ color: "rgba(245,241,232,0.35)" }}>—</span>
+                                                                )}
+                                                            </div>
                                                         </div>
 
                                                         <div className="adm-actions">
@@ -619,6 +639,14 @@ export default function AdminPage() {
                     }}
                 />
             )}
+            {/* ── Isla de nota ── */}
+            {noteTarget && (
+                <NoteIsland
+                    guestName={noteTarget.guestName}
+                    note={noteTarget.notes ?? ""}
+                    onClose={() => setNoteTarget(null)}
+                />
+            )}
             {/* ── Modal editar reserva ── */}
             {editTarget && (
                 <EditReservationModal
@@ -649,6 +677,74 @@ function Row({ label, val }: { label: string; val: string }) {
         <div className="adm-row">
             <span className="adm-row-label">{label}:</span>
             <span className="adm-row-val">{val}</span>
+        </div>
+    );
+}
+
+// ── Isla flotante para mostrar la nota completa ─────────────────────────
+function NoteIsland({ guestName, note, onClose }: { guestName: string; note: string; onClose: () => void }) {
+    return (
+        <div
+            onClick={onClose}
+            style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(0,0,0,0.6)",
+                backdropFilter: "blur(4px)",
+                zIndex: 1000,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 20,
+            }}
+        >
+            <div
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                    background: "#22302e",
+                    border: "1px solid rgba(186,132,60,0.4)",
+                    borderRadius: 16,
+                    padding: "28px 30px 26px",
+                    maxWidth: 480,
+                    width: "100%",
+                    maxHeight: "70vh",
+                    overflowY: "auto",
+                    boxShadow: "0 24px 64px rgba(0,0,0,0.55)",
+                    color: "#f5f1e8",
+                    fontFamily: "inherit",
+                    position: "relative",
+                }}
+            >
+                <button
+                    type="button"
+                    onClick={onClose}
+                    aria-label="Cerrar"
+                    style={{
+                        position: "absolute",
+                        top: 10,
+                        right: 12,
+                        background: "transparent",
+                        border: "none",
+                        color: "rgba(245,241,232,0.5)",
+                        fontSize: "1.4rem",
+                        cursor: "pointer",
+                        lineHeight: 1,
+                        padding: 4,
+                        fontFamily: "inherit",
+                    }}
+                >
+                    ✕
+                </button>
+                <div style={{ fontSize: "0.65rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#ba843c", fontWeight: 700, marginBottom: 6 }}>
+                    Nota de reserva
+                </div>
+                <div style={{ fontSize: "0.85rem", color: "rgba(245,241,232,0.6)", marginBottom: 16 }}>
+                    {guestName}
+                </div>
+                <p style={{ margin: 0, fontSize: "0.95rem", lineHeight: 1.55, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                    {note}
+                </p>
+            </div>
         </div>
     );
 }
