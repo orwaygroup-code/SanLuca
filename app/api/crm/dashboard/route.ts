@@ -12,6 +12,19 @@ import { requireAdmin } from "@/lib/auth-server";
 const DAY_LABELS = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
 const MONTH_LABELS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
+// México: UTC-6 todo el año (sin DST desde 2022).
+// El servidor corre en UTC, por eso aplicamos el offset manualmente al
+// derivar año/mes/día/DOW de un timestamp.
+const MX_OFFSET_MS = 6 * 3600 * 1000;
+function mxParts(d: Date) {
+  const s = new Date(d.getTime() - MX_OFFSET_MS);
+  return { y: s.getUTCFullYear(), m: s.getUTCMonth(), day: s.getUTCDate(), dow: s.getUTCDay() };
+}
+function mxMidnight(y: number, m: number, day: number): Date {
+  // Medianoche de México (00:00 MX = 06:00 UTC) representado como Date UTC.
+  return new Date(Date.UTC(y, m, day, 6, 0, 0, 0));
+}
+
 function pct(curr: number, prev: number) {
   if (prev === 0) return curr > 0 ? 100 : 0;
   return Math.round(((curr - prev) / prev) * 100);
@@ -19,14 +32,12 @@ function pct(curr: number, prev: number) {
 
 type Period = "month" | "year" | "week";
 
-function isoWeekStart(year: number, week: number): Date {
-  // ISO 8601: la semana 1 es la que contiene el 4 de enero.
-  const jan4 = new Date(year, 0, 4);
-  const jan4Dow = jan4.getDay() || 7; // dom → 7
-  const week1Mon = new Date(year, 0, 4 - jan4Dow + 1);
-  const start = new Date(week1Mon);
-  start.setDate(week1Mon.getDate() + (week - 1) * 7);
-  return start;
+function isoWeekStartMx(year: number, week: number): Date {
+  // ISO 8601: la semana 1 contiene el 4 de enero.
+  // En MX, calculamos el lunes de la semana 1, luego sumamos (week-1)*7 días.
+  const jan4Dow = mxParts(mxMidnight(year, 0, 4)).dow || 7; // dom→7, lun→1...
+  const week1MonDay = 4 - jan4Dow + 1; // día del mes (puede ser negativo, p.ej. -2 = 29 de diciembre del año anterior)
+  return new Date(mxMidnight(year, 0, week1MonDay).getTime() + (week - 1) * 7 * 86400000);
 }
 
 function parseRange(period: Period, value: string | null): {
@@ -35,45 +46,47 @@ function parseRange(period: Period, value: string | null): {
   prevStart: Date;
   prevEnd:   Date;
 } {
-  const now = new Date();
+  const nowMx = mxParts(new Date());
   if (period === "year") {
-    const y = value ? parseInt(value, 10) : now.getFullYear();
+    const y = value ? parseInt(value, 10) : nowMx.y;
     return {
-      start:     new Date(y,     0, 1),
-      end:       new Date(y + 1, 0, 1),
-      prevStart: new Date(y - 1, 0, 1),
-      prevEnd:   new Date(y,     0, 1),
+      start:     mxMidnight(y,     0, 1),
+      end:       mxMidnight(y + 1, 0, 1),
+      prevStart: mxMidnight(y - 1, 0, 1),
+      prevEnd:   mxMidnight(y,     0, 1),
     };
   }
   if (period === "week") {
-    let y = now.getFullYear(), w = 1;
+    let y = nowMx.y, w = 1;
     if (value) {
       const m = value.match(/^(\d{4})-W(\d{1,2})$/);
       if (m) { y = parseInt(m[1], 10); w = parseInt(m[2], 10); }
     } else {
-      const thu = new Date(now); thu.setDate(now.getDate() + 4 - (now.getDay() || 7));
-      y = thu.getFullYear();
-      const jan4 = new Date(y, 0, 4);
-      const jan4Dow = jan4.getDay() || 7;
-      const week1Mon = new Date(y, 0, 4 - jan4Dow + 1);
-      w = Math.floor((thu.getTime() - week1Mon.getTime()) / (7 * 86400000)) + 1;
+      // ISO week actual en hora MX
+      const todayMxMid = mxMidnight(nowMx.y, nowMx.m, nowMx.day);
+      const todayDow = mxParts(todayMxMid).dow || 7;
+      const thursday = new Date(todayMxMid.getTime() + (4 - todayDow) * 86400000);
+      const thuMx = mxParts(thursday);
+      y = thuMx.y;
+      const week1Mon = isoWeekStartMx(y, 1);
+      w = Math.floor((thursday.getTime() - week1Mon.getTime()) / (7 * 86400000)) + 1;
     }
-    const start = isoWeekStart(y, w);
-    const end   = new Date(start); end.setDate(start.getDate() + 7);
-    const prevStart = new Date(start); prevStart.setDate(start.getDate() - 7);
+    const start = isoWeekStartMx(y, w);
+    const end       = new Date(start.getTime() + 7 * 86400000);
+    const prevStart = new Date(start.getTime() - 7 * 86400000);
     return { start, end, prevStart, prevEnd: start };
   }
   // month
-  let y = now.getFullYear(), m = now.getMonth();
+  let y = nowMx.y, m = nowMx.m;
   if (value) {
     const [yy, mm] = value.split("-").map((x) => parseInt(x, 10));
     if (!isNaN(yy) && !isNaN(mm)) { y = yy; m = mm - 1; }
   }
   return {
-    start:     new Date(y, m,     1),
-    end:       new Date(y, m + 1, 1),
-    prevStart: new Date(y, m - 1, 1),
-    prevEnd:   new Date(y, m,     1),
+    start:     mxMidnight(y, m,     1),
+    end:       mxMidnight(y, m + 1, 1),
+    prevStart: mxMidnight(y, m - 1, 1),
+    prevEnd:   mxMidnight(y, m,     1),
   };
 }
 
@@ -113,7 +126,8 @@ export async function GET(req: NextRequest) {
         db.whatsAppMessage.findMany({ where: { createdAt: { gte: prevStart, lt: prevEnd }, direction: "INBOUND" }, select: { createdAt: true } }),
       ]);
 
-      const dowOk = (d: Date) => allowedDays.includes(d.getDay());
+      // DOW se evalúa en hora México (el servidor está en UTC).
+      const dowOk = (d: Date) => allowedDays.includes(mxParts(d).dow);
 
       const newUsers = newUsersRows.filter((r) => dowOk(r.createdAt)).length;
       const prevUsers = prevUsersRows.filter((r) => dowOk(r.createdAt)).length;
@@ -160,52 +174,74 @@ export async function GET(req: NextRequest) {
       // month → barras por día del mes (hasta hoy si es el mes actual)
       // week  → barras por día de la semana (hasta hoy si la semana incluye hoy)
       // En todos los casos: se omiten DOWs excluidos por el filtro de días.
-      const now = new Date();
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const nowMx = mxParts(new Date());
+      const todayStartMx = mxMidnight(nowMx.y, nowMx.m, nowMx.day);
       let chart: { label: string; value: number }[] = [];
 
+      // Regla común: los días/meses futuros se omiten SOLO si están vacíos.
+      // Si ya hay reservas futuras agendadas, esos días/meses sí se muestran.
+      // Todas las comparaciones de fecha se hacen en hora México.
       if (period === "year") {
-        const y = start.getFullYear();
-        const lastMonth = y === now.getFullYear() ? now.getMonth() : 11;
-        const buckets = Array.from({ length: lastMonth + 1 }, (_, m) => ({ label: MONTH_LABELS[m], count: 0 }));
+        const y = mxParts(start).y;
+        const buckets = Array.from({ length: 12 }, (_, m) => {
+          const monthStartMx = mxMidnight(y, m, 1);
+          return { label: MONTH_LABELS[m], isFuture: monthStartMx.getTime() > todayStartMx.getTime(), count: 0 };
+        });
         for (const r of newResFiltered) {
-          if (r.date.getFullYear() === y && r.date.getMonth() <= lastMonth) {
-            buckets[r.date.getMonth()].count += 1;
-          }
+          const p = mxParts(r.date);
+          if (p.y === y) buckets[p.m].count += 1;
         }
-        chart = buckets.map((b) => ({ label: b.label, value: b.count }));
+        chart = buckets
+          .filter((b) => !b.isFuture || b.count > 0)
+          .map((b) => ({ label: b.label, value: b.count }));
       } else if (period === "week") {
-        const buckets: { label: string; dayKey: number; count: number }[] = [];
+        const buckets: { label: string; dayKey: number; isFuture: boolean; count: number }[] = [];
+        const startMx = mxParts(start);
         for (let i = 0; i < 7; i++) {
-          const d = new Date(start); d.setDate(start.getDate() + i);
-          if (!dowOk(d)) continue;
-          if (d.getTime() > todayStart.getTime()) continue; // futuro → fuera
-          buckets.push({ label: DAY_LABELS[d.getDay()], dayKey: d.getTime(), count: 0 });
+          const dayMid = mxMidnight(startMx.y, startMx.m, startMx.day + i);
+          if (!dowOk(dayMid)) continue;
+          buckets.push({
+            label: DAY_LABELS[mxParts(dayMid).dow],
+            dayKey: dayMid.getTime(),
+            isFuture: dayMid.getTime() > todayStartMx.getTime(),
+            count: 0,
+          });
         }
         for (const r of newResFiltered) {
-          const d = new Date(r.date.getFullYear(), r.date.getMonth(), r.date.getDate());
-          const idx = buckets.findIndex((b) => b.dayKey === d.getTime());
+          const p = mxParts(r.date);
+          const key = mxMidnight(p.y, p.m, p.day).getTime();
+          const idx = buckets.findIndex((b) => b.dayKey === key);
           if (idx >= 0) buckets[idx].count += 1;
         }
-        chart = buckets.map((b) => ({ label: b.label, value: b.count }));
+        chart = buckets
+          .filter((b) => !b.isFuture || b.count > 0)
+          .map((b) => ({ label: b.label, value: b.count }));
       } else {
-        // month → un bar por día (omitiendo días no permitidos y futuros)
-        const y = start.getFullYear(), m = start.getMonth();
-        const daysInMonth = new Date(y, m + 1, 0).getDate();
-        const buckets: { label: string; dayOfWeek: number; count: number }[] = [];
+        // month → un bar por día (omitiendo días no permitidos)
+        const startMx = mxParts(start);
+        const y = startMx.y, m = startMx.m;
+        const daysInMonth = mxParts(new Date(mxMidnight(y, m + 1, 1).getTime() - 86400000)).day;
+        const buckets: { label: string; dayKey: number; isFuture: boolean; count: number }[] = [];
         for (let day = 1; day <= daysInMonth; day++) {
-          const d = new Date(y, m, day);
-          if (!dowOk(d)) continue;
-          if (d.getTime() > todayStart.getTime()) continue; // futuro → fuera
-          buckets.push({ label: String(day), dayOfWeek: d.getDay(), count: 0 });
+          const dayMid = mxMidnight(y, m, day);
+          if (!dowOk(dayMid)) continue;
+          buckets.push({
+            label: String(day),
+            dayKey: dayMid.getTime(),
+            isFuture: dayMid.getTime() > todayStartMx.getTime(),
+            count: 0,
+          });
         }
         for (const r of newResFiltered) {
-          const d = r.date;
-          if (d.getFullYear() !== y || d.getMonth() !== m) continue;
-          const idx = buckets.findIndex((b) => parseInt(b.label, 10) === d.getDate());
+          const p = mxParts(r.date);
+          if (p.y !== y || p.m !== m) continue;
+          const key = mxMidnight(p.y, p.m, p.day).getTime();
+          const idx = buckets.findIndex((b) => b.dayKey === key);
           if (idx >= 0) buckets[idx].count += 1;
         }
-        chart = buckets.map((b) => ({ label: b.label, value: b.count }));
+        chart = buckets
+          .filter((b) => !b.isFuture || b.count > 0)
+          .map((b) => ({ label: b.label, value: b.count }));
       }
 
       return NextResponse.json({
