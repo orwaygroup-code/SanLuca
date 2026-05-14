@@ -170,33 +170,42 @@ export async function GET(req: NextRequest) {
       const waConversionPct = totalWaConvs > 0 ? Math.round((convertedWa / totalWaConvs) * 100) : 0;
 
       // ── Gráfica ────────────────────────────────────────────────
-      // year  → barras por mes (hasta el mes actual si el año es el actual)
-      // month → barras por día del mes (hasta hoy si es el mes actual)
-      // week  → barras por día de la semana (hasta hoy si la semana incluye hoy)
-      // En todos los casos: se omiten DOWs excluidos por el filtro de días.
+      // Stacked bar chart: cada columna se divide por estado.
+      //   completed = COMPLETED + IN_PROGRESS + DELAYED  (la reserva ya se vivió)
+      //   confirmed = CONFIRMED + PENDING + PENDING_PAYMENT (aún por venir)
+      //   noShow    = NO_SHOW
+      //   cancelled = CANCELLED
       const nowMx = mxParts(new Date());
       const todayStartMx = mxMidnight(nowMx.y, nowMx.m, nowMx.day);
-      let chart: { label: string; value: number }[] = [];
+      type Seg = { completed: number; confirmed: number; noShow: number; cancelled: number };
+      const emptySeg = (): Seg => ({ completed: 0, confirmed: 0, noShow: 0, cancelled: 0 });
+      const bucketTotal = (s: Seg) => s.completed + s.confirmed + s.noShow + s.cancelled;
+      const tallyStatus = (s: Seg, status: string) => {
+        if (status === "COMPLETED" || status === "IN_PROGRESS" || status === "DELAYED") s.completed += 1;
+        else if (status === "CONFIRMED" || status === "PENDING" || status === "PENDING_PAYMENT") s.confirmed += 1;
+        else if (status === "NO_SHOW")   s.noShow += 1;
+        else if (status === "CANCELLED") s.cancelled += 1;
+      };
 
-      // Regla común: los días/meses futuros se omiten SOLO si están vacíos.
-      // Si ya hay reservas futuras agendadas, esos días/meses sí se muestran.
-      // Todas las comparaciones de fecha se hacen en hora México.
+      type ChartBucket = { label: string; isFuture: boolean; seg: Seg };
+      let chartBuckets: ChartBucket[] = [];
+
       if (period === "year") {
         const y = mxParts(start).y;
-        const buckets = Array.from({ length: 12 }, (_, m) => {
-          const monthStartMx = mxMidnight(y, m, 1);
-          return { label: MONTH_LABELS[m], isFuture: monthStartMx.getTime() > todayStartMx.getTime(), count: 0 };
-        });
+        const buckets: (ChartBucket & { idx: number })[] = Array.from({ length: 12 }, (_, m) => ({
+          label: MONTH_LABELS[m],
+          isFuture: mxMidnight(y, m, 1).getTime() > todayStartMx.getTime(),
+          seg: emptySeg(),
+          idx: m,
+        }));
         for (const r of newResFiltered) {
           const p = mxParts(r.date);
-          if (p.y === y) buckets[p.m].count += 1;
+          if (p.y === y) tallyStatus(buckets[p.m].seg, r.status);
         }
-        chart = buckets
-          .filter((b) => !b.isFuture || b.count > 0)
-          .map((b) => ({ label: b.label, value: b.count }));
+        chartBuckets = buckets;
       } else if (period === "week") {
-        const buckets: { label: string; dayKey: number; isFuture: boolean; count: number }[] = [];
         const startMx = mxParts(start);
+        const buckets: (ChartBucket & { dayKey: number })[] = [];
         for (let i = 0; i < 7; i++) {
           const dayMid = mxMidnight(startMx.y, startMx.m, startMx.day + i);
           if (!dowOk(dayMid)) continue;
@@ -204,24 +213,21 @@ export async function GET(req: NextRequest) {
             label: DAY_LABELS[mxParts(dayMid).dow],
             dayKey: dayMid.getTime(),
             isFuture: dayMid.getTime() > todayStartMx.getTime(),
-            count: 0,
+            seg: emptySeg(),
           });
         }
         for (const r of newResFiltered) {
           const p = mxParts(r.date);
           const key = mxMidnight(p.y, p.m, p.day).getTime();
-          const idx = buckets.findIndex((b) => b.dayKey === key);
-          if (idx >= 0) buckets[idx].count += 1;
+          const b = buckets.find((x) => x.dayKey === key);
+          if (b) tallyStatus(b.seg, r.status);
         }
-        chart = buckets
-          .filter((b) => !b.isFuture || b.count > 0)
-          .map((b) => ({ label: b.label, value: b.count }));
+        chartBuckets = buckets;
       } else {
-        // month → un bar por día (omitiendo días no permitidos)
         const startMx = mxParts(start);
         const y = startMx.y, m = startMx.m;
         const daysInMonth = mxParts(new Date(mxMidnight(y, m + 1, 1).getTime() - 86400000)).day;
-        const buckets: { label: string; dayKey: number; isFuture: boolean; count: number }[] = [];
+        const buckets: (ChartBucket & { dayKey: number })[] = [];
         for (let day = 1; day <= daysInMonth; day++) {
           const dayMid = mxMidnight(y, m, day);
           if (!dowOk(dayMid)) continue;
@@ -229,20 +235,29 @@ export async function GET(req: NextRequest) {
             label: String(day),
             dayKey: dayMid.getTime(),
             isFuture: dayMid.getTime() > todayStartMx.getTime(),
-            count: 0,
+            seg: emptySeg(),
           });
         }
         for (const r of newResFiltered) {
           const p = mxParts(r.date);
           if (p.y !== y || p.m !== m) continue;
           const key = mxMidnight(p.y, p.m, p.day).getTime();
-          const idx = buckets.findIndex((b) => b.dayKey === key);
-          if (idx >= 0) buckets[idx].count += 1;
+          const b = buckets.find((x) => x.dayKey === key);
+          if (b) tallyStatus(b.seg, r.status);
         }
-        chart = buckets
-          .filter((b) => !b.isFuture || b.count > 0)
-          .map((b) => ({ label: b.label, value: b.count }));
+        chartBuckets = buckets;
       }
+
+      // Días/meses futuros se ocultan SOLO si están totalmente vacíos.
+      const chart = chartBuckets
+        .filter((b) => !b.isFuture || bucketTotal(b.seg) > 0)
+        .map((b) => ({
+          label:     b.label,
+          completed: b.seg.completed,
+          confirmed: b.seg.confirmed,
+          noShow:    b.seg.noShow,
+          cancelled: b.seg.cancelled,
+        }));
 
       return NextResponse.json({
         cards: {

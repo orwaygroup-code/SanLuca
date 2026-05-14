@@ -3,16 +3,36 @@
 import { useEffect, useMemo, useState } from "react";
 import { CrmPageHead } from "@/components/crm/CrmPageHead";
 
+interface ChartBar {
+  label: string;
+  completed: number;
+  confirmed: number;
+  noShow: number;
+  cancelled: number;
+}
 interface Dashboard {
   cards: {
     users:    { value: number; growth: number };
     messages: { value: number; growth: number; mock?: boolean };
     reservations: { value: number; growth: number };
   };
-  chart: { label: string; value: number }[];
+  chart: ChartBar[];
   conversion: { pct: number; total: number; successful: number; cancelled: number };
   whatsappConversion?: { pct: number; totalConversations: number; converted: number };
 }
+
+const STATUS_COLOR = {
+  completed: "#5fa15f", // verde
+  confirmed: "#ba843c", // dorado marca
+  noShow:    "#d97706", // ámbar
+  cancelled: "#c85050", // rojo
+} as const;
+const STATUS_LABEL = {
+  completed: "Completadas",
+  confirmed: "Confirmadas",
+  noShow:    "No se presentó",
+  cancelled: "Canceladas",
+} as const;
 
 type Period = "month" | "year" | "week";
 type Source = "all" | "WHATSAPP" | "WEB";
@@ -233,42 +253,86 @@ function StatCard({ label, value, growth, icon, mock }: { label: string; value: 
   );
 }
 
-function Chart({ data }: { data: { label: string; value: number }[] }) {
-  const max   = Math.max(1, ...data.map((d) => d.value));
-  const total = data.reduce((s, d) => s + d.value, 0);
+function Chart({ data }: { data: ChartBar[] }) {
+  const totalOf = (d: ChartBar) => d.completed + d.confirmed + d.noShow + d.cancelled;
+  const max   = Math.max(1, ...data.map(totalOf));
+  const total = data.reduce((s, d) => s + totalOf(d), 0);
+  const BAR_AREA = 200;
+  // Orden de apilamiento (de abajo hacia arriba) y color
+  const STACK: Array<{ key: keyof Omit<ChartBar, "label">; color: string }> = [
+    { key: "completed", color: STATUS_COLOR.completed },
+    { key: "confirmed", color: STATUS_COLOR.confirmed },
+    { key: "noShow",    color: STATUS_COLOR.noShow    },
+    { key: "cancelled", color: STATUS_COLOR.cancelled },
+  ];
+
   return (
     <div className="crm-panel">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
         <div>
           <div style={{ color: "rgba(245,241,232,0.55)", fontSize: "0.7rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 600 }}>
-            Reservas esta semana
+            Reservas del período
           </div>
           <div style={{ color: "#f5f1e8", fontSize: "1.4rem", fontWeight: 600, marginTop: 4 }}>
             {total} <span style={{ color: "rgba(245,241,232,0.45)", fontSize: "0.78rem", fontWeight: 400 }}>total</span>
           </div>
         </div>
-        <span style={{ color: "rgba(245,241,232,0.5)", fontSize: "0.75rem" }}>POR DÍA ▾</span>
       </div>
+
+      {/* Leyenda */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 14 }}>
+        {(Object.keys(STATUS_COLOR) as Array<keyof typeof STATUS_COLOR>).map((k) => (
+          <div key={k} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ width: 10, height: 10, background: STATUS_COLOR[k], borderRadius: 2, display: "inline-block" }} />
+            <span style={{ color: "rgba(245,241,232,0.7)", fontSize: "0.72rem" }}>{STATUS_LABEL[k]}</span>
+          </div>
+        ))}
+      </div>
+
       <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.max(1, data.length)}, 1fr)`, alignItems: "end", gap: 12, height: 240 }}>
         {data.map((d, i) => {
-          const BAR_AREA = 200; // px disponibles para la barra
-          const barH = d.value === 0 ? 3 : Math.max(10, Math.round((d.value / max) * BAR_AREA));
+          const t = totalOf(d);
+          const barH = t === 0 ? 3 : Math.max(10, Math.round((t / max) * BAR_AREA));
+          // altura proporcional de cada segmento dentro de la barra
+          const segH = (n: number) => (t === 0 ? 0 : Math.round((n / t) * barH));
+          // Para evitar que por redondeo no sume al total, el último segmento absorbe el resto
+          const seg0 = segH(d.completed);
+          const seg1 = segH(d.confirmed);
+          const seg2 = segH(d.noShow);
+          const seg3 = barH - seg0 - seg1 - seg2;
+          const segs = [
+            { key: "completed", h: seg0, color: STACK[0].color, n: d.completed },
+            { key: "confirmed", h: seg1, color: STACK[1].color, n: d.confirmed },
+            { key: "noShow",    h: seg2, color: STACK[2].color, n: d.noShow    },
+            { key: "cancelled", h: seg3, color: STACK[3].color, n: d.cancelled },
+          ];
+          // Segmento más arriba = el último con valor > 0 (para el border-radius)
+          const lastIdx = (() => { for (let k = segs.length - 1; k >= 0; k--) if (segs[k].n > 0) return k; return -1; })();
+
           return (
             <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%" }}>
-              <div style={{ color: d.value > 0 ? "#ba843c" : "rgba(245,241,232,0.3)", fontSize: "0.75rem", fontWeight: 600, marginBottom: 4 }}>
-                {d.value}
+              <div style={{ color: t > 0 ? "#f5f1e8" : "rgba(245,241,232,0.3)", fontSize: "0.75rem", fontWeight: 600, marginBottom: 4 }}>
+                {t}
               </div>
-              <div
-                style={{
-                  width: "100%",
-                  height: barH,
-                  background: d.value === 0
-                    ? "rgba(245,241,232,0.06)"
-                    : "linear-gradient(180deg, #d09a52 0%, #ba843c 100%)",
-                  borderRadius: "4px 4px 0 0",
-                  transition: "height 0.4s ease",
-                }}
-              />
+              <div style={{ width: "100%", display: "flex", flexDirection: "column" }}>
+                {t === 0 ? (
+                  <div style={{ width: "100%", height: 3, background: "rgba(245,241,232,0.06)", borderRadius: "4px 4px 0 0" }} />
+                ) : (
+                  segs.map((s, k) => s.n > 0 ? (
+                    <div
+                      key={s.key}
+                      title={`${STATUS_LABEL[s.key as keyof typeof STATUS_LABEL]}: ${s.n}`}
+                      style={{
+                        width: "100%",
+                        height: s.h,
+                        background: s.color,
+                        borderRadius: k === lastIdx ? "4px 4px 0 0" : "0",
+                        transition: "height 0.4s ease",
+                      }}
+                    />
+                  ) : null)
+                )}
+              </div>
               <span style={{ marginTop: 8, color: "rgba(245,241,232,0.55)", fontSize: "0.7rem", textTransform: "uppercase" }}>{d.label}</span>
             </div>
           );
@@ -276,7 +340,7 @@ function Chart({ data }: { data: { label: string; value: number }[] }) {
       </div>
       {total === 0 && (
         <p style={{ marginTop: 14, textAlign: "center", color: "rgba(245,241,232,0.4)", fontSize: "0.78rem" }}>
-          Sin reservas esta semana
+          Sin reservas en este período
         </p>
       )}
     </div>
