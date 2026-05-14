@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CrmPageHead } from "@/components/crm/CrmPageHead";
 
 interface Dashboard {
@@ -14,19 +14,69 @@ interface Dashboard {
   whatsappConversion?: { pct: number; totalConversations: number; converted: number };
 }
 
+type Period = "month" | "year" | "day";
+type Source = "all" | "WHATSAPP" | "WEB";
+
+const DAY_OPTIONS = [
+  { dow: 0, label: "Dom" },
+  { dow: 2, label: "Mar" },
+  { dow: 3, label: "Mié" },
+  { dow: 4, label: "Jue" },
+  { dow: 5, label: "Vie" },
+  { dow: 6, label: "Sáb" },
+];
+const MONTHS = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+function todayISO()    { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+function thisMonthISO() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`; }
+function thisYearISO()  { return String(new Date().getFullYear()); }
+
 export default function CrmDashboardPage() {
   const [data, setData] = useState<Dashboard | null>(null);
+  const [period, setPeriod] = useState<Period>("month");
+  const [value, setValue]   = useState<string>(thisMonthISO());
+  const [days, setDays]     = useState<number[]>(DAY_OPTIONS.map((d) => d.dow)); // todos menos lunes
+  const [source, setSource] = useState<Source>("all");
+
+  // Cuando cambia el período, reseteo el value al actual de ese tipo
+  useEffect(() => {
+    if (period === "month") setValue(thisMonthISO());
+    else if (period === "year") setValue(thisYearISO());
+    else setValue(todayISO());
+  }, [period]);
+
+  const qs = useMemo(() => {
+    const p = new URLSearchParams();
+    p.set("period", period);
+    p.set("value", value);
+    p.set("days", days.join(","));
+    p.set("source", source);
+    return p.toString();
+  }, [period, value, days, source]);
 
   useEffect(() => {
-    fetch("/api/crm/dashboard", { credentials: "same-origin" })
+    setData(null);
+    fetch(`/api/crm/dashboard?${qs}`, { credentials: "same-origin" })
       .then((r) => r.json())
       .then(setData)
       .catch(() => {});
-  }, []);
+  }, [qs]);
+
+  function toggleDay(dow: number) {
+    setDays((prev) => prev.includes(dow) ? prev.filter((d) => d !== dow) : [...prev, dow].sort());
+  }
 
   return (
     <>
       <CrmPageHead accent="PANEL" title="CRM" />
+
+      <Filters
+        period={period} setPeriod={setPeriod}
+        value={value}   setValue={setValue}
+        days={days}     toggleDay={toggleDay}
+        source={source} setSource={setSource}
+      />
+
       <div style={grid}>
         <StatCard label="Nuevos usuarios"   value={data?.cards.users.value ?? "—"}        growth={data?.cards.users.growth} icon="👤" />
         <StatCard label="Nuevas reservas"   value={data?.cards.reservations.value ?? "—"} growth={data?.cards.reservations.growth} icon="🍷" />
@@ -40,6 +90,115 @@ export default function CrmDashboardPage() {
     </>
   );
 }
+
+function Filters({
+  period, setPeriod, value, setValue, days, toggleDay, source, setSource,
+}: {
+  period: Period; setPeriod: (p: Period) => void;
+  value: string;  setValue: (v: string) => void;
+  days: number[]; toggleDay: (dow: number) => void;
+  source: Source; setSource: (s: Source) => void;
+}) {
+  const yearNow = new Date().getFullYear();
+  const years = Array.from({ length: 5 }, (_, i) => yearNow - i);
+
+  return (
+    <div className="crm-panel" style={{ marginBottom: 18, padding: 16 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 18, alignItems: "center" }}>
+
+        {/* Período */}
+        <div style={fieldBox}>
+          <span style={fieldLabel}>Período</span>
+          <div style={pillRow}>
+            {(["month","year","day"] as Period[]).map((p) => (
+              <button key={p} onClick={() => setPeriod(p)} style={pill(period === p)}>
+                {p === "month" ? "Mes" : p === "year" ? "Año" : "Día"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Selector de valor */}
+        <div style={fieldBox}>
+          <span style={fieldLabel}>{period === "month" ? "Mes" : period === "year" ? "Año" : "Fecha"}</span>
+          {period === "month" && (
+            <input
+              type="month" value={value} onChange={(e) => setValue(e.target.value)}
+              style={inputStyle}
+            />
+          )}
+          {period === "year" && (
+            <select value={value} onChange={(e) => setValue(e.target.value)} style={inputStyle}>
+              {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
+            </select>
+          )}
+          {period === "day" && (
+            <input
+              type="date" value={value} onChange={(e) => setValue(e.target.value)}
+              style={inputStyle}
+            />
+          )}
+        </div>
+
+        {/* Días de la semana */}
+        <div style={fieldBox}>
+          <span style={fieldLabel}>Días</span>
+          <div style={pillRow}>
+            {DAY_OPTIONS.map((d) => (
+              <button key={d.dow} onClick={() => toggleDay(d.dow)} style={pill(days.includes(d.dow))}>
+                {d.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Origen */}
+        <div style={fieldBox}>
+          <span style={fieldLabel}>Origen</span>
+          <div style={pillRow}>
+            {(["all","WHATSAPP","WEB"] as Source[]).map((s) => (
+              <button key={s} onClick={() => setSource(s)} style={pill(source === s)}>
+                {s === "all" ? "Todos" : s === "WHATSAPP" ? "WhatsApp" : "Web"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+      </div>
+      <div style={{ marginTop: 10, fontSize: "0.7rem", color: "rgba(245,241,232,0.4)" }}>
+        {period === "month" ? `Mostrando ${MONTHS[parseInt(value.split("-")[1] || "1", 10) - 1] ?? ""} ${value.split("-")[0] ?? ""}` :
+         period === "year"  ? `Mostrando todo el año ${value}` :
+         period === "day"   ? `Mostrando el día ${value}` : ""}
+      </div>
+    </div>
+  );
+}
+
+const fieldBox: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 6 };
+const fieldLabel: React.CSSProperties = { color: "rgba(245,241,232,0.55)", fontSize: "0.65rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 600 };
+const pillRow:    React.CSSProperties = { display: "flex", gap: 4, flexWrap: "wrap" };
+function pill(active: boolean): React.CSSProperties {
+  return {
+    padding: "6px 12px",
+    borderRadius: 999,
+    border: "1px solid rgba(255,255,255,0.08)",
+    background: active ? "#ba843c" : "transparent",
+    color: active ? "#1c2628" : "rgba(245,241,232,0.75)",
+    fontSize: "0.78rem",
+    fontWeight: active ? 700 : 500,
+    cursor: "pointer",
+    transition: "all 0.15s ease",
+  };
+}
+const inputStyle: React.CSSProperties = {
+  background: "rgba(0,0,0,0.25)",
+  border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: 8,
+  padding: "7px 10px",
+  color: "#f5f1e8",
+  fontSize: "0.85rem",
+  colorScheme: "dark",
+};
 
 function StatCard({ label, value, growth, icon, mock }: { label: string; value: number | string; growth?: number; icon: string; mock?: boolean }) {
   const positive = (growth ?? 0) >= 0;
