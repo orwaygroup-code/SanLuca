@@ -3,6 +3,7 @@ import { BlobTable } from "@/components/reservation/BlobTable";
 import type { TableState } from "@/components/reservation/TableDot";
 import type { AvailableTable, AvailablePair, AvailableTriple, AvailableQuad, TableSelection } from "@/components/reservation/types";
 import { COMBINED_MAX_CAPACITY, TRIPLE_MIN_GUESTS, TRIPLE_MAX_CAPACITY, QUAD_MIN_GUESTS, QUAD_MAX_CAPACITY } from "@/lib/tableAdjacency";
+import { tableFitsGuests } from "@/lib/tableCapacity";
 
 interface Props {
   tables:    AvailableTable[];
@@ -26,7 +27,7 @@ export function SalonMap({ tables, pairs, triples, quads, guests, selection, onS
     if (guests >= QUAD_MIN_GUESTS && guests <= QUAD_MAX_CAPACITY && quadIds.has(t.id)) return "quad";
     if (guests >= TRIPLE_MIN_GUESTS && guests <= TRIPLE_MAX_CAPACITY && tripleIds.has(t.id)) return "triple";
     if (guests >= 5 && guests <= COMBINED_MAX_CAPACITY && pairIds.has(t.id)) return "pair";
-    if (t.capacity >= guests) return "available";
+    if (tableFitsGuests(t.capacity, guests)) return "available";
     return "disabled";
   }
 
@@ -53,7 +54,7 @@ export function SalonMap({ tables, pairs, triples, quads, guests, selection, onS
         return;
       }
     }
-    if (t.capacity >= guests) onSelect({ tableId: t.id, tableNumber: t.number });
+    if (tableFitsGuests(t.capacity, guests)) onSelect({ tableId: t.id, tableNumber: t.number });
   }
 
   const blob = (num: number, cx: number, cy: number) => {

@@ -13,6 +13,7 @@ import {
   QUAD_MAX_CAPACITY,
 } from "@/lib/tableAdjacency";
 import { getShiftWindow } from "@/lib/shifts";
+import { tableFitsGuests } from "@/lib/tableCapacity";
 import { expirePendingPayments } from "@/lib/expirePendingPayments";
 import type { ApiResponse } from "@/types";
 
@@ -244,7 +245,7 @@ export async function GET(request: NextRequest) {
     }
 
     const hasAvailability =
-      tables.some((t) => t.status === "available" && t.capacity >= guests) ||
+      tables.some((t) => t.status === "available" && tableFitsGuests(t.capacity, guests)) ||
       pairs.length > 0 ||
       triples.length > 0 ||
       quads.length > 0;
