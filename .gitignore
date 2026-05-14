@@ -35,3 +35,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# n8n workflow exports (pueden contener API keys)
+San Luca AI WhatsApp*.json
+*workflow*.json

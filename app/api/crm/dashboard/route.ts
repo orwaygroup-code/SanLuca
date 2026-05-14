@@ -72,12 +72,14 @@ export async function GET(req: NextRequest) {
       const buckets = Array.from({ length: 7 }, (_, i) => {
         const d = new Date(weekStart);
         d.setDate(weekStart.getDate() + i);
-        return { label: days[d.getDay()], date: d, count: 0 };
+        return { label: days[d.getDay()], dayOfWeek: d.getDay(), count: 0 };
       });
       for (const r of weekRes) {
         const idx = Math.floor((r.createdAt.getTime() - weekStart.getTime()) / (24 * 3600 * 1000));
         if (idx >= 0 && idx < 7) buckets[idx].count += 1;
       }
+      // San Luca no abre los lunes — se omite de la gráfica
+      const chart = buckets.filter((b) => b.dayOfWeek !== 1);
 
       return NextResponse.json({
         cards: {
@@ -85,7 +87,7 @@ export async function GET(req: NextRequest) {
           messages:     { value: newMsgs,  growth: pct(newMsgs,  prevMsgs)  },
           reservations: { value: newRes,   growth: pct(newRes,   prevRes)   },
         },
-        chart: buckets.map((b) => ({ label: b.label, value: b.count })),
+        chart: chart.map((b) => ({ label: b.label, value: b.count })),
         conversion: {
           pct: conversionPct,
           total: totalRes,
