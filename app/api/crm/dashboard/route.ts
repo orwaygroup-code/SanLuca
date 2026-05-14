@@ -96,19 +96,19 @@ export async function GET(req: NextRequest) {
   return runWithSession(s, async () => {
     return withApp(async (db) => {
       // ── Filtros base ───────────────────────────────────────────
+      // Reservas: por `date` (fecha de visita) → métrica de afluencia.
+      // Usuarios y mensajes: por `createdAt` (cuándo aparecieron).
+      // Conversaciones WA: por `createdAt` (cuándo iniciaron).
       const resWhere = (gte: Date, lt: Date) => ({
-        createdAt: { gte, lt },
+        date: { gte, lt },
         ...(sourceFilter ? { source: sourceFilter as "WHATSAPP" | "WEB" } : {}),
       });
-
-      // Para usuarios y mensajes el filtro de "source" no aplica directamente,
-      // pero respetamos el filtro de fechas y de día-de-semana en memoria.
 
       const [newUsersRows, prevUsersRows, newResRows, prevResRows, newMsgsRows, prevMsgsRows] = await Promise.all([
         db.user.findMany({ where: { createdAt: { gte: start,     lt: end     } }, select: { createdAt: true } }),
         db.user.findMany({ where: { createdAt: { gte: prevStart, lt: prevEnd } }, select: { createdAt: true } }),
-        db.reservation.findMany({ where: resWhere(start,     end),     select: { createdAt: true, status: true, source: true } }),
-        db.reservation.findMany({ where: resWhere(prevStart, prevEnd), select: { createdAt: true } }),
+        db.reservation.findMany({ where: resWhere(start,     end),     select: { date: true, status: true, source: true } }),
+        db.reservation.findMany({ where: resWhere(prevStart, prevEnd), select: { date: true } }),
         db.whatsAppMessage.findMany({ where: { createdAt: { gte: start,     lt: end     }, direction: "INBOUND" }, select: { createdAt: true } }),
         db.whatsAppMessage.findMany({ where: { createdAt: { gte: prevStart, lt: prevEnd }, direction: "INBOUND" }, select: { createdAt: true } }),
       ]);
@@ -117,8 +117,8 @@ export async function GET(req: NextRequest) {
 
       const newUsers = newUsersRows.filter((r) => dowOk(r.createdAt)).length;
       const prevUsers = prevUsersRows.filter((r) => dowOk(r.createdAt)).length;
-      const newResFiltered = newResRows.filter((r) => dowOk(r.createdAt));
-      const prevRes = prevResRows.filter((r) => dowOk(r.createdAt)).length;
+      const newResFiltered = newResRows.filter((r) => dowOk(r.date));
+      const prevRes = prevResRows.filter((r) => dowOk(r.date)).length;
       const newMsgs = newMsgsRows.filter((r) => dowOk(r.createdAt)).length;
       const prevMsgs = prevMsgsRows.filter((r) => dowOk(r.createdAt)).length;
 
@@ -169,8 +169,8 @@ export async function GET(req: NextRequest) {
         const lastMonth = y === now.getFullYear() ? now.getMonth() : 11;
         const buckets = Array.from({ length: lastMonth + 1 }, (_, m) => ({ label: MONTH_LABELS[m], count: 0 }));
         for (const r of newResFiltered) {
-          if (r.createdAt.getFullYear() === y && r.createdAt.getMonth() <= lastMonth) {
-            buckets[r.createdAt.getMonth()].count += 1;
+          if (r.date.getFullYear() === y && r.date.getMonth() <= lastMonth) {
+            buckets[r.date.getMonth()].count += 1;
           }
         }
         chart = buckets.map((b) => ({ label: b.label, value: b.count }));
@@ -183,7 +183,7 @@ export async function GET(req: NextRequest) {
           buckets.push({ label: DAY_LABELS[d.getDay()], dayKey: d.getTime(), count: 0 });
         }
         for (const r of newResFiltered) {
-          const d = new Date(r.createdAt.getFullYear(), r.createdAt.getMonth(), r.createdAt.getDate());
+          const d = new Date(r.date.getFullYear(), r.date.getMonth(), r.date.getDate());
           const idx = buckets.findIndex((b) => b.dayKey === d.getTime());
           if (idx >= 0) buckets[idx].count += 1;
         }
@@ -200,7 +200,7 @@ export async function GET(req: NextRequest) {
           buckets.push({ label: String(day), dayOfWeek: d.getDay(), count: 0 });
         }
         for (const r of newResFiltered) {
-          const d = r.createdAt;
+          const d = r.date;
           if (d.getFullYear() !== y || d.getMonth() !== m) continue;
           const idx = buckets.findIndex((b) => parseInt(b.label, 10) === d.getDate());
           if (idx >= 0) buckets[idx].count += 1;
