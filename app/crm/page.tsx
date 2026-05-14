@@ -315,7 +315,7 @@ function Donut({ conv, wa }: { conv?: Dashboard["conversion"]; wa?: Dashboard["w
             <circle
               cx="80" cy="80" r={r} fill="none"
               stroke="#ba843c" strokeWidth="14"
-              strokeDasharray={`${dash} ${c}`} strokeDashoffset={c / 4} strokeLinecap="round"
+              strokeDasharray={`${dash} ${c}`} strokeLinecap="round"
               transform="rotate(-90 80 80)"
             />
             <text x="80" y="88" textAnchor="middle" fill="#f5f1e8" fontSize="22" fontWeight="600">{pct}%</text>
@@ -332,7 +332,7 @@ function Donut({ conv, wa }: { conv?: Dashboard["conversion"]; wa?: Dashboard["w
             <circle
               cx="80" cy="80" r={r} fill="none"
               stroke="#25d366" strokeWidth="14"
-              strokeDasharray={`${waDash} ${c}`} strokeDashoffset={c / 4} strokeLinecap="round"
+              strokeDasharray={`${waDash} ${c}`} strokeLinecap="round"
               transform="rotate(-90 80 80)"
             />
             <text x="80" y="88" textAnchor="middle" fill="#f5f1e8" fontSize="22" fontWeight="600">{waPct}%</text>
