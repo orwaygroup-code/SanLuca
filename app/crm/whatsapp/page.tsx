@@ -83,9 +83,9 @@ export default function WhatsappPage() {
     <>
       <CrmPageHead accent="WHATSAPP" title="CRM" sub="Inbox · conversaciones reales" />
 
-      <div style={shell}>
+      <div className={`crm-wa-shell${selected ? " crm-wa-shell--has-selection" : ""}`} style={shell}>
         {/* ── Lista izquierda ── */}
-        <div style={listCol}>
+        <div className="crm-wa-list" style={listCol}>
           <div style={{ padding: "12px 14px 8px" }}>
             <input
               value={search}
@@ -135,7 +135,7 @@ export default function WhatsappPage() {
         </div>
 
         {/* ── Hilo derecha ── */}
-        <div style={threadCol}>
+        <div className="crm-wa-thread" style={threadCol}>
           {!selected ? (
             <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(245,241,232,0.3)", flexDirection: "column", gap: 8 }}>
               <span style={{ fontSize: "2rem" }}>💬</span>
@@ -148,6 +148,14 @@ export default function WhatsappPage() {
           ) : thread ? (
             <>
               <div style={threadHeader}>
+                <button
+                  type="button"
+                  onClick={() => setSelected(null)}
+                  className="crm-wa-back"
+                  aria-label="Volver a la bandeja"
+                >
+                  ←
+                </button>
                 <div style={convAvatar}>{displayName(thread.conv).charAt(0).toUpperCase()}</div>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>{displayName(thread.conv)}</div>

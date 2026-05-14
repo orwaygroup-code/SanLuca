@@ -1632,6 +1632,48 @@ textarea::placeholder {
 }
 
 /* ══════════════════════════════════════════════
+   CRM WhatsApp inbox — responsive estilo móvil
+   ══════════════════════════════════════════════ */
+.crm-wa-back {
+  display: none;
+  background: transparent;
+  border: 1px solid rgba(186,132,60,0.4);
+  color: #ba843c;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-family: inherit;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+@media (max-width: 48em) {
+  /* En móvil: lista y hilo se intercambian según selección */
+  .crm-wa-shell .crm-wa-list {
+    width: 100% !important;
+    border-right: none !important;
+  }
+  .crm-wa-shell .crm-wa-thread {
+    display: none !important;
+  }
+  .crm-wa-shell--has-selection .crm-wa-list {
+    display: none !important;
+  }
+  .crm-wa-shell--has-selection .crm-wa-thread {
+    display: flex !important;
+    width: 100%;
+  }
+  .crm-wa-back {
+    display: inline-flex;
+  }
+}
+
+/* ══════════════════════════════════════════════
    CRM page — fluid responsive (auto-fit/minmax)
    Sin breakpoints rígidos: las celdas envuelven solas según el ancho disponible
    ══════════════════════════════════════════════ */
