@@ -6,12 +6,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { withApp } from "@/lib/prismaApp";
 import { runWithSession } from "@/lib/session-context";
 import { requireStaff } from "@/lib/auth-server";
+import { closeStaleReservations } from "@/lib/closeStaleReservations";
 import type { ApiResponse } from "@/types";
 
 export async function GET(request: NextRequest) {
     try {
         const s = await requireStaff(request);
         if (!s) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
+
+        // Auto-cierre lazy: si quedaron walk-ins / reservas de días anteriores
+        // sin cerrar manualmente, libera esas mesas antes de calcular el mapa.
+        // El cron del VPS también dispara esto a las 00:05 MX; aquí es el respaldo.
+        await closeStaleReservations().catch(() => { /* no romper el mapa si falla */ });
 
         return runWithSession(s, () => withApp(async (db) => {
         const now    = new Date();
