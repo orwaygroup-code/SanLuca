@@ -14,7 +14,7 @@ interface Dashboard {
   whatsappConversion?: { pct: number; totalConversations: number; converted: number };
 }
 
-type Period = "month" | "year" | "day";
+type Period = "month" | "year" | "week";
 type Source = "all" | "WHATSAPP" | "WEB";
 
 const DAY_OPTIONS = [
@@ -27,9 +27,18 @@ const DAY_OPTIONS = [
 ];
 const MONTHS = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
-function todayISO()    { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 function thisMonthISO() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`; }
 function thisYearISO()  { return String(new Date().getFullYear()); }
+function thisWeekISO() {
+  const now = new Date();
+  const thu = new Date(now); thu.setDate(now.getDate() + 4 - (now.getDay() || 7));
+  const y = thu.getFullYear();
+  const jan4 = new Date(y, 0, 4);
+  const jan4Dow = jan4.getDay() || 7;
+  const week1Mon = new Date(y, 0, 4 - jan4Dow + 1);
+  const w = Math.floor((thu.getTime() - week1Mon.getTime()) / (7 * 86400000)) + 1;
+  return `${y}-W${String(w).padStart(2, "0")}`;
+}
 
 export default function CrmDashboardPage() {
   const [data, setData] = useState<Dashboard | null>(null);
@@ -42,7 +51,7 @@ export default function CrmDashboardPage() {
   useEffect(() => {
     if (period === "month") setValue(thisMonthISO());
     else if (period === "year") setValue(thisYearISO());
-    else setValue(todayISO());
+    else setValue(thisWeekISO());
   }, [period]);
 
   const qs = useMemo(() => {
@@ -110,9 +119,9 @@ function Filters({
         <div style={fieldBox}>
           <span style={fieldLabel}>Período</span>
           <div style={pillRow}>
-            {(["month","year","day"] as Period[]).map((p) => (
+            {(["week","month","year"] as Period[]).map((p) => (
               <button key={p} onClick={() => setPeriod(p)} style={pill(period === p)}>
-                {p === "month" ? "Mes" : p === "year" ? "Año" : "Día"}
+                {p === "week" ? "Semana" : p === "month" ? "Mes" : "Año"}
               </button>
             ))}
           </div>
@@ -120,7 +129,7 @@ function Filters({
 
         {/* Selector de valor */}
         <div style={fieldBox}>
-          <span style={fieldLabel}>{period === "month" ? "Mes" : period === "year" ? "Año" : "Fecha"}</span>
+          <span style={fieldLabel}>{period === "month" ? "Mes" : period === "year" ? "Año" : "Semana"}</span>
           {period === "month" && (
             <input
               type="month" value={value} onChange={(e) => setValue(e.target.value)}
@@ -132,9 +141,9 @@ function Filters({
               {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
             </select>
           )}
-          {period === "day" && (
+          {period === "week" && (
             <input
-              type="date" value={value} onChange={(e) => setValue(e.target.value)}
+              type="week" value={value} onChange={(e) => setValue(e.target.value)}
               style={inputStyle}
             />
           )}
@@ -168,7 +177,7 @@ function Filters({
       <div style={{ marginTop: 10, fontSize: "0.7rem", color: "rgba(245,241,232,0.4)" }}>
         {period === "month" ? `Mostrando ${MONTHS[parseInt(value.split("-")[1] || "1", 10) - 1] ?? ""} ${value.split("-")[0] ?? ""}` :
          period === "year"  ? `Mostrando todo el año ${value}` :
-         period === "day"   ? `Mostrando el día ${value}` : ""}
+         period === "week"  ? `Mostrando la semana ${value.replace("-W", " #")}` : ""}
       </div>
     </div>
   );

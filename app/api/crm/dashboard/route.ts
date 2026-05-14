@@ -4,8 +4,8 @@ import { runWithSession } from "@/lib/session-context";
 import { requireAdmin } from "@/lib/auth-server";
 
 // ── Query params ─────────────────────────────────────────────────
-//   period  = "month" | "year" | "day"   (default: month)
-//   value   = "YYYY-MM" | "YYYY" | "YYYY-MM-DD"  (según period; default: actual)
+//   period  = "month" | "year" | "week"   (default: month)
+//   value   = "YYYY-MM" | "YYYY" | "YYYY-Www"  (según period; default: actual)
 //   days    = "0,2,3,4,5,6"   (DOW JS/Postgres 0=Dom...6=Sab; default sin lunes)
 //   source  = "all" | "WHATSAPP" | "WEB"  (default: all)
 
@@ -17,7 +17,17 @@ function pct(curr: number, prev: number) {
   return Math.round(((curr - prev) / prev) * 100);
 }
 
-type Period = "month" | "year" | "day";
+type Period = "month" | "year" | "week";
+
+function isoWeekStart(year: number, week: number): Date {
+  // ISO 8601: la semana 1 es la que contiene el 4 de enero.
+  const jan4 = new Date(year, 0, 4);
+  const jan4Dow = jan4.getDay() || 7; // dom → 7
+  const week1Mon = new Date(year, 0, 4 - jan4Dow + 1);
+  const start = new Date(week1Mon);
+  start.setDate(week1Mon.getDate() + (week - 1) * 7);
+  return start;
+}
 
 function parseRange(period: Period, value: string | null): {
   start: Date;
@@ -35,11 +45,23 @@ function parseRange(period: Period, value: string | null): {
       prevEnd:   new Date(y,     0, 1),
     };
   }
-  if (period === "day") {
-    const d = value ? new Date(`${value}T00:00:00`) : new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const next = new Date(d); next.setDate(d.getDate() + 1);
-    const prev = new Date(d); prev.setDate(d.getDate() - 1);
-    return { start: d, end: next, prevStart: prev, prevEnd: d };
+  if (period === "week") {
+    let y = now.getFullYear(), w = 1;
+    if (value) {
+      const m = value.match(/^(\d{4})-W(\d{1,2})$/);
+      if (m) { y = parseInt(m[1], 10); w = parseInt(m[2], 10); }
+    } else {
+      const thu = new Date(now); thu.setDate(now.getDate() + 4 - (now.getDay() || 7));
+      y = thu.getFullYear();
+      const jan4 = new Date(y, 0, 4);
+      const jan4Dow = jan4.getDay() || 7;
+      const week1Mon = new Date(y, 0, 4 - jan4Dow + 1);
+      w = Math.floor((thu.getTime() - week1Mon.getTime()) / (7 * 86400000)) + 1;
+    }
+    const start = isoWeekStart(y, w);
+    const end   = new Date(start); end.setDate(start.getDate() + 7);
+    const prevStart = new Date(start); prevStart.setDate(start.getDate() - 7);
+    return { start, end, prevStart, prevEnd: start };
   }
   // month
   let y = now.getFullYear(), m = now.getMonth();
@@ -134,28 +156,47 @@ export async function GET(req: NextRequest) {
       const waConversionPct = totalWaConvs > 0 ? Math.round((convertedWa / totalWaConvs) * 100) : 0;
 
       // ── Gráfica ────────────────────────────────────────────────
-      // year  → 12 barras (meses)
-      // month → barras por día del mes
-      // day   → 1 barra (total del día)
+      // year  → barras por mes (hasta el mes actual si el año es el actual)
+      // month → barras por día del mes (hasta hoy si es el mes actual)
+      // week  → barras por día de la semana (hasta hoy si la semana incluye hoy)
+      // En todos los casos: se omiten DOWs excluidos por el filtro de días.
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       let chart: { label: string; value: number }[] = [];
 
       if (period === "year") {
         const y = start.getFullYear();
-        const buckets = Array.from({ length: 12 }, (_, m) => ({ label: MONTH_LABELS[m], count: 0 }));
+        const lastMonth = y === now.getFullYear() ? now.getMonth() : 11;
+        const buckets = Array.from({ length: lastMonth + 1 }, (_, m) => ({ label: MONTH_LABELS[m], count: 0 }));
         for (const r of newResFiltered) {
-          if (r.createdAt.getFullYear() === y) buckets[r.createdAt.getMonth()].count += 1;
+          if (r.createdAt.getFullYear() === y && r.createdAt.getMonth() <= lastMonth) {
+            buckets[r.createdAt.getMonth()].count += 1;
+          }
         }
         chart = buckets.map((b) => ({ label: b.label, value: b.count }));
-      } else if (period === "day") {
-        chart = [{ label: DAY_LABELS[start.getDay()], value: newRes }];
+      } else if (period === "week") {
+        const buckets: { label: string; dayKey: number; count: number }[] = [];
+        for (let i = 0; i < 7; i++) {
+          const d = new Date(start); d.setDate(start.getDate() + i);
+          if (!dowOk(d)) continue;
+          if (d.getTime() > todayStart.getTime()) continue; // futuro → fuera
+          buckets.push({ label: DAY_LABELS[d.getDay()], dayKey: d.getTime(), count: 0 });
+        }
+        for (const r of newResFiltered) {
+          const d = new Date(r.createdAt.getFullYear(), r.createdAt.getMonth(), r.createdAt.getDate());
+          const idx = buckets.findIndex((b) => b.dayKey === d.getTime());
+          if (idx >= 0) buckets[idx].count += 1;
+        }
+        chart = buckets.map((b) => ({ label: b.label, value: b.count }));
       } else {
-        // month → un bar por día (omitiendo días no permitidos)
+        // month → un bar por día (omitiendo días no permitidos y futuros)
         const y = start.getFullYear(), m = start.getMonth();
         const daysInMonth = new Date(y, m + 1, 0).getDate();
         const buckets: { label: string; dayOfWeek: number; count: number }[] = [];
         for (let day = 1; day <= daysInMonth; day++) {
           const d = new Date(y, m, day);
           if (!dowOk(d)) continue;
+          if (d.getTime() > todayStart.getTime()) continue; // futuro → fuera
           buckets.push({ label: String(day), dayOfWeek: d.getDay(), count: 0 });
         }
         for (const r of newResFiltered) {
