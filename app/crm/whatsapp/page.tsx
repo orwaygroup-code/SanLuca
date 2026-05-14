@@ -46,26 +46,46 @@ export default function WhatsappPage() {
   const [search, setSearch]     = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  // Polling: la lista de conversaciones se refresca cada 5s.
   useEffect(() => {
-    fetch("/api/crm/whatsapp/conversations", { credentials: "same-origin" })
-      .then((r) => r.json())
-      .then((d) => setConvs(d.data ?? []))
-      .finally(() => setLoading(false));
+    let alive = true;
+    const fetchConvs = () =>
+      fetch("/api/crm/whatsapp/conversations", { credentials: "same-origin" })
+        .then((r) => r.json())
+        .then((d) => { if (alive) setConvs(d.data ?? []); })
+        .catch(() => {})
+        .finally(() => { if (alive) setLoading(false); });
+    fetchConvs();
+    const id = setInterval(fetchConvs, 5000);
+    return () => { alive = false; clearInterval(id); };
   }, []);
 
+  // Polling: si hay hilo abierto, sus mensajes se refrescan cada 5s.
+  // La primera carga (cambio de `selected`) muestra spinner; los refresh
+  // posteriores son silenciosos para evitar parpadeo.
   useEffect(() => {
     if (!selected) return;
+    let alive = true;
+    let firstLoad = true;
     setTL(true);
     setThread(null);
-    fetch(`/api/crm/whatsapp/conversations/${encodeURIComponent(selected)}`, { credentials: "same-origin" })
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.conversation) {
+
+    const fetchThread = () =>
+      fetch(`/api/crm/whatsapp/conversations/${encodeURIComponent(selected)}`, { credentials: "same-origin" })
+        .then((r) => r.json())
+        .then((d) => {
+          if (!alive || !d.conversation) return;
           const c = convs.find((x) => x.phone === selected);
           setThread({ conv: c!, messages: d.conversation.messages });
-        }
-      })
-      .finally(() => setTL(false));
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (alive && firstLoad) { setTL(false); firstLoad = false; }
+        });
+
+    fetchThread();
+    const id = setInterval(fetchThread, 5000);
+    return () => { alive = false; clearInterval(id); };
   }, [selected]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
