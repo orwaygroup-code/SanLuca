@@ -82,27 +82,29 @@ function Chart({ data }: { data: { label: string; value: number }[] }) {
         <span style={{ color: "rgba(245,241,232,0.5)", fontSize: "0.75rem" }}>POR DÍA ▾</span>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.max(1, data.length)}, 1fr)`, alignItems: "end", gap: 12, height: 240 }}>
-        {data.map((d, i) => (
-          <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-            <div style={{ flex: 1, width: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
-              <div style={{ color: d.value > 0 ? "#ba843c" : "rgba(245,241,232,0.3)", fontSize: "0.75rem", fontWeight: 600, textAlign: "center", marginBottom: 4 }}>
+        {data.map((d, i) => {
+          const BAR_AREA = 200; // px disponibles para la barra
+          const barH = d.value === 0 ? 3 : Math.max(10, Math.round((d.value / max) * BAR_AREA));
+          return (
+            <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%" }}>
+              <div style={{ color: d.value > 0 ? "#ba843c" : "rgba(245,241,232,0.3)", fontSize: "0.75rem", fontWeight: 600, marginBottom: 4 }}>
                 {d.value}
               </div>
               <div
                 style={{
                   width: "100%",
-                  height: `${Math.max(2, (d.value / max) * 100)}%`,
-                  minHeight: d.value === 0 ? 2 : 8,
+                  height: barH,
                   background: d.value === 0
                     ? "rgba(245,241,232,0.06)"
                     : "linear-gradient(180deg, #d09a52 0%, #ba843c 100%)",
                   borderRadius: "4px 4px 0 0",
+                  transition: "height 0.4s ease",
                 }}
               />
+              <span style={{ marginTop: 8, color: "rgba(245,241,232,0.55)", fontSize: "0.7rem", textTransform: "uppercase" }}>{d.label}</span>
             </div>
-            <span style={{ color: "rgba(245,241,232,0.55)", fontSize: "0.7rem", textTransform: "uppercase" }}>{d.label}</span>
-          </div>
-        ))}
+          );
+        })}
       </div>
       {total === 0 && (
         <p style={{ marginTop: 14, textAlign: "center", color: "rgba(245,241,232,0.4)", fontSize: "0.78rem" }}>
