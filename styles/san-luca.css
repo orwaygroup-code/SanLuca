@@ -518,6 +518,40 @@ textarea::placeholder {
   margin-top: 0;
 }
 
+.auth-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.auth-privacy {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.82rem;
+  color: rgba(245,241,232,0.72);
+  line-height: 1.45;
+  margin: 4px 0 2px;
+  cursor: pointer;
+}
+
+.auth-privacy input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  accent-color: #ba843c;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.auth-privacy a {
+  color: #ba843c;
+  text-decoration: underline;
+}
+
+.auth-privacy a:hover {
+  color: #d09a52;
+}
+
 @media (max-width: 768px) {
   .auth-wrapper {
     grid-template-columns: 1fr;

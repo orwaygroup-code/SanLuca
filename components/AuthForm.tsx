@@ -61,6 +61,7 @@ export function AuthForm() {
     const [showLoginPwd,   setShowLoginPwd]   = useState(false);
     const [showRegPwd,     setShowRegPwd]     = useState(false);
     const [showRegConfirm, setShowRegConfirm] = useState(false);
+    const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
 
     useEffect(() => {
         const t = setInterval(() => setImgIdx((i) => (i + 1) % AREA_IMAGES.length), 4000);
@@ -149,6 +150,7 @@ export function AuthForm() {
         if (!register.password) { setError("La contraseña es obligatoria."); return; }
         if (!register.confirmPassword) { setError("Confirma tu contraseña."); return; }
         if (register.password !== register.confirmPassword) { setError("Las contraseñas no coinciden."); return; }
+        if (!acceptedPrivacy) { setError("Debes aceptar el Aviso de Privacidad para registrarte."); return; }
         setLoading(true);
         try {
             const res = await fetch("/api/auth/register", {
@@ -397,12 +399,27 @@ export function AuthForm() {
                             </div>
                         </div>
 
+                        <label className="auth-privacy">
+                            <input
+                                type="checkbox"
+                                checked={acceptedPrivacy}
+                                onChange={(e) => setAcceptedPrivacy(e.target.checked)}
+                            />
+                            <span>
+                                He leído y acepto el{" "}
+                                <Link href="/privacidad" target="_blank" rel="noopener noreferrer">
+                                    Aviso de Privacidad
+                                </Link>
+                                .
+                            </span>
+                        </label>
+
                         {error && <div className="rf-error">⚠ {error}</div>}
 
                         <button
                             className="rf-submit auth-submit-btn"
                             onClick={handleRegister}
-                            disabled={loading}
+                            disabled={loading || !acceptedPrivacy}
                         >
                             {loading ? t.auth.loading : t.auth.register}
                         </button>
