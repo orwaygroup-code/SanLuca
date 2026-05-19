@@ -80,8 +80,12 @@ export function DeleteAccountModal({
           Más detalles en el{" "}
           <Link href="/privacidad" target="_blank" rel="noopener noreferrer">
             Aviso de Privacidad
+          </Link>
+          , el{" "}
+          <Link href="/eliminacion-datos" target="_blank" rel="noopener noreferrer">
+            Procedimiento de Eliminación
           </Link>{" "}
-          y en tus{" "}
+          y tus{" "}
           <Link href="/privacidad#vi-sus-derechos-arco" target="_blank" rel="noopener noreferrer">
             derechos ARCO
           </Link>

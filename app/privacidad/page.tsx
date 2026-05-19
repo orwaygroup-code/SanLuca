@@ -232,6 +232,12 @@ export default function PrivacidadPage() {
             Una vez que solicite la eliminación de su cuenta, sus datos
             identificativos serán eliminados o anonimizados, conservando
             únicamente los registros mínimos que exija la legislación vigente.
+            Consulte el{" "}
+            <Link href="/eliminacion-datos">
+              Procedimiento de Eliminación de Datos
+            </Link>{" "}
+            para conocer el detalle de qué se elimina, qué se anonimiza y los
+            plazos máximos aplicables.
           </p>
         </section>
 

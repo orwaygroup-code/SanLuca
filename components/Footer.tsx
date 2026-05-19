@@ -210,9 +210,10 @@ export default function Footer() {
           <FooterLinkColumn
             title="Legal"
             links={[
-              { label: "Aviso de Privacidad",      href: "/privacidad" },
-              { label: "Términos y Condiciones",   href: "/terminos" },
-              { label: "Contacto",                 href: "mailto:Sanlucaterraza@gmail.com" },
+              { label: "Aviso de Privacidad",          href: "/privacidad" },
+              { label: "Términos y Condiciones",       href: "/terminos" },
+              { label: "Eliminación de datos",         href: "/eliminacion-datos" },
+              { label: "Contacto",                     href: "mailto:Sanlucaterraza@gmail.com" },
             ]}
           />
         </div>
