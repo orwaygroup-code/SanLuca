@@ -14,7 +14,10 @@ export async function GET(request: NextRequest) {
   return runWithSession(s, async () => {
     const user = await withApp((db) => db.user.findUnique({
       where:  { id: s.userId },
-      select: { id: true, name: true, email: true, role: true },
+      select: {
+        id: true, name: true, email: true, role: true,
+        acceptedTermsAt: true, acceptedTermsVersion: true,
+      },
     }));
     if (!user) return NextResponse.json({ authenticated: false }, { status: 401 });
     return NextResponse.json({ authenticated: true, user });

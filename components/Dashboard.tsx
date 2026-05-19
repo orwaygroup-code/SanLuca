@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslation, type Locale } from "@/lib/i18n";
 import { useSession } from "@/lib/session-client";
+import { DeleteAccountModal } from "@/components/DeleteAccountModal";
 
 const MAX_ACTIVE = 2;
 const ACTIVE_STATUSES = ["PENDING", "PENDING_PAYMENT", "CONFIRMED"];
@@ -46,6 +47,7 @@ export function Dashboard() {
     const [reservations, setReservations] = useState<Reservation[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [showDelete, setShowDelete] = useState(false);
 
     useEffect(() => {
         if (session.loading) return;
@@ -214,6 +216,85 @@ export function Dashboard() {
                     );
                 })}
             </div>
+
+            {/* ── Account management ── */}
+            <div className="dash-account">
+                <div className="dash-account__head">
+                    <h3 className="dash-account__title">Mi cuenta</h3>
+                    <p className="dash-account__sub">
+                        Gestiona tu información personal y privacidad.
+                    </p>
+                </div>
+                <div className="dash-account__actions">
+                    <Link href="/privacidad" className="dash-account__link">
+                        Aviso de Privacidad
+                    </Link>
+                    <button
+                        type="button"
+                        className="dash-account__danger"
+                        onClick={() => setShowDelete(true)}
+                    >
+                        Eliminar mi cuenta
+                    </button>
+                </div>
+            </div>
+
+            <DeleteAccountModal open={showDelete} onClose={() => setShowDelete(false)} />
+
+            <style>{`
+                .dash-account {
+                    margin-top: 56px;
+                    padding-top: 24px;
+                    border-top: 1px solid rgba(245,241,232,0.08);
+                    display: flex;
+                    flex-wrap: wrap;
+                    justify-content: space-between;
+                    align-items: center;
+                    gap: 16px;
+                }
+                .dash-account__title {
+                    margin: 0 0 4px;
+                    font-size: 0.95rem;
+                    font-weight: 600;
+                    color: rgba(245,241,232,0.85);
+                    letter-spacing: 0.04em;
+                    text-transform: uppercase;
+                }
+                .dash-account__sub {
+                    margin: 0;
+                    font-size: 0.85rem;
+                    color: rgba(245,241,232,0.45);
+                }
+                .dash-account__actions {
+                    display: flex;
+                    gap: 12px;
+                    align-items: center;
+                    flex-wrap: wrap;
+                }
+                .dash-account__link {
+                    color: #d09a52;
+                    text-decoration: none;
+                    font-size: 0.88rem;
+                    border-bottom: 1px solid transparent;
+                    transition: border-color 0.15s;
+                }
+                .dash-account__link:hover { border-bottom-color: #d09a52; }
+                .dash-account__danger {
+                    background: transparent;
+                    color: #e05555;
+                    border: 1px solid rgba(224,85,85,0.4);
+                    padding: 8px 16px;
+                    border-radius: 6px;
+                    font-size: 0.88rem;
+                    cursor: pointer;
+                    font-family: inherit;
+                    transition: background 0.15s, border-color 0.15s;
+                }
+                .dash-account__danger:hover {
+                    background: rgba(224,85,85,0.08);
+                    border-color: #e05555;
+                }
+            `}</style>
         </div>
     );
 }

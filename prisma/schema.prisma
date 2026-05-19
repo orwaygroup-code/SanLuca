@@ -21,6 +21,13 @@ model User {
   googleId     String?       @unique
   role         Role          @default(CUSTOMER)
   source       UserSource    @default(WEB) // canal por el que llegó: web o whatsapp bot
+
+  // Aceptación de Aviso de Privacidad + T&C (LFPDPPP — evidencia para INAI).
+  // Un solo timestamp cubre ambos documentos porque el checkbox de registro
+  // es uno solo. Si la versión publicada cambia se prompt-ea re-aceptación.
+  acceptedTermsAt      DateTime?
+  acceptedTermsVersion String?       @default("1.0")
+
   reservations        Reservation[]          @relation("OwnedReservations")
   createdReservations Reservation[]          @relation("CreatedReservations")
   whatsappConversations WhatsAppConversation[]
@@ -318,6 +325,55 @@ enum MessageDirection {
 // ============================================
 // CRÉDITOS (por cancelación de reservas pagadas)
 // ============================================
+
+// ============================================
+// ARCO — Registro de Solicitudes (LFPDPPP)
+// Bitácora de cada solicitud de derechos ARCO
+// (Acceso, Rectificación, Cancelación, Oposición).
+// Causal B (cancelación desde la app) inserta aquí
+// automáticamente; causales A/C/D las crea el admin.
+// ============================================
+
+model ArcoRequest {
+  id                 String       @id @default(cuid())
+  folio              String       @unique // "ARCO-YYYY-NNNN"
+  receivedAt         DateTime     @default(now())
+  channel            ArcoChannel
+  rightExercised    ArcoRight
+  requesterEmail     String
+  requesterName      String?
+  identityVerifiedAt DateTime?
+  evaluationResult   String?      // "Procedente" | "Improcedente: <motivo>"
+  executedAt         DateTime?
+  executedBy         String?      // userId del admin que ejecutó
+  notifiedAt         DateTime?
+  status             ArcoStatus   @default(IN_PROGRESS)
+  notes              String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@index([receivedAt])
+  @@index([status])
+  @@index([requesterEmail])
+}
+
+enum ArcoChannel {
+  APP
+  EMAIL
+}
+
+enum ArcoRight {
+  ACCESS
+  RECTIFICATION
+  CANCELLATION
+  OPPOSITION
+}
+
+enum ArcoStatus {
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+}
 
 model Credit {
   id                   String    @id @default(cuid())

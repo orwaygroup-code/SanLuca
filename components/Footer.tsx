@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { colors, fonts } from "@/config/theme";
 import { useTranslation } from "@/lib/i18n";
 
@@ -41,6 +42,73 @@ function FooterColumn({
           {line}
         </p>
       ))}
+    </div>
+  );
+}
+
+function FooterLinkColumn({
+  title,
+  links,
+}: {
+  title: string;
+  links: { label: string; href: string }[];
+}) {
+  const linkStyle: React.CSSProperties = {
+    color: "rgba(245,241,232,0.45)",
+    textDecoration: "none",
+    transition: "color 0.2s",
+  };
+  return (
+    <div>
+      <div
+        style={{
+          fontFamily: fonts.primary,
+          fontSize: "0.62rem",
+          fontWeight: 800,
+          letterSpacing: "0.24em",
+          textTransform: "uppercase",
+          color: colors.peru,
+          marginBottom: 14,
+        }}
+      >
+        {title}
+      </div>
+      {links.map((l) => {
+        const isExternal = l.href.startsWith("mailto:") || l.href.startsWith("http");
+        const inner = isExternal ? (
+          <a
+            href={l.href}
+            style={linkStyle}
+            onMouseEnter={(e) => (e.currentTarget.style.color = colors.peru)}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(245,241,232,0.45)")}
+          >
+            {l.label}
+          </a>
+        ) : (
+          <Link
+            href={l.href}
+            style={linkStyle}
+            onMouseEnter={(e) => (e.currentTarget.style.color = colors.peru)}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(245,241,232,0.45)")}
+          >
+            {l.label}
+          </Link>
+        );
+        return (
+          <p
+            key={l.href}
+            style={{
+              fontFamily: fonts.primary,
+              fontSize: "0.88rem",
+              fontWeight: 400,
+              margin: "0 0 4px",
+              lineHeight: 1.6,
+            }}
+          >
+            {inner}
+          </p>
+        );
+      })}
     </div>
   );
 }
@@ -136,6 +204,15 @@ export default function Footer() {
             lines={[
               "+52 449 287 3674",
               "sanlucaterrazza@gmail.com",
+            ]}
+          />
+
+          <FooterLinkColumn
+            title="Legal"
+            links={[
+              { label: "Aviso de Privacidad",      href: "/privacidad" },
+              { label: "Términos y Condiciones",   href: "/terminos" },
+              { label: "Contacto",                 href: "mailto:Sanlucaterraza@gmail.com" },
             ]}
           />
         </div>

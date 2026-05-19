@@ -10,6 +10,7 @@ const NAV = [
   { label: "WhatsApp",      href: "/crm/whatsapp" },
   { label: "Marketing",     href: "/crm/marketing" },
   { label: "Usuarios",      href: "/crm/usuarios" },
+  { label: "ARCO",          href: "/crm/arco" },
   { label: "KPI's",         href: "/crm/kpi" },
 ];
 const NAV_BOTTOM = [

@@ -13,93 +13,110 @@ export default function PrivacidadPage() {
         <header className="privacy-header">
           <p className="privacy-eyebrow">SAN LUCA RISTORANTE</p>
           <h1 className="privacy-title">Aviso de Privacidad</h1>
-          <p className="privacy-meta">Versión: 1.0 · 14/05/2026</p>
+          <p className="privacy-meta">Versión: 1.0 · 14 de mayo de 2026</p>
         </header>
 
         <section className="privacy-block">
           <p>
-            <strong>Responsable:</strong> Ricardo Pájaro Camacho
-            <br />
-            <strong>Domicilio:</strong> Paseo de las Maravillas 303, El Llano, Jesús María,
-            Aguascalientes, 0983
-            <br />
-            <strong>Contacto de privacidad:</strong>{" "}
-            <a href="mailto:privacidad@sanlucaristorante.com">privacidad@sanlucaristorante.com</a>
-          </p>
-        </section>
-
-        <section className="privacy-block">
-          <h2>I. Identidad del Responsable</h2>
-          <p>
             En cumplimiento con la Ley Federal de Protección de Datos Personales en
-            Posesión de los Particulares (LFPDPPP) y su Reglamento, Ricardo Pájaro Camacho,
-            con domicilio en Paseo de las Maravillas 303, El Llano, Jesús María,
-            Aguascalientes, 0983, es el responsable del tratamiento de los datos
-            personales que usted nos proporciona a través de la aplicación San Luca Ristorante.
+            Posesión de los Particulares (LFPDPPP) y su Reglamento, este documento
+            describe cómo recopilamos, usamos y protegemos su información personal a
+            través del sitio web y la plataforma de San Luca Ristorante.
           </p>
         </section>
 
         <section className="privacy-block">
-          <h2>II. Datos personales que recopilamos</h2>
+          <h2 id="i-identidad-del-responsable">I. Identidad del responsable</h2>
           <p>
-            Para brindarle nuestros servicios de reservación, recopilamos los siguientes
-            datos personales:
+            <strong>Ricardo Pájaro Camacho</strong> es el responsable del tratamiento
+            de los datos personales que usted nos proporciona a través de la
+            plataforma San Luca Ristorante.
+          </p>
+          <p>
+            <strong>Datos de contacto del responsable</strong>
+          </p>
+          <ul>
+            <li>
+              <strong>Domicilio:</strong> Paseo de las Maravillas 303, El Llano,
+              Jesús María, Aguascalientes
+            </li>
+            <li>
+              <strong>Correo de privacidad:</strong>{" "}
+              <a href="mailto:privacidad@sanlucaristorante.com">
+                privacidad@sanlucaristorante.com
+              </a>
+            </li>
+          </ul>
+        </section>
+
+        <section className="privacy-block">
+          <h2 id="ii-datos-personales-que-recopilamos">
+            II. Datos personales que recopilamos
+          </h2>
+          <p>
+            Para brindarle nuestros servicios de reservación, recopilamos los
+            siguientes datos personales:
           </p>
           <ul>
             <li>Nombre completo</li>
             <li>Correo electrónico</li>
-            <li>Número de teléfono celular</li>
+            <li>Número de teléfono</li>
             <li>Fecha de nacimiento</li>
             <li>
-              Historial de reservaciones: fecha, hora, número de comensales, área del
-              restaurante y notas especiales
+              Historial de reservaciones: fecha, hora, número de comensales, área
+              del restaurante y notas especiales
             </li>
-            <li>
-              Cuando usted elige iniciar sesión con Google: foto de perfil e ID de cuenta
-              de Google
-            </li>
+            <li>Al iniciar sesión con Google: foto de perfil e ID de cuenta de Google</li>
           </ul>
           <p>
-            El Responsable no recopila datos personales sensibles en los términos del
-            artículo 3, fracción VI de la LFPDPPP.
+            <strong>Nota importante:</strong> El Responsable no recopila datos
+            personales sensibles en los términos del artículo 3, fracción VI de la
+            LFPDPPP.
           </p>
         </section>
 
         <section className="privacy-block">
-          <h2>III. Finalidades del tratamiento</h2>
-          <h3>Finalidades primarias (necesarias para la prestación del servicio):</h3>
+          <h2 id="iii-finalidades-del-tratamiento">III. Finalidades del tratamiento</h2>
+
+          <h3>Finalidades primarias — necesarias para el servicio</h3>
           <ul>
-            <li>Crear y gestionar su cuenta de usuario en la aplicación</li>
+            <li>Crear y gestionar su cuenta de usuario en la plataforma</li>
             <li>Registrar, confirmar y administrar sus reservaciones</li>
             <li>Identificarle al momento del check-in mediante código QR</li>
             <li>Contactarle para confirmar, modificar o cancelar su reserva</li>
             <li>Enviar comunicaciones directamente relacionadas con su reservación activa</li>
           </ul>
-          <h3>Finalidades secundarias (sujetas a su consentimiento):</h3>
+
+          <h3>Finalidades secundarias — sujetas a su consentimiento</h3>
           <ul>
             <li>Informarle sobre promociones y eventos especiales del restaurante</li>
             <li>Solicitar su retroalimentación sobre la experiencia de visita</li>
           </ul>
+
           <p>
-            Si no desea que sus datos sean utilizados para las finalidades secundarias,
-            puede indicarlo en cualquier momento escribiendo a{" "}
-            <a href="mailto:privacidad@sanlucaristorante.com">privacidad@sanlucaristorante.com</a>{" "}
-            o ajustando sus preferencias en la configuración de la aplicación. Esto no
-            afectará la prestación del servicio principal.
+            Si no desea que sus datos sean utilizados para las finalidades
+            secundarias, puede indicarlo escribiendo a{" "}
+            <a href="mailto:privacidad@sanlucaristorante.com">
+              privacidad@sanlucaristorante.com
+            </a>{" "}
+            o ajustando sus preferencias en la plataforma. Esto no afectará la
+            prestación del servicio principal.
           </p>
         </section>
 
         <section className="privacy-block">
-          <h2>IV. Transferencia de datos a terceros</h2>
+          <h2 id="iv-transferencia-de-datos-a-terceros">
+            IV. Transferencia de datos a terceros
+          </h2>
           <p>
             El Responsable no vende, arrienda ni transfiere sus datos personales a
-            terceros con fines comerciales. Las únicas transferencias que se realizan son
-            las estrictamente necesarias para operar el servicio:
+            terceros con fines comerciales. Las únicas transferencias que se
+            realizan son estrictamente necesarias para operar el servicio:
           </p>
           <ul>
             <li>
-              <strong>Google LLC:</strong> proveedor del servicio de autenticación (Google
-              Sign-In). El tratamiento de sus datos por parte de Google se rige por la{" "}
+              <strong>Google LLC:</strong> Proveedor de autenticación (Google
+              Sign-In). El tratamiento se rige por la{" "}
               <a
                 href="https://policies.google.com/privacy"
                 target="_blank"
@@ -115,120 +132,173 @@ export default function PrivacidadPage() {
             </li>
           </ul>
           <p>
-            Cualquier transferencia adicional requerirá su consentimiento expreso, salvo
-            las excepciones previstas en el artículo 37 de la LFPDPPP.
+            Cualquier transferencia adicional requerirá su consentimiento expreso,
+            salvo las excepciones previstas en el artículo 37 de la LFPDPPP.
           </p>
         </section>
 
         <section className="privacy-block">
-          <h2>V. Almacenamiento y seguridad</h2>
+          <h2 id="v-almacenamiento-y-seguridad">V. Almacenamiento y seguridad</h2>
           <p>
-            Sus datos personales se almacenan en un servidor VPS ubicado en Europa o
-            Estados Unidos, en una base de datos PostgreSQL con cifrado en reposo y
-            controles de acceso. Implementamos medidas de seguridad que incluyen cifrado
-            en tránsito (TLS 1.2+), autenticación de dos factores para accesos
-            administrativos y auditorías de acceso periódicas.
-          </p>
-          <p>
-            En caso de que los datos se alojen fuera de México, el Responsable garantiza
-            que el proveedor de infraestructura cuenta con niveles adecuados de protección
-            conforme al artículo 36 de la LFPDPPP.
-          </p>
-        </section>
-
-        <section className="privacy-block">
-          <h2>VI. Sus derechos ARCO</h2>
-          <p>
-            En términos de los artículos 22 al 35 de la LFPDPPP, usted tiene derecho a
-            ejercer en cualquier momento:
+            Sus datos personales se almacenan en un servidor VPS ubicado en Europa
+            o Estados Unidos, en una base de datos PostgreSQL con cifrado en reposo
+            y controles de acceso. Las medidas de seguridad implementadas incluyen:
           </p>
           <ul>
-            <li>
-              <strong>Acceso:</strong> conocer qué datos personales tenemos sobre usted y
-              cómo los utilizamos.
-            </li>
-            <li>
-              <strong>Rectificación:</strong> corregir o actualizar su información cuando
-              sea inexacta o incompleta.
-            </li>
-            <li>
-              <strong>Cancelación:</strong> solicitar la eliminación de sus datos cuando
-              ya no sean necesarios para la finalidad que motivó su tratamiento.
-            </li>
-            <li>
-              <strong>Oposición:</strong> oponerse al tratamiento de sus datos para
-              finalidades específicas.
-            </li>
+            <li>Cifrado en tránsito mediante TLS 1.2+</li>
+            <li>Autenticación de dos factores para accesos administrativos</li>
+            <li>Auditorías de acceso periódicas</li>
           </ul>
           <p>
-            Adicionalmente, usted puede solicitar la eliminación completa de su cuenta y
-            datos, actualizar su información de contacto directamente en la aplicación, y
-            revocar el consentimiento para finalidades secundarias en cualquier momento.
+            En caso de que los datos se alojen fuera de México, el Responsable
+            garantiza que el proveedor de infraestructura cuenta con niveles
+            adecuados de protección conforme al artículo 36 de la LFPDPPP.
           </p>
+        </section>
+
+        <section className="privacy-block">
+          <h2 id="vi-sus-derechos-arco">VI. Sus derechos ARCO</h2>
           <p>
-            Para ejercer sus derechos ARCO, envíe su solicitud a{" "}
+            En términos de los artículos 22 al 35 de la LFPDPPP, usted tiene
+            derecho a ejercer en cualquier momento:
+          </p>
+
+          <div className="privacy-table-wrap">
+            <table className="privacy-table">
+              <caption className="privacy-table-caption">Derechos ARCO</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Derecho</th>
+                  <th scope="col">Descripción</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">A — Acceso</th>
+                  <td>
+                    Conocer qué datos personales tenemos sobre usted y cómo los
+                    utilizamos.
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row">R — Rectificación</th>
+                  <td>
+                    Corregir o actualizar su información cuando sea inexacta o
+                    incompleta.
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row">C — Cancelación</th>
+                  <td>
+                    Solicitar la eliminación de sus datos cuando ya no sean
+                    necesarios para la finalidad que motivó su tratamiento.
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row">O — Oposición</th>
+                  <td>
+                    Oponerse al tratamiento de sus datos para finalidades
+                    específicas.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>¿Cómo ejercer sus derechos?</h3>
+          <p>
+            Envíe su solicitud a{" "}
             <a href="mailto:privacidad@sanlucaristorante.com">
               privacidad@sanlucaristorante.com
             </a>{" "}
-            indicando su nombre completo, correo electrónico registrado en la aplicación y
-            una descripción clara del derecho que desea ejercer. Responderemos dentro de
-            los 20 días hábiles establecidos por la LFPDPPP.
+            indicando su nombre completo, correo electrónico registrado en la
+            plataforma y una descripción clara del derecho que desea ejercer.
           </p>
-        </section>
-
-        <section className="privacy-block">
-          <h2>VII. Retención de datos</h2>
           <p>
-            Sus datos se conservarán mientras mantenga una cuenta activa en la aplicación.
-            El historial de reservaciones se conservará por el plazo que establezca la
-            LFPDPPP y la normativa fiscal aplicable, a partir de la fecha de cada
-            reservación. Una vez que solicite la eliminación de su cuenta, sus datos
-            identificativos serán eliminados o anonimizados, conservando únicamente los
-            registros mínimos que exija la legislación aplicable.
+            Responderemos dentro de los <strong>20 días hábiles</strong>{" "}
+            establecidos por la LFPDPPP.
           </p>
         </section>
 
         <section className="privacy-block">
-          <h2>VIII. Cookies y tecnologías de rastreo</h2>
+          <h2 id="vii-retencion-de-datos">VII. Retención de datos</h2>
           <p>
-            La aplicación utiliza tecnologías de almacenamiento local (tokens de sesión,
-            identificadores de dispositivo) estrictamente necesarias para el
-            funcionamiento del inicio de sesión y la seguridad de la cuenta. No utilizamos
-            cookies de rastreo publicitario. Google puede utilizar sus propias tecnologías
-            de seguimiento cuando usted interactúa con el botón &ldquo;Iniciar sesión con
-            Google&rdquo;, sujeto a las políticas de privacidad de dicha empresa.
+            Sus datos se conservarán mientras mantenga una cuenta activa en la
+            plataforma. El historial de reservaciones se conservará por el plazo
+            que establezca la legislación aplicable (LFPDPPP y normativa fiscal)
+            a partir de la fecha de cada reservación.
+          </p>
+          <p>
+            Una vez que solicite la eliminación de su cuenta, sus datos
+            identificativos serán eliminados o anonimizados, conservando
+            únicamente los registros mínimos que exija la legislación vigente.
           </p>
         </section>
 
         <section className="privacy-block">
-          <h2>IX. Cambios a este Aviso de Privacidad</h2>
+          <h2 id="viii-cookies-y-tecnologias-de-rastreo">
+            VIII. Cookies y tecnologías de rastreo
+          </h2>
+          <p>
+            La plataforma utiliza tecnologías de almacenamiento local (tokens de
+            sesión, identificadores de dispositivo) estrictamente necesarias para
+            el funcionamiento del inicio de sesión y la seguridad de la cuenta.
+          </p>
+          <p>
+            No utilizamos cookies de rastreo publicitario. Google puede utilizar
+            sus propias tecnologías de seguimiento cuando usted interactúa con el
+            botón &ldquo;Iniciar sesión con Google&rdquo;, sujeto a las políticas
+            de privacidad de dicha empresa.
+          </p>
+        </section>
+
+        <section className="privacy-block">
+          <h2 id="ix-cambios-a-este-aviso-de-privacidad">
+            IX. Cambios a este Aviso de Privacidad
+          </h2>
           <p>
             El Responsable se reserva el derecho de modificar el presente Aviso de
-            Privacidad en cualquier momento. Cualquier modificación será notificada a
-            través de la aplicación y/o por correo electrónico con al menos 15 días
-            naturales de anticipación a su entrada en vigor. El uso continuo de la
-            aplicación tras la publicación de los cambios constituirá su aceptación de la
-            versión actualizada.
+            Privacidad en cualquier momento. Cualquier modificación será
+            notificada a través de la plataforma y/o por correo electrónico con al
+            menos <strong>15 días naturales</strong> de anticipación a su entrada
+            en vigor.
+          </p>
+          <p>
+            El uso continuo de la plataforma tras la publicación de los cambios
+            constituirá su aceptación de la versión actualizada.
           </p>
         </section>
 
         <section className="privacy-block">
-          <h2>X. Autoridad reguladora</h2>
+          <h2 id="x-autoridad-reguladora">X. Autoridad reguladora</h2>
           <p>
-            Si considera que el Responsable ha vulnerado sus derechos de protección de
-            datos personales, tiene derecho a presentar una queja ante el Instituto
-            Nacional de Transparencia, Acceso a la Información y Protección de Datos
-            Personales (INAI), autoridad reguladora competente en la materia.
+            Si considera que el Responsable ha vulnerado sus derechos de
+            protección de datos personales, tiene derecho a presentar una queja
+            ante el{" "}
+            <strong>
+              Instituto Nacional de Transparencia, Acceso a la Información y
+              Protección de Datos Personales (INAI)
+            </strong>
+            .
           </p>
+          <ul>
+            <li>
+              <strong>Sitio oficial:</strong>{" "}
+              <a href="https://www.inai.org.mx" target="_blank" rel="noopener noreferrer">
+                www.inai.org.mx
+              </a>
+            </li>
+            <li>
+              <strong>Fundamento:</strong> artículos 38-45 de la LFPDPPP y
+              artículos 68-76 de su Reglamento.
+            </li>
+          </ul>
+        </section>
+
+        <section className="privacy-signature">
           <p>
-            Sitio oficial del INAI:{" "}
-            <a href="https://www.inai.org.mx" target="_blank" rel="noopener noreferrer">
-              www.inai.org.mx
-            </a>
-            <br />
-            <em>
-              Fundamento: artículos 38–45 de la LFPDPPP y artículos 68–76 de su Reglamento.
-            </em>
+            San Luca Ristorante · Jesús María, Aguascalientes, México · © 2026
+            Ricardo Pájaro Camacho
           </p>
         </section>
 
@@ -281,6 +351,7 @@ export default function PrivacidadPage() {
         .privacy-block {
           margin: 28px 0;
           line-height: 1.65;
+          scroll-margin-top: 24px;
         }
         .privacy-block h2 {
           font-size: 1.15rem;
@@ -315,10 +386,61 @@ export default function PrivacidadPage() {
         .privacy-block a:hover {
           color: #ba843c;
         }
-        .privacy-footer {
-          margin-top: 40px;
+        .privacy-table-wrap {
+          overflow-x: auto;
+          margin: 8px 0 18px;
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 8px;
+        }
+        .privacy-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 0.92rem;
+          color: rgba(245,241,232,0.82);
+        }
+        .privacy-table-caption {
+          caption-side: top;
+          text-align: left;
+          padding: 8px 14px;
+          font-size: 0.78rem;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: rgba(245,241,232,0.45);
+        }
+        .privacy-table th,
+        .privacy-table td {
+          padding: 12px 14px;
+          text-align: left;
+          vertical-align: top;
+          border-top: 1px solid rgba(255,255,255,0.06);
+          line-height: 1.55;
+        }
+        .privacy-table thead th {
+          background: rgba(186,132,60,0.08);
+          color: #ba843c;
+          font-weight: 600;
+          letter-spacing: 0.04em;
+          border-top: none;
+        }
+        .privacy-table tbody th {
+          color: #f5f1e8;
+          font-weight: 600;
+          white-space: nowrap;
+          width: 32%;
+        }
+        .privacy-signature {
+          margin: 36px 0 0;
           padding-top: 24px;
           border-top: 1px solid rgba(255,255,255,0.08);
+        }
+        .privacy-signature p {
+          color: rgba(245,241,232,0.5);
+          font-size: 0.85rem;
+          margin: 0;
+        }
+        .privacy-footer {
+          margin-top: 20px;
+          padding-top: 20px;
           text-align: center;
         }
         .privacy-back {
@@ -335,6 +457,14 @@ export default function PrivacidadPage() {
           }
           .privacy-title {
             font-size: 1.5rem;
+          }
+          .privacy-table th,
+          .privacy-table td {
+            padding: 10px 12px;
+          }
+          .privacy-table tbody th {
+            width: 38%;
+            white-space: normal;
           }
         }
       `}</style>

@@ -7,6 +7,8 @@ interface SessionUser {
   name: string;
   email: string;
   role: "CUSTOMER" | "HOSTES" | "ADMIN";
+  acceptedTermsAt:      string | null;
+  acceptedTermsVersion: string | null;
 }
 
 interface SessionState {
@@ -66,7 +68,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       const id   = localStorage.getItem("userId");
       const name = localStorage.getItem("userName");
       const role = localStorage.getItem("userRole") as SessionUser["role"] | null;
-      if (id && name && role) setUser({ id, name, email: "", role });
+      if (id && name && role) setUser({ id, name, email: "", role, acceptedTermsAt: null, acceptedTermsVersion: null });
     } catch {}
     // 2) Verificar con servidor (fuente de verdad)
     refresh();

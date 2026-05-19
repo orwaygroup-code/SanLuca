@@ -9,6 +9,11 @@ export const registerSchema = z.object({
   birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Formato de fecha inválido").optional(),
   password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
   confirmPassword: z.string(),
+  // Doble aceptación: Aviso de Privacidad + T&C. El checkbox vivo es uno solo
+  // — verlo desmarcado bloquea el registro con error `TERMS_REQUIRED`.
+  acceptedTerms: z.literal(true, {
+    errorMap: () => ({ message: "TERMS_REQUIRED" }),
+  }),
 }).refine((d) => d.password === d.confirmPassword, {
   message: "Las contraseñas no coinciden",
   path: ["confirmPassword"],

@@ -5,6 +5,9 @@ import { hashPassword } from "@/lib/auth";
 import { signSession, sessionCookieString, type Role } from "@/lib/session";
 import type { ApiResponse } from "@/types";
 
+/** Versión actual de los documentos legales aceptados al registrarse. */
+const TERMS_VERSION = "1.0";
+
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
@@ -13,7 +16,16 @@ export async function POST(request: NextRequest) {
         if (!validation.success) {
             const errors = validation.error.flatten().fieldErrors;
             const formErrors = validation.error.flatten().formErrors;
-            const message = [...formErrors, ...Object.values(errors).flat()].join(", ");
+            // Si el único error es `acceptedTerms`, devolvemos el código TERMS_REQUIRED
+            // para que el frontend pueda mostrar el mensaje específico del checkbox.
+            const flat = [...formErrors, ...Object.values(errors).flat()];
+            if (flat.length === 1 && flat[0] === "TERMS_REQUIRED") {
+                return NextResponse.json<ApiResponse>(
+                    { success: false, error: "TERMS_REQUIRED" },
+                    { status: 400 }
+                );
+            }
+            const message = flat.join(", ");
             return NextResponse.json<ApiResponse>(
                 { success: false, error: message },
                 { status: 400 }
@@ -39,6 +51,8 @@ export async function POST(request: NextRequest) {
                 phone,
                 birthDate: birthDate ? new Date(birthDate) : undefined,
                 passwordHash,
+                acceptedTermsAt:      new Date(),
+                acceptedTermsVersion: TERMS_VERSION,
             },
             select: { id: true, name: true, email: true, role: true },
         });

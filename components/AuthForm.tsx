@@ -61,7 +61,7 @@ export function AuthForm() {
     const [showLoginPwd,   setShowLoginPwd]   = useState(false);
     const [showRegPwd,     setShowRegPwd]     = useState(false);
     const [showRegConfirm, setShowRegConfirm] = useState(false);
-    const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
+    const [acceptedTerms, setAcceptedTerms] = useState(false);
 
     useEffect(() => {
         const t = setInterval(() => setImgIdx((i) => (i + 1) % AREA_IMAGES.length), 4000);
@@ -150,17 +150,22 @@ export function AuthForm() {
         if (!register.password) { setError("La contraseña es obligatoria."); return; }
         if (!register.confirmPassword) { setError("Confirma tu contraseña."); return; }
         if (register.password !== register.confirmPassword) { setError("Las contraseñas no coinciden."); return; }
-        if (!acceptedPrivacy) { setError("Debes aceptar el Aviso de Privacidad para registrarte."); return; }
+        if (!acceptedTerms) { setError("Debes aceptar el Aviso de Privacidad y los Términos y Condiciones para registrarte."); return; }
         setLoading(true);
         try {
             const res = await fetch("/api/auth/register", {
                 method: "POST",
                 credentials: "same-origin",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(register),
+                body: JSON.stringify({ ...register, acceptedTerms: true }),
             });
             const data = await res.json();
-            if (!data.success) throw new Error(data.error);
+            if (!data.success) {
+                if (data.error === "TERMS_REQUIRED") {
+                    throw new Error("Debes aceptar el Aviso de Privacidad y los Términos y Condiciones para registrarte.");
+                }
+                throw new Error(data.error);
+            }
             await session.refresh();
             router.push("/reservation");
         } catch (e: unknown) {
@@ -402,13 +407,17 @@ export function AuthForm() {
                         <label className="auth-privacy">
                             <input
                                 type="checkbox"
-                                checked={acceptedPrivacy}
-                                onChange={(e) => setAcceptedPrivacy(e.target.checked)}
+                                checked={acceptedTerms}
+                                onChange={(e) => setAcceptedTerms(e.target.checked)}
                             />
                             <span>
                                 He leído y acepto el{" "}
                                 <Link href="/privacidad" target="_blank" rel="noopener noreferrer">
-                                    Aviso de Privacidad
+                                    <strong>Aviso de Privacidad</strong>
+                                </Link>{" "}
+                                y los{" "}
+                                <Link href="/terminos" target="_blank" rel="noopener noreferrer">
+                                    <strong>Términos y Condiciones</strong>
                                 </Link>
                                 .
                             </span>
@@ -419,7 +428,7 @@ export function AuthForm() {
                         <button
                             className="rf-submit auth-submit-btn"
                             onClick={handleRegister}
-                            disabled={loading || !acceptedPrivacy}
+                            disabled={loading || !acceptedTerms}
                         >
                             {loading ? t.auth.loading : t.auth.register}
                         </button>
