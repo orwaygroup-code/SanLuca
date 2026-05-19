@@ -6,6 +6,7 @@
    ═══════════════════════════════════════════════════════════ */
 
 import Hero from "@/components/Hero";
+import RonqueoBanner from "@/components/RonqueoBanner";
 import Philosophy from "@/components/Philosophy";
 import ChefStory from "@/components/ChefStory";
 import Origin from "@/components/Origin";
@@ -18,6 +19,7 @@ export default function HomePage() {
     <>
       <AdminRedirect />
       <Hero />
+      <RonqueoBanner />
       <Philosophy />
       <ChefStory />
       <Origin />
