@@ -297,6 +297,7 @@ model WhatsAppConversation {
   userId    String?
   user      User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
   messages  WhatsAppMessage[]
+  tags      ConversationTag[]
   updatedAt DateTime          @updatedAt
   createdAt DateTime          @default(now())
 
@@ -320,6 +321,42 @@ model WhatsAppMessage {
 enum MessageDirection {
   INBOUND
   OUTBOUND
+}
+
+// ============================================
+// TAGS — etiquetas reusables sobre entidades.
+// Fase 1: sólo conversaciones de WhatsApp. El modelo Tag queda diseñado
+// para extender a User u otras entidades con un join paralelo sin tocar
+// esta tabla. Ver [[Conversation Tags]] del wiki.
+// ============================================
+
+model Tag {
+  id            String            @id @default(cuid())
+  name          String            @unique
+  color         String            @default("slate") // token: slate | red | amber | green | blue | violet | pink
+  description   String?
+  isActive      Boolean           @default(true)
+  conversations ConversationTag[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([isActive])
+}
+
+model ConversationTag {
+  id             String               @id @default(cuid())
+  conversationId String
+  conversation   WhatsAppConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  tagId          String
+  tag            Tag                  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  appliedAt      DateTime             @default(now())
+  // userId del admin que aplicó. Sin FK formal — sobrevive a la
+  // eliminación ARCO del admin (queda como string huérfano, bitácora).
+  appliedById    String?
+
+  @@unique([conversationId, tagId])
+  @@index([tagId])
+  @@index([conversationId])
 }
 
 // ============================================
