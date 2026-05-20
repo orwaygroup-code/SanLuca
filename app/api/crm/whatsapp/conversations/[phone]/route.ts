@@ -19,6 +19,13 @@ export async function GET(
         orderBy: { sentAt: "asc" },
         select: { id: true, direction: true, body: true, messageType: true, sentAt: true },
       },
+      // Tags activos aplicados a la conversación — sirven al
+      // ConversationTagsEditor del thread abierto.
+      tags: {
+        where:   { tag: { isActive: true } },
+        include: { tag: true },
+        orderBy: { tag: { name: "asc" } },
+      },
     },
   });
 
@@ -26,5 +33,13 @@ export async function GET(
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
-  return NextResponse.json({ conversation });
+  // Planchamos `tags` para que el cliente reciba `Tag[]` directo en vez
+  // del envoltorio ConversationTag — más cómodo para TagPill.
+  const { tags, ...rest } = conversation;
+  return NextResponse.json({
+    conversation: {
+      ...rest,
+      tags: tags.map((t) => t.tag),
+    },
+  });
 }
