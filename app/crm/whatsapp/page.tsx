@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useRef } from "react";
 import { CrmPageHead } from "@/components/crm/CrmPageHead";
+import { TagPill } from "@/components/crm/TagPill";
+import { ConversationTagsEditor, type EditorTag } from "@/components/crm/ConversationTagsEditor";
 
 interface Message {
   id: string;
@@ -18,6 +20,7 @@ interface ConvSummary {
   userName: string | null;
   lastMessage: { body: string; direction: "INBOUND" | "OUTBOUND"; sentAt: string } | null;
   messageCount: number;
+  tags: EditorTag[];
   updatedAt: string;
 }
 
@@ -41,7 +44,7 @@ export default function WhatsappPage() {
   const [convs, setConvs]       = useState<ConvSummary[]>([]);
   const [loading, setLoading]   = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
-  const [thread, setThread]     = useState<{ conv: ConvSummary; messages: Message[] } | null>(null);
+  const [thread, setThread]     = useState<{ conv: ConvSummary; messages: Message[]; tags: EditorTag[] } | null>(null);
   const [threadLoad, setTL]     = useState(false);
   const [search, setSearch]     = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -76,7 +79,11 @@ export default function WhatsappPage() {
         .then((d) => {
           if (!alive || !d.conversation) return;
           const c = convs.find((x) => x.phone === selected);
-          setThread({ conv: c!, messages: d.conversation.messages });
+          setThread({
+            conv:     c!,
+            messages: d.conversation.messages,
+            tags:     d.conversation.tags ?? [],
+          });
         })
         .catch(() => {})
         .finally(() => {
@@ -148,6 +155,18 @@ export default function WhatsappPage() {
                         c.lastMessage.body.slice(0, 55) + (c.lastMessage.body.length > 55 ? "…" : "")
                       : "Sin mensajes"}
                   </div>
+                  {c.tags && c.tags.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
+                      {c.tags.slice(0, 3).map((t) => (
+                        <TagPill key={t.id} tag={t} size="xs" />
+                      ))}
+                      {c.tags.length > 3 && (
+                        <span style={{ fontSize: "0.66rem", color: "rgba(245,241,232,0.45)", alignSelf: "center" }}>
+                          +{c.tags.length - 3}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </button>
             ))
@@ -186,6 +205,18 @@ export default function WhatsappPage() {
                   </div>
                 </div>
               </div>
+
+              <ConversationTagsEditor
+                phone={thread.conv.phone}
+                initialTags={thread.tags}
+                onChange={(newTags) => {
+                  setThread((t) => (t ? { ...t, tags: newTags } : t));
+                  // Propaga al row de la lista para que se vea el cambio sin esperar al polling.
+                  setConvs((cs) =>
+                    cs.map((c) => (c.phone === thread.conv.phone ? { ...c, tags: newTags } : c)),
+                  );
+                }}
+              />
 
               <div style={messagesArea}>
                 {thread.messages.map((m, i) => {
