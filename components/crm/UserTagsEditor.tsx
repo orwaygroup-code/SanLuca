@@ -6,65 +6,57 @@ import { TagPicker } from "./TagPicker";
 import type { TagColor } from "@/lib/tagColors";
 
 /**
- * Editor de tags de una conversación. Va en el panel del thread abierto.
+ * Editor de tags de un usuario (UserTag). Paralelo al de conversaciones.
  *
- * Hidrata `initialTags` (vienen del response `/api/crm/whatsapp/conversations/[phone]`)
- * y vuelve a hacer fetch propio después de cualquier mutación para tener
- * el estado canónico (no asume optimismo agresivo).
+ * Estos son los tags del PERFIL del cliente — VIP, Inactivo, Cumpleañero,
+ * Grupo grande para los AUTO_RULE, y cualquier tag MANUAL que el admin
+ * aplique. Ver wiki [[Auto-tagging]] §UI.
  */
-export interface EditorTag {
+export interface UserEditorTag {
   id:     string;
   name:   string;
   color:  string;
   source?: "MANUAL" | "AUTO_RULE" | "AUTO_LLM";
 }
 
-export function ConversationTagsEditor({
-  phone,
+export function UserTagsEditor({
+  userId,
   initialTags,
   onChange,
+  compact = false,
 }: {
-  phone:       string;
-  initialTags: EditorTag[];
-  /** Llamado con el nuevo conjunto después de cada mutación exitosa. */
-  onChange?:   (tags: EditorTag[]) => void;
+  userId:      string;
+  initialTags: UserEditorTag[];
+  onChange?:   (tags: UserEditorTag[]) => void;
+  /** Si true, no muestra el botón "+ Tag" (read-only inline). */
+  compact?:    boolean;
 }) {
-  const [tags, setTags]         = useState<EditorTag[]>(initialTags);
-  const [showPicker, setShow]   = useState(false);
-  const [err, setErr]           = useState<string | null>(null);
+  const [tags, setTags]       = useState<UserEditorTag[]>(initialTags);
+  const [showPicker, setShow] = useState(false);
+  const [err, setErr]         = useState<string | null>(null);
 
-  // Si el padre re-renderiza con otros initialTags (ej. cambio de conversación),
-  // adoptamos esos como nuevo baseline.
-  useEffect(() => {
-    setTags(initialTags);
-  }, [initialTags]);
+  useEffect(() => { setTags(initialTags); }, [initialTags]);
 
   const refresh = useCallback(async () => {
-    const r = await fetch(
-      `/api/crm/whatsapp/conversations/${encodeURIComponent(phone)}/tags`,
-      { credentials: "same-origin" },
-    );
+    const r = await fetch(`/api/crm/users/${userId}/tags`, { credentials: "same-origin" });
     const d = await r.json();
     if (d?.success && Array.isArray(d.data?.tags)) {
       setTags(d.data.tags);
       onChange?.(d.data.tags);
     }
-  }, [phone, onChange]);
+  }, [userId, onChange]);
 
   async function apply(body: { tagId?: string; name?: string; color?: TagColor }) {
-    const r = await fetch(
-      `/api/crm/whatsapp/conversations/${encodeURIComponent(phone)}/tags`,
-      {
-        method: "POST",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      },
-    );
+    const r = await fetch(`/api/crm/users/${userId}/tags`, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
     const d = await r.json();
     if (!r.ok || !d.success) {
       const msg = d.error === "tag_already_applied"
-        ? "Ese tag ya está aplicado."
+        ? "Ese tag ya está aplicado a este usuario."
         : d.error === "tag_not_found_or_inactive"
         ? "El tag ya no está disponible."
         : d.error ?? "Error al aplicar tag";
@@ -76,7 +68,7 @@ export function ConversationTagsEditor({
   async function removeTag(tagId: string) {
     setErr(null);
     const r = await fetch(
-      `/api/crm/whatsapp/conversations/${encodeURIComponent(phone)}/tags/${tagId}`,
+      `/api/crm/users/${userId}/tags/${tagId}`,
       { method: "DELETE", credentials: "same-origin" },
     );
     const d = await r.json();
@@ -87,19 +79,11 @@ export function ConversationTagsEditor({
     await refresh();
   }
 
-  /**
-   * Toggle del source:
-   *   AUTO_RULE/AUTO_LLM → MANUAL  (Fijar: protege del cron)
-   *   MANUAL → AUTO_LLM            (Desfijar: el LLM puede volver a moverlo)
-   * Para tags MANUAL que vinieron de una regla, el botón los pasa a AUTO_LLM
-   * por simplicidad — el próximo cron de reglas lo aplicará de nuevo si la
-   * regla matchea, dejándolo en AUTO_RULE.
-   */
-  async function toggleLock(tag: EditorTag) {
-    const next = tag.source === "MANUAL" ? "AUTO_LLM" : "MANUAL";
+  async function toggleLock(tag: UserEditorTag) {
+    const next = tag.source === "MANUAL" ? "AUTO_RULE" : "MANUAL";
     setErr(null);
     const r = await fetch(
-      `/api/crm/whatsapp/conversations/${encodeURIComponent(phone)}/tags/${tag.id}`,
+      `/api/crm/users/${userId}/tags/${tag.id}`,
       {
         method: "PATCH",
         credentials: "same-origin",
@@ -115,11 +99,22 @@ export function ConversationTagsEditor({
     await refresh();
   }
 
+  // En modo compacto solo pintamos las pills (sin botón +Tag ni ×).
+  if (compact) {
+    return (
+      <div style={{ display: "inline-flex", gap: 4, flexWrap: "wrap" }}>
+        {tags.map((t) => (
+          <TagPill key={t.id} tag={t} size="xs" />
+        ))}
+      </div>
+    );
+  }
+
   return (
-    <div style={{ padding: "10px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "#1f2b29" }}>
+    <div style={{ padding: "10px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "#1a2624" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", position: "relative" }}>
         <span style={{ fontSize: "0.7rem", color: "rgba(245,241,232,0.5)", textTransform: "uppercase", letterSpacing: "0.08em", marginRight: 4 }}>
-          Tags
+          Cliente
         </span>
 
         {tags.map((t) => (

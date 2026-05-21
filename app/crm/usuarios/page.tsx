@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useState } from "react";
 import { CrmPageHead } from "@/components/crm/CrmPageHead";
+import { UserTagsEditor, type UserEditorTag } from "@/components/crm/UserTagsEditor";
 
 interface UserRow {
   id: string;
@@ -180,6 +181,17 @@ function UserDetail({ d }: { d: Detail }) {
   const [filter,        setFilter]        = useState<"todas" | "activas" | "completadas" | "canceladas">("todas");
   const [reservasOpen,  setReservasOpen]  = useState(false);
 
+  // UserTag del cliente — lazy fetch al renderizar el detalle.
+  const [userTags, setUserTags] = useState<UserEditorTag[]>([]);
+  useEffect(() => {
+    let alive = true;
+    fetch(`/api/crm/users/${d.user.id}/tags`, { credentials: "same-origin" })
+      .then((r) => r.json())
+      .then((u) => { if (alive && u?.success) setUserTags(u.data?.tags ?? []); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [d.user.id]);
+
   const filtered = d.reservations.filter((r) => {
     if (filter === "todas")       return true;
     if (filter === "activas")     return ["PENDING", "PENDING_PAYMENT", "CONFIRMED", "IN_PROGRESS", "DELAYED"].includes(r.status);
@@ -207,6 +219,9 @@ function UserDetail({ d }: { d: Detail }) {
           <span style={{ ...badgePill, color: "rgba(245,241,232,0.6)", borderColor: "rgba(245,241,232,0.25)", textTransform: "uppercase", fontSize: "0.6rem" }}>{d.user.login}</span>
         </div>
       </div>
+
+      {/* Tags del cliente — UserTag */}
+      <UserTagsEditor userId={d.user.id} initialTags={userTags} onChange={setUserTags} />
 
       {/* Stat cards */}
       <div className="crm-stat-grid">

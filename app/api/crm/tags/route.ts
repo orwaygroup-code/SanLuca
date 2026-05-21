@@ -37,11 +37,25 @@ export async function GET(req: NextRequest) {
   // Fix rápido si pasa: usar `prisma` admin client en lugar de `withApp()`,
   // o añadir policies para los modelos nuevos.
   const includeInactive = req.nextUrl.searchParams.get("includeInactive") === "1";
+  // Filtro por source: devuelve solo tags que tienen al menos una asignación
+  // (en UserTag o ConversationTag) con ese source. Útil para auditar de dónde
+  // vienen los tags. Ver [[Auto-tagging]] §UI §Filtro por source.
+  const sourceParam = req.nextUrl.searchParams.get("source")?.toUpperCase();
+  const sourceFilter = ["MANUAL", "AUTO_RULE", "AUTO_LLM"].includes(sourceParam ?? "")
+    ? (sourceParam as "MANUAL" | "AUTO_RULE" | "AUTO_LLM")
+    : null;
 
   return runWithSession(s, () =>
     withApp(async (db) => {
+      const where: import("@prisma/client").Prisma.TagWhereInput = includeInactive ? {} : { isActive: true };
+      if (sourceFilter) {
+        where.OR = [
+          { conversations: { some: { source: sourceFilter } } },
+          { users:         { some: { source: sourceFilter } } },
+        ];
+      }
       const tags = await db.tag.findMany({
-        where:   includeInactive ? {} : { isActive: true },
+        where,
         orderBy: { name: "asc" },
       });
       return NextResponse.json<ApiResponse>({ success: true, data: { tags } });

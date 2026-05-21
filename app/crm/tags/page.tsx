@@ -20,6 +20,8 @@ export default function TagsAdminPage() {
   const [loading, setLoad]  = useState(true);
   const [error, setError]   = useState<string | null>(null);
   const [includeInactive, setII] = useState(false);
+  type SourceFilter = "ALL" | "MANUAL" | "AUTO_RULE" | "AUTO_LLM";
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("ALL");
 
   // Crear
   const [newName, setNewName]   = useState("");
@@ -37,8 +39,11 @@ export default function TagsAdminPage() {
     setLoad(true);
     setError(null);
     try {
-      const params = includeInactive ? "?includeInactive=1" : "";
-      const r = await fetch(`/api/crm/tags${params}`, { credentials: "same-origin" });
+      const qs = new URLSearchParams();
+      if (includeInactive)        qs.set("includeInactive", "1");
+      if (sourceFilter !== "ALL") qs.set("source", sourceFilter);
+      const q = qs.toString();
+      const r = await fetch(`/api/crm/tags${q ? `?${q}` : ""}`, { credentials: "same-origin" });
       const d = await r.json();
       if (!r.ok || !d.success) throw new Error(d.error ?? "load_failed");
       setTags(d.data.tags);
@@ -47,7 +52,7 @@ export default function TagsAdminPage() {
     } finally {
       setLoad(false);
     }
-  }, [includeInactive]);
+  }, [includeInactive, sourceFilter]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -177,11 +182,40 @@ export default function TagsAdminPage() {
         </div>
       )}
 
-      {/* Toggle inactive */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <span style={{ fontSize: "0.78rem", color: "rgba(245,241,232,0.5)" }}>
-          {tags.length} tag{tags.length !== 1 ? "s" : ""}
-        </span>
+      {/* Filtros */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <span style={{ fontSize: "0.78rem", color: "rgba(245,241,232,0.5)" }}>
+            {tags.length} tag{tags.length !== 1 ? "s" : ""}
+          </span>
+          {/* Filtro por source — tags con al menos 1 asignación con ese source */}
+          <div style={{ display: "flex", background: "#22302e", borderRadius: 999, padding: 3 }}>
+            {(["ALL", "MANUAL", "AUTO_RULE", "AUTO_LLM"] as const).map((k) => {
+              const label = k === "ALL" ? "Todos" : k === "MANUAL" ? "👤 Manual" : k === "AUTO_RULE" ? "⚙️ Reglas" : "🤖 LLM";
+              const active = sourceFilter === k;
+              return (
+                <button
+                  key={k}
+                  onClick={() => setSourceFilter(k)}
+                  style={{
+                    padding: "5px 12px",
+                    border: "none",
+                    borderRadius: 999,
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    fontSize: "0.7rem",
+                    fontWeight: active ? 700 : 500,
+                    letterSpacing: "0.04em",
+                    background: active ? "#ba843c" : "transparent",
+                    color: active ? "#1c2628" : "rgba(245,241,232,0.6)",
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
         <label style={{ fontSize: "0.82rem", color: "rgba(245,241,232,0.7)", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
           <input type="checkbox" checked={includeInactive} onChange={(e) => setII(e.target.checked)} />
           Mostrar inactivos

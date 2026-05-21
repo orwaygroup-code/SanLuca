@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { CrmPageHead } from "@/components/crm/CrmPageHead";
 import { TagPill } from "@/components/crm/TagPill";
 import { ConversationTagsEditor, type EditorTag } from "@/components/crm/ConversationTagsEditor";
+import { UserTagsEditor, type UserEditorTag } from "@/components/crm/UserTagsEditor";
 
 interface Message {
   id: string;
@@ -44,7 +45,7 @@ export default function WhatsappPage() {
   const [convs, setConvs]       = useState<ConvSummary[]>([]);
   const [loading, setLoading]   = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
-  const [thread, setThread]     = useState<{ conv: ConvSummary; messages: Message[]; tags: EditorTag[] } | null>(null);
+  const [thread, setThread]     = useState<{ conv: ConvSummary; messages: Message[]; tags: EditorTag[]; userTags: UserEditorTag[] } | null>(null);
   const [threadLoad, setTL]     = useState(false);
   const [search, setSearch]     = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -73,22 +74,36 @@ export default function WhatsappPage() {
     setTL(true);
     setThread(null);
 
-    const fetchThread = () =>
-      fetch(`/api/crm/whatsapp/conversations/${encodeURIComponent(selected)}`, { credentials: "same-origin" })
-        .then((r) => r.json())
-        .then((d) => {
-          if (!alive || !d.conversation) return;
-          const c = convs.find((x) => x.phone === selected);
-          setThread({
-            conv:     c!,
-            messages: d.conversation.messages,
-            tags:     d.conversation.tags ?? [],
-          });
-        })
-        .catch(() => {})
-        .finally(() => {
-          if (alive && firstLoad) { setTL(false); firstLoad = false; }
+    const fetchThread = async () => {
+      try {
+        const r  = await fetch(`/api/crm/whatsapp/conversations/${encodeURIComponent(selected)}`, { credentials: "same-origin" });
+        const d  = await r.json();
+        if (!alive || !d.conversation) return;
+        const c  = convs.find((x) => x.phone === selected);
+
+        // Si la conversación tiene userId, cargar UserTag en paralelo.
+        // Si no (conversación sin user asociado), userTags queda en [].
+        let userTags: UserEditorTag[] = [];
+        const userId = d.conversation.user?.id ?? d.conversation.userId ?? null;
+        if (userId) {
+          const ru = await fetch(`/api/crm/users/${userId}/tags`, { credentials: "same-origin" });
+          const du = await ru.json();
+          if (du?.success && Array.isArray(du.data?.tags)) userTags = du.data.tags;
+        }
+
+        if (!alive) return;
+        setThread({
+          conv:     c!,
+          messages: d.conversation.messages,
+          tags:     d.conversation.tags ?? [],
+          userTags,
         });
+      } catch {
+        // silencioso — polling reintenta
+      } finally {
+        if (alive && firstLoad) { setTL(false); firstLoad = false; }
+      }
+    };
 
     fetchThread();
     const id = setInterval(fetchThread, 5000);
@@ -206,6 +221,18 @@ export default function WhatsappPage() {
                 </div>
               </div>
 
+              {/* Bloque CLIENTE — UserTag (solo si la conversación tiene userId) */}
+              {thread.conv.userId && (
+                <UserTagsEditor
+                  userId={thread.conv.userId}
+                  initialTags={thread.userTags}
+                  onChange={(newTags) => {
+                    setThread((t) => (t ? { ...t, userTags: newTags } : t));
+                  }}
+                />
+              )}
+
+              {/* Bloque CONVERSACIÓN — ConversationTag */}
               <ConversationTagsEditor
                 phone={thread.conv.phone}
                 initialTags={thread.tags}
