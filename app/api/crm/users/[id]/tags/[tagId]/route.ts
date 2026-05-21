@@ -6,48 +6,45 @@ import { runWithSession } from "@/lib/session-context";
 import { requireAdmin } from "@/lib/auth-server";
 import type { ApiResponse } from "@/types";
 
+/**
+ * DELETE: quita la asignación userTag. Idempotente (P2025 → success).
+ *
+ * PATCH:  cambia el `source` (MANUAL ↔ AUTO_RULE ↔ AUTO_LLM). Sirve para
+ * el botón "🔒 Fijar" — promoción de AUTO_* a MANUAL para que el cron no
+ * lo limpie. También permite "🔓 Desfijar" volviendo a AUTO_RULE/AUTO_LLM
+ * según corresponda.
+ */
+
 const patchSchema = z.object({
   source: z.enum(["MANUAL", "AUTO_RULE", "AUTO_LLM"]),
 });
 
-/**
- * DELETE /api/crm/whatsapp/conversations/[phone]/tags/[tagId]
- *
- * Quita la asignación. Borra el row `ConversationTag` (hard delete del join,
- * NO del tag — el tag sigue existiendo para otras conversaciones).
- *
- * Idempotente: si la asignación no existía, devuelve 200 igualmente para
- * que el UI no tenga que distinguir "no estaba" vs "se quitó".
- */
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { phone: string; tagId: string } },
+  { params }: { params: { id: string; tagId: string } },
 ) {
   const s = await requireAdmin(req);
   if (!s) return NextResponse.json<ApiResponse>(
     { success: false, error: "forbidden" }, { status: 403 },
   );
 
-  const phone = decodeURIComponent(params.phone);
-
   return runWithSession(s, () =>
     withApp(async (db) => {
-      const conv = await db.whatsAppConversation.findUnique({
-        where:  { phone },
+      const user = await db.user.findUnique({
+        where:  { id: params.id },
         select: { id: true },
       });
-      if (!conv) return NextResponse.json<ApiResponse>(
-        { success: false, error: "conversation_not_found" }, { status: 404 },
+      if (!user) return NextResponse.json<ApiResponse>(
+        { success: false, error: "user_not_found" }, { status: 404 },
       );
 
       try {
-        await db.conversationTag.delete({
-          where: { conversationId_tagId: { conversationId: conv.id, tagId: params.tagId } },
+        await db.userTag.delete({
+          where: { userId_tagId: { userId: user.id, tagId: params.tagId } },
         });
       } catch (e) {
-        // P2025 = row no encontrado. Idempotente — tratamos como éxito.
         if (!(e instanceof Prisma.PrismaClientKnownRequestError) || e.code !== "P2025") {
-          console.error("[CRM conv tags DELETE]", e);
+          console.error("[CRM user tags DELETE]", e);
           return NextResponse.json<ApiResponse>(
             { success: false, error: "delete_failed" }, { status: 500 },
           );
@@ -58,15 +55,9 @@ export async function DELETE(
   );
 }
 
-/**
- * PATCH /api/crm/whatsapp/conversations/[phone]/tags/[tagId]
- *
- * Cambia el `source` (botón 🔒 Fijar y 🔓 Desfijar). Promueve AUTO_RULE/
- * AUTO_LLM → MANUAL para que el cron deje de tocarlo, o demueve a AUTO_*.
- */
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { phone: string; tagId: string } },
+  { params }: { params: { id: string; tagId: string } },
 ) {
   const s = await requireAdmin(req);
   if (!s) return NextResponse.json<ApiResponse>(
@@ -87,34 +78,25 @@ export async function PATCH(
     );
   }
 
-  const phone = decodeURIComponent(params.phone);
-
   return runWithSession(s, () =>
     withApp(async (db) => {
-      const conv = await db.whatsAppConversation.findUnique({
-        where:  { phone },
-        select: { id: true },
-      });
-      if (!conv) return NextResponse.json<ApiResponse>(
-        { success: false, error: "conversation_not_found" }, { status: 404 },
-      );
-
       try {
-        const conversationTag = await db.conversationTag.update({
-          where: { conversationId_tagId: { conversationId: conv.id, tagId: params.tagId } },
+        const userTag = await db.userTag.update({
+          where: { userId_tagId: { userId: params.id, tagId: params.tagId } },
           data:  {
             source:      parsed.data.source,
+            // Si promueve a MANUAL, registrar quién lo hizo (auditoría).
             appliedById: parsed.data.source === "MANUAL" ? s.userId : undefined,
           },
         });
-        return NextResponse.json<ApiResponse>({ success: true, data: { conversationTag } });
+        return NextResponse.json<ApiResponse>({ success: true, data: { userTag } });
       } catch (e) {
         if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025") {
           return NextResponse.json<ApiResponse>(
             { success: false, error: "not_found" }, { status: 404 },
           );
         }
-        console.error("[CRM conv tags PATCH]", e);
+        console.error("[CRM user tags PATCH]", e);
         return NextResponse.json<ApiResponse>(
           { success: false, error: "update_failed" }, { status: 500 },
         );

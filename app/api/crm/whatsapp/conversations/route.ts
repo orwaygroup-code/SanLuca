@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
     orderBy: { updatedAt: "desc" },
     take: 100,
     include: {
-      user: { select: { name: true } },
+      user: { select: { id: true, name: true } },
       messages: {
         orderBy: { sentAt: "desc" },
         take: 1,
@@ -60,7 +60,9 @@ export async function GET(req: NextRequest) {
     userName:     c.user?.name ?? null,
     lastMessage:  c.messages[0] ?? null,
     messageCount: c._count.messages,
-    tags:         c.tags.map((t) => t.tag),
+    // Cada tag incluye su `source` para que el inbox pinte el badge
+    // (👤 MANUAL · ⚙️ AUTO_RULE · 🤖 AUTO_LLM).
+    tags:         c.tags.map((t) => ({ ...t.tag, source: t.source })),
     updatedAt:    c.updatedAt,
   }));
 

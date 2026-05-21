@@ -9,12 +9,15 @@ import { normalizeTagName } from "@/lib/tags";
 import type { ApiResponse } from "@/types";
 
 /**
- * Tags aplicados a una conversación específica. ADMIN-only.
- * Ver [[Conversation Tags]] §Tags por conversación.
+ * Tags aplicados a un usuario específico. ADMIN-only.
+ * Ver wiki [[Auto-tagging]] §API nueva.
+ *
+ * Análogo al CRUD por conversación pero contra `User`. Source default
+ * MANUAL para todo lo aplicado por humanos desde la UI; AUTO_RULE lo
+ * pone el cron y AUTO_LLM lo pone el LLM (este endpoint no expone esos
+ * sources, los marca como MANUAL al venir del admin).
  */
 
-// Discriminated union: el body puede traer `tagId` (asignar existente) o
-// `name` (upsert por nombre + asignar). Mutuamente excluyentes.
 const applyByIdSchema = z.object({
   tagId: z.string().min(1),
 });
@@ -23,25 +26,20 @@ const applyByNameSchema = z.object({
   color: z.enum(TAG_COLORS).optional(),
 });
 
-/** Resuelve la conversación por phone. 404 si no existe. */
-async function findConversation(
+async function findUser(
   db: Prisma.TransactionClient,
-  phoneRaw: string,
+  userId: string,
 ): Promise<{ id: string } | null> {
-  const phone = decodeURIComponent(phoneRaw);
-  return db.whatsAppConversation.findUnique({
-    where:  { phone },
-    select: { id: true },
-  });
+  return db.user.findUnique({ where: { id: userId }, select: { id: true } });
 }
 
 /**
- * GET /api/crm/whatsapp/conversations/[phone]/tags
- * Devuelve los tags activos aplicados a esa conversación.
+ * GET /api/crm/users/[id]/tags
+ * Devuelve los tags activos del usuario (incluye source para badges UI).
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { phone: string } },
+  { params }: { params: { id: string } },
 ) {
   const s = await requireAdmin(req);
   if (!s) return NextResponse.json<ApiResponse>(
@@ -50,24 +48,24 @@ export async function GET(
 
   return runWithSession(s, () =>
     withApp(async (db) => {
-      const conv = await findConversation(db, params.phone);
-      if (!conv) return NextResponse.json<ApiResponse>(
-        { success: false, error: "conversation_not_found" }, { status: 404 },
+      const user = await findUser(db, params.id);
+      if (!user) return NextResponse.json<ApiResponse>(
+        { success: false, error: "user_not_found" }, { status: 404 },
       );
 
-      // LEFT JOIN implícito + filter por tag.isActive.
-      const rows = await db.conversationTag.findMany({
-        where:   { conversationId: conv.id, tag: { isActive: true } },
+      const rows = await db.userTag.findMany({
+        where:   { userId: user.id, tag: { isActive: true } },
         include: { tag: true },
         orderBy: { tag: { name: "asc" } },
       });
-      // Devolver tag enriquecido con source/appliedAt para el badge de la UI.
+      // Devolver el tag enriquecido con source/appliedAt/appliedById para
+      // que la UI pueda renderizar el badge y el botón "Fijar".
       const tags = rows.map((r) => ({
         ...r.tag,
         source:      r.source,
         appliedAt:   r.appliedAt,
         appliedById: r.appliedById,
-        conversationTagId: r.id,
+        userTagId:   r.id,
       }));
       return NextResponse.json<ApiResponse>({ success: true, data: { tags } });
     }),
@@ -75,16 +73,15 @@ export async function GET(
 }
 
 /**
- * POST /api/crm/whatsapp/conversations/[phone]/tags
+ * POST /api/crm/users/[id]/tags
  *   body: { tagId } | { name, color? }
  *
- * Si llega tagId → 404 si no existe o isActive=false.
- * Si llega name → upsert por nombre normalizado, luego aplica.
- * 409 si ya estaba aplicado a esa conversación.
+ * Aplica con source=MANUAL y appliedById=session.userId.
+ * 409 si ya está aplicado.
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { phone: string } },
+  { params }: { params: { id: string } },
 ) {
   const s = await requireAdmin(req);
   if (!s) return NextResponse.json<ApiResponse>(
@@ -98,8 +95,6 @@ export async function POST(
     );
   }
 
-  // Body discriminado: { tagId } | { name, color? }. Probamos id primero;
-  // si falla, intentamos name. Si ambos fallan, 400.
   type Payload =
     | { kind: "id";   tagId: string }
     | { kind: "name"; name:  string; color?: typeof TAG_COLORS[number] };
@@ -123,12 +118,11 @@ export async function POST(
 
   return runWithSession(s, () =>
     withApp(async (db) => {
-      const conv = await findConversation(db, params.phone);
-      if (!conv) return NextResponse.json<ApiResponse>(
-        { success: false, error: "conversation_not_found" }, { status: 404 },
+      const user = await findUser(db, params.id);
+      if (!user) return NextResponse.json<ApiResponse>(
+        { success: false, error: "user_not_found" }, { status: 404 },
       );
 
-      // Resolver tag: by id (debe existir y estar activo) o por name (upsert).
       let tag: { id: string; name: string; color: string; description: string | null; isActive: boolean; createdAt: Date; updatedAt: Date };
       if (payload.kind === "id") {
         const existing = await db.tag.findUnique({ where: { id: payload.tagId } });
@@ -143,32 +137,24 @@ export async function POST(
         if (!name) return NextResponse.json<ApiResponse>(
           { success: false, error: "empty_name" }, { status: 400 },
         );
-        // upsert por name (unique). Si existe pero isActive=false, lo reactiva
-        // implícitamente al usarlo — decisión deliberada: el admin "creando"
-        // un tag que ya fue desactivado debería resucitarlo.
-        // VERIFY ON DEPLOY: confirmar UX en /crm/tags — un admin podría
-        // sorprenderse de que un tag "borrado" reaparezca al ser usado.
         tag = await db.tag.upsert({
           where:  { name },
           update: { isActive: true },
-          create: {
-            name,
-            color: payload.color ?? "slate",
-          },
+          create: { name, color: payload.color ?? "slate" },
         });
       }
 
-      // Aplicar el join. P2002 si ya estaba aplicado.
       try {
-        const conversationTag = await db.conversationTag.create({
+        const userTag = await db.userTag.create({
           data: {
-            conversationId: conv.id,
-            tagId:          tag.id,
-            appliedById:    s.userId,
+            userId:      user.id,
+            tagId:       tag.id,
+            source:      "MANUAL",
+            appliedById: s.userId,
           },
         });
         return NextResponse.json<ApiResponse>(
-          { success: true, data: { tag, conversationTag } }, { status: 201 },
+          { success: true, data: { tag, userTag } }, { status: 201 },
         );
       } catch (e) {
         if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
@@ -176,7 +162,7 @@ export async function POST(
             { success: false, error: "tag_already_applied" }, { status: 409 },
           );
         }
-        console.error("[CRM conv tags POST]", e);
+        console.error("[CRM user tags POST]", e);
         return NextResponse.json<ApiResponse>(
           { success: false, error: "apply_failed" }, { status: 500 },
         );

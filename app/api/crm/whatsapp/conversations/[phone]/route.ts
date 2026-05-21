@@ -33,13 +33,19 @@ export async function GET(
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
-  // Planchamos `tags` para que el cliente reciba `Tag[]` directo en vez
-  // del envoltorio ConversationTag — más cómodo para TagPill.
+  // Planchamos `tags` para que el cliente reciba el Tag enriquecido con
+  // source/appliedAt — el TagPill necesita `source` para el badge UI.
   const { tags, ...rest } = conversation;
   return NextResponse.json({
     conversation: {
       ...rest,
-      tags: tags.map((t) => t.tag),
+      tags: tags.map((t) => ({
+        ...t.tag,
+        source:            t.source,
+        appliedAt:         t.appliedAt,
+        appliedById:       t.appliedById,
+        conversationTagId: t.id,
+      })),
     },
   });
 }
