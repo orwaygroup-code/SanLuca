@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { registerSchema } from "@/lib/validations";
 import { hashPassword } from "@/lib/auth";
 import { signSession, sessionCookieString, type Role } from "@/lib/session";
+import { reEvalUserRule } from "@/lib/tagRules";
 import type { ApiResponse } from "@/types";
 
 /** Versión actual de los documentos legales aceptados al registrarse. */
@@ -54,8 +55,21 @@ export async function POST(request: NextRequest) {
                 acceptedTermsAt:      new Date(),
                 acceptedTermsVersion: TERMS_VERSION,
             },
-            select: { id: true, name: true, email: true, role: true },
+            select: { id: true, name: true, email: true, role: true, birthDate: true },
         });
+
+        // Fire-and-forget: si el birthDate cae en el mes actual MX (UTC-6),
+        // disparar la regla Cumpleañero inmediatamente — no esperar al cron.
+        // El tag cubre el MES completo (no día).
+        if (user.birthDate) {
+            const mxOffsetMs = 6 * 3600 * 1000;
+            const currentMonthMX = new Date(Date.now() - mxOffsetMs).getUTCMonth();
+            if (user.birthDate.getUTCMonth() === currentMonthMX) {
+                reEvalUserRule(user.id, "Cumpleañero").catch((e) =>
+                    console.error("[AUTO_TAG] reEval Cumpleañero failed (register):", e),
+                );
+            }
+        }
 
         const token = signSession({ sub: user.id, role: user.role as Role });
         const res = NextResponse.json<ApiResponse>(

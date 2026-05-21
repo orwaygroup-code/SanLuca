@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { autoAssignTable } from "@/lib/autoAssignTable";
+import { reEvalUserRule } from "@/lib/tagRules";
 
 // ── Normaliza teléfono a 10 dígitos ───────────────────────────────────
 function normalizePhone(raw: string): string {
@@ -116,6 +117,11 @@ export async function POST(request: NextRequest) {
             table: { select: { number: true, section: { select: { name: true } } } },
         },
     });
+
+    // Fire-and-forget: re-evaluar Inactivo (cliente WA volvió a reservar).
+    reEvalUserRule(user.id, "Inactivo").catch((e) =>
+        console.error("[AUTO_TAG] reEval Inactivo failed (bot reservation):", e),
+    );
 
     return NextResponse.json({
         success: true,

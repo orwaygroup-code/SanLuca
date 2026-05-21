@@ -4,6 +4,7 @@ import { runWithSession } from "@/lib/session-context";
 import { sendReservationQR } from "@/lib/whatsapp";
 import { autoAssignTable } from "@/lib/autoAssignTable";
 import { requireStaff } from "@/lib/auth-server";
+import { reEvalUserRule } from "@/lib/tagRules";
 import type { ApiResponse } from "@/types";
 
 // PATCH /api/admin/reservations/[id]
@@ -219,10 +220,17 @@ export async function PATCH(
             where: { id: params.id },
             data:  { status, ...extra },
             select: {
-                id: true, status: true, guestName: true, date: true,
+                id: true, status: true, userId: true, guestName: true, date: true,
                 guestPhone: true, guests: true, sectionPreference: true, qrToken: true,
             },
         });
+
+        // Trigger fire-and-forget: re-evaluar VIP cuando el admin marca COMPLETED.
+        if (status === "COMPLETED" && reservation.userId) {
+            reEvalUserRule(reservation.userId, "VIP").catch((e) =>
+                console.error("[AUTO_TAG] reEval VIP failed (admin status):", e),
+            );
+        }
 
         // Si se cancela una reserva pagada, generar crédito a favor del cliente
         if (status === "CANCELLED") {

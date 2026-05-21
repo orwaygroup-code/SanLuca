@@ -11,6 +11,7 @@ import { getSpecialDateForDateStr } from "@/lib/specialDates";
 import { getAvailableCredit, applyCreditsToReservation } from "@/lib/credits";
 import { createReservationPreference } from "@/lib/mercadopago";
 import { getSession } from "@/lib/auth-server";
+import { reEvalUserRule } from "@/lib/tagRules";
 import type { ApiResponse } from "@/types";
 
 const MAX_ACTIVE_RESERVATIONS = 2;
@@ -169,6 +170,11 @@ export async function POST(request: NextRequest) {
                 },
             });
 
+            // Fire-and-forget: re-evaluar Inactivo (cliente volvió a reservar).
+            reEvalUserRule(userId, "Inactivo").catch((e) =>
+                console.error("[AUTO_TAG] reEval Inactivo failed (public large group):", e),
+            );
+
             return NextResponse.json<ApiResponse>({ success: true, data: reservation }, { status: 201 });
         }
 
@@ -289,6 +295,11 @@ export async function POST(request: NextRequest) {
                 createdAt: true,
             },
         });
+
+        // Fire-and-forget: re-evaluar Inactivo (cliente volvió a reservar).
+        reEvalUserRule(userId, "Inactivo").catch((e) =>
+            console.error("[AUTO_TAG] reEval Inactivo failed (public reservation):", e),
+        );
 
         // Aplicar crédito (parcial o total) — después de tener el id
         if (creditUsed > 0) {

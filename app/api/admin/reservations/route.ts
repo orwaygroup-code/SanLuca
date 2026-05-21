@@ -3,6 +3,7 @@ import { withApp } from "@/lib/prismaApp";
 import { runWithSession } from "@/lib/session-context";
 import { autoAssignTable } from "@/lib/autoAssignTable";
 import { requireStaff } from "@/lib/auth-server";
+import { reEvalUserRule } from "@/lib/tagRules";
 import type { ApiResponse } from "@/types";
 
 // GET /api/admin/reservations?section=Terraza&date=2026-04-02&search=juan
@@ -165,10 +166,17 @@ export async function POST(request: NextRequest) {
                     ...(fourthTableId   ? { fourthTableId }            : {}),
                 },
                 include: {
-                    table: { select: { number: true, section: { select: { name: true } } } },
+                    table:  { select: { number: true, section: { select: { name: true } } } },
                 },
             });
         }));
+
+        // Fire-and-forget: re-evaluar Inactivo (cliente volvió a reservar).
+        if (reservation.userId) {
+            reEvalUserRule(reservation.userId, "Inactivo").catch((e) =>
+                console.error("[AUTO_TAG] reEval Inactivo failed (admin reservation):", e),
+            );
+        }
 
         return NextResponse.json<ApiResponse>({ success: true, data: reservation });
     } catch (error) {

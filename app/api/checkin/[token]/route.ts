@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { withApp } from "@/lib/prismaApp";
 import { runWithSession } from "@/lib/session-context";
 import { getSession } from "@/lib/auth-server";
+import { reEvalUserRule } from "@/lib/tagRules";
 import type { ApiResponse } from "@/types";
 
 const RESERVATION_SELECT = {
@@ -89,6 +90,18 @@ export async function PATCH(
             data: { status: "COMPLETED", checkedInAt: new Date() },
             select: RESERVATION_SELECT,
         });
+
+        // Trigger fire-and-forget: re-evaluar VIP. La reserva recién completada
+        // podría ser la #5 del cliente. No await: nunca bloquear el host.
+        const ownerId = (await db.reservation.findUnique({
+            where:  { id: reservation.id },
+            select: { userId: true },
+        }))?.userId;
+        if (ownerId) {
+            reEvalUserRule(ownerId, "VIP").catch((e) =>
+                console.error("[AUTO_TAG] reEval VIP failed (checkin):", e),
+            );
+        }
 
         return NextResponse.json<ApiResponse>({ success: true, data: updated });
     }));
