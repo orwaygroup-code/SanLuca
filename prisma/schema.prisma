@@ -31,6 +31,7 @@ model User {
   reservations        Reservation[]          @relation("OwnedReservations")
   createdReservations Reservation[]          @relation("CreatedReservations")
   whatsappConversations WhatsAppConversation[]
+  tags                UserTag[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 }
@@ -325,9 +326,9 @@ enum MessageDirection {
 
 // ============================================
 // TAGS — etiquetas reusables sobre entidades.
-// Fase 1: sólo conversaciones de WhatsApp. El modelo Tag queda diseñado
-// para extender a User u otras entidades con un join paralelo sin tocar
-// esta tabla. Ver [[Conversation Tags]] del wiki.
+// Fase 1: conversaciones de WhatsApp (ConversationTag).
+// Fase 2: usuarios (UserTag) + auto-tagging por reglas/LLM con el campo
+// source. Ver wiki [[Conversation Tags]] y [[Auto-tagging]].
 // ============================================
 
 model Tag {
@@ -337,6 +338,7 @@ model Tag {
   description   String?
   isActive      Boolean           @default(true)
   conversations ConversationTag[]
+  users         UserTag[]
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
@@ -349,14 +351,44 @@ model ConversationTag {
   conversation   WhatsAppConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   tagId          String
   tag            Tag                  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  source         TagSource            @default(MANUAL)
   appliedAt      DateTime             @default(now())
-  // userId del admin que aplicó. Sin FK formal — sobrevive a la
-  // eliminación ARCO del admin (queda como string huérfano, bitácora).
+  // userId del admin que aplicó · "system:cron-rules" · "system:llm" · null.
+  // Sin FK formal — sobrevive a la eliminación ARCO del admin (queda como
+  // string huérfano, bitácora).
   appliedById    String?
 
   @@unique([conversationId, tagId])
   @@index([tagId])
   @@index([conversationId])
+  @@index([source])
+}
+
+// Tags sobre el usuario (perfil) — fase 2.
+// Los AUTO_RULE viven aquí (atributos del cliente derivados de su historial
+// de reservas). Los AUTO_LLM viven en ConversationTag (inferencias del
+// contenido de la conversación).
+model UserTag {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tagId       String
+  tag         Tag       @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  source      TagSource @default(MANUAL)
+  appliedAt   DateTime  @default(now())
+  // userId del admin · "system:cron-rules" · "system:llm" · null.
+  appliedById String?
+
+  @@unique([userId, tagId])
+  @@index([tagId])
+  @@index([userId])
+  @@index([source])
+}
+
+enum TagSource {
+  MANUAL    // aplicado por humano desde la UI
+  AUTO_RULE // aplicado por el cron de reglas deterministas
+  AUTO_LLM  // aplicado por la clasificación semántica del LLM
 }
 
 // ============================================
