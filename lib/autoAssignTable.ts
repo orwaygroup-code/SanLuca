@@ -3,7 +3,7 @@
 // Prioriza la sección pedida, luego recorre el resto en orden.
 
 import { prisma } from "@/lib/prisma";
-import { getShiftWindow } from "@/lib/shifts";
+import { findOccupiedTableIds } from "@/lib/tableConflict";
 
 const SECTION_ORDER = ["Terraza", "Salón", "Planta Alta", "Privado"];
 
@@ -12,24 +12,9 @@ export async function autoAssignTable(
     guests: number,
     preferredSection: string | null,
 ): Promise<{ tableId: string; sectionName: string } | null> {
-    const { start: shiftStart, end: shiftEnd } = getShiftWindow(reservationDate);
-
-    // Mesas ya ocupadas en ese turno
-    const conflicts = await prisma.reservation.findMany({
-        where: {
-            status: { notIn: ["CANCELLED", "NO_SHOW"] },
-            date:   { gte: shiftStart, lt: shiftEnd },
-        },
-        select: { tableId: true, linkedTableId: true, thirdTableId: true, fourthTableId: true },
-    });
-
-    const occupiedIds = new Set<string>();
-    for (const c of conflicts) {
-        if (c.tableId)        occupiedIds.add(c.tableId);
-        if (c.linkedTableId)  occupiedIds.add(c.linkedTableId);
-        if (c.thirdTableId)   occupiedIds.add(c.thirdTableId);
-        if (c.fourthTableId)  occupiedIds.add(c.fourthTableId);
-    }
+    // Mesas ocupadas en la ventana ±4h del slot pedido. Excluye COMPLETED
+    // (mesa libre tras turnover natural). Ver lib/tableConflict.ts.
+    const occupiedIds = await findOccupiedTableIds(prisma, reservationDate);
 
     // Orden: sección preferida primero
     const order = [...SECTION_ORDER];

@@ -4,8 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { withApp } from "@/lib/prismaApp";
 import { runWithSession } from "@/lib/session-context";
 import { createReservationSchema } from "@/lib/validations";
-import { getShiftWindow } from "@/lib/shifts";
 import { autoAssignTable } from "@/lib/autoAssignTable";
+import { findTableConflict } from "@/lib/tableConflict";
 import { expirePendingPayments } from "@/lib/expirePendingPayments";
 import { getSpecialDateForDateStr } from "@/lib/specialDates";
 import { getAvailableCredit, applyCreditsToReservation } from "@/lib/credits";
@@ -196,26 +196,21 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        // 8. Verificar que la mesa no esté ocupada en este turno
+        // 8. Verificar que la mesa no esté ocupada en la ventana ±4h.
+        //    COMPLETED no bloquea (turnover natural); diff exacto 4h permite.
+        //    Ver lib/tableConflict.ts para regla detallada.
         if (tableId) {
-            const { start: shiftStart, end: shiftEnd, name: shiftName } = getShiftWindow(reservationDate);
             const allIds = [tableId, linkedTableId, thirdTableId, fourthTableId].filter(Boolean) as string[];
-            const tableConflict = await prisma.reservation.findFirst({
-                where: {
-                    status: { notIn: ["CANCELLED", "NO_SHOW"] },
-                    date:   { gte: shiftStart, lt: shiftEnd },
-                    OR: allIds.flatMap((id) => [
-                        { tableId: id },
-                        { linkedTableId: id },
-                        { thirdTableId: id },
-                        { fourthTableId: id },
-                    ]),
-                },
+            const tableConflict = await findTableConflict(prisma, {
+                tableIds: allIds,
+                reservationDate,
             });
             if (tableConflict) {
-                const turno = shiftName === "brunch" ? "brunch (8am–2pm)" : "cena (2pm–12am)";
+                const conflictHour = tableConflict.date.toLocaleTimeString("es-MX", {
+                    hour: "2-digit", minute: "2-digit", timeZone: "America/Mexico_City",
+                });
                 return NextResponse.json<ApiResponse>(
-                    { success: false, error: `Esta mesa ya está reservada en el turno de ${turno}. Por favor elige otra mesa u otro turno.` },
+                    { success: false, error: `Esta mesa ya tiene una reservación cercana a las ${conflictHour}. Elige otra mesa o un horario con al menos 4 horas de diferencia.` },
                     { status: 409 }
                 );
             }
