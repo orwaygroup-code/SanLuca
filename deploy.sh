@@ -37,7 +37,7 @@ ok "Prisma sincronizado"
 # 3b. RLS policies (idempotentes — re-ejecutables sin riesgo)
 if [ -f prisma/sql/rls.sql ]; then
   log "Aplicando RLS policies"
-  psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f prisma/sql/rls.sql >/dev/null
+  sudo -u postgres psql sanluca_db -v ON_ERROR_STOP=1 -f prisma/sql/rls.sql >/dev/null
   ok "RLS aplicado"
 fi
 

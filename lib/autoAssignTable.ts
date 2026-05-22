@@ -1,11 +1,19 @@
 // lib/autoAssignTable.ts
-// Busca la primera mesa disponible para una fecha/hora/personas dadas.
-// Prioriza la sección pedida, luego recorre el resto en orden.
-
+// MODO ESTRICTO: Respeta la zona solicitada por el cliente.
+// Si la zona pedida no tiene disponibilidad, NO asigna mesa.
+// La reserva queda con sectionPreference para asignacion manual.
 import { prisma } from "@/lib/prisma";
 import { getShiftWindow } from "@/lib/shifts";
 
 const SECTION_ORDER = ["Terraza", "Salón", "Planta Alta", "Privado"];
+
+function normalizeSection(s: string): string {
+    return s
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+}
 
 export async function autoAssignTable(
     reservationDate: Date,
@@ -14,7 +22,6 @@ export async function autoAssignTable(
 ): Promise<{ tableId: string; sectionName: string } | null> {
     const { start: shiftStart, end: shiftEnd } = getShiftWindow(reservationDate);
 
-    // Mesas ya ocupadas en ese turno
     const conflicts = await prisma.reservation.findMany({
         where: {
             status: { notIn: ["CANCELLED", "NO_SHOW"] },
@@ -22,7 +29,6 @@ export async function autoAssignTable(
         },
         select: { tableId: true, linkedTableId: true, thirdTableId: true, fourthTableId: true },
     });
-
     const occupiedIds = new Set<string>();
     for (const c of conflicts) {
         if (c.tableId)        occupiedIds.add(c.tableId);
@@ -31,27 +37,27 @@ export async function autoAssignTable(
         if (c.fourthTableId)  occupiedIds.add(c.fourthTableId);
     }
 
-    // Orden: sección preferida primero
-    const order = [...SECTION_ORDER];
-    if (preferredSection) {
-        const norm = preferredSection.trim();
-        const idx  = order.findIndex(s => s.toLowerCase() === norm.toLowerCase());
-        if (idx > 0) { order.splice(idx, 1); order.unshift(norm); }
-        else if (idx === -1) order.unshift(norm);
+    let sectionsToSearch: string[];
+    const isStrict = !!(preferredSection && preferredSection.trim());
+
+    if (isStrict) {
+        const normPref = normalizeSection(preferredSection!);
+        const officialMatch = SECTION_ORDER.find(s => normalizeSection(s) === normPref);
+        sectionsToSearch = officialMatch ? [officialMatch] : [preferredSection!.trim()];
+    } else {
+        sectionsToSearch = [...SECTION_ORDER];
     }
 
-    // ── 1ra pasada: capacidad nominal ≥ comensales ─────────────────
-    for (const sectionName of order) {
+    for (const sectionName of sectionsToSearch) {
         const section = await prisma.section.findFirst({
             where: { name: { equals: sectionName, mode: "insensitive" } },
             include: {
                 tables: {
                     where:   { isActive: true, capacity: { gte: guests } },
-                    orderBy: { capacity: "asc" }, // mesa más ajustada primero
+                    orderBy: { capacity: "asc" },
                 },
             },
         });
-
         if (!section) continue;
 
         for (const table of section.tables) {
@@ -61,9 +67,8 @@ export async function autoAssignTable(
         }
     }
 
-    // ── 2da pasada: regla especial — mesas de 6 admiten 8 personas ──
     if (guests === 8) {
-        for (const sectionName of order) {
+        for (const sectionName of sectionsToSearch) {
             const section = await prisma.section.findFirst({
                 where: { name: { equals: sectionName, mode: "insensitive" } },
                 include: {
@@ -73,7 +78,6 @@ export async function autoAssignTable(
                     },
                 },
             });
-
             if (!section) continue;
 
             for (const table of section.tables) {

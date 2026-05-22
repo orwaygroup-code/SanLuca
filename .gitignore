@@ -39,3 +39,9 @@ next-env.d.ts
 # n8n workflow exports (pueden contener API keys)
 San Luca AI WhatsApp*.json
 *workflow*.json
+
+# Backups locales y experimentos (no son código fuente)
+*.bak
+*.backup
+*.backup-*
+/src/
