@@ -99,7 +99,11 @@ export async function POST(request: NextRequest) {
         const dayEnd   = new Date(y, mo - 1, d, 23, 59, 59);
 
         // ── GRUPO GRANDE: verificar que el área completa esté libre todo el día ──
-        if (isLargeGroup) {
+        // Excepción Privado: el área es un evento privado por diseño — no se
+        // valida cap de mesa ni se fuerza isLargeGroup. Cualquier número de
+        // personas fluye como reserva normal sobre la mesa única del Privado.
+        const isPrivado = rest.sectionPreference?.toLowerCase() === "privado";
+        if (isLargeGroup && !isPrivado) {
             const sectionName = rest.sectionPreference;
             if (!sectionName) {
                 return NextResponse.json<ApiResponse>(

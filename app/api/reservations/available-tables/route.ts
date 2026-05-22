@@ -72,8 +72,12 @@ export async function GET(request: NextRequest) {
 
     // ══════════════════════════════════════════════════════════════════════
     // GRUPO GRANDE (>15 personas): verificar disponibilidad de área completa
+    // Excepción Privado: ver POST /api/reservations §GRUPO GRANDE. El área
+    // es un evento privado por diseño — cualquier número de personas fluye
+    // como reserva normal sobre su única mesa.
     // ══════════════════════════════════════════════════════════════════════
-    if (guests > 15) {
+    const isPrivado = section.toLowerCase() === "privado";
+    if (guests > 15 && !isPrivado) {
       // 1. ¿Ya existe otro grupo grande en esta área ese día?
       const largeGroupConflict = await prisma.reservation.findFirst({
         where: {

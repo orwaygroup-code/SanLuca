@@ -26,12 +26,19 @@ export async function autoAssignTable(
     }
 
     // ── 1ra pasada: capacidad nominal ≥ comensales ─────────────────
+    // Excepción Privado: no aplica filtro de capacity — el área entera es
+    // el "espacio reservado" y admite cualquier número de personas sobre
+    // su mesa única.
     for (const sectionName of order) {
+        const isPrivado = sectionName.toLowerCase() === "privado";
         const section = await prisma.section.findFirst({
             where: { name: { equals: sectionName, mode: "insensitive" } },
             include: {
                 tables: {
-                    where:   { isActive: true, capacity: { gte: guests } },
+                    where: {
+                        isActive: true,
+                        ...(isPrivado ? {} : { capacity: { gte: guests } }),
+                    },
                     orderBy: { capacity: "asc" }, // mesa más ajustada primero
                 },
             },
