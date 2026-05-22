@@ -202,7 +202,7 @@ END$$;
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'sanluca_app') THEN
-    GRANT CONNECT ON DATABASE current_database() TO sanluca_app;
+    EXECUTE 'GRANT CONNECT ON DATABASE ' || quote_ident(current_database()) || ' TO sanluca_app';
     EXECUTE 'GRANT USAGE ON SCHEMA public TO sanluca_app';
     EXECUTE 'GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO sanluca_app';
     EXECUTE 'GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO sanluca_app';

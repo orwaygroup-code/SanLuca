@@ -29,7 +29,6 @@ function parseDate(fechaStr: string, horaStr: string): Date | null {
             return null;
         }
 
-        // Hora: "14:00", "2:00 pm", "2pm"
         let hours = 0, minutes = 0;
         const timeMatch = horaStr.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
         if (timeMatch) {
@@ -41,7 +40,6 @@ function parseDate(fechaStr: string, horaStr: string): Date | null {
         }
 
         const pad = (n: number) => String(n).padStart(2, "0");
-        // Tratar la hora como hora local de México (UTC-6, sin horario de verano desde 2023)
         const d = new Date(`${year}-${pad(month)}-${pad(day)}T${pad(hours)}:${pad(minutes)}:00.000-06:00`);
         return isNaN(d.getTime()) ? null : d;
     } catch {
@@ -49,36 +47,53 @@ function parseDate(fechaStr: string, horaStr: string): Date | null {
     }
 }
 
-// ── POST /api/bot/reservation ─────────────────────────────────────────
+// ── Normaliza nombre de zona/seccion para matchear con BD ─────────────
+function normalizeZona(raw: string | null | undefined): string | null {
+    if (!raw) return null;
+    const cleaned = raw
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+
+    if (cleaned.includes("terraza") || cleaned.includes("exterior") || cleaned.includes("afuera")) return "Terraza";
+    if (cleaned.includes("planta alta") || cleaned.includes("arriba") || cleaned.includes("segundo piso")) return "Planta Alta";
+    if (cleaned.includes("salon") || cleaned.includes("adentro") || cleaned.includes("interior")) return "Salón";
+    if (cleaned.includes("privado")) return "Privado";
+
+    return raw.trim();
+}
+
 export async function POST(request: NextRequest) {
-    // 1. Verificar API key del bot
     const botKey = request.headers.get("x-bot-key");
     if (!botKey || botKey !== process.env.BOT_API_KEY) {
         return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
-    const { titular, celular, personas, zona, fecha, hora } = body;
+    const { titular, celular, personas, zona, fecha, hora, notes } = body;
+
+    console.log('[BOT_RESERVATION] body recibido:', JSON.stringify(body));
+    console.log('[BOT_RESERVATION] zona raw:', zona, '| tipo:', typeof zona);
 
     if (!titular || !celular || !personas || !fecha || !hora) {
         return NextResponse.json({ success: false, error: "Faltan datos: titular, celular, personas, fecha, hora" }, { status: 400 });
     }
 
-    // 2. Parsear fecha + hora
     const reservationDate = parseDate(fecha, hora);
     if (!reservationDate) {
         return NextResponse.json(
-            { success: false, error: `Formato de fecha inválido: "${fecha}" "${hora}". Usar DD/MM/YYYY y HH:MM` },
+            { success: false, error: `Formato de fecha invalido: "${fecha}" "${hora}". Usar DD/MM/YYYY y HH:MM` },
             { status: 400 }
         );
     }
 
     const guestCount = parseInt(String(personas), 10) || 2;
-
-    // 3. Normalizar teléfono
     const phone = normalizePhone(String(celular));
 
-    // 4. Buscar o crear usuario por teléfono
+    const zonaNormalizada = normalizeZona(zona);
+    console.log('[BOT_RESERVATION] zona normalizada:', zonaNormalizada);
+
     let user = await prisma.user.findFirst({ where: { phone } });
     if (!user) {
         const guestEmail = `${phone}@whatsapp.guest`;
@@ -96,21 +111,21 @@ export async function POST(request: NextRequest) {
         });
     }
 
-    // 5. Buscar mesa disponible automáticamente
-    const assigned = await autoAssignTable(reservationDate, guestCount, zona ?? null);
+    const assigned = await autoAssignTable(reservationDate, guestCount, zonaNormalizada);
+    console.log('[BOT_RESERVATION] mesa asignada:', assigned);
 
-    // 6. Crear la reservación
     const reservation = await prisma.reservation.create({
         data: {
             userId:            user.id,
             guestName:         titular,
             guestPhone:        phone,
             guests:            guestCount,
-            sectionPreference: assigned?.sectionName ?? zona ?? null,
+            sectionPreference: assigned?.sectionName ?? zonaNormalizada ?? null,
             date:              reservationDate,
             status:            "PENDING",
             paymentStatus:     "UNPAID",
             source:            "WHATSAPP",
+            notes:             notes && String(notes).trim() ? String(notes).trim() : null,
             ...(assigned ? { tableId: assigned.tableId } : {}),
         },
         include: {
@@ -126,12 +141,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
         success: true,
         data: {
-            id:        reservation.id,
-            qrToken:   reservation.qrToken,
-            date:      reservation.date,
-            tableInfo: reservation.table
+            id:               reservation.id,
+            qrToken:          reservation.qrToken,
+            date:             reservation.date,
+            sectionRequested: zonaNormalizada,
+            tableInfo:        reservation.table
                 ? `Mesa #${reservation.table.number} en ${reservation.table.section.name}`
-                : null,
+                : `Sin mesa asignada (zona pedida: ${zonaNormalizada ?? "cualquiera"}) - requiere asignacion manual`,
+            notes:            reservation.notes,
         },
     });
 }
