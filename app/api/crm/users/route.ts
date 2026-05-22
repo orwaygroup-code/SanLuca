@@ -171,13 +171,23 @@ async function getUserDetail(id: string, s: ServerSession) {
       totalVisits,
       confirmed,
       cancelled: cancelled + noShow,
-      lastReservation: user.reservations[0]?.date ?? null,
+      // `list` ya incorpora el fallback createdReservations→reservations,
+      // así que también lastReservation refleja la lista que realmente
+      // se muestra abajo (relevante para HOSTES que sólo crean a nombre
+      // de otros — antes daba `null` cuando `user.reservations` estaba
+      // vacío aunque createdReservations tuviera 39 rows).
+      lastReservation: list[0]?.date ?? null,
     },
     preferences: {
       sections: sortKv(secCount).slice(0, 3),
       occasions: sortKv(occCount).slice(0, 3),
     },
-    reservations: user.reservations.map((r) => ({
+    // Usar `list` (mismo fallback que stats) — para HOSTES, las
+    // createdReservations son las que cuentan; para CUSTOMER, son las
+    // owned. Bug previo: este map siempre usaba user.reservations,
+    // dejando el bloque "Reservas (0)" vacío para staff con 30+
+    // reservas creadas.
+    reservations: list.map((r) => ({
       id: r.id,
       status: r.status,
       date: r.date,
