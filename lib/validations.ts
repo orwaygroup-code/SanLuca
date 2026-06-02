@@ -68,3 +68,36 @@ export const createReservationSchema = z.object({
 });
 
 export type CreateReservationInput = z.infer<typeof createReservationSchema>;
+
+// ── Staff (sistema de Comandas) ───────────────
+const pin4 = z.string().regex(/^\d{4}$/, "El PIN debe ser de 4 dígitos");
+// username: minúsculas, dígitos, punto y guion (ej. "luis.mesero").
+const usernameRule = z
+  .string()
+  .min(3, "El usuario debe tener al menos 3 caracteres")
+  .max(40)
+  .regex(/^[a-z0-9._-]+$/, "Usuario inválido (usa minúsculas, números, . _ -)");
+const staffRoleRule = z.enum(["WAITER", "OPERATION", "CAPTAIN", "MANAGER"]);
+
+export const staffLoginSchema = z.object({
+  username: z.string().min(1, "Ingresa tu usuario"),
+  pin: pin4,
+});
+
+export const staffCreateSchema = z.object({
+  username: usernameRule,
+  fullName: z.string().min(2, "El nombre debe tener al menos 2 caracteres").max(100),
+  role: staffRoleRule,
+  // PIN inicial opcional: si no se manda, el backend genera uno y lo muestra una vez.
+  pin: pin4.optional(),
+});
+
+export const staffUpdateSchema = z.object({
+  fullName: z.string().min(2).max(100).optional(),
+  role: staffRoleRule.optional(),
+  active: z.boolean().optional(),
+}).refine((d) => Object.keys(d).length > 0, { message: "Sin cambios" });
+
+export type StaffLoginInput  = z.infer<typeof staffLoginSchema>;
+export type StaffCreateInput = z.infer<typeof staffCreateSchema>;
+export type StaffUpdateInput = z.infer<typeof staffUpdateSchema>;

@@ -1,0 +1,151 @@
+"use client";
+
+import { useState, useRef, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+
+const ROLE_HOME: Record<string, string> = {
+  MANAGER:   "/admin/staff",
+  OPERATION: "/staff/login", // Fase B: /staff/operacion
+  CAPTAIN:   "/staff/login", // Fase B: /staff/capitan
+  WAITER:    "/staff/login", // Fase B: /staff/mesero
+};
+
+const ERROR_MSG: Record<string, string> = {
+  WRONG_CREDENTIALS: "Usuario o PIN incorrecto.",
+  INACTIVE:          "Tu cuenta está desactivada. Avisa al manager.",
+};
+
+function StaffLoginInner() {
+  const router = useRouter();
+  const params = useSearchParams();
+  const [username, setUsername] = useState("");
+  const [pin, setPin] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const pinRef = useRef<HTMLInputElement>(null);
+
+  const submit = useCallback(async () => {
+    if (loading) return;
+    if (!/^\d{4}$/.test(pin)) { setError("El PIN debe ser de 4 dígitos."); return; }
+    setLoading(true);
+    setError(null);
+    try {
+      const r = await fetch("/api/auth/staff/login", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: username.trim().toLowerCase(), pin }),
+      });
+      const data = await r.json().catch(() => null);
+      if (!data?.success) {
+        setError(ERROR_MSG[data?.error] ?? data?.error ?? "Error al iniciar sesión.");
+        setPin("");
+        pinRef.current?.focus();
+        return;
+      }
+      const next = params.get("next");
+      const home = next || ROLE_HOME[data.data.role] || "/staff/login";
+      router.replace(home);
+    } catch {
+      setError("Error de red. Intenta de nuevo.");
+    } finally {
+      setLoading(false);
+    }
+  }, [loading, pin, username, params, router]);
+
+  return (
+    <div style={styles.page}>
+      <div style={styles.card}>
+        <div style={styles.brand}>SAN LUCA</div>
+        <h1 style={styles.title}>Acceso de personal</h1>
+        <p style={styles.subtitle}>Ingresa tu usuario y PIN de 4 dígitos.</p>
+
+        <form
+          onSubmit={(e) => { e.preventDefault(); submit(); }}
+          style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 22 }}
+        >
+          <div>
+            <label style={styles.label}>Usuario</label>
+            <input
+              style={styles.input}
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="ej. ricardo"
+            />
+          </div>
+          <div>
+            <label style={styles.label}>PIN</label>
+            <input
+              ref={pinRef}
+              style={{ ...styles.input, letterSpacing: "0.5em", textAlign: "center", fontSize: "1.4rem" }}
+              type="password"
+              inputMode="numeric"
+              autoComplete="off"
+              maxLength={4}
+              value={pin}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              placeholder="••••"
+            />
+          </div>
+
+          {error && <p style={styles.error}>⚠ {error}</p>}
+
+          <button
+            type="submit"
+            disabled={loading || !username.trim() || pin.length !== 4}
+            style={{
+              ...styles.button,
+              opacity: loading || !username.trim() || pin.length !== 4 ? 0.5 : 1,
+              cursor: loading || !username.trim() || pin.length !== 4 ? "default" : "pointer",
+            }}
+          >
+            {loading ? "Entrando…" : "Entrar"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+export default function StaffLoginPage() {
+  // useSearchParams requiere Suspense boundary en App Router (build standalone).
+  return (
+    <Suspense fallback={null}>
+      <StaffLoginInner />
+    </Suspense>
+  );
+}
+
+const styles: Record<string, React.CSSProperties> = {
+  page: {
+    minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
+    background: "#16201f", padding: 20,
+  },
+  card: {
+    width: "100%", maxWidth: 380, background: "#1a2628",
+    border: "1px solid rgba(186,132,60,0.25)", borderRadius: 18,
+    padding: "34px 30px", boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
+  },
+  brand: { fontSize: "0.7rem", letterSpacing: "0.4em", color: "#ba843c", fontWeight: 800, textAlign: "center" },
+  title: { margin: "14px 0 0", fontSize: "1.25rem", color: "#f5f1e8", fontWeight: 700, textAlign: "center" },
+  subtitle: { margin: "6px 0 0", fontSize: "0.82rem", color: "rgba(245,241,232,0.5)", textAlign: "center" },
+  label: {
+    display: "block", fontSize: "0.62rem", letterSpacing: "0.16em", textTransform: "uppercase",
+    color: "rgba(245,241,232,0.45)", fontWeight: 700, marginBottom: 6,
+  },
+  input: {
+    width: "100%", padding: "12px 14px", borderRadius: 10, boxSizing: "border-box",
+    border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.05)",
+    color: "#f5f1e8", fontSize: "0.95rem", fontFamily: "inherit",
+  },
+  error: { margin: 0, color: "#e05555", fontSize: "0.82rem" },
+  button: {
+    padding: "13px 0", borderRadius: 10, border: "none", background: "#ba843c",
+    color: "#fff", fontWeight: 700, fontSize: "0.9rem", letterSpacing: "0.05em",
+    textTransform: "uppercase", fontFamily: "inherit",
+  },
+};
