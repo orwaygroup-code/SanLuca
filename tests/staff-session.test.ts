@@ -8,7 +8,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { signStaffSession, verifyStaffSession } from "../lib/staff-session";
+import {
+  signStaffSession,
+  verifyStaffSession,
+  staffSessionCookieString,
+  clearStaffSessionCookieString,
+  STAFF_SESSION_COOKIE,
+} from "../lib/staff-session";
 import { signSession, verifySession } from "../lib/session";
 
 test("round-trip: firma y verifica conservando sub/role/tenant", () => {
@@ -37,4 +43,18 @@ test("aislamiento de realms: token de User NO valida como Staff y viceversa", ()
   // Token de Staff no debe pasar como User.
   const staffToken = signStaffSession({ sub: 1, role: "MANAGER" });
   assert.equal(verifySession(staffToken), null);
+});
+
+test("logout: la cookie de borrado expira sl_staff (Max-Age=0)", () => {
+  const set = staffSessionCookieString(signStaffSession({ sub: 1, role: "MANAGER" }));
+  const clear = clearStaffSessionCookieString();
+
+  // El login setea la cookie viva (7 días).
+  assert.match(set, new RegExp(`^${STAFF_SESSION_COOKIE}=.+`));
+  assert.match(set, /Max-Age=604800/);
+
+  // El logout la vacía y la expira de inmediato → el browser la borra.
+  assert.match(clear, new RegExp(`^${STAFF_SESSION_COOKIE}=;`));
+  assert.match(clear, /Max-Age=0/);
+  assert.match(clear, /HttpOnly/);
 });

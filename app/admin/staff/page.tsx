@@ -37,7 +37,7 @@ function fmtDateTime(iso: string | null): string {
 // ── Página ───────────────────────────────────────────────────────────────
 export default function StaffAdminPage() {
   const router = useRouter();
-  const { staff: me, loading: authLoading } = useStaffSession();
+  const { staff: me, loading: authLoading, logout } = useStaffSession();
 
   const [rows, setRows] = useState<StaffRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,6 +94,12 @@ export default function StaffAdminPage() {
     else alert(data?.error === "PIN_TAKEN" ? "El PIN generado chocó, reintenta." : "Error al resetear PIN");
   };
 
+  // Cierra sesión: borra cookie sl_staff (endpoint) + estado local, vuelve a login.
+  const handleLogout = async () => {
+    await logout();
+    router.replace("/staff/login");
+  };
+
   if (authLoading || !me || me.role !== "MANAGER") {
     return <div style={S.page}><p style={{ color: "rgba(245,241,232,0.5)", textAlign: "center", marginTop: 80 }}>Verificando acceso…</p></div>;
   }
@@ -103,9 +109,12 @@ export default function StaffAdminPage() {
       {/* Header */}
       <div style={S.header}>
         <h1 style={S.h1}><span style={{ color: "#ba843c" }}>EMPLEADOS</span> <span style={{ color: "#f5f1e8" }}>· MANAGER</span></h1>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <span style={{ fontSize: "0.78rem", color: "rgba(245,241,232,0.5)" }}>Hola, {me.fullName}</span>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+          <span style={S.userChip}>
+            {me.fullName} · <b style={{ color: ROLE_COLOR[me.role] }}>{me.role}</b>
+          </span>
           <button style={S.primaryBtn} onClick={() => setCreateOpen(true)}>+ Nuevo empleado</button>
+          <button style={S.logoutBtn} onClick={handleLogout} title="Cerrar sesión">Cerrar sesión</button>
         </div>
       </div>
 
@@ -349,6 +358,8 @@ const S: Record<string, React.CSSProperties> = {
   page: { minHeight: "100vh", background: "#16201f", padding: "26px 20px", color: "#f5f1e8", fontFamily: "inherit" },
   header: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 20 },
   h1: { fontSize: "1.1rem", fontWeight: 800, letterSpacing: "0.08em", margin: 0 },
+  userChip: { fontSize: "0.8rem", color: "rgba(245,241,232,0.7)", fontWeight: 600, letterSpacing: "0.02em" },
+  logoutBtn: { padding: "9px 14px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.18)", background: "transparent", color: "rgba(245,241,232,0.7)", fontWeight: 600, fontSize: "0.78rem", letterSpacing: "0.04em", cursor: "pointer", fontFamily: "inherit" },
   filters: { display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 18 },
   select: { padding: "9px 12px", borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.15)", color: "#f5f1e8", fontSize: "0.82rem", fontFamily: "inherit" },
   search: { flex: 1, minWidth: 200, padding: "9px 12px", borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.15)", color: "#f5f1e8", fontSize: "0.82rem", fontFamily: "inherit" },
