@@ -13,6 +13,8 @@
     "db:seed": "prisma db seed",
     "db:update-wine-images": "ts-node -e \"require('ts-node').register({module:'commonjs'})\" prisma/update-wine-images.ts",
     "db:studio": "prisma studio",
+    "test": "tsx --test tests/*.test.ts",
+    "test:watch": "tsx --test --watch tests/*.test.ts",
     "setup": "npm run db:push && npm run db:seed"
   },
   "prisma": {
@@ -36,6 +38,7 @@
     "eslint-config-next": "^14.2.0",
     "prisma": "^5.14.0",
     "ts-node": "^10.9.0",
+    "tsx": "^4.22.4",
     "typescript": "^5.4.0"
   }
 }

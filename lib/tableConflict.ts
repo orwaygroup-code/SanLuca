@@ -1,25 +1,27 @@
 import type { Prisma, PrismaClient, ReservationStatus } from "@prisma/client";
+import { getShiftWindow } from "./shifts";
 
 /**
  * Detección de conflictos de mesa centralizada.
  *
- * Reemplaza el modelo viejo "una mesa, un turno" (brunch 8-14 / cena 14-cierre)
- * por una ventana deslizante de ±4 horas. También excluye reservaciones en
- * estado COMPLETED — si la cena ya cerró, la mesa está libre para la siguiente.
+ * Modelo: **una mesa = una reserva por TURNO** (brunch 08:00-14:00 / cena
+ * 14:00-cierre). La ocupación se calcula con la ventana del turno
+ * (`getShiftWindow`), quedando consistente con el mapa de disponibilidad
+ * (`available-tables`) y con la asignación manual del staff.
  *
- * Regla exacta — **bloquea** si existe una reservación EN OTRA mesa de la lista
- * que cumpla TODAS estas condiciones:
+ * > Histórico: antes se usaba una ventana deslizante de ±4h (permitía
+ * > turnover brunch 14:30 + cena 18:30 en la misma mesa). Se revirtió al
+ * > modelo por turno por decisión operativa (Fase A — fix editor), para
+ * > eliminar la divergencia mapa-vs-autoasignación.
+ *
+ * Regla — **bloquea** si existe una reservación EN una de las mesas de la
+ * lista que cumpla TODAS estas condiciones:
  *   1. `status` NOT IN (`CANCELLED`, `NO_SHOW`, `COMPLETED`)
- *   2. `|nueva.date - existente.date| < 4h`  (estricto)
- *
- * Por implementación con Prisma: `gt: date - 4h` y `lt: date + 4h` (exclusivos).
- * Si la diferencia es **exactamente 4h** → no matchea → permite. Ejemplo natural:
- * brunch 14:30 + cena 18:30 (turnover esperado).
+ *   2. su `date` cae dentro del MISMO turno que la reservación nueva
+ *      (`date >= turno.start && date < turno.end`).
  */
 
-const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
-
-/** Estados que NO bloquean una nueva reservación cercana. */
+/** Estados que NO bloquean una nueva reservación en el mismo turno. */
 const NON_BLOCKING_STATUSES: ReservationStatus[] = ["CANCELLED", "NO_SHOW", "COMPLETED"];
 
 type DB = PrismaClient | Prisma.TransactionClient;
@@ -42,7 +44,7 @@ export interface ConflictRow {
 
 /**
  * Devuelve la primera reservación conflictiva o null. Si necesitas todas
- * (raro — el primer hit basta para devolver 409), usa `findManyConflicts`.
+ * las mesas ocupadas del turno (auto-asignación), usa `findOccupiedTableIds`.
  */
 export async function findTableConflict(
   db: DB,
@@ -51,13 +53,13 @@ export async function findTableConflict(
   if (input.tableIds.length === 0) return null;
 
   const { reservationDate, tableIds, excludeReservationId } = input;
-  const windowStart = new Date(reservationDate.getTime() - FOUR_HOURS_MS);
-  const windowEnd   = new Date(reservationDate.getTime() + FOUR_HOURS_MS);
+  const { start, end } = getShiftWindow(reservationDate);
 
   const where: Prisma.ReservationWhereInput = {
     status: { notIn: NON_BLOCKING_STATUSES },
-    // gt / lt exclusivos: diff exacto de 4h queda FUERA → permite (turnover natural).
-    date:   { gt: windowStart, lt: windowEnd },
+    // Mismo turno: [start, end) — coincide con available-tables y los checks
+    // de /api/admin/reservations/[id].
+    date:   { gte: start, lt: end },
     OR: tableIds.flatMap((id) => [
       { tableId:       id },
       { linkedTableId: id },
@@ -77,21 +79,19 @@ export async function findTableConflict(
 }
 
 /**
- * Versión bulk: para el algoritmo de auto-asignación, queremos saber TODAS las
- * mesas ocupadas en la ventana ±4h del slot que estamos asignando, no solo la
- * primera conflictiva.
+ * Versión bulk: para el algoritmo de auto-asignación, queremos saber TODAS
+ * las mesas ocupadas en el MISMO turno del slot que estamos asignando.
  */
 export async function findOccupiedTableIds(
   db: DB,
   reservationDate: Date,
 ): Promise<Set<string>> {
-  const windowStart = new Date(reservationDate.getTime() - FOUR_HOURS_MS);
-  const windowEnd   = new Date(reservationDate.getTime() + FOUR_HOURS_MS);
+  const { start, end } = getShiftWindow(reservationDate);
 
   const rows = await db.reservation.findMany({
     where: {
       status: { notIn: NON_BLOCKING_STATUSES },
-      date:   { gt: windowStart, lt: windowEnd },
+      date:   { gte: start, lt: end },
     },
     select: { tableId: true, linkedTableId: true, thirdTableId: true, fourthTableId: true },
   });
@@ -105,6 +105,3 @@ export async function findOccupiedTableIds(
   }
   return occupied;
 }
-
-// Exportado para tests / debug — la constante de ventana.
-export const CONFLICT_WINDOW_MS = FOUR_HOURS_MS;

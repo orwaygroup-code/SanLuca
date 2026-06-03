@@ -5,19 +5,20 @@
  * Ejecutar:
  *   npx tsx --test tests/tableConflict.test.ts
  *
- * Reglas validadas (ver lib/tableConflict.ts):
+ * Reglas validadas (ver lib/tableConflict.ts) — modelo POR TURNO:
  *   - COMPLETED / CANCELLED / NO_SHOW NO bloquean.
- *   - Ventana ±4h estricta (gt/lt): diff < 4h bloquea, diff >= 4h permite.
+ *   - Bloquea si la reserva existente cae en el MISMO turno (brunch/cena)
+ *     que la nueva. El turnover ±4h fue eliminado (Fase A).
  *   - Match contra tableId / linkedTableId / thirdTableId / fourthTableId.
  *   - excludeReservationId evita auto-conflicto en edición.
+ *
+ * Fechas con offset -06:00 (hora México) para que el turno sea inequívoco.
  */
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { findTableConflict, findOccupiedTableIds, CONFLICT_WINDOW_MS } from "../lib/tableConflict";
-
-// ─── Fixture / mock ──────────────────────────────────────────────────
+import { findTableConflict, findOccupiedTableIds } from "../lib/tableConflict";
 
 interface MockReservation {
   id:             string;
@@ -32,23 +33,21 @@ interface MockReservation {
 
 function makeMock(rows: MockReservation[]) {
   const matches = (r: MockReservation, where: Record<string, unknown>): boolean => {
-    // status notIn
     if (where.status && typeof where.status === "object") {
       const s = where.status as { notIn?: string[] };
       if (s.notIn && s.notIn.includes(r.status)) return false;
     }
-    // date gt/lt
     if (where.date && typeof where.date === "object") {
-      const d = where.date as { gt?: Date; lt?: Date };
-      if (d.gt && !(r.date.getTime() > d.gt.getTime())) return false;
-      if (d.lt && !(r.date.getTime() < d.lt.getTime())) return false;
+      const d = where.date as { gt?: Date; gte?: Date; lt?: Date; lte?: Date };
+      if (d.gt  && !(r.date.getTime() >  d.gt.getTime()))  return false;
+      if (d.gte && !(r.date.getTime() >= d.gte.getTime())) return false;
+      if (d.lt  && !(r.date.getTime() <  d.lt.getTime()))  return false;
+      if (d.lte && !(r.date.getTime() <= d.lte.getTime())) return false;
     }
-    // NOT.id
     if (where.NOT && typeof where.NOT === "object") {
       const n = where.NOT as { id?: string };
       if (n.id && r.id === n.id) return false;
     }
-    // OR for tables: any branch true
     if (where.OR && Array.isArray(where.OR)) {
       const ok = (where.OR as Array<Record<string, string>>).some((branch) => {
         const [k, v] = Object.entries(branch)[0];
@@ -67,181 +66,95 @@ function makeMock(rows: MockReservation[]) {
         m.sort((a, b) => ord * (a.date.getTime() - b.date.getTime()));
         return m[0] ?? null;
       },
-      findMany: async ({ where }: { where: Record<string, unknown> }) => {
-        return rows.filter((r) => matches(r, where));
-      },
+      findMany: async ({ where }: { where: Record<string, unknown> }) => rows.filter((r) => matches(r, where)),
     },
   } as unknown as Parameters<typeof findTableConflict>[0];
 }
 
 const t = (iso: string) => new Date(iso);
+const row = (over: Partial<MockReservation>): MockReservation => ({
+  id: "r1", date: t("2026-05-26T19:00:00-06:00"), status: "CONFIRMED", guestName: "x",
+  tableId: "tA", linkedTableId: null, thirdTableId: null, fourthTableId: null, ...over,
+});
 
-// ─── COMPLETED / CANCELLED / NO_SHOW no bloquean ────────────────────
+// ─── Estados que no bloquean ────────────────────────────────────────
+for (const status of ["COMPLETED", "CANCELLED", "NO_SHOW"] as const) {
+  test(`${status} no bloquea aunque sea misma hora/turno`, async () => {
+    const db = makeMock([row({ status })]);
+    assert.equal(
+      await findTableConflict(db, { tableIds: ["tA"], reservationDate: t("2026-05-26T19:00:00-06:00") }),
+      null,
+    );
+  });
+}
 
-test("COMPLETED no bloquea aunque sea misma hora", async () => {
-  const db = makeMock([
-    { id: "r1", date: t("2026-05-25T19:00:00Z"), status: "COMPLETED",
-      guestName: "Pedro", tableId: "tA", linkedTableId: null, thirdTableId: null, fourthTableId: null },
-  ]);
+// ─── Modelo por TURNO (sin ±4h) ─────────────────────────────────────
+test("misma cena BLOQUEA aunque estén a 4h (turnover ±4h eliminado)", async () => {
+  // Antes: 14:30 + 18:30 = exacto 4h → permitía. Ahora: mismo turno cena → bloquea.
+  const db = makeMock([row({ date: t("2026-05-26T14:30:00-06:00") })]);
   const conflict = await findTableConflict(db, {
     tableIds: ["tA"],
-    reservationDate: t("2026-05-25T19:00:00Z"),
+    reservationDate: t("2026-05-26T18:30:00-06:00"),
   });
-  assert.equal(conflict, null);
-});
-
-test("CANCELLED no bloquea", async () => {
-  const db = makeMock([
-    { id: "r1", date: t("2026-05-25T19:00:00Z"), status: "CANCELLED",
-      guestName: "x", tableId: "tA", linkedTableId: null, thirdTableId: null, fourthTableId: null },
-  ]);
-  assert.equal(await findTableConflict(db, { tableIds: ["tA"], reservationDate: t("2026-05-25T19:00:00Z") }), null);
-});
-
-test("NO_SHOW no bloquea", async () => {
-  const db = makeMock([
-    { id: "r1", date: t("2026-05-25T19:00:00Z"), status: "NO_SHOW",
-      guestName: "x", tableId: "tA", linkedTableId: null, thirdTableId: null, fourthTableId: null },
-  ]);
-  assert.equal(await findTableConflict(db, { tableIds: ["tA"], reservationDate: t("2026-05-25T19:00:00Z") }), null);
-});
-
-// ─── Ventana ±4h estricta ───────────────────────────────────────────
-
-test("diff exacto 4h PERMITE (turnover natural brunch→cena)", async () => {
-  // Brunch 14:30 ya reservada. Cena 18:30 = exacto 4h después → debe permitir.
-  const db = makeMock([
-    { id: "r1", date: t("2026-05-25T14:30:00Z"), status: "CONFIRMED",
-      guestName: "Pedro", tableId: "tA", linkedTableId: null, thirdTableId: null, fourthTableId: null },
-  ]);
-  const conflict = await findTableConflict(db, {
-    tableIds: ["tA"],
-    reservationDate: t("2026-05-25T18:30:00Z"),
-  });
-  assert.equal(conflict, null, "exacto 4h debe permitir");
-});
-
-test("diff 3h 59min BLOQUEA", async () => {
-  const db = makeMock([
-    { id: "r1", date: t("2026-05-25T14:30:00Z"), status: "CONFIRMED",
-      guestName: "Pedro", tableId: "tA", linkedTableId: null, thirdTableId: null, fourthTableId: null },
-  ]);
-  const conflict = await findTableConflict(db, {
-    tableIds: ["tA"],
-    reservationDate: t("2026-05-25T18:29:00Z"),  // 3h 59min después
-  });
-  assert.ok(conflict);
+  assert.ok(conflict, "misma mesa en el mismo turno de cena debe bloquear");
   assert.equal(conflict?.id, "r1");
 });
 
-test("diff 4h 1min PERMITE", async () => {
-  const db = makeMock([
-    { id: "r1", date: t("2026-05-25T14:30:00Z"), status: "CONFIRMED",
-      guestName: "x", tableId: "tA", linkedTableId: null, thirdTableId: null, fourthTableId: null },
-  ]);
+test("brunch vs cena = distinto turno → PERMITE", async () => {
+  const db = makeMock([row({ date: t("2026-05-26T10:00:00-06:00") })]); // brunch
   const conflict = await findTableConflict(db, {
     tableIds: ["tA"],
-    reservationDate: t("2026-05-25T18:31:00Z"),
+    reservationDate: t("2026-05-26T20:00:00-06:00"), // cena
   });
   assert.equal(conflict, null);
 });
 
-test("ventana es simétrica — reserva 4h ANTES también permite", async () => {
-  // Existente 18:30. Nueva 14:30 → diff 4h exacto, ANTES → permite.
-  const db = makeMock([
-    { id: "r1", date: t("2026-05-25T18:30:00Z"), status: "CONFIRMED",
-      guestName: "x", tableId: "tA", linkedTableId: null, thirdTableId: null, fourthTableId: null },
-  ]);
-  const conflict = await findTableConflict(db, {
-    tableIds: ["tA"],
-    reservationDate: t("2026-05-25T14:30:00Z"),
-  });
-  assert.equal(conflict, null);
+test("misma hora exacta bloquea", async () => {
+  const db = makeMock([row({ date: t("2026-05-26T19:00:00-06:00") })]);
+  assert.ok(await findTableConflict(db, { tableIds: ["tA"], reservationDate: t("2026-05-26T19:00:00-06:00") }));
 });
 
-test("diff 0 (misma hora exacta) bloquea", async () => {
-  const db = makeMock([
-    { id: "r1", date: t("2026-05-25T19:00:00Z"), status: "CONFIRMED",
-      guestName: "x", tableId: "tA", linkedTableId: null, thirdTableId: null, fourthTableId: null },
-  ]);
-  const conflict = await findTableConflict(db, {
-    tableIds: ["tA"],
-    reservationDate: t("2026-05-25T19:00:00Z"),
-  });
-  assert.ok(conflict);
+test("otro día, mismo horario → distinto turno → permite", async () => {
+  const db = makeMock([row({ date: t("2026-05-27T19:00:00-06:00") })]);
+  assert.equal(
+    await findTableConflict(db, { tableIds: ["tA"], reservationDate: t("2026-05-26T19:00:00-06:00") }),
+    null,
+  );
 });
 
-// ─── Match contra distintas posiciones de mesa ──────────────────────
-
+// ─── Match contra posiciones de mesa ────────────────────────────────
 test("matchea contra linkedTableId", async () => {
-  const db = makeMock([
-    { id: "r1", date: t("2026-05-25T19:00:00Z"), status: "CONFIRMED",
-      guestName: "x", tableId: "tX", linkedTableId: "tA", thirdTableId: null, fourthTableId: null },
-  ]);
-  const conflict = await findTableConflict(db, {
-    tableIds: ["tA"],
-    reservationDate: t("2026-05-25T19:00:00Z"),
-  });
-  assert.ok(conflict);
+  const db = makeMock([row({ tableId: "tX", linkedTableId: "tA" })]);
+  assert.ok(await findTableConflict(db, { tableIds: ["tA"], reservationDate: t("2026-05-26T19:00:00-06:00") }));
 });
 
 test("no matchea si la mesa es distinta", async () => {
-  const db = makeMock([
-    { id: "r1", date: t("2026-05-25T19:00:00Z"), status: "CONFIRMED",
-      guestName: "x", tableId: "tA", linkedTableId: null, thirdTableId: null, fourthTableId: null },
-  ]);
-  const conflict = await findTableConflict(db, {
-    tableIds: ["tB"],
-    reservationDate: t("2026-05-25T19:00:00Z"),
-  });
-  assert.equal(conflict, null);
+  const db = makeMock([row({ tableId: "tA" })]);
+  assert.equal(await findTableConflict(db, { tableIds: ["tB"], reservationDate: t("2026-05-26T19:00:00-06:00") }), null);
 });
 
-// ─── excludeReservationId (caso edición) ────────────────────────────
-
+// ─── excludeReservationId (edición) ─────────────────────────────────
 test("excludeReservationId evita auto-conflicto", async () => {
-  const db = makeMock([
-    { id: "r1", date: t("2026-05-25T19:00:00Z"), status: "CONFIRMED",
-      guestName: "x", tableId: "tA", linkedTableId: null, thirdTableId: null, fourthTableId: null },
-  ]);
-  // Editando r1 al mismo slot → no debe chocar consigo misma.
-  const conflict = await findTableConflict(db, {
-    tableIds: ["tA"],
-    reservationDate: t("2026-05-25T19:00:00Z"),
-    excludeReservationId: "r1",
-  });
-  assert.equal(conflict, null);
+  const db = makeMock([row({ id: "r1" })]);
+  assert.equal(
+    await findTableConflict(db, { tableIds: ["tA"], reservationDate: t("2026-05-26T19:00:00-06:00"), excludeReservationId: "r1" }),
+    null,
+  );
 });
 
 // ─── tableIds vacío ─────────────────────────────────────────────────
-
 test("tableIds vacío devuelve null (corto-circuito)", async () => {
-  const db = makeMock([]);
-  const conflict = await findTableConflict(db, {
-    tableIds: [],
-    reservationDate: t("2026-05-25T19:00:00Z"),
-  });
-  assert.equal(conflict, null);
+  assert.equal(await findTableConflict(makeMock([]), { tableIds: [], reservationDate: t("2026-05-26T19:00:00-06:00") }), null);
 });
 
 // ─── findOccupiedTableIds (bulk para autoAssign) ────────────────────
-
-test("findOccupiedTableIds agrupa todas las posiciones de mesa", async () => {
+test("findOccupiedTableIds agrupa el turno; excluye COMPLETED y otros turnos", async () => {
   const db = makeMock([
-    { id: "r1", date: t("2026-05-25T19:00:00Z"), status: "CONFIRMED",
-      guestName: "x", tableId: "tA", linkedTableId: "tB", thirdTableId: null, fourthTableId: null },
-    { id: "r2", date: t("2026-05-25T19:30:00Z"), status: "PENDING",
-      guestName: "y", tableId: "tC", linkedTableId: null, thirdTableId: "tD", fourthTableId: null },
-    { id: "r3", date: t("2026-05-25T19:00:00Z"), status: "COMPLETED",
-      guestName: "z", tableId: "tE", linkedTableId: null, thirdTableId: null, fourthTableId: null },
+    row({ id: "r1", date: t("2026-05-26T19:00:00-06:00"), tableId: "tA", linkedTableId: "tB" }),
+    row({ id: "r2", date: t("2026-05-26T20:00:00-06:00"), status: "PENDING", tableId: "tC", thirdTableId: "tD" }),
+    row({ id: "r3", date: t("2026-05-26T19:00:00-06:00"), status: "COMPLETED", tableId: "tE" }),
+    row({ id: "r4", date: t("2026-05-26T10:00:00-06:00"), tableId: "tF" }), // brunch, otro turno
   ]);
-  const occupied = await findOccupiedTableIds(db, t("2026-05-25T19:15:00Z"));
-  // r3 está COMPLETED → no cuenta. r1 + r2 → tA, tB, tC, tD.
+  const occupied = await findOccupiedTableIds(db, t("2026-05-26T21:00:00-06:00")); // cena
   assert.deepEqual([...occupied].sort(), ["tA", "tB", "tC", "tD"]);
-});
-
-// ─── Sanity check ───────────────────────────────────────────────────
-
-test("CONFLICT_WINDOW_MS === 4 horas exactas", () => {
-  assert.equal(CONFLICT_WINDOW_MS, 4 * 3600 * 1000);
 });

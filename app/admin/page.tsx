@@ -9,6 +9,7 @@ import type { SelectOption } from "@/components/ui/GoldSelect";
 import { GuestsPicker } from "@/components/ui/GuestsPicker";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { useSession } from "@/lib/session-client";
+import { tableFitsGuests } from "@/lib/tableCapacity";
 
 const OCCASION_OPTIONS: SelectOption[] = [
   { value: "",                  label: "— Sin celebración —"  },
@@ -236,7 +237,7 @@ export default function AdminPage() {
         await fetchReservations();
     };
 
-    const moveTable = async (id: string, selection: TableSelection | null, sectionPreference: string) => {
+    const moveTable = async (id: string, selection: TableSelection | null, sectionPreference: string, forceAssign = false) => {
         if (!userId) return;
         const res = await fetch(`/api/admin/reservations/${id}`, {
             method:  "PATCH",
@@ -249,6 +250,7 @@ export default function AdminPage() {
                 thirdTableId:      selection?.thirdTableId  ?? null,
                 fourthTableId:     selection?.fourthTableId ?? null,
                 sectionPreference,
+                forceAssign,
             }),
         });
         const data = await res.json();
@@ -633,8 +635,8 @@ export default function AdminPage() {
                     reservation={moveTarget}
                     userId={userId}
                     onClose={() => setMoveTarget(null)}
-                    onMove={async (selection, sectionPref) => {
-                        await moveTable(moveTarget.id, selection, sectionPref);
+                    onMove={async (selection, sectionPref, forceAssign) => {
+                        await moveTable(moveTarget.id, selection, sectionPref, forceAssign);
                         setMoveTarget(null);
                     }}
                 />
@@ -761,7 +763,7 @@ function MoveTableModal({
     reservation: Reservation;
     userId: string;
     onClose: () => void;
-    onMove: (selection: TableSelection | null, sectionPref: string) => Promise<void>;
+    onMove: (selection: TableSelection | null, sectionPref: string, forceAssign?: boolean) => Promise<void>;
 }) {
     const date    = new Date(reservation.date).toLocaleDateString("en-CA", { timeZone: MX_TZ });
     const time    = new Date(reservation.date).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: MX_TZ });
@@ -798,16 +800,38 @@ function MoveTableModal({
 
     const isLargeGroupReady = !!(availability?.isLargeGroup && availability?.hasAvailability);
 
-    const handleConfirm = async () => {
-        if (!selection && !isLargeGroupReady) return;
+    // Override de capacidad: si la(s) mesa(s) elegida(s) no cubren a los
+    // comensales, se pide confirmación antes de mandar forceAssign:true.
+    const [capacityWarn, setCapacityWarn] = useState<{ totalCap: number } | null>(null);
+
+    const submit = async (force: boolean) => {
         setSaving(true);
         setError(null);
+        setCapacityWarn(null);
         try {
-            await onMove(selection, selectedSection);
+            await onMove(selection, selectedSection, force);
         } catch (e: unknown) {
             setError(e instanceof Error ? e.message : "Error al mover mesa");
             setSaving(false);
         }
+    };
+
+    const handleConfirm = () => {
+        if (!selection && !isLargeGroupReady) return;
+        // Pre-check de capacidad usando los cupos del mapa de disponibilidad.
+        if (selection && availability?.tables) {
+            const ids = [selection.tableId, selection.linkedTableId, selection.thirdTableId, selection.fourthTableId]
+                .filter(Boolean) as string[];
+            const totalCap = ids.reduce(
+                (sum, id) => sum + (availability.tables!.find((t) => t.id === id)?.capacity ?? 0),
+                0,
+            );
+            if (totalCap > 0 && !tableFitsGuests(totalCap, reservation.guests)) {
+                setCapacityWarn({ totalCap });
+                return;
+            }
+        }
+        submit(false);
     };
 
     const selLabel = selection
@@ -939,6 +963,22 @@ function MoveTableModal({
                         {saving ? "Guardando…" : "Confirmar Cambio"}
                     </button>
                 </div>
+
+                {/* Confirmación de override de capacidad */}
+                {capacityWarn && (
+                    <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.72)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+                        <div style={{ background: "#22302e", border: "1px solid rgba(186,132,60,0.4)", borderRadius: 14, padding: "24px 22px", maxWidth: 380, width: "100%" }}>
+                            <p style={{ margin: 0, fontSize: "0.65rem", letterSpacing: "0.18em", textTransform: "uppercase", color: "#ba843c", fontWeight: 700 }}>Capacidad insuficiente</p>
+                            <p style={{ margin: "10px 0 0", color: "#f5f1e8", fontSize: "0.92rem", lineHeight: 1.5 }}>
+                                Esta mesa es para <b>{capacityWarn.totalCap}</b> personas, vas a sentar <b>{reservation.guests}</b>. ¿Continuar?
+                            </p>
+                            <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+                                <button onClick={() => setCapacityWarn(null)} style={{ flex: 1, padding: "10px 0", background: "transparent", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 9, color: "rgba(245,241,232,0.6)", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer" }}>Cancelar</button>
+                                <button onClick={() => submit(true)} disabled={saving} style={{ flex: 1, padding: "10px 0", background: "#ba843c", border: "none", borderRadius: 9, color: "#fff", fontWeight: 700, fontSize: "0.8rem", cursor: "pointer" }}>Sí, continuar</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -986,46 +1026,11 @@ function EditReservationModal({
     const [notes,       setNotes]       = useState(reservation.notes ?? "");
     const [occasion,    setOccasion]    = useState(reservation.occasion ?? "");
 
-    const [availability, setAvailability] = useState<AvailabilityData | null>(null);
-    const [selection,    setSelection]    = useState<TableSelection | null>(null);
-    const [avLoading,    setAvLoading]    = useState(false);
-    const [avError,      setAvError]      = useState<string | null>(null);
     const [saving,       setSaving]       = useState(false);
     const [error,        setError]        = useState<string | null>(null);
 
-    const fetchAvailability = useCallback(async (sec: string, d: string, t: string, g: number) => {
-        setAvLoading(true);
-        setAvError(null);
-        setSelection(null);
-        setAvailability(null);
-        try {
-            const params = new URLSearchParams({ section: sec, date: d, time: t, guests: String(g) });
-            const res  = await fetch(`/api/reservations/available-tables?${params}`);
-            const data = await res.json();
-            if (!data.success) throw new Error(data.error);
-            setAvailability(data.data);
-        } catch (e: unknown) {
-            setAvError(e instanceof Error ? e.message : "Error al buscar mesas");
-        } finally {
-            setAvLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        if (date && time && guests > 0 && section) {
-            fetchAvailability(section, date, time, guests);
-        }
-    }, [section, date, time, guests, fetchAvailability]);
-
-    const selLabel = selection
-        ? selection.fourthTableNumber
-            ? `M${selection.tableNumber} + M${selection.linkedTableNumber} + M${selection.thirdTableNumber} + M${selection.fourthTableNumber}`
-            : selection.thirdTableNumber
-            ? `M${selection.tableNumber} + M${selection.linkedTableNumber} + M${selection.thirdTableNumber}`
-            : selection.linkedTableNumber
-            ? `M${selection.tableNumber} + M${selection.linkedTableNumber}`
-            : `Mesa ${selection.tableNumber}`
-        : null;
+    // Fase A: el modal de editar ya NO muestra el mapa de mesas ni auto-asigna.
+    // Editar preserva la mesa actual; la mesa se cambia solo desde "Cambiar Mesa".
 
     const handleSave = async () => {
         setSaving(true);
@@ -1034,10 +1039,6 @@ function EditReservationModal({
             await onSave({
                 date, time, guests, guestName, guestPhone,
                 sectionPreference: section || undefined,
-                tableId:            selection?.tableId,
-                linkedTableId:      selection?.linkedTableId,
-                thirdTableId:       selection?.thirdTableId,
-                fourthTableId:      selection?.fourthTableId,
                 notes:              notes    || undefined,
                 occasion:           occasion || undefined,
             });
@@ -1153,23 +1154,11 @@ function EditReservationModal({
                     </div>
                 </div>
 
-                {/* Mapa de mesas */}
-                <div>
-                    <p style={{ ...lbl, marginBottom: 10 }}>Mesa {selLabel ? `· ${selLabel}` : "· (se auto-asignará si no eliges)"}</p>
-                    {avLoading && <p style={{ textAlign: "center", color: "rgba(245,241,232,0.4)", fontSize: "0.85rem" }}>Cargando mesas…</p>}
-                    {!avLoading && availability && !availability.isLargeGroup && (
-                        <TableMap data={availability} guests={guests} selection={selection} onSelect={setSelection} />
-                    )}
-                    {!avLoading && availability?.isLargeGroup && (
-                        <p style={{ textAlign: "center", color: availability.hasAvailability ? "#ba843c" : "#e05555", fontSize: "0.85rem" }}>
-                            {availability.hasAvailability ? `✓ Área ${section} disponible para grupo grande.` : `✗ Área ${section} bloqueada ese día.`}
-                        </p>
-                    )}
-                    {!avLoading && availability && !availability.hasAvailability && !availability.isLargeGroup && (
-                        <p style={{ textAlign: "center", color: "#e05555", fontSize: "0.82rem" }}>Sin mesas disponibles en {section} para este turno.</p>
-                    )}
-                    {avError && <p style={{ color: "#e05555", fontSize: "0.82rem" }}>⚠ {avError}</p>}
-                </div>
+                {/* Mesa: NO se cambia desde aquí. Editar preserva la mesa actual;
+                    para reubicar la reserva usar el botón "Cambiar Mesa". */}
+                <p style={{ ...lbl, marginBottom: 0, color: "rgba(245,241,232,0.38)", textTransform: "none", letterSpacing: 0, fontWeight: 500 }}>
+                    La mesa asignada no cambia al editar. Usa <b style={{ color: "rgba(245,241,232,0.6)" }}>“Cambiar Mesa”</b> para reubicar la reserva.
+                </p>
 
                 {error && <p style={{ color: "#e05555", fontSize: "0.82rem", margin: 0 }}>⚠ {error}</p>}
 
