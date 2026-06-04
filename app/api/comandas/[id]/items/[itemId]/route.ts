@@ -1,0 +1,65 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getStaffSession } from "@/lib/staff-auth-server";
+import { canCancelItem } from "@/lib/comandaRules";
+import { TENANT, COMANDA_INCLUDE, recalcComandaTotals } from "@/lib/comanda";
+import type { ApiResponse } from "@/types";
+
+function parseId(raw: string): number | null {
+  const n = Number(raw);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+
+/**
+ * DELETE /api/comandas/:id/items/:itemId — cancela (soft) un item.
+ * - status PENDING: WAITER dueño o CAPTAIN/MANAGER.
+ * - status SENT o posterior: SOLO CAPTAIN/MANAGER, con body.reason obligatorio.
+ */
+export async function DELETE(request: NextRequest, { params }: { params: { id: string; itemId: string } }) {
+  const s = await getStaffSession(request);
+  if (!s) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 401 });
+
+  const id = parseId(params.id);
+  const itemId = parseId(params.itemId);
+  if (!id || !itemId) return NextResponse.json<ApiResponse>({ success: false, error: "ID inválido" }, { status: 400 });
+
+  const item = await prisma.comandaItem.findFirst({
+    where: { id: itemId, comandaId: id, tenantId: TENANT },
+    include: { comanda: { select: { waiterId: true, status: true } } },
+  });
+  if (!item) return NextResponse.json<ApiResponse>({ success: false, error: "Item no encontrado" }, { status: 404 });
+  if (item.status === "CANCELLED") {
+    return NextResponse.json<ApiResponse>({ success: false, error: "El item ya está cancelado" }, { status: 409 });
+  }
+
+  const isOwner = item.comanda.waiterId === s.staffId;
+  if (!canCancelItem({ role: s.role, isOwner, itemStatus: item.status })) {
+    const sentMsg = "Item ya enviado a cocina: solo Capitán/Manager puede cancelarlo";
+    return NextResponse.json<ApiResponse>(
+      { success: false, error: item.status === "PENDING" ? "No autorizado" : sentMsg },
+      { status: 403 },
+    );
+  }
+
+  const body = await request.json().catch(() => ({}));
+  const reason: string | undefined = typeof body?.reason === "string" ? body.reason.trim() : undefined;
+
+  // Cancelar un item ya enviado exige motivo (auditoría).
+  if (item.status !== "PENDING" && !reason) {
+    return NextResponse.json<ApiResponse>({ success: false, error: "Motivo (reason) obligatorio para cancelar un item enviado" }, { status: 400 });
+  }
+
+  await prisma.comandaItem.update({
+    where: { id: itemId },
+    data: {
+      status: "CANCELLED",
+      cancelledById: s.staffId,
+      cancelledReason: reason ?? null,
+      cancelledAt: new Date(),
+    },
+  });
+
+  await recalcComandaTotals(id);
+  const updated = await prisma.comanda.findFirst({ where: { id, tenantId: TENANT }, include: COMANDA_INCLUDE });
+  return NextResponse.json<ApiResponse>({ success: true, data: updated });
+}

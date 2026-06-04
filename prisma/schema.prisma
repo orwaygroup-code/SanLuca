@@ -86,10 +86,16 @@ model Staff {
   createdById   Int?
   updatedAt     DateTime   @updatedAt
 
-  // NOTA: las relaciones a Comanda / ComandaItem / ComandaPrint
-  // (comandasOpened, comandasClosed, itemsAdded, printsExecuted,
-  // printsAuthorized) se agregan en la Fase B.1, cuando esos modelos
-  // existan. Añadirlas ahora rompe la validación del schema.
+  // Relaciones del sistema de Comandas (Fase B.1)
+  comandasAsWaiter      Comanda[]             @relation("ComandaWaiter")
+  comandasOpened        Comanda[]             @relation("ComandaOpener")
+  comandasClosed        Comanda[]             @relation("ComandaCloser")
+  itemsAdded            ComandaItem[]
+  printsExecuted        ComandaPrint[]        @relation("PrintExecutor")
+  printsAuthorized      ComandaPrint[]        @relation("PrintAuthorizer")
+  tableChangesAuthored  ComandaTableChange[]  @relation("TableChangeAuthor")
+  waiterChangesAuthored ComandaWaiterChange[] @relation("WaiterChangeAuthor")
+  settingsUpdated       RestaurantSettings[]
 
   @@index([tenantId, role, active])
   @@index([username])
@@ -119,6 +125,8 @@ model Dish {
   categoryId       String
   category         MenuCategory      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   reservationItems ReservationItem[] // ← platillos pre-ordenados que usan este dish
+  prepArea         PrepArea?         // área de preparación (Fase B). NULL = no clasificado
+  comandaItems     ComandaItem[]
   createdAt        DateTime          @default(now())
 }
 
@@ -148,6 +156,7 @@ model Table {
   fourthReservations Reservation[] @relation("FourthTable")
   createdAt          DateTime      @default(now())
   block              TableBlock?
+  comandas           Comanda[]
 
   @@unique([number, sectionId])
   @@index([sectionId])
@@ -234,6 +243,9 @@ model Reservation {
 
   // ── Platillos pre-ordenados ────────────
   items             ReservationItem[]
+
+  // ── Comanda (Fase B) — 1:1 opcional ────
+  comanda           Comanda?
 
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
@@ -507,4 +519,214 @@ model Credit {
 
   @@index([customerEmail, used])
   @@index([customerPhone, used])
+}
+
+// ============================================
+// COMANDAS — punto de venta operativo (Fase B.1)
+// Realm de Staff (sl_staff). Multi-tenant ready (tenantId @default(1)).
+// FK a Table/Reservation/Dish son String (cuid); FK a Staff son Int.
+// ============================================
+
+enum ComandaStatus {
+  OPEN              // recién abierta, agregando items
+  IN_SERVICE        // items enviados a cocina/barra, atendiendo
+  AWAITING_PAYMENT  // mesero pidió la cuenta, esperando caja
+  PAID              // pagada y cerrada (Operación marcó)
+  CANCELLED         // cancelada (solo Capitán/Manager)
+}
+
+enum PrepArea {
+  BARRA    // bebidas
+  COCINA   // alimentos
+  // Futuro: agregar COCINA_CALIENTE, COCINA_FRIA, PIZZAS si se requiere
+  // dividir. Sin romper data existente (los valores actuales se conservan).
+}
+
+enum ComandaItemStatus {
+  PENDING       // agregada, NO enviada aún
+  SENT          // enviada a cocina/barra (impresa)
+  IN_PREP       // (futuro KDS) cocina la está haciendo
+  READY         // (futuro) cocina/barra dice listo
+  DELIVERED     // mesero entregó a cliente
+  CANCELLED     // cancelada (con motivo y autorizador)
+}
+
+enum PrintType {
+  KITCHEN_BAR       // ticket a barra/cocina al "Enviar"
+  CUSTOMER_FINAL    // ticket de cliente al pedir cuenta
+  CUSTOMER_REPRINT  // reimpresión autorizada por capitán
+}
+
+enum PrintTarget {
+  BARRA
+  COCINA
+  CAJA
+}
+
+model Comanda {
+  id                 Int             @id @default(autoincrement())
+  tenantId           Int             @default(1)
+
+  folio              String          @unique // COM-2026-0001
+
+  tableId            String          // Table.id es cuid → String (adaptado del plan que decía Int)
+  table              Table           @relation(fields: [tableId], references: [id])
+
+  reservationId      String?         @unique
+  reservation        Reservation?    @relation(fields: [reservationId], references: [id])
+
+  guestsActual       Int
+
+  // Mesero PRINCIPAL actual (puede cambiar por intervención del Capitán)
+  waiterId           Int
+  waiter             Staff           @relation("ComandaWaiter", fields: [waiterId], references: [id])
+
+  // Quién abrió la comanda (auditoría inicial)
+  openedById         Int
+  openedBy           Staff           @relation("ComandaOpener", fields: [openedById], references: [id])
+
+  // Quién la cerró (al pasar a PAID)
+  closedById         Int?
+  closedBy           Staff?          @relation("ComandaCloser", fields: [closedById], references: [id])
+
+  status             ComandaStatus   @default(OPEN)
+
+  // Totales cacheados (calculados en backend; IVA según RestaurantSettings)
+  subtotal           Decimal         @default(0) @db.Decimal(10, 2)
+  taxAmount          Decimal         @default(0) @db.Decimal(10, 2)
+  total              Decimal         @default(0) @db.Decimal(10, 2)
+
+  notes              String?         @db.Text
+  shift              String?         // "brunch" | "cena"
+
+  items              ComandaItem[]
+  prints             ComandaPrint[]
+  tableChanges       ComandaTableChange[]
+  waiterChanges      ComandaWaiterChange[]
+
+  openedAt           DateTime        @default(now())
+  closedAt           DateTime?
+  cancelledAt        DateTime?
+  cancelledById      Int?
+  cancellationReason String?
+
+  @@index([tenantId, status])
+  @@index([tenantId, tableId, status])
+  @@index([tenantId, waiterId, openedAt])
+  @@index([tenantId, openedAt])
+}
+
+model ComandaItem {
+  id                 Int                @id @default(autoincrement())
+  tenantId           Int                @default(1)
+
+  comandaId          Int
+  comanda            Comanda            @relation(fields: [comandaId], references: [id], onDelete: Cascade)
+
+  dishId             String
+  dish               Dish               @relation(fields: [dishId], references: [id])
+
+  // Snapshot al agregar (el menú puede cambiar después)
+  dishNameSnapshot   String
+  unitPriceSnapshot  Decimal            @db.Decimal(10, 2)
+  prepAreaSnapshot   PrepArea
+
+  quantity           Int                @default(1)
+
+  modifiers          String?            @db.Text
+  modifiersExtraCost Decimal            @default(0) @db.Decimal(10, 2)
+  kitchenNotes       String?            @db.Text
+
+  status             ComandaItemStatus  @default(PENDING)
+  lineTotal          Decimal            @db.Decimal(10, 2)
+
+  addedById          Int
+  addedBy            Staff              @relation(fields: [addedById], references: [id])
+  addedAt            DateTime           @default(now())
+
+  sentAt             DateTime?
+  deliveredAt        DateTime?
+
+  cancelledById      Int?
+  cancelledReason    String?
+  cancelledAt        DateTime?
+
+  @@index([tenantId, comandaId, status])
+  @@index([tenantId, status])
+}
+
+model ComandaPrint {
+  id                  Int          @id @default(autoincrement())
+  tenantId            Int          @default(1)
+
+  comandaId           Int
+  comanda             Comanda      @relation(fields: [comandaId], references: [id], onDelete: Cascade)
+
+  type                PrintType
+  target              PrintTarget
+
+  executedById        Int
+  executedBy          Staff        @relation("PrintExecutor", fields: [executedById], references: [id])
+
+  authorizedById      Int?
+  authorizedBy        Staff?       @relation("PrintAuthorizer", fields: [authorizedById], references: [id])
+  authorizationReason String?
+
+  // Split bills: subconjunto de items impresos en este ticket.
+  splitConfig         Json?        // { ticketNumber, itemIds: [...], total }
+  ticketsPrinted      Int          @default(1)
+
+  status              String       @default("SUCCESS") // SUCCESS | FAILED | RETRYING
+  attemptCount        Int          @default(1)
+  errorMessage        String?
+
+  printedAt           DateTime     @default(now())
+
+  @@index([tenantId, comandaId])
+  @@index([tenantId, type])
+}
+
+model ComandaTableChange {
+  id          Int      @id @default(autoincrement())
+  tenantId    Int      @default(1)
+  comandaId   Int
+  comanda     Comanda  @relation(fields: [comandaId], references: [id], onDelete: Cascade)
+  fromTableId String   // scalar (Table.id) — snapshot de auditoría
+  toTableId   String
+  changedById Int      // siempre Captain o Manager
+  changedBy   Staff    @relation("TableChangeAuthor", fields: [changedById], references: [id])
+  reason      String?
+  changedAt   DateTime @default(now())
+
+  @@index([tenantId, comandaId])
+}
+
+model ComandaWaiterChange {
+  id           Int      @id @default(autoincrement())
+  tenantId     Int      @default(1)
+  comandaId    Int
+  comanda      Comanda  @relation(fields: [comandaId], references: [id], onDelete: Cascade)
+  fromWaiterId Int      // scalar (Staff.id) — snapshot de auditoría
+  toWaiterId   Int
+  changedById  Int      // siempre Captain o Manager
+  changedBy    Staff    @relation("WaiterChangeAuthor", fields: [changedById], references: [id])
+  reason       String?
+  changedAt    DateTime @default(now())
+
+  @@index([tenantId, comandaId])
+}
+
+// ============================================
+// CONFIGURACIÓN DEL RESTAURANTE (IVA configurable, Fase B.1)
+// 1 fila por tenant. El cálculo de totales la consulta.
+// ============================================
+
+model RestaurantSettings {
+  id          Int      @id @default(autoincrement())
+  tenantId    Int      @default(1) @unique
+  taxEnabled  Boolean  @default(true)
+  taxRate     Decimal  @default(0.16) @db.Decimal(5, 4)
+  updatedAt   DateTime @updatedAt
+  updatedById Int?
+  updatedBy   Staff?   @relation(fields: [updatedById], references: [id])
 }
