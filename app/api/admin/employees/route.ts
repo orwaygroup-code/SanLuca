@@ -1,31 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireManager } from "@/lib/staff-auth-server";
+import { requireAdminSession } from "@/lib/dualAuth";
 import { staffCreateSchema } from "@/lib/validations";
 import { resolvePin, PinConflictError } from "@/lib/staff";
+import { TENANT } from "@/lib/comanda";
 import type { ApiResponse } from "@/types";
+
+/**
+ * CRUD de empleados — MIGRADO de /api/admin/staff a /api/admin/employees (Fase B.2).
+ * Realm: sl_session ADMIN (Ricardo). Antes era sl_staff MANAGER.
+ */
 
 const PUBLIC_SELECT = {
   id: true, username: true, fullName: true, role: true, active: true,
   lastLoginAt: true, lastShift: true, createdAt: true, updatedAt: true,
 } as const;
 
-/**
- * GET /api/admin/staff?role=WAITER&active=true&q=luis
- * Lista de empleados con filtros. Solo MANAGER.
- */
+/** GET /api/admin/employees?role=&active=&q= — lista con filtros. ADMIN. */
 export async function GET(request: NextRequest) {
-  const m = await requireManager(request);
-  if (!m) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
+  const a = await requireAdminSession(request);
+  if (!a) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
 
   const { searchParams } = new URL(request.url);
   const role = searchParams.get("role");
-  const active = searchParams.get("active"); // "true" | "false" | null (todos)
+  const active = searchParams.get("active");
   const q = searchParams.get("q")?.trim();
 
   const staff = await prisma.staff.findMany({
     where: {
-      tenantId: m.tenantId,
+      tenantId: TENANT,
       ...(role && ["WAITER", "OPERATION", "CAPTAIN", "MANAGER"].includes(role)
         ? { role: role as "WAITER" | "OPERATION" | "CAPTAIN" | "MANAGER" }
         : {}),
@@ -42,14 +45,10 @@ export async function GET(request: NextRequest) {
   return NextResponse.json<ApiResponse>({ success: true, data: staff });
 }
 
-/**
- * POST /api/admin/staff  { username, fullName, role, pin? }
- * Crea un empleado. Si no se manda PIN, se genera uno y se devuelve UNA vez
- * en `data.pin` para mostrarlo en pantalla. Solo MANAGER.
- */
+/** POST /api/admin/employees { username, fullName, role, pin? } — crea. ADMIN. */
 export async function POST(request: NextRequest) {
-  const m = await requireManager(request);
-  if (!m) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
+  const a = await requireAdminSession(request);
+  if (!a) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
 
   const body = await request.json().catch(() => null);
   const parsed = staffCreateSchema.safeParse(body);
@@ -61,19 +60,18 @@ export async function POST(request: NextRequest) {
   const { username, fullName, role, pin: desiredPin } = parsed.data;
 
   try {
-    const { pin, hash } = await resolvePin(desiredPin, { tenantId: m.tenantId });
+    const { pin, hash } = await resolvePin(desiredPin, { tenantId: TENANT });
     const created = await prisma.staff.create({
       data: {
-        tenantId: m.tenantId,
+        tenantId: TENANT,
         username: username.toLowerCase(),
         fullName,
         role,
         pinHash: hash,
-        createdById: m.staffId,
+        createdById: a.staffId,
       },
       select: PUBLIC_SELECT,
     });
-    // `pin` plano se incluye solo en esta respuesta de creación.
     return NextResponse.json<ApiResponse>({ success: true, data: { ...created, pin } }, { status: 201 });
   } catch (e) {
     if (e instanceof PinConflictError) {

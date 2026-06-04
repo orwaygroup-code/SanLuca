@@ -5,10 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
 const ROLE_HOME: Record<string, string> = {
-  MANAGER:   "/admin/staff",
-  OPERATION: "/staff/login", // Fase B: /staff/operacion
-  CAPTAIN:   "/staff/login", // Fase B: /staff/capitan
-  WAITER:    "/staff/login", // Fase B: /staff/mesero
+  MANAGER:   "/staff/capitan",   // manager vía PIN = vista supervisora sl_staff (Ricardo usa /admin con sl_session)
+  OPERATION: "/staff/operacion",
+  CAPTAIN:   "/staff/capitan",
+  WAITER:    "/staff/comandas",
 };
 
 const ERROR_MSG: Record<string, string> = {

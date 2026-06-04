@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getStaffSession } from "@/lib/staff-auth-server";
-import { canCancelItem } from "@/lib/comandaRules";
+import { resolveActor, isSupervisor } from "@/lib/dualAuth";
 import { TENANT, COMANDA_INCLUDE, recalcComandaTotals } from "@/lib/comanda";
 import type { ApiResponse } from "@/types";
 
@@ -12,12 +11,12 @@ function parseId(raw: string): number | null {
 
 /**
  * DELETE /api/comandas/:id/items/:itemId — cancela (soft) un item.
- * - status PENDING: WAITER dueño o CAPTAIN/MANAGER.
- * - status SENT o posterior: SOLO CAPTAIN/MANAGER, con body.reason obligatorio.
+ * - status PENDING: WAITER dueño, o supervisor (CAPTAIN/MANAGER/ADMIN).
+ * - status SENT o posterior: SOLO supervisor (CAPTAIN/MANAGER/ADMIN), con body.reason obligatorio.
  */
 export async function DELETE(request: NextRequest, { params }: { params: { id: string; itemId: string } }) {
-  const s = await getStaffSession(request);
-  if (!s) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 401 });
+  const actor = await resolveActor(request);
+  if (!actor) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 401 });
 
   const id = parseId(params.id);
   const itemId = parseId(params.itemId);
@@ -32,9 +31,11 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     return NextResponse.json<ApiResponse>({ success: false, error: "El item ya está cancelado" }, { status: 409 });
   }
 
-  const isOwner = item.comanda.waiterId === s.staffId;
-  if (!canCancelItem({ role: s.role, isOwner, itemStatus: item.status })) {
-    const sentMsg = "Item ya enviado a cocina: solo Capitán/Manager puede cancelarlo";
+  const supervisor = isSupervisor(actor);
+  const isOwnerWaiter = actor.realm === "staff" && actor.role === "WAITER" && item.comanda.waiterId === actor.staffId;
+  const allowed = item.status === "PENDING" ? (supervisor || isOwnerWaiter) : supervisor;
+  if (!allowed) {
+    const sentMsg = "Item ya enviado a cocina: solo Capitán/Manager/Admin puede cancelarlo";
     return NextResponse.json<ApiResponse>(
       { success: false, error: item.status === "PENDING" ? "No autorizado" : sentMsg },
       { status: 403 },
@@ -53,7 +54,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     where: { id: itemId },
     data: {
       status: "CANCELLED",
-      cancelledById: s.staffId,
+      cancelledById: actor.staffId,
       cancelledReason: reason ?? null,
       cancelledAt: new Date(),
     },
