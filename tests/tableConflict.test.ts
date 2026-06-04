@@ -5,20 +5,24 @@
  * Ejecutar:
  *   npx tsx --test tests/tableConflict.test.ts
  *
- * Reglas validadas (ver lib/tableConflict.ts) — modelo POR TURNO:
+ * Reglas validadas (ver lib/tableConflict.ts) — ventana ±3.5h:
  *   - COMPLETED / CANCELLED / NO_SHOW NO bloquean.
- *   - Bloquea si la reserva existente cae en el MISMO turno (brunch/cena)
- *     que la nueva. El turnover ±4h fue eliminado (Fase A).
+ *   - Separación < 3.5h bloquea; == 3.5h o > 3.5h permite (gt/lt exclusivos).
  *   - Match contra tableId / linkedTableId / thirdTableId / fourthTableId.
  *   - excludeReservationId evita auto-conflicto en edición.
  *
- * Fechas con offset -06:00 (hora México) para que el turno sea inequívoco.
+ * La ventana es tz-agnóstica (diferencia en ms), por eso usamos timestamps UTC.
  */
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { findTableConflict, findOccupiedTableIds } from "../lib/tableConflict";
+import {
+  findTableConflict,
+  findOccupiedTableIds,
+  getReservationWindow,
+  RESERVATION_WINDOW_HOURS,
+} from "../lib/tableConflict";
 
 interface MockReservation {
   id:             string;
@@ -73,88 +77,93 @@ function makeMock(rows: MockReservation[]) {
 
 const t = (iso: string) => new Date(iso);
 const row = (over: Partial<MockReservation>): MockReservation => ({
-  id: "r1", date: t("2026-05-26T19:00:00-06:00"), status: "CONFIRMED", guestName: "x",
+  id: "r1", date: t("2026-05-25T19:00:00Z"), status: "CONFIRMED", guestName: "x",
   tableId: "tA", linkedTableId: null, thirdTableId: null, fourthTableId: null, ...over,
+});
+
+// ─── Sanity ─────────────────────────────────────────────────────────
+test("RESERVATION_WINDOW_HOURS === 3.5", () => {
+  assert.equal(RESERVATION_WINDOW_HOURS, 3.5);
+});
+
+test("getReservationWindow devuelve date ± 3.5h", () => {
+  const { from, to } = getReservationWindow(t("2026-05-25T19:00:00Z"));
+  assert.equal(from.toISOString(), "2026-05-25T15:30:00.000Z");
+  assert.equal(to.toISOString(),   "2026-05-25T22:30:00.000Z");
 });
 
 // ─── Estados que no bloquean ────────────────────────────────────────
 for (const status of ["COMPLETED", "CANCELLED", "NO_SHOW"] as const) {
-  test(`${status} no bloquea aunque sea misma hora/turno`, async () => {
+  test(`${status} no bloquea aunque sea misma hora`, async () => {
     const db = makeMock([row({ status })]);
-    assert.equal(
-      await findTableConflict(db, { tableIds: ["tA"], reservationDate: t("2026-05-26T19:00:00-06:00") }),
-      null,
-    );
+    assert.equal(await findTableConflict(db, { tableIds: ["tA"], reservationDate: t("2026-05-25T19:00:00Z") }), null);
   });
 }
 
-// ─── Modelo por TURNO (sin ±4h) ─────────────────────────────────────
-test("misma cena BLOQUEA aunque estén a 4h (turnover ±4h eliminado)", async () => {
-  // Antes: 14:30 + 18:30 = exacto 4h → permitía. Ahora: mismo turno cena → bloquea.
-  const db = makeMock([row({ date: t("2026-05-26T14:30:00-06:00") })]);
-  const conflict = await findTableConflict(db, {
-    tableIds: ["tA"],
-    reservationDate: t("2026-05-26T18:30:00-06:00"),
-  });
-  assert.ok(conflict, "misma mesa en el mismo turno de cena debe bloquear");
-  assert.equal(conflict?.id, "r1");
-});
-
-test("brunch vs cena = distinto turno → PERMITE", async () => {
-  const db = makeMock([row({ date: t("2026-05-26T10:00:00-06:00") })]); // brunch
-  const conflict = await findTableConflict(db, {
-    tableIds: ["tA"],
-    reservationDate: t("2026-05-26T20:00:00-06:00"), // cena
-  });
+// ─── Separaciones (criterios de aceptación) ─────────────────────────
+test("2 reservas misma mesa separadas 4h → PERMITE (4h > 3.5h)", async () => {
+  const db = makeMock([row({ date: t("2026-05-25T19:00:00Z") })]);
+  const conflict = await findTableConflict(db, { tableIds: ["tA"], reservationDate: t("2026-05-25T23:00:00Z") });
   assert.equal(conflict, null);
 });
 
-test("misma hora exacta bloquea", async () => {
-  const db = makeMock([row({ date: t("2026-05-26T19:00:00-06:00") })]);
-  assert.ok(await findTableConflict(db, { tableIds: ["tA"], reservationDate: t("2026-05-26T19:00:00-06:00") }));
+test("2 reservas misma mesa separadas 3h → RECHAZA (3h < 3.5h)", async () => {
+  const db = makeMock([row({ date: t("2026-05-25T19:00:00Z") })]);
+  const conflict = await findTableConflict(db, { tableIds: ["tA"], reservationDate: t("2026-05-25T22:00:00Z") });
+  assert.ok(conflict, "separación de 3h debe bloquear");
+  assert.equal(conflict?.id, "r1");
 });
 
-test("otro día, mismo horario → distinto turno → permite", async () => {
-  const db = makeMock([row({ date: t("2026-05-27T19:00:00-06:00") })]);
-  assert.equal(
-    await findTableConflict(db, { tableIds: ["tA"], reservationDate: t("2026-05-26T19:00:00-06:00") }),
-    null,
-  );
+test("2 reservas misma mesa separadas EXACTO 3.5h → PERMITE (límite inclusivo)", async () => {
+  const db = makeMock([row({ date: t("2026-05-25T19:00:00Z") })]);
+  const conflict = await findTableConflict(db, { tableIds: ["tA"], reservationDate: t("2026-05-25T22:30:00Z") });
+  assert.equal(conflict, null, "exacto 3.5h debe permitir");
+});
+
+test("ventana simétrica — 3.5h ANTES también permite", async () => {
+  const db = makeMock([row({ date: t("2026-05-25T22:30:00Z") })]);
+  const conflict = await findTableConflict(db, { tableIds: ["tA"], reservationDate: t("2026-05-25T19:00:00Z") });
+  assert.equal(conflict, null);
+});
+
+test("misma hora exacta (diff 0) bloquea", async () => {
+  const db = makeMock([row({ date: t("2026-05-25T19:00:00Z") })]);
+  assert.ok(await findTableConflict(db, { tableIds: ["tA"], reservationDate: t("2026-05-25T19:00:00Z") }));
 });
 
 // ─── Match contra posiciones de mesa ────────────────────────────────
-test("matchea contra linkedTableId", async () => {
-  const db = makeMock([row({ tableId: "tX", linkedTableId: "tA" })]);
-  assert.ok(await findTableConflict(db, { tableIds: ["tA"], reservationDate: t("2026-05-26T19:00:00-06:00") }));
+test("matchea contra linkedTableId dentro de la ventana", async () => {
+  const db = makeMock([row({ tableId: "tX", linkedTableId: "tA", date: t("2026-05-25T20:00:00Z") })]);
+  assert.ok(await findTableConflict(db, { tableIds: ["tA"], reservationDate: t("2026-05-25T19:00:00Z") }));
 });
 
 test("no matchea si la mesa es distinta", async () => {
   const db = makeMock([row({ tableId: "tA" })]);
-  assert.equal(await findTableConflict(db, { tableIds: ["tB"], reservationDate: t("2026-05-26T19:00:00-06:00") }), null);
+  assert.equal(await findTableConflict(db, { tableIds: ["tB"], reservationDate: t("2026-05-25T19:00:00Z") }), null);
 });
 
 // ─── excludeReservationId (edición) ─────────────────────────────────
 test("excludeReservationId evita auto-conflicto", async () => {
   const db = makeMock([row({ id: "r1" })]);
   assert.equal(
-    await findTableConflict(db, { tableIds: ["tA"], reservationDate: t("2026-05-26T19:00:00-06:00"), excludeReservationId: "r1" }),
+    await findTableConflict(db, { tableIds: ["tA"], reservationDate: t("2026-05-25T19:00:00Z"), excludeReservationId: "r1" }),
     null,
   );
 });
 
 // ─── tableIds vacío ─────────────────────────────────────────────────
 test("tableIds vacío devuelve null (corto-circuito)", async () => {
-  assert.equal(await findTableConflict(makeMock([]), { tableIds: [], reservationDate: t("2026-05-26T19:00:00-06:00") }), null);
+  assert.equal(await findTableConflict(makeMock([]), { tableIds: [], reservationDate: t("2026-05-25T19:00:00Z") }), null);
 });
 
 // ─── findOccupiedTableIds (bulk para autoAssign) ────────────────────
-test("findOccupiedTableIds agrupa el turno; excluye COMPLETED y otros turnos", async () => {
+test("findOccupiedTableIds agrupa la ventana; excluye COMPLETED y fuera de ±3.5h", async () => {
   const db = makeMock([
-    row({ id: "r1", date: t("2026-05-26T19:00:00-06:00"), tableId: "tA", linkedTableId: "tB" }),
-    row({ id: "r2", date: t("2026-05-26T20:00:00-06:00"), status: "PENDING", tableId: "tC", thirdTableId: "tD" }),
-    row({ id: "r3", date: t("2026-05-26T19:00:00-06:00"), status: "COMPLETED", tableId: "tE" }),
-    row({ id: "r4", date: t("2026-05-26T10:00:00-06:00"), tableId: "tF" }), // brunch, otro turno
+    row({ id: "r1", date: t("2026-05-25T19:00:00Z"), tableId: "tA", linkedTableId: "tB" }),
+    row({ id: "r2", date: t("2026-05-25T21:00:00Z"), status: "PENDING", tableId: "tC", thirdTableId: "tD" }),
+    row({ id: "r3", date: t("2026-05-25T19:00:00Z"), status: "COMPLETED", tableId: "tE" }),
+    row({ id: "r4", date: t("2026-05-25T23:00:00Z"), tableId: "tF" }), // 4h después → fuera de ventana
   ]);
-  const occupied = await findOccupiedTableIds(db, t("2026-05-26T21:00:00-06:00")); // cena
+  const occupied = await findOccupiedTableIds(db, t("2026-05-25T19:00:00Z"));
   assert.deepEqual([...occupied].sort(), ["tA", "tB", "tC", "tD"]);
 });

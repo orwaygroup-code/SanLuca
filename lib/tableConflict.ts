@@ -1,27 +1,40 @@
 import type { Prisma, PrismaClient, ReservationStatus } from "@prisma/client";
-import { getShiftWindow } from "./shifts";
 
 /**
  * Detección de conflictos de mesa centralizada.
  *
- * Modelo: **una mesa = una reserva por TURNO** (brunch 08:00-14:00 / cena
- * 14:00-cierre). La ocupación se calcula con la ventana del turno
- * (`getShiftWindow`), quedando consistente con el mapa de disponibilidad
- * (`available-tables`) y con la asignación manual del staff.
+ * Modelo: ventana deslizante de **±3.5h** alrededor del horario de la reserva
+ * (permite rotación de mesas dentro de la noche — ~2 turnos sobre la misma
+ * mesa). Se aplica de forma CONSISTENTE en TODOS los paths que validan
+ * ocupación (create web/admin/bot, edición, cambio de mesa, mapa de
+ * disponibilidad). La divergencia entre paths era el bug original, no la
+ * duración. `getShiftWindow` (lib/shifts.ts) queda solo para reportes por
+ * turno, NO para validar ocupación.
  *
- * > Histórico: antes se usaba una ventana deslizante de ±4h (permitía
- * > turnover brunch 14:30 + cena 18:30 en la misma mesa). Se revirtió al
- * > modelo por turno por decisión operativa (Fase A — fix editor), para
- * > eliminar la divergencia mapa-vs-autoasignación.
- *
- * Regla — **bloquea** si existe una reservación EN una de las mesas de la
- * lista que cumpla TODAS estas condiciones:
+ * Regla — **bloquea** si existe una reserva EN una de las mesas de la lista que
+ * cumpla TODAS estas condiciones:
  *   1. `status` NOT IN (`CANCELLED`, `NO_SHOW`, `COMPLETED`)
- *   2. su `date` cae dentro del MISMO turno que la reservación nueva
- *      (`date >= turno.start && date < turno.end`).
+ *   2. `|existente.date - nueva.date| < 3.5h`
+ *
+ * Implementación con `gt`/`lt` EXCLUSIVOS: una separación de exactamente 3.5h
+ * queda FUERA de la ventana → se PERMITE (límite inclusivo en favor de aceptar).
  */
 
-/** Estados que NO bloquean una nueva reservación en el mismo turno. */
+// TODO multi-tenant: esto debe migrar a TenantReservationConfig.reservationDurationHours
+// cuando llegue Fase 1 del plan multi-tenant. Cada restaurante tendrá su propia duración.
+export const RESERVATION_WINDOW_HOURS = 3.5;
+
+const WINDOW_MS = RESERVATION_WINDOW_HOURS * 60 * 60 * 1000;
+
+/** Ventana de ocupación [from, to] = `date` ± 3.5h. */
+export function getReservationWindow(date: Date): { from: Date; to: Date } {
+  return {
+    from: new Date(date.getTime() - WINDOW_MS),
+    to:   new Date(date.getTime() + WINDOW_MS),
+  };
+}
+
+/** Estados que NO bloquean una nueva reservación cercana. */
 const NON_BLOCKING_STATUSES: ReservationStatus[] = ["CANCELLED", "NO_SHOW", "COMPLETED"];
 
 type DB = PrismaClient | Prisma.TransactionClient;
@@ -43,8 +56,8 @@ export interface ConflictRow {
 }
 
 /**
- * Devuelve la primera reservación conflictiva o null. Si necesitas todas
- * las mesas ocupadas del turno (auto-asignación), usa `findOccupiedTableIds`.
+ * Devuelve la primera reservación conflictiva o null. Si necesitas todas las
+ * mesas ocupadas en la ventana (auto-asignación), usa `findOccupiedTableIds`.
  */
 export async function findTableConflict(
   db: DB,
@@ -53,13 +66,12 @@ export async function findTableConflict(
   if (input.tableIds.length === 0) return null;
 
   const { reservationDate, tableIds, excludeReservationId } = input;
-  const { start, end } = getShiftWindow(reservationDate);
+  const { from, to } = getReservationWindow(reservationDate);
 
   const where: Prisma.ReservationWhereInput = {
     status: { notIn: NON_BLOCKING_STATUSES },
-    // Mismo turno: [start, end) — coincide con available-tables y los checks
-    // de /api/admin/reservations/[id].
-    date:   { gte: start, lt: end },
+    // gt / lt EXCLUSIVOS: separación de exactamente 3.5h queda fuera → permite.
+    date:   { gt: from, lt: to },
     OR: tableIds.flatMap((id) => [
       { tableId:       id },
       { linkedTableId: id },
@@ -79,19 +91,19 @@ export async function findTableConflict(
 }
 
 /**
- * Versión bulk: para el algoritmo de auto-asignación, queremos saber TODAS
- * las mesas ocupadas en el MISMO turno del slot que estamos asignando.
+ * Versión bulk: para el algoritmo de auto-asignación, queremos saber TODAS las
+ * mesas ocupadas en la ventana ±3.5h del slot que estamos asignando.
  */
 export async function findOccupiedTableIds(
   db: DB,
   reservationDate: Date,
 ): Promise<Set<string>> {
-  const { start, end } = getShiftWindow(reservationDate);
+  const { from, to } = getReservationWindow(reservationDate);
 
   const rows = await db.reservation.findMany({
     where: {
       status: { notIn: NON_BLOCKING_STATUSES },
-      date:   { gte: start, lt: end },
+      date:   { gt: from, lt: to },
     },
     select: { tableId: true, linkedTableId: true, thirdTableId: true, fourthTableId: true },
   });

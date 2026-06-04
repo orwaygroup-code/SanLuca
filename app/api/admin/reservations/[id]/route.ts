@@ -4,6 +4,7 @@ import { runWithSession } from "@/lib/session-context";
 import { sendReservationQR } from "@/lib/whatsapp";
 import { resolveEditTables } from "@/lib/reservationTables";
 import { combinedCapacity, evaluateCapacity } from "@/lib/tableCapacity";
+import { getReservationWindow } from "@/lib/tableConflict";
 import { requireStaff } from "@/lib/auth-server";
 import { reEvalUserRule } from "@/lib/tagRules";
 import type { ApiResponse } from "@/types";
@@ -53,8 +54,8 @@ export async function PATCH(
                 );
             }
 
-            const { getShiftWindow } = await import("@/lib/shifts");
-            const { start: shiftStart, end: shiftEnd } = getShiftWindow(reservationDate);
+            // Ventana de ocupación ±3.5h (consistente con todos los paths).
+            const { from: winFrom, to: winTo } = getReservationWindow(reservationDate);
 
             // Mesa actual de la reserva — se PRESERVA si la edición no manda una
             // mesa explícita. Editar NO mueve la mesa (eso es "Cambiar Mesa").
@@ -84,7 +85,7 @@ export async function PATCH(
                     where: {
                         id:     { not: params.id },
                         status: { notIn: ["CANCELLED", "NO_SHOW"] },
-                        date:   { gte: shiftStart, lt: shiftEnd },
+                        date:   { gt: winFrom, lt: winTo },
                         OR: allIds.flatMap((id) => [
                             { tableId: id }, { linkedTableId: id }, { thirdTableId: id }, { fourthTableId: id },
                         ]),
@@ -92,7 +93,7 @@ export async function PATCH(
                 });
                 if (conflict) {
                     return NextResponse.json<ApiResponse>(
-                        { success: false, error: "La mesa seleccionada ya está ocupada en ese turno." },
+                        { success: false, error: "La mesa seleccionada ya está ocupada en ese horario." },
                         { status: 409 }
                     );
                 }
@@ -167,8 +168,8 @@ export async function PATCH(
                 );
             }
 
-            const { getShiftWindow } = await import("@/lib/shifts");
-            const { start: shiftStart, end: shiftEnd } = getShiftWindow(current.date);
+            // Ventana de ocupación ±3.5h (consistente con todos los paths).
+            const { from: winFrom, to: winTo } = getReservationWindow(current.date);
 
             const allNewIds = [tableId, linkedTableId, thirdTableId, fourthTableId].filter(Boolean) as string[];
 
@@ -177,7 +178,7 @@ export async function PATCH(
                 where: {
                     id:     { not: params.id },
                     status: { notIn: ["CANCELLED", "NO_SHOW"] },
-                    date:   { gte: shiftStart, lt: shiftEnd },
+                    date:   { gt: winFrom, lt: winTo },
                     OR: allNewIds.flatMap((id) => [
                         { tableId: id },
                         { linkedTableId: id },
@@ -189,7 +190,7 @@ export async function PATCH(
 
             if (conflict) {
                 return NextResponse.json<ApiResponse>(
-                    { success: false, error: "La mesa seleccionada ya está ocupada en ese turno." },
+                    { success: false, error: "La mesa seleccionada ya está ocupada en ese horario." },
                     { status: 409 }
                 );
             }
