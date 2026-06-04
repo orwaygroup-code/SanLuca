@@ -48,6 +48,54 @@ enum UserSource {
 }
 
 // ============================================
+// STAFF — empleados de operación (sistema de Comandas)
+// Auth propia con PIN de 4 dígitos (bcrypt). Realm separado del modelo
+// `User` (que cubre comensales web + ADMIN/HOSTES). Ver Fase 0 del plan
+// de Comandas. `tenantId @default(1)` para quedar multi-tenant ready.
+// ============================================
+
+enum StaffRole {
+  WAITER       // Mesero
+  OPERATION    // Perla (hostess + caja)
+  CAPTAIN      // Capitán
+  MANAGER      // Ricardo (admin)
+}
+
+model Staff {
+  id            Int        @id @default(autoincrement())
+  tenantId      Int        @default(1) // multi-tenant ready
+
+  // Identificación
+  username      String     @unique // ej: "luis.mesero", "perla", "ricardo"
+  fullName      String
+
+  // Autenticación
+  pinHash       String // bcrypt del PIN (nunca PIN plano)
+
+  role          StaffRole
+
+  // Estado
+  active        Boolean    @default(true)
+
+  // Telemetría
+  lastLoginAt   DateTime?
+  lastShift     String? // "brunch" o "tarde", para reportes
+
+  // Auditoría
+  createdAt     DateTime   @default(now())
+  createdById   Int?
+  updatedAt     DateTime   @updatedAt
+
+  // NOTA: las relaciones a Comanda / ComandaItem / ComandaPrint
+  // (comandasOpened, comandasClosed, itemsAdded, printsExecuted,
+  // printsAuthorized) se agregan en la Fase B.1, cuando esos modelos
+  // existan. Añadirlas ahora rompe la validación del schema.
+
+  @@index([tenantId, role, active])
+  @@index([username])
+}
+
+// ============================================
 // MENÚ
 // ============================================
 
