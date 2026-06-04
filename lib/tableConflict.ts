@@ -3,21 +3,36 @@ import type { Prisma, PrismaClient, ReservationStatus } from "@prisma/client";
 /**
  * Detección de conflictos de mesa centralizada.
  *
- * Reemplaza el modelo viejo "una mesa, un turno" (brunch 8-14 / cena 14-cierre)
- * por una ventana deslizante de ±4 horas. También excluye reservaciones en
- * estado COMPLETED — si la cena ya cerró, la mesa está libre para la siguiente.
+ * Modelo: ventana deslizante de **±3.5h** alrededor del horario de la reserva
+ * (permite rotación de mesas dentro de la noche — ~2 turnos sobre la misma
+ * mesa). Se aplica de forma CONSISTENTE en TODOS los paths que validan
+ * ocupación (create web/admin/bot, edición, cambio de mesa, mapa de
+ * disponibilidad). La divergencia entre paths era el bug original, no la
+ * duración. `getShiftWindow` (lib/shifts.ts) queda solo para reportes por
+ * turno, NO para validar ocupación.
  *
- * Regla exacta — **bloquea** si existe una reservación EN OTRA mesa de la lista
- * que cumpla TODAS estas condiciones:
+ * Regla — **bloquea** si existe una reserva EN una de las mesas de la lista que
+ * cumpla TODAS estas condiciones:
  *   1. `status` NOT IN (`CANCELLED`, `NO_SHOW`, `COMPLETED`)
- *   2. `|nueva.date - existente.date| < 4h`  (estricto)
+ *   2. `|existente.date - nueva.date| < 3.5h`
  *
- * Por implementación con Prisma: `gt: date - 4h` y `lt: date + 4h` (exclusivos).
- * Si la diferencia es **exactamente 4h** → no matchea → permite. Ejemplo natural:
- * brunch 14:30 + cena 18:30 (turnover esperado).
+ * Implementación con `gt`/`lt` EXCLUSIVOS: una separación de exactamente 3.5h
+ * queda FUERA de la ventana → se PERMITE (límite inclusivo en favor de aceptar).
  */
 
-const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
+// TODO multi-tenant: esto debe migrar a TenantReservationConfig.reservationDurationHours
+// cuando llegue Fase 1 del plan multi-tenant. Cada restaurante tendrá su propia duración.
+export const RESERVATION_WINDOW_HOURS = 3.5;
+
+const WINDOW_MS = RESERVATION_WINDOW_HOURS * 60 * 60 * 1000;
+
+/** Ventana de ocupación [from, to] = `date` ± 3.5h. */
+export function getReservationWindow(date: Date): { from: Date; to: Date } {
+  return {
+    from: new Date(date.getTime() - WINDOW_MS),
+    to:   new Date(date.getTime() + WINDOW_MS),
+  };
+}
 
 /** Estados que NO bloquean una nueva reservación cercana. */
 const NON_BLOCKING_STATUSES: ReservationStatus[] = ["CANCELLED", "NO_SHOW", "COMPLETED"];
@@ -41,8 +56,8 @@ export interface ConflictRow {
 }
 
 /**
- * Devuelve la primera reservación conflictiva o null. Si necesitas todas
- * (raro — el primer hit basta para devolver 409), usa `findManyConflicts`.
+ * Devuelve la primera reservación conflictiva o null. Si necesitas todas las
+ * mesas ocupadas en la ventana (auto-asignación), usa `findOccupiedTableIds`.
  */
 export async function findTableConflict(
   db: DB,
@@ -51,13 +66,12 @@ export async function findTableConflict(
   if (input.tableIds.length === 0) return null;
 
   const { reservationDate, tableIds, excludeReservationId } = input;
-  const windowStart = new Date(reservationDate.getTime() - FOUR_HOURS_MS);
-  const windowEnd   = new Date(reservationDate.getTime() + FOUR_HOURS_MS);
+  const { from, to } = getReservationWindow(reservationDate);
 
   const where: Prisma.ReservationWhereInput = {
     status: { notIn: NON_BLOCKING_STATUSES },
-    // gt / lt exclusivos: diff exacto de 4h queda FUERA → permite (turnover natural).
-    date:   { gt: windowStart, lt: windowEnd },
+    // gt / lt EXCLUSIVOS: separación de exactamente 3.5h queda fuera → permite.
+    date:   { gt: from, lt: to },
     OR: tableIds.flatMap((id) => [
       { tableId:       id },
       { linkedTableId: id },
@@ -78,20 +92,18 @@ export async function findTableConflict(
 
 /**
  * Versión bulk: para el algoritmo de auto-asignación, queremos saber TODAS las
- * mesas ocupadas en la ventana ±4h del slot que estamos asignando, no solo la
- * primera conflictiva.
+ * mesas ocupadas en la ventana ±3.5h del slot que estamos asignando.
  */
 export async function findOccupiedTableIds(
   db: DB,
   reservationDate: Date,
 ): Promise<Set<string>> {
-  const windowStart = new Date(reservationDate.getTime() - FOUR_HOURS_MS);
-  const windowEnd   = new Date(reservationDate.getTime() + FOUR_HOURS_MS);
+  const { from, to } = getReservationWindow(reservationDate);
 
   const rows = await db.reservation.findMany({
     where: {
       status: { notIn: NON_BLOCKING_STATUSES },
-      date:   { gt: windowStart, lt: windowEnd },
+      date:   { gt: from, lt: to },
     },
     select: { tableId: true, linkedTableId: true, thirdTableId: true, fourthTableId: true },
   });
@@ -105,6 +117,3 @@ export async function findOccupiedTableIds(
   }
   return occupied;
 }
-
-// Exportado para tests / debug — la constante de ventana.
-export const CONFLICT_WINDOW_MS = FOUR_HOURS_MS;

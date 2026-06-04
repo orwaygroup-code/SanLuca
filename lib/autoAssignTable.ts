@@ -3,8 +3,8 @@
 // pedida no tiene disponibilidad, NO cae a otras secciones — la reserva
 // queda con sectionPreference para asignación manual del staff.
 //
-// Conflicto de mesa: usa lib/tableConflict.ts (ventana ±4h, excluye
-// COMPLETED tras turnover natural).
+// Conflicto de mesa: usa lib/tableConflict.ts (ventana ±3.5h, excluye
+// COMPLETED/CANCELLED/NO_SHOW).
 //
 // Excepción Privado: la única mesa del área admite cualquier número de
 // personas (no se aplica filtro capacity ≥ guests). Ver
@@ -29,7 +29,7 @@ export async function autoAssignTable(
     guests: number,
     preferredSection: string | null,
 ): Promise<{ tableId: string; sectionName: string } | null> {
-    // Mesas ocupadas en la ventana ±4h del slot pedido. Excluye COMPLETED
+    // Mesas ocupadas en la ventana ±3.5h del slot pedido. Excluye COMPLETED
     // (mesa libre tras turnover natural). Ver lib/tableConflict.ts.
     const occupiedIds = await findOccupiedTableIds(prisma, reservationDate);
 

@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { withApp } from "@/lib/prismaApp";
 import { runWithSession } from "@/lib/session-context";
 import { sendReservationQR } from "@/lib/whatsapp";
-import { autoAssignTable } from "@/lib/autoAssignTable";
+import { resolveEditTables } from "@/lib/reservationTables";
+import { combinedCapacity, evaluateCapacity } from "@/lib/tableCapacity";
+import { getReservationWindow } from "@/lib/tableConflict";
 import { requireStaff } from "@/lib/auth-server";
 import { reEvalUserRule } from "@/lib/tagRules";
 import type { ApiResponse } from "@/types";
@@ -52,23 +54,38 @@ export async function PATCH(
                 );
             }
 
-            const { getShiftWindow } = await import("@/lib/shifts");
-            const { start: shiftStart, end: shiftEnd } = getShiftWindow(reservationDate);
+            // Ventana de ocupación ±3.5h (consistente con todos los paths).
+            const { from: winFrom, to: winTo } = getReservationWindow(reservationDate);
 
-            // Determinar mesa final (elegida o auto-asignada)
-            let finalTableId        = tableId        ?? null;
-            let finalLinkedTableId  = linkedTableId  ?? null;
-            let finalThirdTableId   = thirdTableId   ?? null;
-            let finalFourthTableId  = fourthTableId  ?? null;
+            // Mesa actual de la reserva — se PRESERVA si la edición no manda una
+            // mesa explícita. Editar NO mueve la mesa (eso es "Cambiar Mesa").
+            const currentRes = await db.reservation.findUnique({
+                where: { id: params.id },
+                select: { tableId: true, linkedTableId: true, thirdTableId: true, fourthTableId: true },
+            });
+            if (!currentRes) {
+                return NextResponse.json<ApiResponse>(
+                    { success: false, error: "Reserva no encontrada" }, { status: 404 }
+                );
+            }
 
-            if (finalTableId) {
-                // Verificar que la mesa elegida no esté ocupada (excluyendo esta reserva)
-                const allIds = [finalTableId, finalLinkedTableId, finalThirdTableId, finalFourthTableId].filter(Boolean) as string[];
+            const finalTables = resolveEditTables(
+                { tableId, linkedTableId, thirdTableId, fourthTableId },
+                currentRes,
+            );
+
+            // Solo verificar conflicto si la edición trae una mesa NUEVA explícita.
+            // (Preservar la mesa actual nunca puede chocar consigo misma.)
+            if (tableId) {
+                const allIds = [
+                    finalTables.tableId, finalTables.linkedTableId,
+                    finalTables.thirdTableId, finalTables.fourthTableId,
+                ].filter(Boolean) as string[];
                 const conflict = await db.reservation.findFirst({
                     where: {
                         id:     { not: params.id },
                         status: { notIn: ["CANCELLED", "NO_SHOW"] },
-                        date:   { gte: shiftStart, lt: shiftEnd },
+                        date:   { gt: winFrom, lt: winTo },
                         OR: allIds.flatMap((id) => [
                             { tableId: id }, { linkedTableId: id }, { thirdTableId: id }, { fourthTableId: id },
                         ]),
@@ -76,15 +93,9 @@ export async function PATCH(
                 });
                 if (conflict) {
                     return NextResponse.json<ApiResponse>(
-                        { success: false, error: "La mesa seleccionada ya está ocupada en ese turno." },
+                        { success: false, error: "La mesa seleccionada ya está ocupada en ese horario." },
                         { status: 409 }
                     );
-                }
-            } else {
-                // Auto-asignar mesa
-                const assigned = await autoAssignTable(reservationDate, guests, sectionPreference ?? null);
-                if (assigned) {
-                    finalTableId = assigned.tableId;
                 }
             }
 
@@ -96,10 +107,10 @@ export async function PATCH(
                     guestName,
                     guestPhone,
                     sectionPreference: sectionPreference ?? null,
-                    tableId:           finalTableId,
-                    linkedTableId:     finalLinkedTableId,
-                    thirdTableId:      finalThirdTableId,
-                    fourthTableId:     finalFourthTableId,
+                    tableId:           finalTables.tableId,
+                    linkedTableId:     finalTables.linkedTableId,
+                    thirdTableId:      finalTables.thirdTableId,
+                    fourthTableId:     finalTables.fourthTableId,
                     notes:             notes    ?? null,
                     occasion:          occasion ?? null,
                 },
@@ -115,12 +126,13 @@ export async function PATCH(
 
         // ── Mover mesa ────────────────────────────────────────────────
         if (body.action === "move-table") {
-            const { tableId, linkedTableId, thirdTableId, fourthTableId, sectionPreference } = body as {
+            const { tableId, linkedTableId, thirdTableId, fourthTableId, sectionPreference, forceAssign } = body as {
                 tableId:            string;
                 linkedTableId?:     string;
                 thirdTableId?:      string;
                 fourthTableId?:     string;
                 sectionPreference?: string;
+                forceAssign?:       boolean;
             };
 
             // Sin tableId → solo actualizar sección (grupo grande)
@@ -143,10 +155,10 @@ export async function PATCH(
                 return NextResponse.json<ApiResponse>({ success: true, data: updated });
             }
 
-            // Obtener la reserva actual para saber fecha/hora y excluirla del check de conflictos
+            // Obtener la reserva actual para saber fecha/hora/comensales y excluirla del check
             const current = await db.reservation.findUnique({
                 where: { id: params.id },
-                select: { id: true, date: true, status: true },
+                select: { id: true, date: true, status: true, guests: true },
             });
 
             if (!current) {
@@ -156,8 +168,8 @@ export async function PATCH(
                 );
             }
 
-            const { getShiftWindow } = await import("@/lib/shifts");
-            const { start: shiftStart, end: shiftEnd } = getShiftWindow(current.date);
+            // Ventana de ocupación ±3.5h (consistente con todos los paths).
+            const { from: winFrom, to: winTo } = getReservationWindow(current.date);
 
             const allNewIds = [tableId, linkedTableId, thirdTableId, fourthTableId].filter(Boolean) as string[];
 
@@ -166,7 +178,7 @@ export async function PATCH(
                 where: {
                     id:     { not: params.id },
                     status: { notIn: ["CANCELLED", "NO_SHOW"] },
-                    date:   { gte: shiftStart, lt: shiftEnd },
+                    date:   { gt: winFrom, lt: winTo },
                     OR: allNewIds.flatMap((id) => [
                         { tableId: id },
                         { linkedTableId: id },
@@ -178,9 +190,39 @@ export async function PATCH(
 
             if (conflict) {
                 return NextResponse.json<ApiResponse>(
-                    { success: false, error: "La mesa seleccionada ya está ocupada en ese turno." },
+                    { success: false, error: "La mesa seleccionada ya está ocupada en ese horario." },
                     { status: 409 }
                 );
+            }
+
+            // ── Validación de capacidad (con override) ───────────────────
+            // La(s) mesa(s) elegida(s) deben cubrir a los comensales. Si no
+            // cubren y NO se forzó, se bloquea con error claro. Si se forzó
+            // (forceAssign), se permite y se registra en bitácora de auditoría.
+            const chosenTables = await db.table.findMany({
+                where:  { id: { in: allNewIds } },
+                select: { capacity: true },
+            });
+            const totalCapacity = combinedCapacity(chosenTables.map((t) => t.capacity));
+            const decision = evaluateCapacity(totalCapacity, current.guests, forceAssign === true);
+            if (!decision.ok) {
+                return NextResponse.json<ApiResponse>(
+                    {
+                        success: false,
+                        error: `La mesa seleccionada es para ${totalCapacity} personas y vas a sentar ${current.guests}. Confirma para continuar.`,
+                    },
+                    { status: 409 }
+                );
+            }
+            if (decision.requiresOverride) {
+                // Bitácora de auditoría: override de capacidad ejecutado por staff.
+                console.warn("[AUDIT] capacity-override move-table", {
+                    staffUserId:   s.userId,
+                    reservationId: params.id,
+                    tableIds:      allNewIds,
+                    totalCapacity,
+                    guests:        current.guests,
+                });
             }
 
             const updated = await db.reservation.update({

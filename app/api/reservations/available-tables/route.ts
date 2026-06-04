@@ -12,7 +12,7 @@ import {
   QUAD_MIN_GUESTS,
   QUAD_MAX_CAPACITY,
 } from "@/lib/tableAdjacency";
-import { getShiftWindow } from "@/lib/shifts";
+import { getReservationWindow } from "@/lib/tableConflict";
 import { tableFitsGuests } from "@/lib/tableCapacity";
 import { expirePendingPayments } from "@/lib/expirePendingPayments";
 import type { ApiResponse } from "@/types";
@@ -154,13 +154,13 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const { start: shiftStart, end: shiftEnd } = getShiftWindow(reservationStart);
+    const { from: winFrom, to: winTo } = getReservationWindow(reservationStart);
 
-    // Reservas activas en el mismo turno → mesas ocupadas
+    // Reservas activas en la ventana ±3.5h → mesas ocupadas
     const conflicts = await prisma.reservation.findMany({
       where: {
         status: { notIn: ["CANCELLED", "NO_SHOW"] },
-        date:   { gte: shiftStart, lt: shiftEnd },
+        date:   { gt: winFrom, lt: winTo },
         OR: [
           { tableId:        { in: tableIds } },
           { linkedTableId:  { in: tableIds } },
