@@ -15,6 +15,7 @@
     "db:seed:settings": "tsx prisma/seeds/restaurant-settings.ts",
     "db:seed:prep-area": "tsx prisma/seeds/dishes-prepArea.ts",
     "db:seed:link-ricardo": "tsx prisma/seeds/link-ricardo.ts",
+    "db:seed:chef": "tsx prisma/seeds/chef-specialties.ts",
     "db:update-wine-images": "ts-node -e \"require('ts-node').register({module:'commonjs'})\" prisma/update-wine-images.ts",
     "db:studio": "prisma studio",
     "test": "tsx --test tests/*.test.ts",

@@ -8,6 +8,7 @@ import {
   STATUS_LABEL, STATUS_COLOR, useToasts, ToastHost, useStaffLogout,
 } from "@/components/staff/ui";
 import { apiFetch, type Comanda, type TableStatus } from "@/components/staff/types";
+import { GoldSelect } from "@/components/ui/GoldSelect";
 
 /**
  * Vista Mesero — lista de SUS comandas activas y apertura de comanda nueva.
@@ -125,12 +126,12 @@ function NewComandaModal({ open, defaultWaiterId, onClose, onCreated, onError }:
       ) : (
         <>
           <label style={fld.label}>Mesa libre</label>
-          <select style={fld.input} value={tableId} onChange={(e) => setTableId(e.target.value)}>
-            <option value="">— Selecciona mesa —</option>
-            {freeTables.map((t) => (
-              <option key={t.id} value={t.id}>Mesa {t.number} · {t.section} (cap. {t.capacity})</option>
-            ))}
-          </select>
+          <GoldSelect
+            value={tableId}
+            onChange={setTableId}
+            options={freeTables.map((t) => ({ value: t.id, label: `Mesa ${t.number} · ${t.section} (cap. ${t.capacity})` }))}
+            placeholder="— Selecciona mesa —"
+          />
           {freeTables.length === 0 && (
             <p style={{ color: C.amber, fontSize: "0.78rem", marginTop: 8 }}>No hay mesas libres en este momento.</p>
           )}

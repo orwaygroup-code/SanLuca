@@ -8,7 +8,9 @@ import {
   TicketPreview, btn, fld, formatMXN, STATUS_LABEL, STATUS_COLOR, useToasts, ToastHost, useStaffLogout,
 } from "@/components/staff/ui";
 import { apiFetch, type Comanda, type CItem } from "@/components/staff/types";
+import { SplitBillModal } from "@/components/staff/SplitBillModal";
 import { buildTotalLines } from "@/lib/displayTotals";
+import { buildSplitsPayload, effectiveTaxRate, divisionMoney, unitsSubtotal } from "@/lib/splitBill";
 
 interface MenuDish { id: string; name: string; price: number; description: string | null }
 interface MenuCat { id: string; name: string; dishes: MenuDish[] }
@@ -38,7 +40,19 @@ export default function ComandaDetailPage() {
   const [askBill, setAskBill] = useState(false);
   const [reprint, setReprint] = useState(false);
 
+  // División de cuenta: cada entrada (División 1..N) es un Map itemId → unidades
+  // asignadas a esa división. Permite repartir fracciones de un mismo platillo.
+  const [splits, setSplits] = useState<Map<number, number>[]>([]);
+  const [splitOpen, setSplitOpen] = useState(false);
+
   const isSupervisor = staff?.role === "CAPTAIN" || staff?.role === "MANAGER";
+
+  // back del detalle respeta el realm del staff: OPERATION vuelve a su mapa,
+  // CAPTAIN a su panel; WAITER (y default) a la lista de comandas.
+  const backHref =
+    staff?.role === "OPERATION" ? "/staff/operacion"
+    : staff?.role === "CAPTAIN" ? "/staff/capitan"
+    : "/staff/comandas";
 
   const refresh = useCallback(async () => {
     const r = await apiFetch<Comanda>(`/api/comandas/${id}`);
@@ -60,6 +74,57 @@ export default function ComandaDetailPage() {
   const alreadyPrinted = useMemo(() => (comanda?.prints ?? []).some((p) => p.type === "CUSTOMER_FINAL"), [comanda]);
   const editable = comanda?.status === "OPEN" || comanda?.status === "IN_SERVICE";
 
+  // ── división de cuenta (derivados) ──
+  const itemById = useMemo(() => new Map(liveItems.map((i) => [i.id, i])), [liveItems]);
+  const unitPriceById = useMemo(() => new Map(liveItems.map((i) => [i.id, Number(i.unitPriceSnapshot)])), [liveItems]);
+  const totalLiveUnits = useMemo(() => liveItems.reduce((s, i) => s + i.quantity, 0), [liveItems]);
+
+  // Unidades ya asignadas (a cualquier división), por itemId.
+  const assignedQtyById = useMemo(() => {
+    const m = new Map<number, number>();
+    for (const split of splits) for (const [itemId, q] of split) m.set(itemId, (m.get(itemId) ?? 0) + q);
+    return m;
+  }, [splits]);
+
+  // Items con unidades aún disponibles en la matriz (no asignadas a ninguna división).
+  const matrixItemsWithQty = useMemo(() =>
+    liveItems
+      .map((it) => ({ ...it, remainingQty: it.quantity - (assignedQtyById.get(it.id) ?? 0) }))
+      .filter((it) => it.remainingQty > 0),
+    [liveItems, assignedQtyById]);
+
+  const canSplit = (editable ?? false) && !alreadyPrinted;
+
+  // Mantener las divisiones consistentes con los items vivos: si un item se
+  // cancela se quita de sus divisiones; si una cantidad asignada excede la
+  // ordenada actual se recorta; las divisiones que quedan vacías se descartan.
+  // (Items nuevos no entran a ninguna división → caen a la matriz con qty completa.)
+  useEffect(() => {
+    const maxById = new Map(liveItems.map((i) => [i.id, i.quantity]));
+    setSplits((prev) => {
+      let changed = false;
+      const pruned: Map<number, number>[] = [];
+      for (const split of prev) {
+        const next = new Map<number, number>();
+        for (const [itemId, q] of split) {
+          const max = maxById.get(itemId);
+          if (max === undefined) { changed = true; continue; }       // item cancelado
+          const clamped = Math.min(q, max);
+          if (clamped !== q) changed = true;                          // qty recortada
+          if (clamped > 0) next.set(itemId, clamped);
+        }
+        if (next.size > 0) pruned.push(next); else changed = true;    // división vacía
+      }
+      return changed ? pruned : prev;
+    });
+  }, [liveItems]);
+
+  const createSplit = (units: Map<number, number>) => {
+    if (units.size > 0) setSplits((s) => [...s, units]);
+    setSplitOpen(false);
+  };
+  const removeSplit = (idx: number) => setSplits((s) => s.filter((_, i) => i !== idx));
+
   // ── acciones ──
   const post = useCallback(async (path: string, body?: unknown, okMsg?: string) => {
     setBusy(true);
@@ -75,8 +140,14 @@ export default function ComandaDetailPage() {
   }, [push]);
 
   const sendToKitchen = () => post(`/api/comandas/${id}/send-to-kitchen`, undefined, "Enviado a cocina/barra");
-  const doPrint = (authorizationReason?: string) =>
-    post(`/api/comandas/${id}/print`, authorizationReason ? { authorizationReason } : {}, "Ticket impreso");
+  const doPrint = (authorizationReason?: string) => {
+    const matrixUnits = matrixItemsWithQty.map((it) => ({ itemId: it.id, quantity: it.remainingQty }));
+    const splitsPayload = buildSplitsPayload(splits, matrixUnits);
+    const body: Record<string, unknown> = {};
+    if (splitsPayload) body.splits = splitsPayload;
+    if (authorizationReason) body.authorizationReason = authorizationReason;
+    return post(`/api/comandas/${id}/print`, body, "Ticket impreso");
+  };
   const requestBill = async () => { setAskBill(false); await post(`/api/comandas/${id}/send-to-cashier`, undefined, "Cuenta solicitada"); };
 
   const confirmCancelItem = async (reason?: string) => {
@@ -98,7 +169,7 @@ export default function ComandaDetailPage() {
   if (notFound) {
     return (
       <div style={page.root}>
-        <StaffHeader title="Comanda" role={staff?.role} userName={staff?.fullName} onLogout={logout} onBack={() => router.push("/staff/comandas")} />
+        <StaffHeader title="Comanda" role={staff?.role} userName={staff?.fullName} onLogout={logout} onBack={() => router.push(backHref)} />
         <main style={page.main}><EmptyState text="Comanda no encontrada o no es tuya." /></main>
       </div>
     );
@@ -108,6 +179,61 @@ export default function ComandaDetailPage() {
   const canCancel = (it: CItem) => it.status === "PENDING" || isSupervisor;
   const totalLines = buildTotalLines(c, taxEnabled);
 
+  // ── render de división de cuenta ──
+  const rate = effectiveTaxRate(c);
+  const unitsOf = (split: Map<number, number>) => [...split.entries()].map(([itemId, quantity]) => ({ itemId, quantity }));
+  const unitName = (itemId: number) => itemById.get(itemId)?.dishNameSnapshot ?? `#${itemId}`;
+  const unitsToTicketItems = (units: { itemId: number; quantity: number }[]) =>
+    units.map((u) => ({ name: unitName(u.itemId), qty: u.quantity, total: (unitPriceById.get(u.itemId) ?? 0) * u.quantity }));
+
+  // Fila completa (vista sin divisiones): status, modificadores y cancelar item.
+  const renderItemRow = (it: CItem) => (
+    <div key={it.id} style={page.itemRow}>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ color: C.cream, fontSize: "0.92rem", fontWeight: 600 }}>
+          {it.quantity}× {it.dishNameSnapshot}
+        </div>
+        {(it.modifiers || it.kitchenNotes) && (
+          <div style={{ color: C.faint, fontSize: "0.74rem", marginTop: 2 }}>
+            {[it.modifiers, it.kitchenNotes].filter(Boolean).join(" · ")}
+          </div>
+        )}
+        <div style={{ marginTop: 4 }}>
+          <Badge text={ITEM_STATUS_LABEL[it.status] ?? it.status} color={ITEM_STATUS_COLOR[it.status] ?? C.dim} />
+        </div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ color: C.cream, fontWeight: 700, fontSize: "0.9rem" }}>{formatMXN(Number(it.lineTotal))}</span>
+        {editable && canCancel(it) && (
+          <button style={page.cancelX} title="Cancelar item" onClick={() => setCancelItem(it)}>×</button>
+        )}
+      </div>
+    </div>
+  );
+
+  // Fila simple por unidad (matriz/divisiones): {qty}× nombre + subtotal por unidad.
+  const renderUnitRow = (key: string, name: string, qty: number, subtotal: number) => (
+    <div key={key} style={page.itemRow}>
+      <div style={{ color: C.cream, fontSize: "0.9rem", fontWeight: 600 }}>{qty}× {name}</div>
+      <span style={{ color: C.cream, fontWeight: 700, fontSize: "0.88rem" }}>{formatMXN(subtotal)}</span>
+    </div>
+  );
+
+  // Secciones del preview: una por división + la matriz residual como ticket
+  // final (si tiene unidades), reflejando exactamente lo que se imprimirá.
+  const matrixUnits = matrixItemsWithQty.map((it) => ({ itemId: it.id, quantity: it.remainingQty }));
+  const previewSplits = splits.length > 0
+    ? [
+        ...splits.map((split, idx) => {
+          const units = unitsOf(split);
+          return { title: `Ticket ${idx + 1}`, items: unitsToTicketItems(units), money: divisionMoney(unitsSubtotal(units, unitPriceById), rate, taxEnabled) };
+        }),
+        ...(matrixUnits.length > 0
+          ? [{ title: `Ticket ${splits.length + 1}`, items: unitsToTicketItems(matrixUnits), money: divisionMoney(unitsSubtotal(matrixUnits, unitPriceById), rate, taxEnabled) }]
+          : []),
+      ]
+    : undefined;
+
   return (
     <div style={page.root}>
       <StaffHeader
@@ -115,7 +241,7 @@ export default function ComandaDetailPage() {
         role={staff?.role}
         userName={staff?.fullName}
         onLogout={logout}
-        onBack={() => router.push("/staff/comandas")}
+        onBack={() => router.push(backHref)}
         right={<Badge text={STATUS_LABEL[c.status] ?? c.status} color={STATUS_COLOR[c.status] ?? C.dim} />}
       />
 
@@ -132,31 +258,41 @@ export default function ComandaDetailPage() {
           <div style={page.panelHead}>Platillos</div>
           {liveItems.length === 0 ? (
             <EmptyState text="Sin platillos. Agrega del menú." />
+          ) : splits.length === 0 ? (
+            <div>{liveItems.map(renderItemRow)}</div>
           ) : (
             <div>
-              {liveItems.map((it) => (
-                <div key={it.id} style={page.itemRow}>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ color: C.cream, fontSize: "0.92rem", fontWeight: 600 }}>
-                      {it.quantity}× {it.dishNameSnapshot}
+              {/* Matriz (cuenta principal): unidades aún sin dividir */}
+              <div style={page.splitHead}>
+                <span style={{ color: C.dim }}>Cuenta principal (matriz)</span>
+                <span style={{ color: C.cream, fontWeight: 700 }}>{formatMXN(unitsSubtotal(matrixUnits, unitPriceById))}</span>
+              </div>
+              {matrixItemsWithQty.length === 0 ? (
+                <div style={page.splitEmpty}>Todas las unidades están divididas.</div>
+              ) : matrixItemsWithQty.map((it) =>
+                renderUnitRow(`m-${it.id}`, it.dishNameSnapshot, it.remainingQty, Number(it.unitPriceSnapshot) * it.remainingQty),
+              )}
+
+              {/* Divisiones creadas */}
+              {splits.map((split, idx) => {
+                const units = unitsOf(split);
+                return (
+                  <div key={idx}>
+                    <div style={{ ...page.splitHead, ...page.splitHeadDivision }}>
+                      <span style={{ color: C.gold, fontWeight: 700 }}>División {idx + 1}</span>
+                      <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <span style={{ color: C.cream, fontWeight: 700 }}>{formatMXN(unitsSubtotal(units, unitPriceById))}</span>
+                        {canSplit && (
+                          <button style={page.splitRemove} onClick={() => removeSplit(idx)}>Eliminar</button>
+                        )}
+                      </span>
                     </div>
-                    {(it.modifiers || it.kitchenNotes) && (
-                      <div style={{ color: C.faint, fontSize: "0.74rem", marginTop: 2 }}>
-                        {[it.modifiers, it.kitchenNotes].filter(Boolean).join(" · ")}
-                      </div>
-                    )}
-                    <div style={{ marginTop: 4 }}>
-                      <Badge text={ITEM_STATUS_LABEL[it.status] ?? it.status} color={ITEM_STATUS_COLOR[it.status] ?? C.dim} />
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ color: C.cream, fontWeight: 700, fontSize: "0.9rem" }}>{formatMXN(Number(it.lineTotal))}</span>
-                    {editable && canCancel(it) && (
-                      <button style={page.cancelX} title="Cancelar item" onClick={() => setCancelItem(it)}>×</button>
+                    {units.map((u) =>
+                      renderUnitRow(`d${idx}-${u.itemId}`, unitName(u.itemId), u.quantity, (unitPriceById.get(u.itemId) ?? 0) * u.quantity),
                     )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </section>
@@ -181,6 +317,11 @@ export default function ComandaDetailPage() {
           {editable && (
             <button style={btn.ghost} onClick={() => setAskBill(true)} disabled={busy || liveItems.length === 0}>Pedir cuenta</button>
           )}
+          {canSplit && totalLiveUnits > 1 && (
+            <button style={btn.ghost} onClick={() => setSplitOpen(true)} disabled={busy || matrixItemsWithQty.length === 0}>
+              {splits.length === 0 ? "Dividir cuenta" : "Dividir otra cuenta"}
+            </button>
+          )}
           {!alreadyPrinted ? (
             <button style={btn.primary} onClick={() => doPrint()} disabled={busy || liveItems.length === 0}>Imprimir cuenta</button>
           ) : isSupervisor ? (
@@ -190,14 +331,15 @@ export default function ComandaDetailPage() {
           )}
         </section>
 
-        {(c.status === "AWAITING_PAYMENT" || alreadyPrinted) && (
+        {(c.status === "AWAITING_PAYMENT" || alreadyPrinted || splits.length > 0) && (
           <section style={{ marginTop: 18 }}>
             <TicketPreview
               folio={c.folio}
               table={`Mesa ${c.table.number}`}
               money={c}
               taxEnabled={taxEnabled}
-              items={liveItems.map((i) => ({ name: i.dishNameSnapshot, qty: i.quantity, total: Number(i.lineTotal) }))}
+              items={previewSplits ? undefined : liveItems.map((i) => ({ name: i.dishNameSnapshot, qty: i.quantity, total: Number(i.lineTotal) }))}
+              splits={previewSplits}
               footer="¡Gracias por su visita!"
             />
           </section>
@@ -259,6 +401,15 @@ export default function ComandaDetailPage() {
         busy={busy}
         onConfirm={async (reason) => { setReprint(false); await doPrint(reason); }}
         onCancel={() => setReprint(false)}
+      />
+
+      <SplitBillModal
+        open={splitOpen}
+        divisionNumber={splits.length + 1}
+        items={matrixItemsWithQty.map((it) => ({ id: it.id, name: it.dishNameSnapshot, unitPrice: Number(it.unitPriceSnapshot), remainingQty: it.remainingQty }))}
+        busy={busy}
+        onConfirm={createSplit}
+        onClose={() => setSplitOpen(false)}
       />
 
       <ToastHost toasts={toasts} onClose={dismiss} />
@@ -386,4 +537,8 @@ const page: Record<string, React.CSSProperties> = {
   itemRow: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "12px 18px", borderBottom: `1px solid ${C.line}` },
   cancelX: { width: 30, height: 30, borderRadius: 7, border: `1px solid ${C.red}`, background: "transparent", color: C.red, fontSize: "1.1rem", cursor: "pointer", lineHeight: 1 },
   actions: { display: "flex", flexWrap: "wrap", gap: 10, marginTop: 4 },
+  splitHead: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "10px 18px", background: "rgba(255,255,255,0.03)", borderBottom: `1px solid ${C.line}`, fontSize: "0.7rem", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700 },
+  splitHeadDivision: { background: "rgba(186,132,60,0.08)", borderTop: `1px solid ${C.border}` },
+  splitEmpty: { padding: "14px 18px", color: C.faint, fontSize: "0.82rem", borderBottom: `1px solid ${C.line}` },
+  splitRemove: { padding: "4px 10px", borderRadius: 7, border: `1px solid ${C.red}`, background: "transparent", color: C.red, fontSize: "0.7rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
 };

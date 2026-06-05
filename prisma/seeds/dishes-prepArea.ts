@@ -18,10 +18,11 @@ const norm = (s: string) =>
 // Términos que marcan una categoría como BARRA (bebidas). Las categorías de
 // comida del menú no contienen ninguno de estos términos.
 const BARRA_TERMS = [
-  "cafeteria", "cafe", "sin alcohol", "carajillo", "cerveza", "cocteleria", "coctel",
+  "cafeteria", "cafe", "alcohol", "carajillo", "cerveza", "cocteleria", "coctel",
   "mocteleria", "moctel", "tequila", "ron", "vodka", "mezcal", "whiskey", "whisky",
   "conac", "cognac", "ginebra", "brandy", "aperitivo", "jarra", "digestivo", "crema",
   "vino", "espumoso", "champagne", "champan", "bebida", "destilado", "licor", "copa",
+  "jugo", "malteada",
 ].map(norm);
 
 function classify(categoryName: string): PrepArea {

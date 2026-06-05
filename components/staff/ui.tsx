@@ -186,33 +186,77 @@ export function ReasonModal({ open, title, label = "Motivo", confirmLabel = "Con
 }
 
 // ──────────────────────────────────────────────────────── TicketPreview ──
-export function TicketPreview({ folio, table, money, taxEnabled, items, footer }: {
+export interface TicketSplit {
+  title: string;
+  items: { name: string; qty: number; total: number }[];
+  money: ComandaMoney;
+}
+
+export function TicketPreview({ folio, table, money, taxEnabled, items, splits, footer }: {
   folio: string; table?: string; money: ComandaMoney; taxEnabled: boolean;
-  items?: { name: string; qty: number; total: number }[]; footer?: React.ReactNode;
+  items?: { name: string; qty: number; total: number }[];
+  splits?: TicketSplit[];
+  footer?: React.ReactNode;
 }) {
   const lines = buildTotalLines(money, taxEnabled);
+  const hasSplits = !!splits && splits.length > 0;
   return (
     <div style={tk.paper}>
       <div style={{ textAlign: "center", marginBottom: 8 }}>
         <div style={{ fontWeight: 800, letterSpacing: "0.2em", fontSize: "0.8rem" }}>SAN LUCA</div>
         <div style={{ fontSize: "0.7rem", color: "#555" }}>{folio}{table ? ` · ${table}` : ""}</div>
       </div>
-      {items && items.length > 0 && (
-        <div style={{ borderTop: "1px dashed #aaa", borderBottom: "1px dashed #aaa", padding: "6px 0", margin: "6px 0" }}>
-          {items.map((it, i) => (
-            <div key={i} style={tk.row}>
-              <span>{it.qty}× {it.name}</span>
-              <span>{formatMXN(it.total)}</span>
+
+      {hasSplits ? (
+        <>
+          {splits!.map((sp, si) => {
+            const spLines = buildTotalLines(sp.money, taxEnabled);
+            return (
+              <div key={si} style={{ borderTop: "1px dashed #aaa", padding: "6px 0", margin: "4px 0" }}>
+                <div style={{ fontWeight: 800, fontSize: "0.74rem", letterSpacing: "0.08em", marginBottom: 4 }}>
+                  {sp.title.toUpperCase()}
+                </div>
+                {sp.items.map((it, i) => (
+                  <div key={i} style={tk.row}>
+                    <span>{it.qty}× {it.name}</span>
+                    <span>{formatMXN(it.total)}</span>
+                  </div>
+                ))}
+                {spLines.map((l) => (
+                  <div key={l.label} style={{ ...tk.row, fontWeight: l.strong ? 700 : 400, fontSize: l.strong ? "0.82rem" : "0.74rem" }}>
+                    <span>{l.label}</span><span>{formatMXN(l.amount)}</span>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+          <div style={{ borderTop: "2px solid #333", marginTop: 6, paddingTop: 6 }}>
+            <div style={{ ...tk.row, fontWeight: 800, fontSize: "0.95rem" }}>
+              <span>TOTAL GENERAL</span><span>{formatMXN(Number(money.total))}</span>
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          {items && items.length > 0 && (
+            <div style={{ borderTop: "1px dashed #aaa", borderBottom: "1px dashed #aaa", padding: "6px 0", margin: "6px 0" }}>
+              {items.map((it, i) => (
+                <div key={i} style={tk.row}>
+                  <span>{it.qty}× {it.name}</span>
+                  <span>{formatMXN(it.total)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {lines.map((l) => (
+            <div key={l.label} style={{ ...tk.row, fontWeight: l.strong ? 800 : 400, fontSize: l.strong ? "0.95rem" : "0.8rem" }}>
+              <span>{l.label}</span>
+              <span>{formatMXN(l.amount)}</span>
             </div>
           ))}
-        </div>
+        </>
       )}
-      {lines.map((l) => (
-        <div key={l.label} style={{ ...tk.row, fontWeight: l.strong ? 800 : 400, fontSize: l.strong ? "0.95rem" : "0.8rem" }}>
-          <span>{l.label}</span>
-          <span>{formatMXN(l.amount)}</span>
-        </div>
-      ))}
+
       {footer && <div style={{ marginTop: 8, textAlign: "center", fontSize: "0.68rem", color: "#555" }}>{footer}</div>}
     </div>
   );

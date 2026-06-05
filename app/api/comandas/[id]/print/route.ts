@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolveActor, isSupervisor } from "@/lib/dualAuth";
-import { buildSplits } from "@/lib/comandaRules";
+import { buildSplits, type SplitInput } from "@/lib/comandaRules";
+import { validateSplits } from "@/lib/splitBill";
 import { TENANT, COMANDA_INCLUDE } from "@/lib/comanda";
 import type { ApiResponse } from "@/types";
 
@@ -14,8 +15,9 @@ function parseId(raw: string): number | null {
  * POST /api/comandas/:id/print — imprime ticket(s) de cliente (target CAJA).
  * Regla 1-print: la primera la hace el WAITER (de su comanda); una vez impreso
  * un CUSTOMER_FINAL, solo CAPTAIN/MANAGER puede reimprimir con authorizationReason.
- * Body: { splits?: [{ itemIds: number[] }], authorizationReason? }
+ * Body: { splits?: [{ units: [{ itemId: number, quantity: number }] }], authorizationReason? }
  * Si hay `splits`, se genera UN ComandaPrint por grupo (cada uno con su splitConfig).
+ * La división es por UNIDAD: permite repartir fracciones de un mismo platillo.
  */
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   const actor = await resolveActor(request);
@@ -31,7 +33,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     where: { id, tenantId: TENANT },
     select: {
       id: true, waiterId: true,
-      items: { where: { status: { not: "CANCELLED" } }, select: { id: true, lineTotal: true } },
+      items: {
+        where: { status: { not: "CANCELLED" } },
+        select: { id: true, quantity: true, unitPriceSnapshot: true, lineTotal: true, status: true },
+      },
       prints: { select: { type: true } },
     },
   });
@@ -62,17 +67,22 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   }
 
   // Validar splits (si vienen) contra los items vivos de la comanda.
-  const liveIds = new Set(comanda.items.map((i) => i.id));
-  const totalById = new Map(comanda.items.map((i) => [i.id, Number(i.lineTotal)]));
-  let splitTickets: { ticketNumber: number; itemIds: number[]; total: number }[] | null = null;
+  const maxQtyById = new Map(comanda.items.map((i) => [i.id, i.quantity]));
+  const itemsById = new Map(
+    comanda.items.map((i) => [i.id, {
+      unitPriceSnapshot: Number(i.unitPriceSnapshot),
+      quantity: i.quantity,
+      lineTotal: Number(i.lineTotal),
+    }]),
+  );
+  let splitTickets: { ticketNumber: number; units: { itemId: number; quantity: number }[]; total: number }[] | null = null;
 
   if (Array.isArray(body?.splits) && body.splits.length > 0) {
-    for (const g of body.splits) {
-      if (!Array.isArray(g?.itemIds) || g.itemIds.some((x: unknown) => !liveIds.has(Number(x)))) {
-        return NextResponse.json<ApiResponse>({ success: false, error: "splits contiene itemIds inválidos" }, { status: 400 });
-      }
+    const check = validateSplits(body.splits as SplitInput[], maxQtyById);
+    if (!check.ok) {
+      return NextResponse.json<ApiResponse>({ success: false, error: check.error }, { status: 400 });
     }
-    splitTickets = buildSplits(body.splits, totalById);
+    splitTickets = buildSplits(body.splits as SplitInput[], itemsById);
   }
 
   const isReprint = printType === "CUSTOMER_REPRINT";

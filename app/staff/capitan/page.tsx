@@ -8,6 +8,7 @@ import {
   STATUS_LABEL, STATUS_COLOR, useToasts, ToastHost, useStaffLogout,
 } from "@/components/staff/ui";
 import { apiFetch, type Comanda, type TableStatus } from "@/components/staff/types";
+import { GoldSelect } from "@/components/ui/GoldSelect";
 
 interface WaiterOpt { id: number; fullName: string; role: string }
 
@@ -150,10 +151,7 @@ function PickModal({ open, title, label, options, emptyMsg, busy, onConfirm, onC
       ) : (
         <>
           <label style={fld.label}>{label}</label>
-          <select style={fld.input} value={value} onChange={(e) => setValue(e.target.value)}>
-            <option value="">— Selecciona —</option>
-            {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
+          <GoldSelect value={value} onChange={setValue} options={options} placeholder="— Selecciona —" />
           <label style={{ ...fld.label, marginTop: 16 }}>Motivo (opcional, auditoría)</label>
           <input style={fld.input} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="ej. cliente cambió de lugar" />
         </>

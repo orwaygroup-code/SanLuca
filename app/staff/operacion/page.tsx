@@ -8,6 +8,7 @@ import {
   STATUS_LABEL, STATUS_COLOR, useToasts, ToastHost, useStaffLogout,
 } from "@/components/staff/ui";
 import { apiFetch, type TableStatus, type ReservationToday, type Comanda } from "@/components/staff/types";
+import { GoldSelect } from "@/components/ui/GoldSelect";
 
 const MX_TZ = "America/Mexico_City";
 function hhmm(iso: string): string {
@@ -187,12 +188,12 @@ function SeatModal({ res, freeTables, onClose, onSeated, onError }: {
   return (
     <Modal open={!!res} title={res ? `Sentar a ${res.guestName}` : ""} onClose={onClose}>
       <label style={fld.label}>Mesa</label>
-      <select style={fld.input} value={tableId} onChange={(e) => setTableId(e.target.value)}>
-        <option value="">— Selecciona mesa —</option>
-        {options.map((t) => (
-          <option key={t.id} value={t.id}>Mesa {t.number} · {t.section}{t.capacity ? ` (cap. ${t.capacity})` : ""}</option>
-        ))}
-      </select>
+      <GoldSelect
+        value={tableId}
+        onChange={setTableId}
+        options={options.map((t) => ({ value: t.id, label: `Mesa ${t.number} · ${t.section}${t.capacity ? ` (cap. ${t.capacity})` : ""}` }))}
+        placeholder="— Selecciona mesa —"
+      />
       <label style={{ ...fld.label, marginTop: 16 }}>Comensales</label>
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <button style={stepper} onClick={() => setGuests((g) => Math.max(1, g - 1))}>−</button>

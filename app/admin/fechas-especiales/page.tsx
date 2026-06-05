@@ -1,11 +1,18 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { GoldSelect } from "@/components/ui/GoldSelect";
+import type { SelectOption } from "@/components/ui/GoldSelect";
 
 const MONTHS_ES = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
 ];
+
+const MONTH_OPTIONS: SelectOption[] = MONTHS_ES.map((m, i) => ({ value: String(i + 1), label: m }));
+const MONTH_OPTIONS_SHORT: SelectOption[] = MONTHS_ES.map((m, i) => ({ value: String(i + 1), label: m.slice(0, 3) }));
+const dayOptionsFor = (count: number): SelectOption[] =>
+  Array.from({ length: count }, (_, i) => ({ value: String(i + 1), label: String(i + 1) }));
 
 interface SpecialDate {
   id: string;
@@ -133,19 +140,19 @@ export default function FechasEspecialesPage() {
           </div>
           <div>
             <label style={labelStyle}>Mes</label>
-            <select
-              style={inputStyle}
-              value={form.month}
-              onChange={(e) => setForm({ ...form, month: parseInt(e.target.value), day: Math.min(form.day, new Date(2024, parseInt(e.target.value), 0).getDate()) })}
-            >
-              {MONTHS_ES.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
-            </select>
+            <GoldSelect
+              value={String(form.month)}
+              onChange={(v) => { const month = parseInt(v); setForm({ ...form, month, day: Math.min(form.day, new Date(2024, month, 0).getDate()) }); }}
+              options={MONTH_OPTIONS}
+            />
           </div>
           <div>
             <label style={labelStyle}>Día</label>
-            <select style={inputStyle} value={form.day} onChange={(e) => setForm({ ...form, day: parseInt(e.target.value) })}>
-              {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((d) => <option key={d}>{d}</option>)}
-            </select>
+            <GoldSelect
+              value={String(form.day)}
+              onChange={(v) => setForm({ ...form, day: parseInt(v) })}
+              options={dayOptionsFor(daysInMonth)}
+            />
           </div>
           <div>
             <label style={labelStyle}>Monto MXN</label>
@@ -206,12 +213,18 @@ export default function FechasEspecialesPage() {
                   }}>
                     {isEditing ? (
                       <span style={{ display: "flex", gap: 4 }}>
-                        <select value={editDraft?.day} onChange={(e) => setEditDraft({ ...editDraft!, day: parseInt(e.target.value) })} style={miniSelect}>
-                          {Array.from({ length: new Date(2024, editDraft!.month, 0).getDate() }, (_, i) => i + 1).map((d) => <option key={d}>{d}</option>)}
-                        </select>
-                        <select value={editDraft?.month} onChange={(e) => setEditDraft({ ...editDraft!, month: parseInt(e.target.value) })} style={miniSelect}>
-                          {MONTHS_ES.map((m, i) => <option key={m} value={i + 1}>{m.slice(0, 3)}</option>)}
-                        </select>
+                        <GoldSelect
+                          value={String(editDraft?.day ?? "")}
+                          onChange={(v) => setEditDraft({ ...editDraft!, day: parseInt(v) })}
+                          options={dayOptionsFor(new Date(2024, editDraft!.month, 0).getDate())}
+                          style={{ minWidth: 62 }}
+                        />
+                        <GoldSelect
+                          value={String(editDraft?.month ?? "")}
+                          onChange={(v) => setEditDraft({ ...editDraft!, month: parseInt(v) })}
+                          options={MONTH_OPTIONS_SHORT}
+                          style={{ minWidth: 78 }}
+                        />
                       </span>
                     ) : (
                       `${it.day} ${MONTHS_ES[it.month - 1].slice(0, 3)}`
@@ -286,15 +299,6 @@ const inputStyle: React.CSSProperties = {
   fontSize: "0.85rem",
   fontFamily: "inherit",
   outline: "none",
-};
-
-const miniSelect: React.CSSProperties = {
-  background: "transparent",
-  border: "none",
-  color: "#ba843c",
-  fontWeight: 700,
-  fontSize: "0.75rem",
-  cursor: "pointer",
 };
 
 function pillBtn(active: boolean): React.CSSProperties {

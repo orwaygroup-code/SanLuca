@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/session-client";
 import { AdminNav } from "@/components/admin/AdminNav";
+import { GoldSelect } from "@/components/ui/GoldSelect";
+import type { SelectOption } from "@/components/ui/GoldSelect";
 
 type Role = "WAITER" | "OPERATION" | "CAPTAIN" | "MANAGER";
 
@@ -15,6 +17,14 @@ interface StaffRow {
 const ROLE_LABEL: Record<Role, string> = { WAITER: "Mesero", OPERATION: "Operación", CAPTAIN: "Capitán", MANAGER: "Manager" };
 const ROLE_COLOR: Record<Role, string> = { WAITER: "#4a9eca", OPERATION: "#b07cd6", CAPTAIN: "#ba843c", MANAGER: "#4caf50" };
 const ROLES: Role[] = ["WAITER", "OPERATION", "CAPTAIN", "MANAGER"];
+
+const ROLE_OPTIONS: SelectOption[] = ROLES.map((r) => ({ value: r, label: ROLE_LABEL[r] }));
+const ROLE_FILTER_OPTIONS: SelectOption[] = [{ value: "", label: "Todos los roles" }, ...ROLE_OPTIONS];
+const ACTIVE_FILTER_OPTIONS: SelectOption[] = [
+  { value: "", label: "Activos e inactivos" },
+  { value: "true", label: "Solo activos" },
+  { value: "false", label: "Solo inactivos" },
+];
 
 function fmtDateTime(iso: string | null): string {
   if (!iso) return "—";
@@ -86,15 +96,20 @@ export default function EmployeesPage() {
       </div>
 
       <div style={S.filters}>
-        <select style={S.select} value={roleFilter} onChange={(e) => setRoleFilter(e.target.value as "" | Role)}>
-          <option value="">Todos los roles</option>
-          {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
-        </select>
-        <select style={S.select} value={activeFilter} onChange={(e) => setActiveFilter(e.target.value as "" | "true" | "false")}>
-          <option value="">Activos e inactivos</option>
-          <option value="true">Solo activos</option>
-          <option value="false">Solo inactivos</option>
-        </select>
+        <GoldSelect
+          value={roleFilter}
+          onChange={(v) => setRoleFilter(v as "" | Role)}
+          options={ROLE_FILTER_OPTIONS}
+          placeholder="Todos los roles"
+          style={{ minWidth: 170 }}
+        />
+        <GoldSelect
+          value={activeFilter}
+          onChange={(v) => setActiveFilter(v as "" | "true" | "false")}
+          options={ACTIVE_FILTER_OPTIONS}
+          placeholder="Activos e inactivos"
+          style={{ minWidth: 180 }}
+        />
         <input style={S.search} placeholder="Buscar usuario o nombre…" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && fetchList()} />
       </div>
 
@@ -197,7 +212,7 @@ function EmployeeFormModal({ mode, row, onClose, onSaved }: {
         </div>
         <div>
           <label style={S.label}>Rol</label>
-          <select style={S.input} value={role} onChange={(e) => setRole(e.target.value as Role)}>{ROLES.map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}</select>
+          <GoldSelect value={role} onChange={(v) => setRole(v as Role)} options={ROLE_OPTIONS} placeholder="Selecciona rol" />
         </div>
         {mode === "create" && (
           <div>
