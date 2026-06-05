@@ -82,7 +82,11 @@ export function AuthForm() {
         // Si ya hay sesión activa
         if (session.user) {
             const role = session.user.role;
-            router.push(role === "ADMIN" || role === "HOSTES" ? "/admin" : redirect);
+            router.push(
+                role === "ADMIN" ? "/admin/dashboard"
+                : role === "HOSTES" ? "/admin"
+                : redirect
+            );
             return;
         }
 
@@ -94,7 +98,11 @@ export function AuthForm() {
                 .then(async (data) => {
                     if (data.success) {
                         await session.refresh();
-                        router.push(["ADMIN", "HOSTES"].includes(data.data.userRole) ? "/admin" : redirect);
+                        router.push(
+                            data.data.userRole === "ADMIN" ? "/admin/dashboard"
+                            : data.data.userRole === "HOSTES" ? "/admin"
+                            : redirect
+                        );
                     }
                 })
                 .catch(() => { });
@@ -134,7 +142,11 @@ export function AuthForm() {
                 throw new Error(data.error);
             }
             await session.refresh();
-            router.push(["ADMIN", "HOSTES"].includes(data.data.role) ? "/admin" : "/dashboard");
+            router.push(
+                data.data.role === "ADMIN" ? "/admin/dashboard"
+                : data.data.role === "HOSTES" ? "/admin"
+                : "/dashboard"
+            );
         } catch (e: unknown) {
             setError(e instanceof Error ? e.message : "Error al iniciar sesión");
         } finally {
