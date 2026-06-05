@@ -7,12 +7,12 @@ import { WhatsAppFloat } from "./WhatsAppFloat";
 import { AcceptTermsModal } from "./AcceptTermsModal";
 
 const BARE_PATHS = ["/login"];
-const BARE_PREFIXES = ["/checkin/", "/admin", "/crm"];
+const BARE_PREFIXES = ["/checkin/", "/admin", "/crm", "/staff"];
 
 // Rutas legales y de auth donde NO mostramos el modal de re-aceptación —
 // el usuario debe poder leer los documentos antes de aceptarlos, y debe poder
 // cerrar sesión.
-const MODAL_EXEMPT_PATHS = ["/privacidad", "/terminos", "/login"];
+const MODAL_EXEMPT_PATHS = ["/privacidad", "/terminos", "/login", "/staff"];
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();

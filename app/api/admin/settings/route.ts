@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getStaffSession, requireManager } from "@/lib/staff-auth-server";
+import { resolveActor, requireAdminOrStaffManager } from "@/lib/dualAuth";
 import { TENANT } from "@/lib/comanda";
 import type { ApiResponse } from "@/types";
 
@@ -10,17 +10,17 @@ async function ensureSettings() {
   return existing ?? prisma.restaurantSettings.create({ data: { tenantId: TENANT } });
 }
 
-/** GET /api/admin/settings — cualquier staff logueado (el cálculo de totales lo consulta). */
+/** GET /api/admin/settings — cualquier staff o ADMIN logueado (el cálculo de totales lo consulta). */
 export async function GET(request: NextRequest) {
-  const s = await getStaffSession(request);
-  if (!s) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 401 });
+  const a = await resolveActor(request);
+  if (!a) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 401 });
   const settings = await ensureSettings();
   return NextResponse.json<ApiResponse>({ success: true, data: settings });
 }
 
-/** PATCH /api/admin/settings — solo MANAGER. Registra updatedBy. */
+/** PATCH /api/admin/settings — ADMIN (sl_session) o MANAGER (sl_staff). Registra updatedBy. */
 export async function PATCH(request: NextRequest) {
-  const m = await requireManager(request);
+  const m = await requireAdminOrStaffManager(request);
   if (!m) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
 
   const body = await request.json().catch(() => ({}));

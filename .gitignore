@@ -28,6 +28,9 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+# backups locales de .env — JAMÁS commitear credenciales del VPS o de cuentas
+.env.*-backup
+.env.*-backup-*
 
 # vercel
 .vercel

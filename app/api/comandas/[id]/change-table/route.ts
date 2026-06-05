@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireStaffRole } from "@/lib/staff-auth-server";
+import { requireComandaSupervisor } from "@/lib/dualAuth";
 import { TENANT, ACTIVE_STATUSES, COMANDA_INCLUDE } from "@/lib/comanda";
 import type { ApiResponse } from "@/types";
 
@@ -15,8 +15,9 @@ function parseId(raw: string): number | null {
  * Body: { toTableId, reason? }
  */
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
-  const s = await requireStaffRole(request, ["CAPTAIN", "MANAGER"]);
-  if (!s) return NextResponse.json<ApiResponse>({ success: false, error: "Solo Capitán/Manager" }, { status: 403 });
+  const s = await requireComandaSupervisor(request);
+  if (!s) return NextResponse.json<ApiResponse>({ success: false, error: "Solo Capitán/Manager/Admin" }, { status: 403 });
+  if (s.staffId == null) return NextResponse.json<ApiResponse>({ success: false, error: "Tu usuario admin no está vinculado a un empleado (Staff)" }, { status: 409 });
 
   const id = parseId(params.id);
   if (!id) return NextResponse.json<ApiResponse>({ success: false, error: "ID inválido" }, { status: 400 });

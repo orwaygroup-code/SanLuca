@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getStaffSession } from "@/lib/staff-auth-server";
-import { decidePrint, buildSplits } from "@/lib/comandaRules";
+import { resolveActor, isSupervisor } from "@/lib/dualAuth";
+import { buildSplits, type SplitInput } from "@/lib/comandaRules";
+import { validateSplits } from "@/lib/splitBill";
 import { TENANT, COMANDA_INCLUDE } from "@/lib/comanda";
 import type { ApiResponse } from "@/types";
 
@@ -14,12 +15,16 @@ function parseId(raw: string): number | null {
  * POST /api/comandas/:id/print — imprime ticket(s) de cliente (target CAJA).
  * Regla 1-print: la primera la hace el WAITER (de su comanda); una vez impreso
  * un CUSTOMER_FINAL, solo CAPTAIN/MANAGER puede reimprimir con authorizationReason.
- * Body: { splits?: [{ itemIds: number[] }], authorizationReason? }
+ * Body: { splits?: [{ units: [{ itemId: number, quantity: number }] }], authorizationReason? }
  * Si hay `splits`, se genera UN ComandaPrint por grupo (cada uno con su splitConfig).
+ * La división es por UNIDAD: permite repartir fracciones de un mismo platillo.
  */
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
-  const s = await getStaffSession(request);
-  if (!s) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 401 });
+  const actor = await resolveActor(request);
+  if (!actor) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 401 });
+  if (actor.staffId == null) {
+    return NextResponse.json<ApiResponse>({ success: false, error: "Tu usuario admin no está vinculado a un empleado (Staff)" }, { status: 409 });
+  }
 
   const id = parseId(params.id);
   if (!id) return NextResponse.json<ApiResponse>({ success: false, error: "ID inválido" }, { status: 400 });
@@ -28,7 +33,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     where: { id, tenantId: TENANT },
     select: {
       id: true, waiterId: true,
-      items: { where: { status: { not: "CANCELLED" } }, select: { id: true, lineTotal: true } },
+      items: {
+        where: { status: { not: "CANCELLED" } },
+        select: { id: true, quantity: true, unitPriceSnapshot: true, lineTotal: true, status: true },
+      },
       prints: { select: { type: true } },
     },
   });
@@ -38,38 +46,53 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const authorizationReason: string | null = typeof body?.authorizationReason === "string" ? body.authorizationReason : null;
   const alreadyPrinted = comanda.prints.some((p) => p.type === "CUSTOMER_FINAL");
 
-  const decision = decidePrint({
-    role: s.role,
-    isOwner: comanda.waiterId === s.staffId,
-    alreadyPrinted,
-    authorizationReason,
-  });
-  if (!decision.allowed || !decision.type) {
-    return NextResponse.json<ApiResponse>({ success: false, error: decision.error ?? "No autorizado" }, { status: 403 });
+  // Decisión dual-realm de impresión (regla 1-print + reimpresión supervisada).
+  const supervisor = isSupervisor(actor);
+  const isOwnerWaiter = actor.realm === "staff" && actor.role === "WAITER" && comanda.waiterId === actor.staffId;
+  let printType: "CUSTOMER_FINAL" | "CUSTOMER_REPRINT";
+  if (!alreadyPrinted) {
+    const canFirst = isOwnerWaiter || actor.role === "OPERATION" || supervisor;
+    if (!canFirst) {
+      return NextResponse.json<ApiResponse>({ success: false, error: "Solo puedes imprimir tickets de tus comandas" }, { status: 403 });
+    }
+    printType = "CUSTOMER_FINAL";
+  } else {
+    if (!supervisor) {
+      return NextResponse.json<ApiResponse>({ success: false, error: "La reimpresión la autoriza un Capitán/Manager/Admin" }, { status: 403 });
+    }
+    if (!authorizationReason || !authorizationReason.trim()) {
+      return NextResponse.json<ApiResponse>({ success: false, error: "authorizationReason es obligatorio para reimprimir" }, { status: 400 });
+    }
+    printType = "CUSTOMER_REPRINT";
   }
 
   // Validar splits (si vienen) contra los items vivos de la comanda.
-  const liveIds = new Set(comanda.items.map((i) => i.id));
-  const totalById = new Map(comanda.items.map((i) => [i.id, Number(i.lineTotal)]));
-  let splitTickets: { ticketNumber: number; itemIds: number[]; total: number }[] | null = null;
+  const maxQtyById = new Map(comanda.items.map((i) => [i.id, i.quantity]));
+  const itemsById = new Map(
+    comanda.items.map((i) => [i.id, {
+      unitPriceSnapshot: Number(i.unitPriceSnapshot),
+      quantity: i.quantity,
+      lineTotal: Number(i.lineTotal),
+    }]),
+  );
+  let splitTickets: { ticketNumber: number; units: { itemId: number; quantity: number }[]; total: number }[] | null = null;
 
   if (Array.isArray(body?.splits) && body.splits.length > 0) {
-    for (const g of body.splits) {
-      if (!Array.isArray(g?.itemIds) || g.itemIds.some((x: unknown) => !liveIds.has(Number(x)))) {
-        return NextResponse.json<ApiResponse>({ success: false, error: "splits contiene itemIds inválidos" }, { status: 400 });
-      }
+    const check = validateSplits(body.splits as SplitInput[], maxQtyById);
+    if (!check.ok) {
+      return NextResponse.json<ApiResponse>({ success: false, error: check.error }, { status: 400 });
     }
-    splitTickets = buildSplits(body.splits, totalById);
+    splitTickets = buildSplits(body.splits as SplitInput[], itemsById);
   }
 
-  const isReprint = decision.type === "CUSTOMER_REPRINT";
+  const isReprint = printType === "CUSTOMER_REPRINT";
   const common = {
     tenantId: TENANT,
     comandaId: id,
-    type: decision.type,
+    type: printType,
     target: "CAJA" as const,
-    executedById: s.staffId,
-    authorizedById: isReprint ? s.staffId : null,
+    executedById: actor.staffId,
+    authorizedById: isReprint ? actor.staffId : null,
     authorizationReason: isReprint ? authorizationReason : null,
   };
 

@@ -69,22 +69,29 @@ export function prepAreaToTarget(prepArea: "BARRA" | "COCINA"): "BARRA" | "COCIN
   return prepArea; // 1:1 en B.1 (2 áreas). Si se subdividen áreas, se mapea aquí.
 }
 
-export interface SplitTicket { ticketNumber: number; itemIds: number[]; total: number }
+export interface SplitUnit { itemId: number; quantity: number }
+export interface SplitInput { units: SplitUnit[] }
+export interface SplitTicket { ticketNumber: number; units: SplitUnit[]; total: number }
 
 /**
- * Construye la config de cada ticket de una división de cuenta.
- * `splits` define los grupos de itemIds; `itemTotalById` da el lineTotal de cada item.
+ * Construye la config de cada ticket de una división de cuenta (Fase B.2).
+ * `splits` define los grupos de UNIDADES (itemId + quantity) — permite dividir
+ * fracciones de un mismo platillo entre comensales (p.ej. "Pasta ×2", uno cada quien).
+ * `itemsById` da el precio unitario / cantidad / lineTotal de cada item vivo.
+ *
+ * El total de cada ticket = Σ (unitPriceSnapshot × quantity) por unidad. Se usa
+ * el precio unitario directo (no lineTotal/cantidad) para evitar drift de redondeo.
  * Devuelve un SplitTicket por grupo (→ el endpoint crea un ComandaPrint por cada uno).
  */
 export function buildSplits(
-  splits: { itemIds: number[] }[],
-  itemTotalById: Map<number, number>,
+  splits: SplitInput[],
+  itemsById: Map<number, { unitPriceSnapshot: number; quantity: number; lineTotal: number }>,
 ): SplitTicket[] {
   return splits.map((s, i) => ({
     ticketNumber: i + 1,
-    itemIds: s.itemIds,
+    units: s.units,
     total: Math.round(
-      s.itemIds.reduce((sum, id) => sum + (itemTotalById.get(id) ?? 0), 0) * 100,
+      s.units.reduce((sum, u) => sum + (itemsById.get(u.itemId)?.unitPriceSnapshot ?? 0) * u.quantity, 0) * 100,
     ) / 100,
   }));
 }

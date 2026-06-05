@@ -10,6 +10,7 @@ import { GuestsPicker } from "@/components/ui/GuestsPicker";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { useSession } from "@/lib/session-client";
 import { tableFitsGuests } from "@/lib/tableCapacity";
+import { AdminNav } from "@/components/admin/AdminNav";
 
 const OCCASION_OPTIONS: SelectOption[] = [
   { value: "",                  label: "— Sin celebración —"  },
@@ -271,7 +272,12 @@ export default function AdminPage() {
     const groups = groupByDate(displayed);
 
     return (
-        <div className="adm-page">
+        <>
+            <AdminNav
+                userName={session.user?.name}
+                onLogout={async () => { await session.logout(); router.push("/login?mode=login"); }}
+            />
+            <div className="adm-page">
             {/* ── Header ── */}
             <div className="adm-header">
                 <h1 className="adm-title">
@@ -670,7 +676,8 @@ export default function AdminPage() {
                     }}
                 />
             )}
-        </div>
+            </div>
+        </>
     );
 }
 

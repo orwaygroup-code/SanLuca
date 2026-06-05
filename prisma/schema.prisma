@@ -22,6 +22,12 @@ model User {
   role         Role          @default(CUSTOMER)
   source       UserSource    @default(WEB) // canal por el que llegó: web o whatsapp bot
 
+  // Vínculo opcional User ↔ Staff (Fase B.2). Solo Ricardo lo usa: su User
+  // ADMIN (sl_session) ligado a su Staff MANAGER (sl_staff) para auditoría
+  // dual-realm. El resto de empleados no tiene User.
+  staffId      Int?          @unique
+  staff        Staff?        @relation(fields: [staffId], references: [id])
+
   // Aceptación de Aviso de Privacidad + T&C (LFPDPPP — evidencia para INAI).
   // Un solo timestamp cubre ambos documentos porque el checkbox de registro
   // es uno solo. Si la versión publicada cambia se prompt-ea re-aceptación.
@@ -96,6 +102,7 @@ model Staff {
   tableChangesAuthored  ComandaTableChange[]  @relation("TableChangeAuthor")
   waiterChangesAuthored ComandaWaiterChange[] @relation("WaiterChangeAuthor")
   settingsUpdated       RestaurantSettings[]
+  user                  User?                 // vínculo dual-realm (Ricardo). Inverso de User.staff
 
   @@index([tenantId, role, active])
   @@index([username])

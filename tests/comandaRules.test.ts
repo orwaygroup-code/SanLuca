@@ -65,11 +65,25 @@ test("formatFolio COM-AAAA-NNNN con 4 dígitos", () => {
   assert.equal(formatFolio(2026, 10000), "COM-2026-10000");
 });
 
-// ── buildSplits ─────────────────────────────────────────────────────
-test("división genera un ticket por grupo con su total", () => {
-  const totals = new Map<number, number>([[1, 400], [2, 180], [3, 350]]);
-  const tickets = buildSplits([{ itemIds: [1, 2] }, { itemIds: [3] }], totals);
+// ── buildSplits (por unidad) ────────────────────────────────────────
+test("división genera un ticket por grupo con total = Σ unitPrice×qty", () => {
+  const itemsById = new Map([
+    [1, { unitPriceSnapshot: 200, quantity: 2, lineTotal: 400 }],
+    [2, { unitPriceSnapshot: 180, quantity: 1, lineTotal: 180 }],
+    [3, { unitPriceSnapshot: 350, quantity: 1, lineTotal: 350 }],
+  ]);
+  const tickets = buildSplits(
+    [
+      { units: [{ itemId: 1, quantity: 1 }] },
+      { units: [{ itemId: 1, quantity: 1 }, { itemId: 2, quantity: 1 }, { itemId: 3, quantity: 1 }] },
+    ],
+    itemsById,
+  );
   assert.equal(tickets.length, 2);
-  assert.deepEqual(tickets[0], { ticketNumber: 1, itemIds: [1, 2], total: 580 });
-  assert.deepEqual(tickets[1], { ticketNumber: 2, itemIds: [3], total: 350 });
+  assert.deepEqual(tickets[0], { ticketNumber: 1, units: [{ itemId: 1, quantity: 1 }], total: 200 });
+  assert.deepEqual(tickets[1], {
+    ticketNumber: 2,
+    units: [{ itemId: 1, quantity: 1 }, { itemId: 2, quantity: 1 }, { itemId: 3, quantity: 1 }],
+    total: 730,
+  });
 });

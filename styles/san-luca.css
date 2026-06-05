@@ -2114,3 +2114,20 @@ textarea::placeholder {
     width: 100%;
   }
 }
+
+/* Fallback dark theme para <select> nativos no migrados a GoldSelect.
+   Funciona en Firefox; Chrome/Safari ignoran option-level styles pero
+   al menos el control colapsado se ve consistente. Para fix completo,
+   migrar el <select> afectado a <GoldSelect>. */
+select {
+  color: #f5f1e8;
+  background-color: #131c1b;
+}
+select option {
+  background-color: #131c1b;
+  color: #f5f1e8;
+}
+select option:checked {
+  background-color: rgba(186, 132, 60, 0.14);
+  color: #f5f1e8;
+}
