@@ -36,8 +36,13 @@ export async function getMenuCategoryById(id: string) {
 }
 
 export async function getMenuCategoryByName(name: string) {
+  // El parámetro suele venir como slug ("vino-tinto", "especialidades-del-chef").
+  // Convertimos guiones en espacios para que matchee el `name` real en DB
+  // ("Vino Tinto", "Especialidades del Chef"). Para nombres sin guion (e.g.
+  // "Antipasti") la transformación es no-op.
+  const normalized = name.replace(/-/g, " ");
   return prisma.menuCategory.findFirst({
-    where: { name: { equals: name, mode: "insensitive" } },
+    where: { name: { equals: normalized, mode: "insensitive" } },
     select: {
       id: true,
       name: true,

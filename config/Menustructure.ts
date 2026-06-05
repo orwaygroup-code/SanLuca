@@ -81,7 +81,13 @@ export const COMIDA_GROUPS: MenuGroup[] = [
         slug: "autor",
         groupName: "Autor",
         groupSubtitle: "Creaciones exclusivas del chef",
-        categories: [],
+        categories: [
+            {
+                slug: "especialidades-del-chef",
+                name: "Especialidades del Chef",
+                description: "Selección a cargo del Chef Ricardo Camacho",
+            },
+        ],
     },
     {
         slug: "bebidas",
