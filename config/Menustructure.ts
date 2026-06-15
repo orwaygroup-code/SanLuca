@@ -173,6 +173,7 @@ export const COMIDA_GROUPS: MenuGroup[] = [
             },
             { slug: "vino-tinto", name: "Vino Tinto" },
             { slug: "vinos-espumosos", name: "Vinos Espumosos" },
+            { slug: "copeos", name: "Copeos" },
         ],
     },
 ];
