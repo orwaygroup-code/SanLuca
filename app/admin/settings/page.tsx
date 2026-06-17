@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/session-client";
-import { AdminNav } from "@/components/admin/AdminNav";
 
 interface Settings { taxEnabled: boolean; taxRate: number | string; updatedAt: string }
 
@@ -64,7 +63,6 @@ export default function AdminSettingsPage() {
 
   return (
     <div style={S.page}>
-      <AdminNav userName={session.user.name} onLogout={logout} />
       <main style={S.main}>
         <h1 style={S.h1}>Ajustes del restaurante</h1>
 

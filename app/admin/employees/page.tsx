@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/session-client";
-import { AdminNav } from "@/components/admin/AdminNav";
 import { GoldSelect } from "@/components/ui/GoldSelect";
 import type { SelectOption } from "@/components/ui/GoldSelect";
 
@@ -88,8 +87,6 @@ export default function EmployeesPage() {
 
   return (
     <div style={S.page}>
-      <AdminNav userName={session.user.name} onLogout={async () => { await session.logout(); router.push("/login?mode=login"); }} />
-
       <div style={S.header}>
         <h1 style={S.h1}><span style={{ color: "#ba843c" }}>EMPLEADOS</span></h1>
         <button style={S.primaryBtn} onClick={() => setCreateOpen(true)}>+ Nuevo empleado</button>

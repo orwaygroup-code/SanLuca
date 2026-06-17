@@ -10,7 +10,6 @@ import { GuestsPicker } from "@/components/ui/GuestsPicker";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { useSession } from "@/lib/session-client";
 import { tableFitsGuests } from "@/lib/tableCapacity";
-import { AdminNav } from "@/components/admin/AdminNav";
 
 const OCCASION_OPTIONS: SelectOption[] = [
   { value: "",                  label: "— Sin celebración —"  },
@@ -152,7 +151,6 @@ export default function AdminPage() {
     const router = useRouter();
     const session = useSession();
     const userId   = session.user?.id   ?? null;
-    const userRole = session.user?.role ?? null;
     const [reservations, setReservations] = useState<Reservation[]>([]);
     const [loading, setLoading]           = useState(true);
     const [section, setSection]           = useState("Todas");
@@ -164,7 +162,6 @@ export default function AdminPage() {
     const [editTarget, setEditTarget]       = useState<Reservation | null>(null);
     const [noteTarget, setNoteTarget]       = useState<Reservation | null>(null);
     const [showNewModal, setShowNewModal]   = useState(false);
-    const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
 
     useEffect(() => {
         if (session.loading) return;
@@ -272,107 +269,15 @@ export default function AdminPage() {
     const groups = groupByDate(displayed);
 
     return (
-        <>
-            <AdminNav
-                userName={session.user?.name}
-                onLogout={async () => { await session.logout(); router.push("/login?mode=login"); }}
-            />
-            <div className="adm-page">
-            {/* ── Header ── */}
-            <div className="adm-header">
-                <h1 className="adm-title">
-                    <span className="adm-title--gold">RESERVACIONES</span>
-                    {" "}<span className="adm-title--white">{userRole === "ADMIN" ? "ADMIN" : "HOSTESS"}</span>
-                </h1>
-                <div className="adm-header__actions">
-                    <button
-                        onClick={() => router.push("/admin/mapa")}
-                        style={{ padding: "8px 14px", background: "rgba(186,132,60,0.12)", border: "1px solid rgba(186,132,60,0.35)", borderRadius: 8, color: "#ba843c", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}
-                    >
-                        Mapa
-                    </button>
-                    <button
-                        onClick={() => router.push("/admin/historial")}
-                        style={{ padding: "8px 14px", background: "rgba(186,132,60,0.12)", border: "1px solid rgba(186,132,60,0.35)", borderRadius: 8, color: "#ba843c", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}
-                    >
-                        Historial
-                    </button>
-                    {userRole === "ADMIN" && (
-                        <>
-                            <button
-                                onClick={() => router.push("/admin/fechas-especiales")}
-                                style={{ padding: "8px 14px", background: "rgba(186,132,60,0.12)", border: "1px solid rgba(186,132,60,0.35)", borderRadius: 8, color: "#ba843c", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}
-                            >
-                                Fechas
-                            </button>
-                            <button
-                                onClick={() => router.push("/crm")}
-                                style={{ padding: "8px 14px", background: "rgba(186,132,60,0.12)", border: "1px solid rgba(186,132,60,0.35)", borderRadius: 8, color: "#ba843c", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}
-                            >
-                                CRM
-                            </button>
-                        </>
-                    )}
-                    <button
-                        className="adm-header__primary"
-                        onClick={() => setShowNewModal(true)}
-                        style={{ padding: "8px 14px", background: "rgba(186,132,60,0.85)", border: "1px solid #ba843c", borderRadius: 8, color: "#fff", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}
-                    >
-                        + Nueva
-                    </button>
-                    <button className="adm-logout" onClick={async () => { await session.logout(); router.push("/login?mode=login"); }}>
-                        Salir
-                    </button>
-
-                    {/* Hamburger (solo mobile) */}
-                    <button
-                        type="button"
-                        className="adm-header__hamburger"
-                        aria-label={headerMenuOpen ? "Cerrar menú" : "Abrir menú"}
-                        aria-expanded={headerMenuOpen}
-                        onClick={() => setHeaderMenuOpen((v) => !v)}
-                    >
-                        {headerMenuOpen ? "✕" : "☰"}
-                    </button>
-
-                    {/* Dropdown mobile */}
-                    <div className={`adm-header__dropdown${headerMenuOpen ? " adm-header__dropdown--open" : ""}`}>
-                        <button
-                            onClick={() => { setHeaderMenuOpen(false); router.push("/admin/mapa"); }}
-                            style={{ padding: "10px 14px", background: "rgba(186,132,60,0.12)", border: "1px solid rgba(186,132,60,0.35)", borderRadius: 8, color: "#ba843c", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}
-                        >
-                            Mapa
-                        </button>
-                        <button
-                            onClick={() => { setHeaderMenuOpen(false); router.push("/admin/historial"); }}
-                            style={{ padding: "10px 14px", background: "rgba(186,132,60,0.12)", border: "1px solid rgba(186,132,60,0.35)", borderRadius: 8, color: "#ba843c", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}
-                        >
-                            Historial
-                        </button>
-                        {userRole === "ADMIN" && (
-                            <>
-                                <button
-                                    onClick={() => { setHeaderMenuOpen(false); router.push("/admin/fechas-especiales"); }}
-                                    style={{ padding: "10px 14px", background: "rgba(186,132,60,0.12)", border: "1px solid rgba(186,132,60,0.35)", borderRadius: 8, color: "#ba843c", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}
-                                >
-                                    Fechas
-                                </button>
-                                <button
-                                    onClick={() => { setHeaderMenuOpen(false); router.push("/crm"); }}
-                                    style={{ padding: "10px 14px", background: "rgba(186,132,60,0.12)", border: "1px solid rgba(186,132,60,0.35)", borderRadius: 8, color: "#ba843c", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}
-                                >
-                                    CRM
-                                </button>
-                            </>
-                        )}
-                        <button
-                            onClick={async () => { setHeaderMenuOpen(false); await session.logout(); router.push("/login?mode=login"); }}
-                            style={{ padding: "10px 14px", background: "transparent", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 8, color: "rgba(245,241,232,0.7)", fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", letterSpacing: "0.06em" }}
-                        >
-                            Salir
-                        </button>
-                    </div>
-                </div>
+        <div className="adm-page">
+            {/* ── CTA: nueva reserva (la navegación global la provee el sidebar) ── */}
+            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginBottom: 8 }}>
+                <button
+                    onClick={() => setShowNewModal(true)}
+                    style={{ padding: "9px 16px", background: "rgba(186,132,60,0.85)", border: "1px solid #ba843c", borderRadius: 8, color: "#fff", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em", fontFamily: "inherit" }}
+                >
+                    + Nueva reserva
+                </button>
             </div>
 
             {/* ── Badge pendientes ── */}
@@ -677,7 +582,6 @@ export default function AdminPage() {
                 />
             )}
             </div>
-        </>
     );
 }
 
