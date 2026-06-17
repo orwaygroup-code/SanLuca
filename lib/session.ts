@@ -6,6 +6,18 @@ import { createHmac, randomBytes, timingSafeEqual } from "crypto";
  */
 
 const SECRET = process.env.AUTH_SECRET ?? "sanluca-dev-secret";
+
+// Fail-fast: en producción NUNCA se debe firmar/verificar con el secreto de dev
+// (sería público → cualquiera forjaría sesiones). El guard de NEXT_PHASE evita
+// abortar el build (next build corre con NODE_ENV=production); solo aplica en runtime.
+if (
+  process.env.NODE_ENV === "production" &&
+  process.env.NEXT_PHASE !== "phase-production-build" &&
+  !process.env.AUTH_SECRET
+) {
+  throw new Error("AUTH_SECRET no está definido en producción.");
+}
+
 export const SESSION_COOKIE = "sl_session";
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 días
 

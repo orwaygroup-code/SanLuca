@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getStaffSession } from "@/lib/staff-auth-server";
 import { getShiftWindow } from "@/lib/shifts";
 import { formatFolio } from "@/lib/comandaRules";
-import { TENANT, ACTIVE_STATUSES, COMANDA_INCLUDE, isUniqueViolation } from "@/lib/comanda";
+import { TENANT, ACTIVE_STATUSES, COMANDA_INCLUDE, isUniqueViolation, uniqueViolationTarget } from "@/lib/comanda";
 import type { ApiResponse } from "@/types";
 
 const MX_TZ = "America/Mexico_City";
@@ -43,6 +43,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Si se especifica un waiterId distinto, validar que exista y esté activo
+  // (espejo de change-waiter). Evita FK 500 y comandas abiertas a nombre equivocado.
+  if (typeof waiterId === "number") {
+    const w = await prisma.staff.findFirst({
+      where: { id: waiterId, tenantId: TENANT, active: true },
+      select: { id: true },
+    });
+    if (!w) return NextResponse.json<ApiResponse>({ success: false, error: "Mesero no encontrado o inactivo" }, { status: 404 });
+  }
+
   const shift = getShiftWindow(new Date()).name;
   const year = mxYear();
   const baseData = {
@@ -69,7 +79,15 @@ export async function POST(request: NextRequest) {
       });
       return NextResponse.json<ApiResponse>({ success: true, data: created }, { status: 201 });
     } catch (e) {
-      if (isUniqueViolation(e)) { seq++; continue; } // folio o reservationId duplicado
+      if (isUniqueViolation(e)) {
+        // Distinguir el constraint: si chocó reservationId, reintentar el folio
+        // es inútil (siempre fallará) → 409 con mensaje claro. Solo el choque de
+        // folio justifica subir el seq y reintentar.
+        if (uniqueViolationTarget(e).includes("reservation")) {
+          return NextResponse.json<ApiResponse>({ success: false, error: "Esa reserva ya tiene una comanda" }, { status: 409 });
+        }
+        seq++; continue; // colisión de folio → reintentar
+      }
       console.error("[API] POST /api/comandas error:", e);
       return NextResponse.json<ApiResponse>({ success: false, error: "Error al crear comanda" }, { status: 500 });
     }

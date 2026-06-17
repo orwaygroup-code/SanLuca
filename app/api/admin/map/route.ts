@@ -161,6 +161,13 @@ export async function PATCH(request: NextRequest) {
         };
         const { action, note } = body;
 
+        // Validar action contra el set permitido: una action desconocida NO debe
+        // caer al branch individual y ejecutar el deleteMany (desbloqueo accidental).
+        const VALID_ACTIONS = ["block", "unblock", "block-section", "unblock-section"] as const;
+        if (!action || !VALID_ACTIONS.includes(action)) {
+            return NextResponse.json<ApiResponse>({ success: false, error: "Acción inválida" }, { status: 400 });
+        }
+
         return runWithSession(s, () => withApp(async (db) => {
         // ── Bloqueo / liberación de sección completa ──────────────────
         if (action === "block-section" || action === "unblock-section") {

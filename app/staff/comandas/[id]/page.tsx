@@ -430,14 +430,21 @@ function MenuModal({ open, onClose, onAdd, busy }: {
   const [qty, setQty] = useState(1);
   const [modifiers, setModifiers] = useState("");
   const [notes, setNotes] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const loadMenu = useCallback(() => {
+    setError(null);
+    apiFetch<MenuCat[]>("/api/menu").then((r) => {
+      if (r.ok) { setCats(r.data!); setActiveCat(r.data![0]?.id ?? ""); }
+      else setError(r.error ?? "No se pudo cargar el menú");
+    });
+  }, []);
 
   useEffect(() => {
     if (!open) { setSelected(null); setQuery(""); return; }
     if (cats) return;
-    apiFetch<MenuCat[]>("/api/menu").then((r) => {
-      if (r.ok) { setCats(r.data!); setActiveCat(r.data![0]?.id ?? ""); }
-    });
-  }, [open, cats]);
+    loadMenu();
+  }, [open, cats, loadMenu]);
 
   const dishes = useMemo(() => {
     if (!cats) return [];
@@ -458,7 +465,14 @@ function MenuModal({ open, onClose, onAdd, busy }: {
   return (
     <Modal open={open} title={selected ? selected.name : "Agregar del menú"} onClose={() => { resetForm(); onClose(); }} width={520}>
       {cats === null ? (
-        <Spinner label="Cargando menú…" />
+        error ? (
+          <div style={{ textAlign: "center", padding: "24px 8px" }}>
+            <div style={{ color: C.red, marginBottom: 14 }}>{error}</div>
+            <button style={btn.primary} onClick={loadMenu}>Reintentar</button>
+          </div>
+        ) : (
+          <Spinner label="Cargando menú…" />
+        )
       ) : selected ? (
         <>
           <div style={{ color: C.gold, fontWeight: 800, fontSize: "1.05rem" }}>{formatMXN(selected.price)}</div>

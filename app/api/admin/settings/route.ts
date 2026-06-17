@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   const m = await requireAdminOrStaffManager(request);
   if (!m) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
+  if (m.staffId == null) return NextResponse.json<ApiResponse>({ success: false, error: "Tu usuario admin no está vinculado a un empleado (Staff)" }, { status: 409 });
 
   const body = await request.json().catch(() => ({}));
   const data: Record<string, unknown> = { updatedById: m.staffId };

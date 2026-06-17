@@ -101,6 +101,7 @@ export default function OperacionPage() {
           )
         ) : (
           tables === null ? <Spinner /> : (
+            tables!.length === 0 ? <EmptyState text="Sin mesas activas." /> : (
             <div style={page.grid}>
               {tables!.map((t) => (
                 <div key={t.id} style={{ ...page.tableCard, borderColor: t.state === "FREE" ? C.line : (STATUS_COLOR[t.state] ?? C.line) }}>
@@ -124,6 +125,7 @@ export default function OperacionPage() {
                 </div>
               ))}
             </div>
+            )
           )
         )}
       </main>

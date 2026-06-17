@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import { randomInt } from "crypto";
 
 /**
  * Hashing de PINs de Staff (sistema de Comandas).
@@ -28,8 +29,12 @@ export async function verifyPin(pin: string, hash: string): Promise<boolean> {
   return bcrypt.compare(pin, hash);
 }
 
-/** Genera un PIN aleatorio de 4 dígitos (string con ceros a la izquierda). */
+/**
+ * Genera un PIN aleatorio de 4 dígitos (string con ceros a la izquierda).
+ * Usa `crypto.randomInt` (CSPRNG), no `Math.random()`: el PIN es la credencial
+ * de login del staff, no debe ser predecible.
+ */
 export function generatePin(): string {
-  const n = Math.floor(Math.random() * 10 ** PIN_LENGTH);
+  const n = randomInt(0, 10 ** PIN_LENGTH);
   return String(n).padStart(PIN_LENGTH, "0");
 }

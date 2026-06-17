@@ -47,3 +47,16 @@ export async function recalcComandaTotals(comandaId: number) {
 export function isUniqueViolation(e: unknown): boolean {
   return typeof e === "object" && e !== null && (e as { code?: string }).code === "P2002";
 }
+
+/**
+ * Campos objetivo de una violación de unique (P2002), normalizados a un string
+ * en minúsculas. Sirve para distinguir CUÁL constraint chocó (folio vs
+ * reservationId). El formato de `meta.target` varía entre versiones de Prisma
+ * (array de columnas o nombre de constraint), por eso se normaliza a texto.
+ */
+export function uniqueViolationTarget(e: unknown): string {
+  if (typeof e !== "object" || e === null) return "";
+  const target = (e as { meta?: { target?: unknown } }).meta?.target;
+  if (Array.isArray(target)) return target.map(String).join(",").toLowerCase();
+  return typeof target === "string" ? target.toLowerCase() : "";
+}

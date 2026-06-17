@@ -49,6 +49,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const a = await requireAdminSession(request);
   if (!a) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
+  if (a.staffId == null) return NextResponse.json<ApiResponse>({ success: false, error: "Tu usuario admin no está vinculado a un empleado (Staff)" }, { status: 409 });
 
   const body = await request.json().catch(() => null);
   const parsed = staffCreateSchema.safeParse(body);

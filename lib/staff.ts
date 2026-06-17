@@ -8,13 +8,15 @@ import { hashPin, verifyPin, generatePin } from "./staff-auth";
  *
  * Regla de negocio (plan Fase 0): los PINs son únicos POR TENANT. Como se
  * hashean con bcrypt (salt por hash), la unicidad no se puede imponer con un
- * índice — se valida al setear comparando contra los hashes activos del tenant.
+ * índice — se valida al setear comparando contra los hashes del tenant. Se
+ * incluyen empleados INACTIVOS en la comparación: si un ex-empleado se
+ * reactiva, su PIN no debe colisionar con uno asignado entretanto.
  */
 
 const DEFAULT_TENANT = 1;
 const MAX_PIN_ATTEMPTS = 50;
 
-/** ¿El PIN ya está en uso por otro empleado activo del mismo tenant? */
+/** ¿El PIN ya está en uso por otro empleado del mismo tenant (activo o inactivo)? */
 export async function pinTakenInTenant(
   pin: string,
   opts: { tenantId?: number; excludeStaffId?: number } = {}
@@ -23,7 +25,6 @@ export async function pinTakenInTenant(
   const others = await prisma.staff.findMany({
     where: {
       tenantId,
-      active: true,
       ...(opts.excludeStaffId ? { id: { not: opts.excludeStaffId } } : {}),
     },
     select: { pinHash: true },

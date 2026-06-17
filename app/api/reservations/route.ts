@@ -93,10 +93,12 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Rango del día completo (para bloqueos de grupo grande)
-        const [y, mo, d] = date.split("-").map(Number);
-        const dayStart = new Date(y, mo - 1, d, 0, 0, 0);
-        const dayEnd   = new Date(y, mo - 1, d, 23, 59, 59);
+        // Rango del día completo (para bloqueos de grupo grande).
+        // Anclado a -06:00 (hora MX): el VPS corre UTC, así que NO se puede usar
+        // `new Date(y, mo-1, d, ...)` (interpreta hora local del servidor → desfase
+        // de 6h). Misma construcción que app/api/admin/map/route.ts.
+        const dayStart = new Date(`${date}T00:00:00.000-06:00`);
+        const dayEnd   = new Date(`${date}T23:59:59.999-06:00`);
 
         // ── GRUPO GRANDE: verificar que el área completa esté libre todo el día ──
         // Excepción Privado: el área es un evento privado por diseño — no se

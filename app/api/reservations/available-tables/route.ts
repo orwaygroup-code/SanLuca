@@ -12,7 +12,7 @@ import {
   QUAD_MIN_GUESTS,
   QUAD_MAX_CAPACITY,
 } from "@/lib/tableAdjacency";
-import { getReservationWindow } from "@/lib/tableConflict";
+import { getReservationWindow, NON_BLOCKING_STATUSES } from "@/lib/tableConflict";
 import { tableFitsGuests } from "@/lib/tableCapacity";
 import { expirePendingPayments } from "@/lib/expirePendingPayments";
 import type { ApiResponse } from "@/types";
@@ -66,9 +66,11 @@ export async function GET(request: NextRequest) {
     const tableIds = dbSection.tables.map((t) => t.id);
 
     // ── Rango del día completo (para bloqueos de grupo grande) ────────────
-    const [y, mo, d] = date.split("-").map(Number);
-    const dayStart = new Date(y, mo - 1, d, 0, 0, 0);
-    const dayEnd   = new Date(y, mo - 1, d, 23, 59, 59);
+    // Anclado a -06:00 (hora MX): el VPS corre UTC, así que `new Date(y, mo-1, d)`
+    // usaría hora local del servidor (desfase de 6h). Mismo fix que F1 en
+    // app/api/reservations/route.ts y la construcción de app/api/admin/map/route.ts.
+    const dayStart = new Date(`${date}T00:00:00.000-06:00`);
+    const dayEnd   = new Date(`${date}T23:59:59.999-06:00`);
 
     // ══════════════════════════════════════════════════════════════════════
     // GRUPO GRANDE (>15 personas): verificar disponibilidad de área completa
@@ -159,7 +161,9 @@ export async function GET(request: NextRequest) {
     // Reservas activas en la ventana ±3.5h → mesas ocupadas
     const conflicts = await prisma.reservation.findMany({
       where: {
-        status: { notIn: ["CANCELLED", "NO_SHOW"] },
+        // Mismo set que findTableConflict (incluye COMPLETED): el mapa de
+        // disponibilidad debe coincidir con el check real de conflicto al crear.
+        status: { notIn: NON_BLOCKING_STATUSES },
         date:   { gt: winFrom, lt: winTo },
         OR: [
           { tableId:        { in: tableIds } },

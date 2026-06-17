@@ -35,7 +35,7 @@ export function getReservationWindow(date: Date): { from: Date; to: Date } {
 }
 
 /** Estados que NO bloquean una nueva reservación cercana. */
-const NON_BLOCKING_STATUSES: ReservationStatus[] = ["CANCELLED", "NO_SHOW", "COMPLETED"];
+export const NON_BLOCKING_STATUSES: ReservationStatus[] = ["CANCELLED", "NO_SHOW", "COMPLETED"];
 
 type DB = PrismaClient | Prisma.TransactionClient;
 
