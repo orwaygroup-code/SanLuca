@@ -17,7 +17,7 @@ export async function GET(
       user: { select: { id: true, name: true, phone: true } },
       messages: {
         orderBy: { sentAt: "asc" },
-        select: { id: true, direction: true, body: true, messageType: true, sentAt: true },
+        select: { id: true, direction: true, body: true, messageType: true, sentAt: true, deletedAt: true },
       },
       // Tags activos aplicados a la conversación — sirven al
       // ConversationTagsEditor del thread abierto.

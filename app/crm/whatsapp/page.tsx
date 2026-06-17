@@ -12,6 +12,7 @@ interface Message {
   body: string;
   messageType: string;
   sentAt: string;
+  deletedAt: string | null;
 }
 
 interface ConvSummary {
@@ -19,11 +20,18 @@ interface ConvSummary {
   phone: string;
   userId: string | null;
   userName: string | null;
-  lastMessage: { body: string; direction: "INBOUND" | "OUTBOUND"; sentAt: string } | null;
+  lastMessage: {
+    body: string;
+    direction: "INBOUND" | "OUTBOUND";
+    sentAt: string;
+    deletedAt: string | null;
+  } | null;
   messageCount: number;
   tags: EditorTag[];
   updatedAt: string;
 }
+
+const DELETED_PLACEHOLDER = "🚫 Este mensaje fue eliminado";
 
 function timeAgo(iso: string): string {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -165,10 +173,18 @@ export default function WhatsappPage() {
                     )}
                   </div>
                   <div style={convPreview}>
-                    {c.lastMessage
-                      ? (c.lastMessage.direction === "OUTBOUND" ? "Luca: " : "") +
+                    {c.lastMessage ? (
+                      c.lastMessage.deletedAt ? (
+                        <span style={{ fontStyle: "italic", opacity: 0.55 }}>
+                          {(c.lastMessage.direction === "OUTBOUND" ? "Luca: " : "") + DELETED_PLACEHOLDER}
+                        </span>
+                      ) : (
+                        (c.lastMessage.direction === "OUTBOUND" ? "Luca: " : "") +
                         c.lastMessage.body.slice(0, 55) + (c.lastMessage.body.length > 55 ? "…" : "")
-                      : "Sin mensajes"}
+                      )
+                    ) : (
+                      "Sin mensajes"
+                    )}
                   </div>
                   {c.tags && c.tags.length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
@@ -261,9 +277,24 @@ export default function WhatsappPage() {
                         marginBottom: 6,
                       }}>
                         <div style={m.direction === "OUTBOUND" ? bubbleOut : bubbleIn}>
-                          <span style={{ fontSize: "0.88rem", lineHeight: 1.45, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-                            {m.body}
-                          </span>
+                          {m.deletedAt ? (
+                            <span style={{
+                              fontSize: "0.88rem",
+                              lineHeight: 1.45,
+                              fontStyle: "italic",
+                              opacity: 0.6,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 6,
+                            }}>
+                              <span aria-hidden="true">🚫</span>
+                              Este mensaje fue eliminado
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: "0.88rem", lineHeight: 1.45, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                              {m.body}
+                            </span>
+                          )}
                           <div style={tsStyle}>{fmtTime(m.sentAt)}</div>
                         </div>
                       </div>

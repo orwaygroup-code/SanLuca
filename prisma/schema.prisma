@@ -381,6 +381,7 @@ model WhatsAppMessage {
   messageType    String               @default("text")
   mid            String?              @unique // ID del mensaje en Meta (WhatsApp/Messenger/Instagram). Antes "waMessageId".
   plataforma     String?              @default("whatsapp") // 'whatsapp' | 'messenger' | 'instagram'
+  deletedAt      DateTime?            // Soft delete: cuando Meta notifica borrado. body se vacia, mensaje queda visible como "eliminado" en CRM.
   sentAt         DateTime
   createdAt      DateTime             @default(now())
 
