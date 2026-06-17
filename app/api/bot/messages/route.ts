@@ -16,7 +16,15 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { phone, inbound, outbound, sentAt, messageType = "text" } = body;
+  const {
+    phone,
+    inbound,
+    outbound,
+    sentAt,
+    messageType = "text",
+    mid,           // ID del mensaje INBOUND en Meta (para tracking de borrado)
+    plataforma,    // 'whatsapp' | 'messenger' | 'instagram'
+  } = body;
 
   if (!phone || !inbound || !outbound) {
     return NextResponse.json({ ok: false, error: "Faltan campos: phone, inbound, outbound" }, { status: 400 });
@@ -24,6 +32,7 @@ export async function POST(req: NextRequest) {
 
   const phoneNorm = normalizePhone(String(phone));
   const ts = sentAt ? new Date(sentAt) : new Date();
+  const platform = typeof plataforma === "string" && plataforma.trim() ? plataforma : "whatsapp";
 
   const linkedUser = await prisma.user.findFirst({
     where: { phone: phoneNorm },
@@ -38,8 +47,24 @@ export async function POST(req: NextRequest) {
 
   await prisma.whatsAppMessage.createMany({
     data: [
-      { conversationId: conversation.id, direction: "INBOUND",  body: String(inbound),  messageType, sentAt: ts },
-      { conversationId: conversation.id, direction: "OUTBOUND", body: String(outbound), messageType: "text", sentAt: new Date(ts.getTime() + 1) },
+      {
+        conversationId: conversation.id,
+        direction: "INBOUND",
+        body: String(inbound),
+        messageType,
+        sentAt: ts,
+        mid: typeof mid === "string" && mid.trim() ? mid : null,
+        plataforma: platform,
+      },
+      {
+        conversationId: conversation.id,
+        direction: "OUTBOUND",
+        body: String(outbound),
+        messageType: "text",
+        sentAt: new Date(ts.getTime() + 1),
+        // OUTBOUND no recibe mid del cliente (es la respuesta del bot, no se trackea para borrado de Meta).
+        plataforma: platform,
+      },
     ],
   });
 

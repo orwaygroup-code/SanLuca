@@ -379,11 +379,13 @@ model WhatsAppMessage {
   direction      MessageDirection
   body           String
   messageType    String               @default("text")
-  waMessageId    String?              @unique
+  mid            String?              @unique // ID del mensaje en Meta (WhatsApp/Messenger/Instagram). Antes "waMessageId".
+  plataforma     String?              @default("whatsapp") // 'whatsapp' | 'messenger' | 'instagram'
   sentAt         DateTime
   createdAt      DateTime             @default(now())
 
   @@index([conversationId, sentAt])
+  @@index([mid])
 }
 
 enum MessageDirection {
