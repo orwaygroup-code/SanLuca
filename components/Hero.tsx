@@ -121,7 +121,7 @@ export default function Hero() {
             textShadow: "0 4px 20px rgba(0,0,0,0.6)",
           }}
         >
-          <Label light>POR: RICARDO CAMACHO Y FRANCCESCA METTE</Label>
+          <Label light>POR: RICARDO CAMACHO Y FRANCESCA METTE</Label>
         </div>
 
         {/* Logo */}

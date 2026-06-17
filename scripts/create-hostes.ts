@@ -23,7 +23,7 @@ async function hashPassword(password: string): Promise<string> {
 const NEW_HOSTES = [
     { name: "David",      email: "david.hostes@sanluca.mx",      password: "D@v!d#9x2Lc$" },
     { name: "Perla",      email: "perla.hostes@sanluca.mx",      password: "P3rl@*7mZq!W" },
-    { name: "Franccesca", email: "franccesca.hostes@sanluca.mx", password: "Fr@nc#4kX!v8" },
+    { name: "Francesca", email: "franccesca.hostes@sanluca.mx", password: "Fr@nc#4kX!v8" },
 ];
 
 async function main() {

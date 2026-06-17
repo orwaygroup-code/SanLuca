@@ -118,7 +118,7 @@ export default function MenuHero({
                             margin: 0,
                         }}
                     >
-                        Ricardo Camacho y Franccesca Mette
+                        Ricardo Camacho y Francesca Mette
                     </p>
                 </div>
 

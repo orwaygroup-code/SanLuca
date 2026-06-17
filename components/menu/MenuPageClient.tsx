@@ -279,7 +279,7 @@ export default function MenuPageClient({ comidaDishes, brunchDishes, dbCategorie
                                 transition: "color 0.5s ease",
                             }}
                         >
-                            Ricardo Camacho y Franccesca Mette
+                            Ricardo Camacho y Francesca Mette
                         </p>
                     </div>
 
