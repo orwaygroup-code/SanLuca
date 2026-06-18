@@ -56,7 +56,11 @@ export default function WhatsappPage() {
   const [thread, setThread]     = useState<{ conv: ConvSummary; messages: Message[]; tags: EditorTag[]; userTags: UserEditorTag[] } | null>(null);
   const [threadLoad, setTL]     = useState(false);
   const [search, setSearch]     = useState("");
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const bottomRef         = useRef<HTMLDivElement>(null);
+  const messagesAreaRef   = useRef<HTMLDivElement>(null);
+  const wasNearBottomRef  = useRef(true);             // ¿estaba el usuario cerca del final cuando llegó el último refresh?
+  const prevSelectedRef   = useRef<string | null>(null); // detecta cambio de conversación para forzar scroll al final
+  const NEAR_BOTTOM_PX    = 80;
 
   // Polling: la lista de conversaciones se refresca cada 5s.
   useEffect(() => {
@@ -118,9 +122,33 @@ export default function WhatsappPage() {
     return () => { alive = false; clearInterval(id); };
   }, [selected]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Scroll inteligente estilo WhatsApp Web:
+  // - Al cambiar de conversación → salta al final sin animación
+  // - En polling refresh → solo desplaza al final si el usuario YA estaba cerca del fondo;
+  //   si está leyendo arriba, NO se mueve para no perderle la posición
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [thread?.messages]);
+    if (!thread) return;
+    const conversationChanged = selected !== prevSelectedRef.current;
+    if (conversationChanged) {
+      prevSelectedRef.current = selected;
+      wasNearBottomRef.current = true;
+      requestAnimationFrame(() => {
+        bottomRef.current?.scrollIntoView({ behavior: "auto" });
+      });
+      return;
+    }
+    if (wasNearBottomRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [thread?.messages, selected, thread]);
+
+  // Track de la posición de scroll para saber si debemos auto-bajar en el siguiente refresh.
+  const handleMessagesScroll = () => {
+    const el = messagesAreaRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    wasNearBottomRef.current = distanceFromBottom < NEAR_BOTTOM_PX;
+  };
 
   const filtered = convs.filter((c) =>
     c.phone.includes(search) ||
@@ -261,7 +289,7 @@ export default function WhatsappPage() {
                 }}
               />
 
-              <div style={messagesArea}>
+              <div ref={messagesAreaRef} onScroll={handleMessagesScroll} style={messagesArea}>
                 {thread.messages.map((m, i) => {
                   const showDate =
                     i === 0 ||
