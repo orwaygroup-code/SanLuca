@@ -1,156 +1,316 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { CrmPageHead } from "@/components/crm/CrmPageHead";
+import { fetchCampaigns, statusBadgeColor, statusLabel } from "@/lib/marketing-mock";
+import type { MarketingCampaign } from "@/types/marketing";
 
-const CHANNELS = [
-  { id: "todos",    label: "Todos"    },
-  { id: "whatsapp", label: "WhatsApp" },
-  { id: "email",    label: "Email"    },
-] as const;
+function fmtDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("es-MX", {
+    day: "2-digit", month: "short", year: "numeric",
+  });
+}
 
-const SEGMENTS = ["Clientes frecuentes", "Nuevos (últimos 30 días)", "Inactivos (90+ días)", "Con crédito disponible"];
-const FILTERS  = ["Preferencias", "Sección favorita", "Frecuencia", "Sin filtro"];
-const CLASSES  = ["Pastas", "Pizza", "Mariscos", "Postres", "Bebidas"];
+function fmtRelative(iso: string): string {
+  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (diff < 60)    return "ahora";
+  if (diff < 3600)  return `hace ${Math.floor(diff / 60)} min`;
+  if (diff < 86400) return `hace ${Math.floor(diff / 3600)} h`;
+  if (diff < 604800) return `hace ${Math.floor(diff / 86400)} d`;
+  return fmtDate(iso);
+}
 
 export default function MarketingPage() {
-  const [channel, setChannel]   = useState<typeof CHANNELS[number]["id"]>("todos");
-  const [message, setMessage]   = useState("");
-  const [segment, setSegment]   = useState(SEGMENTS[0]);
-  const [filter,  setFilter]    = useState(FILTERS[0]);
-  const [klass,   setKlass]     = useState(CLASSES[0]);
-  const [sending, setSending]   = useState(false);
-  const [sent,    setSent]      = useState(false);
+  const [campaigns, setCampaigns] = useState<MarketingCampaign[] | null>(null);
 
-  async function handleSend() {
-    if (!message.trim()) return;
-    setSending(true);
-    // MOCK — reemplazar por POST /api/crm/marketing/send con WhatsApp Business / Resend
-    await new Promise((r) => setTimeout(r, 800));
-    setSending(false);
-    setSent(true);
-    setTimeout(() => setSent(false), 2500);
-  }
+  useEffect(() => {
+    let alive = true;
+    fetchCampaigns().then((list) => { if (alive) setCampaigns(list); });
+    return () => { alive = false; };
+  }, []);
 
   return (
     <>
-      <CrmPageHead accent="MARKETING" title="PANEL" sub="Mensajes masivos en WhatsApp" />
+      <CrmPageHead accent="MARKETING" title="CAMPAÑAS" sub="Envíos masivos por tag · WhatsApp Business" />
 
-      <div className="crm-2col">
-        {/* Media drop */}
-        <div>
-          <div className="crm-marketing-dropbox">
-            <span style={{ fontSize: "3rem", color: "rgba(245,241,232,0.25)" }}>+</span>
-          </div>
-          <div style={pillBar}>
-            {CHANNELS.map((c) => (
-              <button key={c.id} onClick={() => setChannel(c.id)} style={{
-                ...pillBtn,
-                background: channel === c.id ? "#ba843c" : "transparent",
-                color:      channel === c.id ? "#1c2628" : "rgba(245,241,232,0.7)",
-                fontWeight: channel === c.id ? 700      : 500,
-              }}>
-                {c.label}
-              </button>
-            ))}
-          </div>
+      <div style={topBar}>
+        <div style={{ display: "flex", gap: 18 }}>
+          <Stat label="Total" value={campaigns?.length ?? "—"} />
+          <Stat label="Borrador"    value={campaigns?.filter((c) => c.status === "DRAFT").length ?? "—"} />
+          <Stat label="Programadas" value={campaigns?.filter((c) => c.status === "SCHEDULED").length ?? "—"} />
+          <Stat label="En envío"    value={campaigns?.filter((c) => c.status === "SENDING").length ?? "—"} />
+          <Stat label="Completas"   value={campaigns?.filter((c) => c.status === "COMPLETED").length ?? "—"} />
         </div>
-
-        {/* Form */}
-        <div>
-          <textarea
-            value={message} onChange={(e) => setMessage(e.target.value)}
-            placeholder="Escribe un mensaje"
-            style={textarea}
-            rows={8}
-          />
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 16 }}>
-            <Field label="Enviar a" value={segment} onChange={setSegment} options={SEGMENTS} />
-            <Field label="Filtrar por" value={filter} onChange={setFilter} options={FILTERS} />
-            <Field label="Clase" value={klass} onChange={setKlass} options={CLASSES} />
-          </div>
-
-          <button onClick={handleSend} disabled={sending || !message.trim()} style={{
-            ...sendBtn, opacity: sending || !message.trim() ? 0.5 : 1, marginTop: 18,
-          }}>
-            {sending ? "Enviando…" : sent ? "✓ Enviado (mock)" : "Enviar"}
-          </button>
-        </div>
+        <Link href="/crm/marketing/nueva" style={primaryBtn}>
+          + Nueva campaña
+        </Link>
       </div>
 
-      <p style={{ marginTop: 26, color: "rgba(245,241,232,0.4)", fontSize: "0.78rem" }}>
-        ⓘ Envío simulado. Conectar con WhatsApp Business API + Resend/SendGrid para producción.
+      {campaigns === null ? (
+        <p style={muted}>Cargando…</p>
+      ) : campaigns.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <div style={tableWrap}>
+          <table style={table}>
+            <thead>
+              <tr>
+                <th style={th}>Nombre</th>
+                <th style={th}>Estado</th>
+                <th style={th}>Template</th>
+                <th style={th}>Destinatarios</th>
+                <th style={th}>Progreso</th>
+                <th style={th}>Creada</th>
+                <th style={{ ...th, textAlign: "right" }}>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {campaigns.map((c) => {
+                const sb = statusBadgeColor(c.status);
+                const pct =
+                  c.totalTargets > 0
+                    ? Math.round((c.sentCount / c.totalTargets) * 100)
+                    : 0;
+                return (
+                  <tr key={c.id} style={tr}>
+                    <td style={td}>
+                      <div style={{ fontWeight: 600, color: "#f5f1e8" }}>{c.name}</div>
+                      <div style={tdSub}>{c.filters.tagIds.length} tag{c.filters.tagIds.length !== 1 ? "s" : ""} · modo {c.filters.mode}</div>
+                    </td>
+                    <td style={td}>
+                      <span style={{
+                        ...badge,
+                        background: sb.bg,
+                        border:     `1px solid ${sb.border}`,
+                        color:      sb.text,
+                      }}>
+                        {statusLabel(c.status)}
+                      </span>
+                    </td>
+                    <td style={td}>
+                      <code style={codeStyle}>{c.templateName}</code>
+                    </td>
+                    <td style={td}>
+                      {c.totalTargets > 0 ? c.totalTargets : "—"}
+                    </td>
+                    <td style={td}>
+                      {c.totalTargets > 0 ? (
+                        <div>
+                          <div style={{ fontSize: "0.78rem", color: "rgba(245,241,232,0.7)" }}>
+                            {c.sentCount} / {c.totalTargets} ({pct}%)
+                          </div>
+                          <div style={progressBar}>
+                            <div style={{ ...progressFill, width: `${pct}%` }} />
+                          </div>
+                          {c.failedCount > 0 && (
+                            <div style={{ color: "#e05555", fontSize: "0.7rem", marginTop: 2 }}>
+                              {c.failedCount} con error
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span style={tdSub}>Sin envíos aún</span>
+                      )}
+                    </td>
+                    <td style={td}>
+                      <div style={{ fontSize: "0.78rem" }}>{fmtRelative(c.createdAt)}</div>
+                      {c.scheduledAt && (
+                        <div style={tdSub}>Para {fmtDate(c.scheduledAt)}</div>
+                      )}
+                    </td>
+                    <td style={{ ...td, textAlign: "right" }}>
+                      <button style={secondaryBtn} disabled type="button">
+                        Ver detalle
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <p style={hintFooter}>
+        ⓘ Backend en construcción. La lista usa <code>localStorage</code> como mock —
+        las campañas aún no envían mensajes reales hasta que el endpoint POST <code>/send</code> esté conectado.
       </p>
     </>
   );
 }
 
-function Field({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
+function EmptyState() {
   return (
-    <div className="crm-marketing-field">
-      <span style={{ color: "rgba(245,241,232,0.7)", fontSize: "0.85rem", fontWeight: 600 }}>{label}:</span>
-      <select value={value} onChange={(e) => onChange(e.target.value)} style={select}>
-        {options.map((o) => <option key={o}>{o}</option>)}
-      </select>
+    <div style={emptyWrap}>
+      <div style={{ fontSize: "2.4rem", marginBottom: 12 }}>📣</div>
+      <h3 style={{ margin: "0 0 6px", color: "#f5f1e8", fontWeight: 600 }}>
+        Ninguna campaña aún
+      </h3>
+      <p style={{ margin: "0 0 18px", color: "rgba(245,241,232,0.55)", maxWidth: 380, fontSize: "0.86rem", lineHeight: 1.5 }}>
+        Crea tu primera campaña seleccionando un template aprobado por Meta,
+        ajustando las variables y eligiendo los tags de los clientes que la recibirán.
+      </p>
+      <Link href="/crm/marketing/nueva" style={primaryBtn}>
+        + Crear primera campaña
+      </Link>
     </div>
   );
 }
 
-const pillBar: React.CSSProperties = {
-  marginTop: 14,
-  background: "#22302e",
-  border: "1px solid rgba(255,255,255,0.06)",
-  borderRadius: 999,
-  padding: 6,
+function Stat({ label, value }: { label: string; value: number | string }) {
+  return (
+    <div style={statBox}>
+      <span style={{ color: "rgba(245,241,232,0.5)", fontSize: "0.66rem", letterSpacing: "0.18em", textTransform: "uppercase" }}>{label}</span>
+      <span style={{ color: "#f5f1e8", fontSize: "1.15rem", fontWeight: 600 }}>{value}</span>
+    </div>
+  );
+}
+
+// ── Estilos ─────────────────────────────────────────────────────────────
+
+const topBar: React.CSSProperties = {
   display: "flex",
-  width: "fit-content",
+  justifyContent: "space-between",
+  alignItems: "center",
+  flexWrap: "wrap",
+  gap: 14,
+  marginBottom: 22,
 };
-const pillBtn: React.CSSProperties = {
-  padding: "8px 22px",
-  border: "none",
+
+const statBox: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 2,
+  padding: "8px 14px",
+  background: "rgba(255,255,255,0.03)",
+  borderRadius: 10,
+  border: "1px solid rgba(255,255,255,0.05)",
+  minWidth: 76,
+};
+
+const primaryBtn: React.CSSProperties = {
+  background: "#ba843c",
+  color: "#1c2628",
+  padding: "10px 20px",
   borderRadius: 999,
-  cursor: "pointer",
-  fontFamily: "inherit",
-  fontSize: "0.78rem",
+  fontWeight: 700,
+  fontSize: "0.82rem",
   letterSpacing: "0.06em",
   textTransform: "uppercase",
-};
-const textarea: React.CSSProperties = {
-  width: "100%",
-  background: "#22302e",
-  border: "1px solid rgba(255,255,255,0.06)",
-  borderRadius: 14,
-  padding: "16px 18px",
-  color: "#f5f1e8",
+  textDecoration: "none",
   fontFamily: "inherit",
-  fontSize: "0.9rem",
-  resize: "vertical",
-  outline: "none",
-  minHeight: 200,
-};
-const select: React.CSSProperties = {
-  background: "transparent",
-  border: "1px solid rgba(245,241,232,0.18)",
-  borderRadius: 999,
-  padding: "9px 16px",
-  color: "#f5f1e8",
-  fontFamily: "inherit",
-  fontSize: "0.82rem",
-  cursor: "pointer",
-  outline: "none",
-};
-const sendBtn: React.CSSProperties = {
-  padding: "12px 0",
-  width: "100%",
-  background: "#ba843c",
   border: "none",
-  borderRadius: 999,
-  color: "#1c2628",
-  fontWeight: 700,
-  letterSpacing: "0.08em",
-  textTransform: "uppercase",
   cursor: "pointer",
+  display: "inline-block",
+};
+
+const secondaryBtn: React.CSSProperties = {
+  background: "transparent",
+  color: "rgba(245,241,232,0.55)",
+  border: "1px solid rgba(245,241,232,0.18)",
+  padding: "6px 12px",
+  borderRadius: 999,
+  fontSize: "0.74rem",
   fontFamily: "inherit",
+  fontWeight: 600,
+  cursor: "not-allowed",
+};
+
+const muted: React.CSSProperties = {
+  color: "rgba(245,241,232,0.5)",
   fontSize: "0.85rem",
+};
+
+const emptyWrap: React.CSSProperties = {
+  background: "#22302e",
+  border: "1px solid rgba(255,255,255,0.05)",
+  borderRadius: 16,
+  padding: "60px 24px",
+  textAlign: "center",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+};
+
+const tableWrap: React.CSSProperties = {
+  background: "#22302e",
+  border: "1px solid rgba(255,255,255,0.05)",
+  borderRadius: 14,
+  overflow: "hidden",
+};
+
+const table: React.CSSProperties = {
+  width: "100%",
+  borderCollapse: "collapse",
+  fontSize: "0.85rem",
+};
+
+const th: React.CSSProperties = {
+  textAlign: "left",
+  padding: "14px 16px",
+  background: "rgba(255,255,255,0.02)",
+  borderBottom: "1px solid rgba(255,255,255,0.06)",
+  color: "rgba(245,241,232,0.55)",
+  fontWeight: 600,
+  fontSize: "0.72rem",
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+};
+
+const tr: React.CSSProperties = {
+  borderBottom: "1px solid rgba(255,255,255,0.04)",
+};
+
+const td: React.CSSProperties = {
+  padding: "14px 16px",
+  verticalAlign: "top",
+  color: "rgba(245,241,232,0.85)",
+};
+
+const tdSub: React.CSSProperties = {
+  fontSize: "0.72rem",
+  color: "rgba(245,241,232,0.4)",
+  marginTop: 2,
+};
+
+const codeStyle: React.CSSProperties = {
+  background: "rgba(186,132,60,0.10)",
+  color: "#ba843c",
+  padding: "2px 8px",
+  borderRadius: 6,
+  fontFamily: "monospace",
+  fontSize: "0.78rem",
+};
+
+const badge: React.CSSProperties = {
+  display: "inline-block",
+  padding: "2px 10px",
+  borderRadius: 999,
+  fontSize: "0.7rem",
+  fontWeight: 600,
+  letterSpacing: "0.04em",
+  textTransform: "uppercase",
+};
+
+const progressBar: React.CSSProperties = {
+  marginTop: 4,
+  width: 120,
+  height: 5,
+  background: "rgba(255,255,255,0.06)",
+  borderRadius: 3,
+  overflow: "hidden",
+};
+
+const progressFill: React.CSSProperties = {
+  height: "100%",
+  background: "#ba843c",
+  transition: "width 0.3s",
+};
+
+const hintFooter: React.CSSProperties = {
+  marginTop: 22,
+  color: "rgba(245,241,232,0.4)",
+  fontSize: "0.78rem",
+  lineHeight: 1.55,
 };
