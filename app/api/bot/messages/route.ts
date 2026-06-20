@@ -1,12 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-function normalizePhone(raw: string): string {
-  let digits = raw.replace(/\D/g, "");
-  if (digits.startsWith("521") && digits.length === 13) digits = digits.slice(3);
-  if (digits.startsWith("52")  && digits.length === 12) digits = digits.slice(2);
-  if (digits.startsWith("1")   && digits.length === 11) digits = digits.slice(1);
-  return digits.slice(-10);
+/**
+ * Normaliza el identificador del remitente a la llave de conversación.
+ *
+ * - WhatsApp: el `phone` ES un teléfono real → lógica MX (quita 521/52/1,
+ *   conserva los últimos 10 dígitos) para que matchee con `User.phone`.
+ * - Messenger / Instagram: el `phone` que manda n8n es en realidad el
+ *   PSID/IGSID (ID de 15-17 dígitos), NO un teléfono. Mutilarlo con slice(-10)
+ *   produce una llave inestable/colisionable → se conserva COMPLETO.
+ */
+function normalizeIdentity(raw: string, platform: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (platform === "messenger" || platform === "instagram") {
+    return digits; // PSID/IGSID completo, sin mutilar
+  }
+  // WhatsApp (teléfono MX)
+  let d = digits;
+  if (d.startsWith("521") && d.length === 13) d = d.slice(3);
+  if (d.startsWith("52")  && d.length === 12) d = d.slice(2);
+  if (d.startsWith("1")   && d.length === 11) d = d.slice(1);
+  return d.slice(-10);
 }
 
 export async function POST(req: NextRequest) {
@@ -30,43 +44,60 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "Faltan campos: phone, inbound, outbound" }, { status: 400 });
   }
 
-  const phoneNorm = normalizePhone(String(phone));
-  const ts = sentAt ? new Date(sentAt) : new Date();
   const platform = typeof plataforma === "string" && plataforma.trim() ? plataforma : "whatsapp";
+  const identity = normalizeIdentity(String(phone), platform);
+  const ts = sentAt ? new Date(sentAt) : new Date();
 
+  // Vínculo a User registrado solo aplica a WhatsApp (User.phone es teléfono).
+  // Para Messenger/IG la identity es un PSID que nunca matchea un teléfono → null.
   const linkedUser = await prisma.user.findFirst({
-    where: { phone: phoneNorm },
+    where: { phone: identity },
     select: { id: true },
   });
 
   const conversation = await prisma.whatsAppConversation.upsert({
-    where:  { phone: phoneNorm },
+    where:  { phone: identity },
     update: { userId: linkedUser?.id ?? undefined },
-    create: { phone: phoneNorm, userId: linkedUser?.id ?? null },
+    create: { phone: identity, userId: linkedUser?.id ?? null },
   });
 
-  await prisma.whatsAppMessage.createMany({
-    data: [
-      {
-        conversationId: conversation.id,
-        direction: "INBOUND",
-        body: String(inbound),
-        messageType,
-        sentAt: ts,
-        mid: typeof mid === "string" && mid.trim() ? mid : null,
-        plataforma: platform,
-      },
-      {
-        conversationId: conversation.id,
-        direction: "OUTBOUND",
-        body: String(outbound),
-        messageType: "text",
-        sentAt: new Date(ts.getTime() + 1),
-        // OUTBOUND no recibe mid del cliente (es la respuesta del bot, no se trackea para borrado de Meta).
-        plataforma: platform,
-      },
-    ],
-  });
+  const cleanMid = typeof mid === "string" && mid.trim() ? mid : null;
+
+  // skipDuplicates: si Meta re-entrega el webhook (común en Messenger/IG) y el
+  // `mid` ya existe, se omite esa fila en vez de tronar el insert completo.
+  // try/catch: si algo más falla, lo logueamos con contexto en vez de un 500
+  // silencioso que bloquea el registro de la conversación.
+  try {
+    await prisma.whatsAppMessage.createMany({
+      data: [
+        {
+          conversationId: conversation.id,
+          direction: "INBOUND",
+          body: String(inbound),
+          messageType,
+          sentAt: ts,
+          mid: cleanMid,
+          plataforma: platform,
+        },
+        {
+          conversationId: conversation.id,
+          direction: "OUTBOUND",
+          body: String(outbound),
+          messageType: "text",
+          sentAt: new Date(ts.getTime() + 1),
+          // OUTBOUND no recibe mid del cliente (respuesta del bot, no se trackea).
+          plataforma: platform,
+        },
+      ],
+      skipDuplicates: true,
+    });
+  } catch (e) {
+    console.error(
+      `[BOT_MESSAGES] insert falló — platform=${platform} identity=${identity} mid=${cleanMid ?? "null"}`,
+      e,
+    );
+    return NextResponse.json({ ok: false, error: "insert_failed" }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }
