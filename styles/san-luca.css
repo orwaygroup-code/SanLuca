@@ -1662,6 +1662,10 @@ textarea::placeholder {
   }
   .crm-shell__main {
     padding: clamp(56px, 10vw, 72px) clamp(12px, 3vw, 24px) clamp(28px, 5vw, 48px);
+    /* Red de seguridad: si algún hijo excede el ancho, se contiene aquí en vez
+       de recorrer toda la página a la izquierda. Los charts/legends largos ya
+       manejan su propio scroll interno. */
+    overflow-x: hidden;
   }
 }
 

@@ -260,30 +260,34 @@ function Chart({ data }: { data: ChartBar[] }) {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.max(1, data.length)}, 1fr)`, alignItems: "end", gap: 12, height: 240 }}>
-        {data.map((d, i) => {
-          const t = totalOf(d);
-          const barH = t === 0 ? 3 : Math.max(10, Math.round((t / max) * BAR_AREA));
-          return (
-            <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%" }}>
-              <div style={{ color: t > 0 ? "#ba843c" : "rgba(245,241,232,0.3)", fontSize: "0.75rem", fontWeight: 600, marginBottom: 4 }}>
-                {t}
+      {/* Scroll horizontal contenido en el panel: con muchas barras el chart
+          se desplaza adentro (touch) en vez de empujar toda la página. */}
+      <div style={{ overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch", paddingBottom: 4 }}>
+        <div style={{ display: "grid", gridAutoFlow: "column", gridAutoColumns: "minmax(26px, 1fr)", alignItems: "end", gap: 10, height: 240, minWidth: "100%" }}>
+          {data.map((d, i) => {
+            const t = totalOf(d);
+            const barH = t === 0 ? 3 : Math.max(10, Math.round((t / max) * BAR_AREA));
+            return (
+              <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%" }}>
+                <div style={{ color: t > 0 ? "#ba843c" : "rgba(245,241,232,0.3)", fontSize: "0.72rem", fontWeight: 600, marginBottom: 4 }}>
+                  {t}
+                </div>
+                <div
+                  style={{
+                    width: "100%",
+                    height: barH,
+                    background: t === 0
+                      ? "rgba(245,241,232,0.06)"
+                      : "linear-gradient(180deg, #d09a52 0%, #ba843c 100%)",
+                    borderRadius: "4px 4px 0 0",
+                    transition: "height 0.4s ease",
+                  }}
+                />
+                <span style={{ marginTop: 8, color: "rgba(245,241,232,0.55)", fontSize: "0.68rem", textTransform: "uppercase" }}>{d.label}</span>
               </div>
-              <div
-                style={{
-                  width: "100%",
-                  height: barH,
-                  background: t === 0
-                    ? "rgba(245,241,232,0.06)"
-                    : "linear-gradient(180deg, #d09a52 0%, #ba843c 100%)",
-                  borderRadius: "4px 4px 0 0",
-                  transition: "height 0.4s ease",
-                }}
-              />
-              <span style={{ marginTop: 8, color: "rgba(245,241,232,0.55)", fontSize: "0.7rem", textTransform: "uppercase" }}>{d.label}</span>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
       {total === 0 && (
         <p style={{ marginTop: 14, textAlign: "center", color: "rgba(245,241,232,0.4)", fontSize: "0.78rem" }}>
@@ -343,12 +347,12 @@ function Donut({ conv, wa }: { conv?: Dashboard["conversion"]; wa?: Dashboard["w
         </div>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: "0.72rem", color: "rgba(245,241,232,0.55)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: "0.72rem", color: "rgba(245,241,232,0.55)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "2px 10px" }}>
           <span style={{ color: "#ba843c", fontWeight: 600 }}>General</span>
           <span>Total: <b style={{ color: "#f5f1e8" }}>{conv?.total ?? 0}</b> · OK: <b style={{ color: "#ba843c" }}>{conv?.successful ?? 0}</b> · Canc: <b style={{ color: "#c85050" }}>{conv?.cancelled ?? 0}</b></span>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "2px 10px" }}>
           <span style={{ color: "#25d366", fontWeight: 600 }}>WhatsApp</span>
           <span>Conv: <b style={{ color: "#f5f1e8" }}>{wa?.totalConversations ?? 0}</b> · Reservas: <b style={{ color: "#25d366" }}>{wa?.converted ?? 0}</b></span>
         </div>
