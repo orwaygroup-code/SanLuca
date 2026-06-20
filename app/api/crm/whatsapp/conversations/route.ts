@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
       messages: {
         orderBy: { sentAt: "desc" },
         take: 1,
-        select: { body: true, direction: true, sentAt: true, deletedAt: true },
+        select: { body: true, direction: true, sentAt: true, deletedAt: true, plataforma: true },
       },
       tags: {
         where:   { tag: { isActive: true } },

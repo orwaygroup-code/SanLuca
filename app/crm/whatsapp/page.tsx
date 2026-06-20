@@ -25,6 +25,7 @@ interface ConvSummary {
     direction: "INBOUND" | "OUTBOUND";
     sentAt: string;
     deletedAt: string | null;
+    plataforma: string | null;
   } | null;
   messageCount: number;
   tags: EditorTag[];
@@ -32,6 +33,17 @@ interface ConvSummary {
 }
 
 const DELETED_PLACEHOLDER = "🚫 Este mensaje fue eliminado";
+
+// Badge por canal de mensajería. Default whatsapp para conversaciones antiguas
+// (anteriores al tracking de plataforma en v15).
+const PLATFORM_META: Record<string, { label: string; bg: string; text: string }> = {
+  whatsapp:  { label: "WhatsApp",  bg: "rgba(37,211,102,0.14)",  text: "#25d366" },
+  instagram: { label: "Instagram", bg: "rgba(225,48,108,0.14)",  text: "#e1306c" },
+  messenger: { label: "Messenger", bg: "rgba(0,132,255,0.14)",   text: "#0084ff" },
+};
+function platformMeta(p: string | null | undefined) {
+  return PLATFORM_META[(p ?? "whatsapp").toLowerCase()] ?? PLATFORM_META.whatsapp;
+}
 
 function timeAgo(iso: string): string {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -159,7 +171,7 @@ export default function WhatsappPage() {
 
   return (
     <>
-      <CrmPageHead accent="WHATSAPP" title="CRM" sub="Inbox · conversaciones reales" />
+      <CrmPageHead accent="INBOX" title="CRM" sub="WhatsApp · Instagram · Messenger" />
 
       <div className={`crm-wa-shell${selected ? " crm-wa-shell--has-selection" : ""}`} style={shell}>
         {/* ── Lista izquierda ── */}
@@ -194,8 +206,28 @@ export default function WhatsappPage() {
               >
                 <div style={convAvatar}>{displayName(c).charAt(0).toUpperCase()}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                    <span style={convName}>{displayName(c)}</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 6 }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                      <span style={convName}>{displayName(c)}</span>
+                      {(() => {
+                        const pm = platformMeta(c.lastMessage?.plataforma);
+                        return (
+                          <span style={{
+                            flexShrink: 0,
+                            fontSize: "0.58rem",
+                            fontWeight: 700,
+                            letterSpacing: "0.04em",
+                            padding: "1px 6px",
+                            borderRadius: 999,
+                            background: pm.bg,
+                            color: pm.text,
+                            textTransform: "uppercase",
+                          }}>
+                            {pm.label}
+                          </span>
+                        );
+                      })()}
+                    </span>
                     {c.lastMessage && (
                       <span style={convTime}>{timeAgo(c.lastMessage.sentAt)}</span>
                     )}

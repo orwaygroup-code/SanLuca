@@ -7,7 +7,7 @@ import { useSession } from "@/lib/session-client";
 
 const NAV = [
   { label: "Inicio",        href: "/crm" },
-  { label: "WhatsApp",      href: "/crm/whatsapp" },
+  { label: "Inbox",         href: "/crm/whatsapp" },
   { label: "Tags",          href: "/crm/tags" },
   { label: "Marketing",     href: "/crm/marketing" },
   { label: "Usuarios",      href: "/crm/usuarios" },
