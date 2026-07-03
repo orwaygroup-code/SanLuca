@@ -65,7 +65,6 @@ export default function Navbar() {
     { label: t.nav.menu,       href: "/menu" },
     { label: t.nav.history,    href: "#historia" },
     { label: t.nav.reserve,    href: "/reservation" },
-    { label: t.nav.contact,    href: "/contact" },
   ];
 
   useEffect(() => {
