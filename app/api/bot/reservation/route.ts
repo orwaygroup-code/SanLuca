@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { autoAssignTable } from "@/lib/autoAssignTable";
 import { reEvalUserRule } from "@/lib/tagRules";
+import { sendReservationQR } from "@/lib/whatsapp";
 
 // ── Normaliza teléfono a 10 dígitos ───────────────────────────────────
 function normalizePhone(raw: string): string {
@@ -122,7 +123,10 @@ export async function POST(request: NextRequest) {
             guests:            guestCount,
             sectionPreference: assigned?.sectionName ?? zonaNormalizada ?? null,
             date:              reservationDate,
-            status:            "PENDING",
+            // Auto-confirmación: si Luca asignó mesa, la reserva nace CONFIRMED
+            // (la confirmación del cliente en el chat cuenta como la confirmación
+            // que antes se hacía manual en el panel). Sin mesa → PENDING manual.
+            status:            assigned ? "CONFIRMED" : "PENDING",
             paymentStatus:     "UNPAID",
             source:            "WHATSAPP",
             notes:             notes && String(notes).trim() ? String(notes).trim() : null,
@@ -138,10 +142,25 @@ export async function POST(request: NextRequest) {
         console.error("[AUTO_TAG] reEval Inactivo failed (bot reservation):", e),
     );
 
+    // Auto-confirmación: si hay mesa, se envía el QR directo al chat del cliente
+    // (misma llamada que el panel al pasar a CONFIRMED). Fire-and-forget: un
+    // fallo de WhatsApp NO debe tumbar la creación de la reserva.
+    if (assigned) {
+        sendReservationQR({
+            phone:             reservation.guestPhone,
+            guestName:         reservation.guestName,
+            date:              new Date(reservation.date),
+            guests:            reservation.guests,
+            sectionPreference: reservation.sectionPreference,
+            qrToken:           reservation.qrToken,
+        }).catch((e) => console.error("[WhatsApp QR bot auto-confirm]", e));
+    }
+
     return NextResponse.json({
         success: true,
         data: {
             id:               reservation.id,
+            autoConfirmed:    !!assigned,
             qrToken:          reservation.qrToken,
             date:             reservation.date,
             sectionRequested: zonaNormalizada,
