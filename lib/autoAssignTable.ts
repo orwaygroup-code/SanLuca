@@ -59,7 +59,7 @@ export async function autoAssignTable(
                         isActive: true,
                         ...(isPrivado ? {} : { capacity: { gte: guests } }),
                     },
-                    orderBy: { capacity: "asc" }, // mesa más ajustada primero
+                    orderBy: { number: "asc" }, // mesa de número más bajo primero (orden secuencial)
                 },
             },
         });
@@ -82,7 +82,7 @@ export async function autoAssignTable(
                 include: {
                     tables: {
                         where:   { isActive: true, capacity: 6 },
-                        orderBy: { capacity: "asc" },
+                        orderBy: { number: "asc" },
                     },
                 },
             });
