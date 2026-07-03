@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { TableMap } from "@/components/reservation/TableMap";
 import type { AvailabilityData, TableSelection } from "@/components/reservation/types";
@@ -36,6 +36,7 @@ interface Reservation {
     creditUsed?:       number;
     amountPaid?:       number | string | null;
     checkedInAt:       string | null;
+    seenAt:            string | null;
     qrToken:           string;
     table:             { number: number; section: { name: string } } | null;
     user:              { name: string; email: string; phone: string };
@@ -170,9 +171,9 @@ export default function AdminPage() {
         }
     }, [router, session.loading, session.user]);
 
-    const fetchReservations = useCallback(async () => {
+    const fetchReservations = useCallback(async (silent = false) => {
         if (!userId) return;
-        setLoading(true);
+        if (!silent) setLoading(true);
         const params = new URLSearchParams();
         if (section !== "Todas") params.set("section", section);
         if (date)   params.set("date",   date);
@@ -180,10 +181,51 @@ export default function AdminPage() {
         const res  = await fetch(`/api/admin/reservations?${params}`, { credentials: "same-origin" });
         const data = await res.json();
         if (data.success) setReservations(data.data);
-        setLoading(false);
+        if (!silent) setLoading(false);
     }, [userId, section, date, search]);
 
     useEffect(() => { fetchReservations(); }, [fetchReservations]);
+
+    // Poll silencioso: reservas nuevas (bot/web) aparecen solas, sin spinner.
+    useEffect(() => {
+        const iv = setInterval(() => fetchReservations(true), 20000);
+        return () => clearInterval(iv);
+    }, [fetchReservations]);
+
+    // ── "Nueva reserva" no vista aún: puntito parpadeante ──────────────
+    // Se apaga al hacer clic en la tarjeta o tras 10 min visible en panel.
+    const markSeen = useCallback((id: string) => {
+        setReservations((prev) =>
+            prev.map((r) => (r.id === id && !r.seenAt ? { ...r, seenAt: new Date().toISOString() } : r)),
+        );
+        fetch(`/api/admin/reservations/${id}/seen`, { method: "POST", credentials: "same-origin" })
+            .catch(() => { /* el poll reconciliará */ });
+    }, []);
+
+    // Registra el primer momento visible de cada reserva no vista.
+    const seenShownAtRef = useRef<Map<string, number>>(new Map());
+    useEffect(() => {
+        const now = Date.now();
+        for (const r of reservations) {
+            if (!r.seenAt && !seenShownAtRef.current.has(r.id)) {
+                seenShownAtRef.current.set(r.id, now);
+            }
+        }
+    }, [reservations]);
+
+    // Auto-marca vista tras 10 min visible en el panel.
+    useEffect(() => {
+        const iv = setInterval(() => {
+            const t = Date.now();
+            for (const [id, shownAt] of Array.from(seenShownAtRef.current.entries())) {
+                if (t - shownAt >= 10 * 60 * 1000) {
+                    markSeen(id);
+                    seenShownAtRef.current.delete(id);
+                }
+            }
+        }, 30000);
+        return () => clearInterval(iv);
+    }, [markSeen]);
 
     const updateStatus = async (id: string, status: string) => {
         if (!userId) return;
@@ -270,6 +312,28 @@ export default function AdminPage() {
 
     return (
         <div className="adm-page">
+            <style>{`
+                @keyframes admNewPulse {
+                    0%, 100% { opacity: 1;   transform: scale(1);    }
+                    50%      { opacity: 0.3; transform: scale(0.75); }
+                }
+                .adm-new-badge {
+                    display: inline-flex; align-items: center; gap: 6px;
+                    align-self: flex-start;
+                    padding: 3px 10px; margin-bottom: 6px;
+                    border-radius: 999px;
+                    background: rgba(224,85,85,0.14);
+                    border: 1px solid rgba(224,85,85,0.55);
+                    color: #e05555;
+                    font-size: 0.6rem; font-weight: 800;
+                    letter-spacing: 0.16em; text-transform: uppercase;
+                }
+                .adm-new-dot {
+                    width: 8px; height: 8px; border-radius: 50%;
+                    background: #e05555;
+                    animation: admNewPulse 1.1s ease-in-out infinite;
+                }
+            `}</style>
             {/* ── CTA: nueva reserva (la navegación global la provee el sidebar) ── */}
             <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginBottom: 8 }}>
                 <button
@@ -321,7 +385,7 @@ export default function AdminPage() {
                         onChange={(e) => setSearch(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && fetchReservations()}
                     />
-                    <button className="adm-search-btn" onClick={fetchReservations}>Buscar</button>
+                    <button className="adm-search-btn" onClick={() => fetchReservations()}>Buscar</button>
                 </div>
 
                 {(section !== "Todas" || date || search) && (
@@ -394,7 +458,13 @@ export default function AdminPage() {
                                             </div>
                                             <div className="adm-grid">
                                                 {group.map((r) => (
-                                                    <div key={r.id} className="adm-card">
+                                                    <div key={r.id} className="adm-card" onClick={() => { if (!r.seenAt) markSeen(r.id); }}>
+                                                        {!r.seenAt && (
+                                                            <div className="adm-new-badge">
+                                                                <span className="adm-new-dot" />
+                                                                Nueva
+                                                            </div>
+                                                        )}
                                                         <div
                                                             className="adm-badge"
                                                             style={{ borderColor: STATUS_COLOR[r.status], color: STATUS_COLOR[r.status] }}

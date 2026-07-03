@@ -71,6 +71,7 @@ export async function GET(request: NextRequest) {
                     creditUsed:        true,
                     amountPaid:        true,
                     checkedInAt:       true,
+                    seenAt:            true,
                     qrToken:           true,
                     table: {
                         select: {
@@ -159,6 +160,7 @@ export async function POST(request: NextRequest) {
                     notes:             notes ?? null,
                     occasion:          occasion ?? null,
                     status:            "CONFIRMED",
+                    seenAt:            new Date(), // creada por staff en el panel → ya "vista", no parpadea
                     paymentStatus:     "UNPAID",
                     ...(assignedTableId ? { tableId: assignedTableId } : {}),
                     ...(linkedTableId   ? { linkedTableId }            : {}),
