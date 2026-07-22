@@ -4,7 +4,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { autoAssignTable } from "@/lib/autoAssignTable";
+import { resolveBotAssignment } from "@/lib/autoAssignTable";
 import { reEvalUserRule } from "@/lib/tagRules";
 import { sendReservationQR } from "@/lib/whatsapp";
 
@@ -112,8 +112,9 @@ export async function POST(request: NextRequest) {
         });
     }
 
-    const assigned = await autoAssignTable(reservationDate, guestCount, zonaNormalizada);
-    console.log('[BOT_RESERVATION] mesa asignada:', assigned);
+    const outcome = await resolveBotAssignment(reservationDate, guestCount, zonaNormalizada);
+    console.log('[BOT_RESERVATION] asignación:', outcome);
+    const [t1, t2, t3, t4] = outcome?.tableIds ?? [];
 
     const reservation = await prisma.reservation.create({
         data: {
@@ -121,16 +122,20 @@ export async function POST(request: NextRequest) {
             guestName:         titular,
             guestPhone:        phone,
             guests:            guestCount,
-            sectionPreference: assigned?.sectionName ?? zonaNormalizada ?? null,
+            sectionPreference: outcome?.sectionName ?? zonaNormalizada ?? null,
             date:              reservationDate,
-            // Auto-confirmación: si Luca asignó mesa, la reserva nace CONFIRMED
-            // (la confirmación del cliente en el chat cuenta como la confirmación
-            // que antes se hacía manual en el panel). Sin mesa → PENDING manual.
-            status:            assigned ? "CONFIRMED" : "PENDING",
+            // Confirma por disponibilidad: si hay cupo (1 mesa o mesas apartadas)
+            // nace CONFIRMED y se manda el QR. Si son mesas apartadas, la hostess
+            // finaliza la combinación (tablesProvisional). Sin cupo → PENDING.
+            status:            outcome ? "CONFIRMED" : "PENDING",
+            tablesProvisional: outcome?.provisional ?? false,
             paymentStatus:     "UNPAID",
             source:            "WHATSAPP",
             notes:             notes && String(notes).trim() ? String(notes).trim() : null,
-            ...(assigned ? { tableId: assigned.tableId } : {}),
+            ...(t1 ? { tableId:       t1 } : {}),
+            ...(t2 ? { linkedTableId: t2 } : {}),
+            ...(t3 ? { thirdTableId:  t3 } : {}),
+            ...(t4 ? { fourthTableId: t4 } : {}),
         },
         include: {
             table: { select: { number: true, section: { select: { name: true } } } },
@@ -145,7 +150,7 @@ export async function POST(request: NextRequest) {
     // Auto-confirmación: si hay mesa, se envía el QR directo al chat del cliente
     // (misma llamada que el panel al pasar a CONFIRMED). Fire-and-forget: un
     // fallo de WhatsApp NO debe tumbar la creación de la reserva.
-    if (assigned) {
+    if (outcome) {
         sendReservationQR({
             phone:             reservation.guestPhone,
             guestName:         reservation.guestName,
@@ -160,13 +165,16 @@ export async function POST(request: NextRequest) {
         success: true,
         data: {
             id:               reservation.id,
-            autoConfirmed:    !!assigned,
+            autoConfirmed:    !!outcome,
+            provisional:      outcome?.provisional ?? false,
             qrToken:          reservation.qrToken,
             date:             reservation.date,
             sectionRequested: zonaNormalizada,
-            tableInfo:        reservation.table
-                ? `Mesa #${reservation.table.number} en ${reservation.table.section.name}`
-                : `Sin mesa asignada (zona pedida: ${zonaNormalizada ?? "cualquiera"}) - requiere asignacion manual`,
+            tableInfo:        !outcome
+                ? `Sin cupo disponible (zona: ${zonaNormalizada ?? "cualquiera"}) - requiere asignacion manual`
+                : outcome.provisional
+                    ? `Cupo apartado en ${outcome.sectionName} (${outcome.tableIds.length} mesas) - la hostess finaliza la combinacion`
+                    : `Mesa #${reservation.table?.number ?? "?"} en ${reservation.table?.section.name ?? outcome.sectionName}`,
             notes:            reservation.notes,
         },
     });

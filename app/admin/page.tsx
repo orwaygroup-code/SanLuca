@@ -37,6 +37,7 @@ interface Reservation {
     amountPaid?:       number | string | null;
     checkedInAt:       string | null;
     seenAt:            string | null;
+    tablesProvisional: boolean;
     qrToken:           string;
     table:             { number: number; section: { name: string } } | null;
     user:              { name: string; email: string; phone: string };
@@ -333,6 +334,17 @@ export default function AdminPage() {
                     background: #e05555;
                     animation: admNewPulse 1.1s ease-in-out infinite;
                 }
+                .adm-hold-badge {
+                    display: inline-flex; align-items: center;
+                    align-self: flex-start;
+                    padding: 3px 10px; margin-bottom: 6px;
+                    border-radius: 999px;
+                    background: rgba(217,151,34,0.14);
+                    border: 1px solid rgba(217,151,34,0.55);
+                    color: #d99722;
+                    font-size: 0.6rem; font-weight: 800;
+                    letter-spacing: 0.12em; text-transform: uppercase;
+                }
             `}</style>
             {/* ── CTA: nueva reserva (la navegación global la provee el sidebar) ── */}
             <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginBottom: 8 }}>
@@ -464,6 +476,9 @@ export default function AdminPage() {
                                                                 <span className="adm-new-dot" />
                                                                 Nueva
                                                             </div>
+                                                        )}
+                                                        {r.tablesProvisional && !ARCHIVED_STATUSES.includes(r.status) && (
+                                                            <div className="adm-hold-badge">⚠ Revisar mesas</div>
                                                         )}
                                                         <div
                                                             className="adm-badge"

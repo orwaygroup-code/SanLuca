@@ -245,6 +245,7 @@ model Reservation {
   cancelledAt       DateTime?
   cancelReason      String?
   seenAt            DateTime?         // cuándo el staff la vio en el panel (null = "nueva", parpadea)
+  tablesProvisional Boolean           @default(false) // bot apartó mesas por cupo; la hostess debe finalizar la combinación
 
   // ── Canal de origen de la reserva (independiente del user.source) ──
   source            ReservationSource @default(WEB)

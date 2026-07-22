@@ -12,6 +12,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { findOccupiedTableIds } from "@/lib/tableConflict";
+import { tableFitsGuests } from "@/lib/tableCapacity";
 
 const SECTION_ORDER = ["Terraza", "Salón", "Planta Alta", "Privado"];
 
@@ -93,6 +94,100 @@ export async function autoAssignTable(
                     return { tableId: table.id, sectionName: section.name };
                 }
             }
+        }
+    }
+
+    return null;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Motor del bot: confirma por disponibilidad, aparta cupo, y la hostess
+// finaliza la combinación física. Nunca deja PENDING salvo que NO haya
+// cupo suficiente en el área (red de último recurso).
+// ═══════════════════════════════════════════════════════════════════
+
+export type BotAssignment = {
+    tableIds:    string[];   // 1 mesa (single) o 2–4 (apartadas por cupo)
+    sectionName: string;
+    provisional: boolean;    // true = mesas apartadas; la hostess finaliza la combinación
+} | null;
+
+/**
+ * Elige las mesas LIBRES a apartar para cubrir `guests` (pura → testeable).
+ * Prefiere mesas de mayor capacidad primero (menos mesas por juntar), máx 4.
+ * Devuelve las mesas ordenadas por número, o null si no alcanza en ≤4 mesas.
+ */
+export function selectHoldTables(
+    freeTables: { id: string; number: number; capacity: number }[],
+    guests: number,
+): { id: string; number: number; capacity: number }[] | null {
+    const byCapDesc = [...freeTables].sort((a, b) => b.capacity - a.capacity || a.number - b.number);
+    const held: typeof byCapDesc = [];
+    let cap = 0;
+    for (const t of byCapDesc) {
+        held.push(t);
+        cap += t.capacity;
+        if (cap >= guests) return [...held].sort((a, b) => a.number - b.number);
+        if (held.length === 4) break;
+    }
+    return null;
+}
+
+/**
+ * Resuelve la asignación del bot:
+ *   - { provisional:false, tableIds:[1] }  → cabe en una mesa (o Privado) → asigna.
+ *   - { provisional:true,  tableIds:[2–4] } → grupo: aparta mesas por cupo → la hostess finaliza.
+ *   - null → no hay cupo en el área → PENDING (red de último recurso).
+ * Respeta el modo estricto de sección y la ventana ±3.5h (findOccupiedTableIds).
+ */
+export async function resolveBotAssignment(
+    reservationDate: Date,
+    guests: number,
+    preferredSection: string | null,
+): Promise<BotAssignment> {
+    const occupiedIds = await findOccupiedTableIds(prisma, reservationDate);
+
+    let sectionsToSearch: string[];
+    const isStrict = !!(preferredSection && preferredSection.trim());
+    if (isStrict) {
+        const normPref = normalizeSection(preferredSection!);
+        const officialMatch = SECTION_ORDER.find((s) => normalizeSection(s) === normPref);
+        sectionsToSearch = officialMatch ? [officialMatch] : [preferredSection!.trim()];
+    } else {
+        sectionsToSearch = [...SECTION_ORDER];
+    }
+
+    for (const sectionName of sectionsToSearch) {
+        const isPrivado = normalizeSection(sectionName) === "privado";
+        const section = await prisma.section.findFirst({
+            where: { name: { equals: sectionName, mode: "insensitive" } },
+            include: {
+                tables: { where: { isActive: true }, orderBy: { number: "asc" } },
+            },
+        });
+        if (!section) continue;
+
+        const freeTables = section.tables.filter((t) => !occupiedIds.has(t.id));
+        if (freeTables.length === 0) continue;
+
+        // Privado: mesa única admite cualquier número.
+        if (isPrivado) {
+            return { tableIds: [freeTables[0].id], sectionName: section.name, provisional: false };
+        }
+
+        // 1) Una sola mesa que quepa (número más bajo).
+        const single = freeTables.find((t) => tableFitsGuests(t.capacity, guests));
+        if (single) {
+            return { tableIds: [single.id], sectionName: section.name, provisional: false };
+        }
+
+        // 2) Apartar 2–4 mesas por cupo (provisional; la hostess finaliza).
+        const held = selectHoldTables(
+            freeTables.map((t) => ({ id: t.id, number: t.number, capacity: t.capacity })),
+            guests,
+        );
+        if (held) {
+            return { tableIds: held.map((t) => t.id), sectionName: section.name, provisional: true };
         }
     }
 

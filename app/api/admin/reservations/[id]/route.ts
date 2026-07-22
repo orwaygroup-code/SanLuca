@@ -144,6 +144,7 @@ export async function PATCH(
                         linkedTableId: null,
                         thirdTableId:  null,
                         fourthTableId: null,
+                        tablesProvisional: false, // la hostess finalizó (área/manual)
                         ...(sectionPreference ? { sectionPreference } : {}),
                     },
                     select: {
@@ -232,6 +233,7 @@ export async function PATCH(
                     linkedTableId:  linkedTableId  ?? null,
                     thirdTableId:   thirdTableId   ?? null,
                     fourthTableId:  fourthTableId  ?? null,
+                    tablesProvisional: false, // la hostess finalizó la combinación de mesas
                     ...(sectionPreference ? { sectionPreference } : {}),
                 },
                 select: {

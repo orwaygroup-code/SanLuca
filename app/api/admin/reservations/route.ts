@@ -72,6 +72,7 @@ export async function GET(request: NextRequest) {
                     amountPaid:        true,
                     checkedInAt:       true,
                     seenAt:            true,
+                    tablesProvisional: true,
                     qrToken:           true,
                     table: {
                         select: {
