@@ -14,20 +14,28 @@ export const metadata: Metadata = {
         "Cocina italiana de autor — Clásica, Autor, Bebidas, Vinos y más",
 };
 
+// Render por request: 3 platos insignia al azar distintos en cada carga.
+export const dynamic = "force-dynamic";
+
 export default async function MenuComidaPage() {
     const [featured, categories] = await Promise.all([
         getFeaturedDishes(),
         getMenuCategories(),
     ]);
 
-    // Mapear dishes de DB para PlatosInsignia
-    const insigniaDishes = featured.slice(0, 3).map((d) => ({
+    // Platos insignia: 3 al azar de la lista curada (Fisher-Yates).
+    const shuffled = [...featured];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    const insigniaDishes = shuffled.slice(0, 3).map((d) => ({
         id: d.id,
         name: d.name,
         description: d.description ?? null,
         price: Number(d.price),
         imageUrl: d.imageUrl ?? null,
-        category: (d as any).categoryName ?? null,
+        category: (d as any).category?.name ?? null,
     }));
 
     // Mapear categorías de DB para el grid de imágenes

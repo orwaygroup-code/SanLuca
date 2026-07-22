@@ -61,10 +61,23 @@ export async function getMenuCategoryByName(name: string) {
 // FEATURED DISHES
 // ============================================
 
+// Platos insignia — lista curada por nombre exacto en la BD.
+// La página del menú muestra 3 al azar de esta lista en cada carga.
+const FEATURED_DISH_NAMES = [
+  "Carpaccio di Manzo Wagyu",
+  "Carpaccio di Salmone",
+  "Carpaccio di Totoaba al Tartufo",
+  "Lasagna di Wagyu",
+  "Alfredo nella Ruota di Grana Padano",
+  "Filete al Wellington estilo Gordon Ramsay",
+  "Francescana",
+  "Cream Chowder",
+];
+
 export async function getFeaturedDishes() {
   return prisma.dish.findMany({
-    where: { available: true },
-    orderBy: { position: "asc" },
+    where: { available: true, name: { in: FEATURED_DISH_NAMES } },
+    include: { category: { select: { name: true } } },
   });
 }
 

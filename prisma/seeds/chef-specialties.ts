@@ -27,10 +27,10 @@ interface ChefDish {
 // Orden = posición dentro de la categoría (1..11).
 const DISHES: ChefDish[] = [
   {
-    name: "Langosta Empapelada Rellena de Mariscos",
+    name: "Langosta Roja Viva de Ensenada",
     description:
-      "Langosta roja de Ensenada cocida al horno, servida empapelada y rellena con mariscos del Mar de Cortés y un toque de mantequilla de ajo.",
-    price: 990,
+      "Precio según tamaño. Pregunta a tu mesero por la receta del día.",
+    price: 3, // $3 por gramo — el total depende del tamaño de la pieza (priceUnit "por gramo" en la card)
   },
   {
     name: "Filete al Wellington estilo Gordon Ramsay",
@@ -91,6 +91,16 @@ const DISHES: ChefDish[] = [
     description:
       "Suadero de Wagyu cocido a la leña durante 12 horas, servido en tortilla de maíz con cebolla, cilantro y salsa tatemada.",
     price: 175,
+  },
+  {
+    name: "Almejas Chocolatas Natural",
+    description: "",
+    price: 90,
+  },
+  {
+    name: "Almejas Chocolatas a la Parmesana",
+    description: "",
+    price: 125,
   },
 ];
 
