@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { useStaffSession } from "@/lib/staff-session-client";
 
 const ROLE_HOME: Record<string, string> = {
   MANAGER:   "/staff/capitan",   // manager vía PIN = vista supervisora sl_staff (Ricardo usa /admin con sl_session)
@@ -19,11 +20,20 @@ const ERROR_MSG: Record<string, string> = {
 function StaffLoginInner() {
   const router = useRouter();
   const params = useSearchParams();
+  const { staff, loading: sessionLoading } = useStaffSession();
   const [username, setUsername] = useState("");
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const pinRef = useRef<HTMLInputElement>(null);
+
+  // Ya con sesión (ej. al abrir el PWA anclado en /staff/login): enruta por rol
+  // sin pedir PIN de nuevo. Respeta `next` si viene de un guard de página.
+  useEffect(() => {
+    if (sessionLoading || !staff) return;
+    const home = params.get("next") || ROLE_HOME[staff.role] || "/staff/comandas";
+    router.replace(home);
+  }, [sessionLoading, staff, params, router]);
 
   const submit = useCallback(async () => {
     if (loading) return;
