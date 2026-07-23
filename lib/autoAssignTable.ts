@@ -11,7 +11,7 @@
 // `01 - Modules/Reservation Engine.md` §Excepción "Privado".
 
 import { prisma } from "@/lib/prisma";
-import { findOccupiedTableIds } from "@/lib/tableConflict";
+import { findOccupiedTableIds, findBlockedSections } from "@/lib/tableConflict";
 import { tableFitsGuests } from "@/lib/tableCapacity";
 
 const SECTION_ORDER = ["Terraza", "Salón", "Planta Alta", "Privado"];
@@ -33,6 +33,10 @@ export async function autoAssignTable(
     // Mesas ocupadas en la ventana ±3.5h del slot pedido. Excluye COMPLETED
     // (mesa libre tras turnover natural). Ver lib/tableConflict.ts.
     const occupiedIds = await findOccupiedTableIds(prisma, reservationDate);
+    // Áreas apartadas por grupo grande en la misma ventana → no se asigna ahí.
+    const blockedNorm = new Set(
+        [...(await findBlockedSections(prisma, reservationDate))].map(normalizeSection),
+    );
 
     // Modo estricto: si hay preferredSection, SOLO se busca ahí. Si no,
     // recorre el SECTION_ORDER completo como fallback de auto-asignación.
@@ -51,6 +55,7 @@ export async function autoAssignTable(
     // el "espacio reservado" y admite cualquier número de personas sobre
     // su mesa única.
     for (const sectionName of sectionsToSearch) {
+        if (blockedNorm.has(normalizeSection(sectionName))) continue; // área con grupo grande
         const isPrivado = normalizeSection(sectionName) === "privado";
         const section = await prisma.section.findFirst({
             where: { name: { equals: sectionName, mode: "insensitive" } },
@@ -78,6 +83,7 @@ export async function autoAssignTable(
     // hay opción exacta. Solo se intenta tras agotar la 1ra pasada.
     if (guests === 8) {
         for (const sectionName of sectionsToSearch) {
+            if (blockedNorm.has(normalizeSection(sectionName))) continue; // área con grupo grande
             const section = await prisma.section.findFirst({
                 where: { name: { equals: sectionName, mode: "insensitive" } },
                 include: {
@@ -146,6 +152,10 @@ export async function resolveBotAssignment(
     preferredSection: string | null,
 ): Promise<BotAssignment> {
     const occupiedIds = await findOccupiedTableIds(prisma, reservationDate);
+    // Áreas apartadas por grupo grande en la misma ventana → no se asigna ahí.
+    const blockedNorm = new Set(
+        [...(await findBlockedSections(prisma, reservationDate))].map(normalizeSection),
+    );
 
     let sectionsToSearch: string[];
     const isStrict = !!(preferredSection && preferredSection.trim());
@@ -158,6 +168,7 @@ export async function resolveBotAssignment(
     }
 
     for (const sectionName of sectionsToSearch) {
+        if (blockedNorm.has(normalizeSection(sectionName))) continue; // área con grupo grande
         const isPrivado = normalizeSection(sectionName) === "privado";
         const section = await prisma.section.findFirst({
             where: { name: { equals: sectionName, mode: "insensitive" } },

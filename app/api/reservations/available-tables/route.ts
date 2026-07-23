@@ -69,8 +69,8 @@ export async function GET(request: NextRequest) {
     // Anclado a -06:00 (hora MX): el VPS corre UTC, así que `new Date(y, mo-1, d)`
     // usaría hora local del servidor (desfase de 6h). Mismo fix que F1 en
     // app/api/reservations/route.ts y la construcción de app/api/admin/map/route.ts.
-    const dayStart = new Date(`${date}T00:00:00.000-06:00`);
-    const dayEnd   = new Date(`${date}T23:59:59.999-06:00`);
+    // Ventana ±3.5h para bloqueos de grupo grande (antes: día completo).
+    const { from: lgFrom, to: lgTo } = getReservationWindow(reservationStart);
 
     // ══════════════════════════════════════════════════════════════════════
     // GRUPO GRANDE (>15 personas): verificar disponibilidad de área completa
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
           isLargeGroup: true,
           sectionPreference: section,
           status: { notIn: ["CANCELLED", "NO_SHOW"] },
-          date: { gte: dayStart, lte: dayEnd },
+          date: { gt: lgFrom, lt: lgTo },
         },
       });
 
@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
       const normalConflict = await prisma.reservation.findFirst({
         where: {
           status: { notIn: ["CANCELLED", "NO_SHOW"] },
-          date: { gte: dayStart, lte: dayEnd },
+          date: { gt: lgFrom, lt: lgTo },
           OR: [
             { tableId:        { in: tableIds } },
             { linkedTableId:  { in: tableIds } },
@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
         isLargeGroup: true,
         sectionPreference: section,
         status: { notIn: ["CANCELLED", "NO_SHOW"] },
-        date: { gte: dayStart, lte: dayEnd },
+        date: { gt: lgFrom, lt: lgTo },
       },
     });
 

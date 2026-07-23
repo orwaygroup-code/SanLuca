@@ -91,6 +91,31 @@ export async function findTableConflict(
 }
 
 /**
+ * Secciones bloqueadas por un GRUPO GRANDE (isLargeGroup) dentro de la ventana
+ * ±3.5h del slot. El grupo grande aparta el área completa pero solo durante su
+ * ventana (antes bloqueaba el día entero). Lo usan la auto-asignación (web y
+ * bot) para no sentar a nadie en un área apartada.
+ */
+export async function findBlockedSections(
+  db: DB,
+  reservationDate: Date,
+): Promise<Set<string>> {
+  const { from, to } = getReservationWindow(reservationDate);
+  const rows = await db.reservation.findMany({
+    where: {
+      isLargeGroup: true,
+      status: { notIn: NON_BLOCKING_STATUSES },
+      date: { gt: from, lt: to },
+      sectionPreference: { not: null },
+    },
+    select: { sectionPreference: true },
+  });
+  const blocked = new Set<string>();
+  for (const r of rows) if (r.sectionPreference) blocked.add(r.sectionPreference);
+  return blocked;
+}
+
+/**
  * Versión bulk: para el algoritmo de auto-asignación, queremos saber TODAS las
  * mesas ocupadas en la ventana ±3.5h del slot que estamos asignando.
  */

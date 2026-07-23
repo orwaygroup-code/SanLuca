@@ -59,7 +59,7 @@ Si sale papel, la impresora + red + puerto 9100 están bien.
 
 | Destino del sistema | Impresora(s) física(s) | Transporte |
 |---|---|---|
-| CAJA | Impresora **USB** de la PC de caja | `share` (compartida de Windows) |
+| CAJA | `192.168.0.15` (conectarla a la red con IP fija — decisión final) | `tcp` |
 | BARRA (bebidas) | `192.168.0.11` | `tcp` |
 | COCINA (platillos) | **Las 3**: HORNO `.12` + FRÍA `.13` + CALIENTE `.14` — cada una recibe copia del ticket | `tcp` (lista) |
 
@@ -67,7 +67,7 @@ Decisión operativa: **sin división por estación** — todo platillo de cocina
 imprime en las tres impresoras de cocina y cada estación toma lo suyo. Bebidas
 solo a barra. (El config de arriba ya viene así.)
 
-### Impresora USB (CAJA): compartirla en Windows
+### Plan B — si la de caja NO se puede conectar a red: compartirla por USB
 
 1. Panel de control → Dispositivos e impresoras → clic derecho en la impresora
    de CAJA → **Propiedades de impresora** → pestaña **Compartir**.

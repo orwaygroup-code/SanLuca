@@ -5,7 +5,7 @@ import { withApp } from "@/lib/prismaApp";
 import { runWithSession } from "@/lib/session-context";
 import { createReservationSchema } from "@/lib/validations";
 import { autoAssignTable } from "@/lib/autoAssignTable";
-import { findTableConflict } from "@/lib/tableConflict";
+import { findTableConflict, getReservationWindow } from "@/lib/tableConflict";
 import { expirePendingPayments } from "@/lib/expirePendingPayments";
 import { getSpecialDateForDateStr } from "@/lib/specialDates";
 import { getAvailableCredit, applyCreditsToReservation } from "@/lib/credits";
@@ -97,8 +97,9 @@ export async function POST(request: NextRequest) {
         // Anclado a -06:00 (hora MX): el VPS corre UTC, así que NO se puede usar
         // `new Date(y, mo-1, d, ...)` (interpreta hora local del servidor → desfase
         // de 6h). Misma construcción que app/api/admin/map/route.ts.
-        const dayStart = new Date(`${date}T00:00:00.000-06:00`);
-        const dayEnd   = new Date(`${date}T23:59:59.999-06:00`);
+        // Bloqueo de grupo grande: usa la MISMA ventana ±3.5h que las mesas
+        // (antes el grupo grande apartaba el área el día COMPLETO).
+        const { from: lgFrom, to: lgTo } = getReservationWindow(reservationDate);
 
         // ── GRUPO GRANDE: verificar que el área completa esté libre todo el día ──
         // Excepción Privado: el área es un evento privado por diseño — no se
@@ -135,14 +136,14 @@ export async function POST(request: NextRequest) {
                         isLargeGroup: true,
                         sectionPreference: sectionName,
                         status: { notIn: ["CANCELLED", "NO_SHOW"] },
-                        date: { gte: dayStart, lte: dayEnd },
+                        date: { gt: lgFrom, lt: lgTo },
                     },
                 }),
                 // ¿Hay reservas normales en alguna mesa de esta área hoy?
                 prisma.reservation.findFirst({
                     where: {
                         status: { notIn: ["CANCELLED", "NO_SHOW"] },
-                        date: { gte: dayStart, lte: dayEnd },
+                        date: { gt: lgFrom, lt: lgTo },
                         OR: [
                             { tableId:        { in: sectionTableIds } },
                             { linkedTableId:  { in: sectionTableIds } },
@@ -155,7 +156,7 @@ export async function POST(request: NextRequest) {
 
             if (lgConflict || normalConflict) {
                 return NextResponse.json<ApiResponse>(
-                    { success: false, error: `El área ${sectionName} no está disponible el ${date}. Ya existe otra reserva en esa área para ese día.` },
+                    { success: false, error: `El área ${sectionName} no está disponible en ese horario. Ya existe otra reserva en esa área cerca de esa hora.` },
                     { status: 409 }
                 );
             }
@@ -191,12 +192,12 @@ export async function POST(request: NextRequest) {
                     isLargeGroup: true,
                     sectionPreference: rest.sectionPreference,
                     status: { notIn: ["CANCELLED", "NO_SHOW"] },
-                    date: { gte: dayStart, lte: dayEnd },
+                    date: { gt: lgFrom, lt: lgTo },
                 },
             });
             if (lgBlock) {
                 return NextResponse.json<ApiResponse>(
-                    { success: false, error: `El área ${rest.sectionPreference} está reservada completa para ese día. Elige otra área u otra fecha.` },
+                    { success: false, error: `El área ${rest.sectionPreference} está apartada por un evento cerca de ese horario. Elige otra área u otro horario.` },
                     { status: 409 }
                 );
             }
