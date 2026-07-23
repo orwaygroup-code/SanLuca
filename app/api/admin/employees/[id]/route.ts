@@ -15,7 +15,7 @@ function parseId(raw: string): number | null {
   return Number.isInteger(n) && n > 0 ? n : null;
 }
 
-/** PATCH /api/admin/employees/:id { fullName?, role?, active? } — editar/soft-delete. ADMIN. */
+/** PATCH /api/admin/employees/:id { username?, fullName?, role?, active? } — editar/soft-delete. ADMIN. */
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   const a = await requireAdminSession(request);
   if (!a) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
@@ -43,14 +43,22 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   }
 
   try {
+    const data = {
+      ...parsed.data,
+      ...(parsed.data.username ? { username: parsed.data.username.toLowerCase() } : {}),
+    };
     const updated = await prisma.staff.update({
       where: { id, tenantId: TENANT },
-      data: parsed.data,
+      data,
       select: PUBLIC_SELECT,
     });
     return NextResponse.json<ApiResponse>({ success: true, data: updated });
-  } catch {
-    return NextResponse.json<ApiResponse>({ success: false, error: "Empleado no encontrado" }, { status: 404 });
+  } catch (e) {
+    const isUnique = e instanceof Error && e.message.includes("Unique constraint");
+    return NextResponse.json<ApiResponse>(
+      { success: false, error: isUnique ? "USERNAME_TAKEN" : "Empleado no encontrado" },
+      { status: isUnique ? 409 : 404 }
+    );
   }
 }
 

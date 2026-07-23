@@ -41,6 +41,7 @@ export default function EmployeesPage() {
   const [query, setQuery] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<StaffRow | null>(null);
+  const [pinTarget, setPinTarget] = useState<StaffRow | null>(null);
   const [revealed, setRevealed] = useState<{ fullName: string; pin: string } | null>(null);
 
   useEffect(() => {
@@ -70,15 +71,6 @@ export default function EmployeesPage() {
     const d = await r.json().catch(() => null);
     if (!d?.success) alert(d?.error ?? "Error");
     await fetchList();
-  };
-
-  const resetPin = async (row: StaffRow) => {
-    const r = await fetch(`/api/admin/employees/${row.id}/reset-pin`, {
-      method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: "{}",
-    });
-    const d = await r.json().catch(() => null);
-    if (d?.success) setRevealed({ fullName: row.fullName, pin: d.data.pin });
-    else alert(d?.error ?? "Error al resetear PIN");
   };
 
   if (session.loading || !session.user || session.user.role !== "ADMIN") {
@@ -125,7 +117,7 @@ export default function EmployeesPage() {
                   <td style={S.td}>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       <button style={S.miniBtn} onClick={() => setEditTarget(row)}>Editar</button>
-                      <button style={S.miniBtn} onClick={() => resetPin(row)}>Reset PIN</button>
+                      <button style={S.miniBtn} onClick={() => setPinTarget(row)}>Cambiar PIN</button>
                       <button style={{ ...S.miniBtn, borderColor: row.active ? "rgba(224,85,85,0.5)" : "rgba(76,175,80,0.5)", color: row.active ? "#e05555" : "#4caf50" }} onClick={() => toggleActive(row)}>
                         {row.active ? "Desactivar" : "Reactivar"}
                       </button>
@@ -140,6 +132,7 @@ export default function EmployeesPage() {
 
       {createOpen && <EmployeeFormModal mode="create" onClose={() => setCreateOpen(false)} onSaved={(pin, fullName) => { setCreateOpen(false); if (pin) setRevealed({ fullName, pin }); fetchList(); }} />}
       {editTarget && <EmployeeFormModal mode="edit" row={editTarget} onClose={() => setEditTarget(null)} onSaved={() => { setEditTarget(null); fetchList(); }} />}
+      {pinTarget && <PinModal row={pinTarget} onClose={() => setPinTarget(null)} onDone={(pin, fullName) => { setPinTarget(null); setRevealed({ fullName, pin }); }} />}
       {revealed && <PinReveal fullName={revealed.fullName} pin={revealed.pin} onClose={() => setRevealed(null)} />}
     </div>
   );
@@ -149,11 +142,59 @@ function PinReveal({ fullName, pin, onClose }: { fullName: string; pin: string; 
   return (
     <Overlay onClose={onClose}>
       <div style={{ textAlign: "center" }}>
-        <p style={S.kicker}>PIN generado</p>
+        <p style={S.kicker}>PIN asignado</p>
         <p style={{ color: "#f5f1e8", margin: "4px 0 0", fontWeight: 700 }}>{fullName}</p>
         <div style={{ margin: "20px 0", fontSize: "2.6rem", letterSpacing: "0.4em", color: "#ba843c", fontWeight: 800 }}>{pin}</div>
         <p style={{ color: "rgba(245,241,232,0.6)", fontSize: "0.82rem", margin: 0 }}>Anótalo ahora. No se puede volver a consultar; solo regenerar.</p>
         <button style={{ ...S.primaryBtn, marginTop: 22, width: "100%" }} onClick={onClose}>Entendido</button>
+      </div>
+    </Overlay>
+  );
+}
+
+function PinModal({ row, onClose, onDone }: {
+  row: StaffRow; onClose: () => void; onDone: (pin: string, fullName: string) => void;
+}) {
+  const [pin, setPin] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const submit = async (usePin: boolean) => {
+    setSaving(true); setError(null);
+    const r = await fetch(`/api/admin/employees/${row.id}/reset-pin`, {
+      method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(usePin ? { pin } : {}),
+    });
+    const d = await r.json().catch(() => null);
+    if (d?.success) { onDone(d.data.pin as string, row.fullName); }
+    else { setError(mapErr(d?.error)); setSaving(false); }
+  };
+
+  const pinOk = /^\d{4}$/.test(pin);
+  return (
+    <Overlay onClose={onClose}>
+      <p style={S.kicker}>Cambiar PIN</p>
+      <p style={{ color: "#f5f1e8", margin: "6px 0 0", fontWeight: 700 }}>{row.fullName}</p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 16 }}>
+        <div>
+          <label style={S.label}>Escribe el nuevo PIN (4 dígitos)</label>
+          <input
+            style={S.input} inputMode="numeric" maxLength={4} value={pin} autoFocus
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+            placeholder="ej. 4821"
+          />
+        </div>
+        {error && <p style={{ color: "#e05555", fontSize: "0.82rem", margin: 0 }}>⚠ {error}</p>}
+        <button
+          style={{ ...S.primaryBtn, opacity: pinOk && !saving ? 1 : 0.5 }}
+          disabled={!pinOk || saving}
+          onClick={() => submit(true)}
+        >
+          {saving ? "Guardando…" : "Guardar este PIN"}
+        </button>
+        <button style={S.ghostBtn} disabled={saving} onClick={() => submit(false)}>
+          …o generar uno aleatorio
+        </button>
       </div>
     </Overlay>
   );
@@ -183,7 +224,7 @@ function EmployeeFormModal({ mode, row, onClose, onSaved }: {
       } else if (row) {
         const r = await fetch(`/api/admin/employees/${row.id}`, {
           method: "PATCH", credentials: "same-origin", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fullName: fullName.trim(), role }),
+          body: JSON.stringify({ username: username.trim().toLowerCase(), fullName: fullName.trim(), role }),
         });
         const d = await r.json().catch(() => null);
         if (!d?.success) throw new Error(mapErr(d?.error));
@@ -193,7 +234,7 @@ function EmployeeFormModal({ mode, row, onClose, onSaved }: {
   };
 
   const pinOk = pin === "" || /^\d{4}$/.test(pin);
-  const canSave = fullName.trim().length >= 2 && (mode === "edit" || (username.trim().length >= 3 && pinOk));
+  const canSave = fullName.trim().length >= 2 && username.trim().length >= 3 && (mode === "create" ? pinOk : true);
 
   return (
     <Overlay onClose={onClose}>
@@ -201,7 +242,7 @@ function EmployeeFormModal({ mode, row, onClose, onSaved }: {
       <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 16 }}>
         <div>
           <label style={S.label}>Usuario</label>
-          <input style={{ ...S.input, opacity: mode === "edit" ? 0.5 : 1 }} value={username} disabled={mode === "edit"} autoCapitalize="none" onChange={(e) => setUsername(e.target.value)} placeholder="ej. luis.mesero" />
+          <input style={S.input} value={username} autoCapitalize="none" onChange={(e) => setUsername(e.target.value)} placeholder="ej. luis.mesero" />
         </div>
         <div>
           <label style={S.label}>Nombre completo</label>

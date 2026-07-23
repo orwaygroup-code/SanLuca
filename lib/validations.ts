@@ -93,6 +93,7 @@ export const staffCreateSchema = z.object({
 });
 
 export const staffUpdateSchema = z.object({
+  username: usernameRule.optional(),
   fullName: z.string().min(2).max(100).optional(),
   role: staffRoleRule.optional(),
   active: z.boolean().optional(),
