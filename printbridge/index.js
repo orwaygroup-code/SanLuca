@@ -10,6 +10,8 @@
 const net  = require("net");
 const fs   = require("fs");
 const path = require("path");
+const os   = require("os");
+const { execFile } = require("child_process");
 
 // ─── Config ───────────────────────────────────────────────────────────
 const cfgPath = path.join(__dirname, "config.json");
@@ -86,21 +88,45 @@ function renderCustomer(p, w) {
   return o;
 }
 
-// ─── Envío TCP a impresora (raw ESC/POS, puerto 9100) ─────────────────
-function sendToPrinter(target, data) {
+// ─── Envío a impresora: TCP (raw 9100) o compartida de Windows (USB) ──
+function sendToTcp(pr, data) {
   return new Promise((resolve, reject) => {
-    const pr = printers[target];
-    if (!pr || !pr.ip) return reject(new Error("Sin impresora configurada para " + target));
+    if (!pr.ip) return reject(new Error("impresora tcp sin ip"));
     const socket = new net.Socket();
     let done = false;
     const finish = (err) => { if (done) return; done = true; try { socket.destroy(); } catch {} err ? reject(err) : resolve(); };
     socket.setTimeout(8000);
-    socket.on("timeout", () => finish(new Error("timeout de conexion")));
+    socket.on("timeout", () => finish(new Error("timeout de conexion a " + pr.ip)));
     socket.on("error", (e) => finish(e));
     socket.connect(pr.port || 9100, pr.ip, () => {
       socket.write(Buffer.from(data, "latin1"), () => setTimeout(() => finish(null), 300));
     });
   });
+}
+
+/**
+ * Impresora USB conectada a ESTA PC: se manda raw vía la impresora COMPARTIDA
+ * de Windows (`copy /b archivo \\localhost\NOMBRE`). Requiere que la impresora
+ * esté compartida (clic derecho → Propiedades → Compartir). Si el driver
+ * mangla el ESC/POS, cambiar el driver a "Generic / Text Only".
+ */
+function sendToShare(pr, data) {
+  return new Promise((resolve, reject) => {
+    if (!pr.share) return reject(new Error("impresora share sin nombre de recurso"));
+    const tmp = path.join(os.tmpdir(), "slticket-" + Date.now() + "-" + Math.random().toString(36).slice(2) + ".prn");
+    fs.writeFile(tmp, Buffer.from(data, "latin1"), (werr) => {
+      if (werr) return reject(werr);
+      execFile("cmd.exe", ["/c", "copy", "/b", tmp, "\\\\localhost\\" + pr.share], { windowsHide: true }, (err, _so, se) => {
+        fs.unlink(tmp, () => {});
+        if (err) return reject(new Error("copy a \\\\localhost\\" + pr.share + " fallo: " + (se || err.message).trim()));
+        resolve();
+      });
+    });
+  });
+}
+
+function sendToPrinter(pr, data) {
+  return pr.type === "share" ? sendToShare(pr, data) : sendToTcp(pr, data);
 }
 
 async function ack(id, ok, error) {
@@ -123,21 +149,29 @@ async function poll() {
 
   for (const job of jobs || []) {
     const p = job.payload;
-    const pr = printers[job.target];
-    const w = (pr && pr.width) || 48;
-    let data;
-    try {
-      data = p && p.kind === "kitchen" ? renderKitchen(p, w) : renderCustomer(p, w);
-    } catch (e) { await ack(job.id, false, "render: " + e.message); continue; }
+    // Un destino puede tener UNA impresora o VARIAS (ej. COCINA duplicada a
+    // caliente/horno/fría). Cada una renderiza con su propio ancho.
+    const targetCfg = printers[job.target];
+    const list = Array.isArray(targetCfg) ? targetCfg : (targetCfg ? [targetCfg] : []);
+    if (list.length === 0) {
+      await ack(job.id, false, "Sin impresora configurada para " + job.target);
+      continue;
+    }
 
     let sent = false, lastErr = null;
     for (let attempt = 0; attempt < 2 && !sent; attempt++) {
-      try { await sendToPrinter(job.target, data); sent = true; }
-      catch (e) { lastErr = e; await sleep(600); }
+      try {
+        for (const pr of list) {
+          const w = pr.width || 48;
+          const data = p && p.kind === "kitchen" ? renderKitchen(p, w) : renderCustomer(p, w);
+          await sendToPrinter(pr, data);
+        }
+        sent = true;
+      } catch (e) { lastErr = e; await sleep(600); }
     }
     await ack(job.id, sent, sent ? null : (lastErr && lastErr.message));
     console.log("[" + new Date().toLocaleTimeString() + "] job " + job.id + " -> " + job.target +
-      " : " + (sent ? "IMPRESO" : "FALLO (" + (lastErr && lastErr.message) + ")"));
+      " (" + list.length + " imp.) : " + (sent ? "IMPRESO" : "FALLO (" + (lastErr && lastErr.message) + ")"));
   }
 }
 

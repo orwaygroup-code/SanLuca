@@ -22,9 +22,12 @@ manda a la impresora que toca.
 1. **Instala Node.js 18+** en la PC de caja (https://nodejs.org, versión LTS).
 2. Copia esta carpeta `printbridge/` a la PC de caja (ej. `C:\sanluca-printbridge`).
 3. Duplica `config.example.json` → **`config.json`** y llénalo:
-   - `apiBaseUrl`: el dominio del sistema (ej. `https://sanlucaristorante.com`).
+   - `apiBaseUrl`: ya viene con el dominio.
    - `bridgeKey`: el **mismo** valor que `PRINT_BRIDGE_KEY` del `.env` del VPS.
-   - `printers.COCINA/BARRA/CAJA.ip`: la IP de cada impresora (paso de abajo).
+   - `printers`: cada destino (CAJA/BARRA/COCINA) es una impresora
+     `{ "type": "tcp", "ip": ... }` o `{ "type": "share", "share": "NOMBRE" }`
+     (USB compartida de Windows). Un destino puede ser una LISTA para duplicar
+     el ticket en varias impresoras (ej. cocina multi-estación).
    - `width`: **48** para papel de 80 mm, **32** para 58 mm.
 4. Abre una terminal en la carpeta y corre:
    ```
@@ -51,6 +54,34 @@ $s.Write($b,0,$b.Length); $s.Flush(); $s.Close(); $c.Close(); "enviado a $ip"
 Si sale papel, la impresora + red + puerto 9100 están bien.
 
 ---
+
+## La instalación real de San Luca (5 impresoras)
+
+| Destino del sistema | Impresora(s) física(s) | Transporte |
+|---|---|---|
+| CAJA | Impresora **USB** de la PC de caja | `share` (compartida de Windows) |
+| BARRA (bebidas) | `192.168.0.11` | `tcp` |
+| COCINA (platillos) | **Las 3**: HORNO `.12` + FRÍA `.13` + CALIENTE `.14` — cada una recibe copia del ticket | `tcp` (lista) |
+
+Decisión operativa: **sin división por estación** — todo platillo de cocina se
+imprime en las tres impresoras de cocina y cada estación toma lo suyo. Bebidas
+solo a barra. (El config de arriba ya viene así.)
+
+### Impresora USB (CAJA): compartirla en Windows
+
+1. Panel de control → Dispositivos e impresoras → clic derecho en la impresora
+   de CAJA → **Propiedades de impresora** → pestaña **Compartir**.
+2. Marca **Compartir esta impresora** con nombre de recurso: `CAJA` (idéntico al
+   `share` del `config.json`).
+3. Prueba rápida en PowerShell (debe salir papel):
+   ```powershell
+   "PRUEBA SAN LUCA" | Out-File -Encoding ascii $env:TEMP\t.prn
+   cmd /c copy /b $env:TEMP\t.prn \\localhost\CAJA
+   ```
+   Si no imprime o sale basura, cambia el driver de esa impresora a
+   **"Generic / Text Only"** (Propiedades de impresora → Opciones avanzadas).
+4. **Alternativa más limpia**: si la impresora de caja tiene puerto Ethernet
+   atrás, conéctala a la red, dale IP fija y usa `"type": "tcp"` como las demás.
 
 ## Que arranque solo al prender la PC (opcional, recomendado)
 
