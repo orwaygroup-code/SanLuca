@@ -12,14 +12,22 @@ export async function POST(req: NextRequest) {
     }
 
     const mediaResp = execSync(
-      `curl -s "https://graph.facebook.com/v19.0/${audio_id}" -H "Authorization: Bearer ${wa_token}"`,
+      `curl -s "https://graph.facebook.com/v25.0/${audio_id}" -H "Authorization: Bearer ${wa_token}"`,
       { timeout: 30000 }
     ).toString();
 
-    const { url } = JSON.parse(mediaResp);
+    const parsed = JSON.parse(mediaResp);
+    const url: string | undefined = parsed?.url;
+    if (!url) {
+      // Meta no devolvió URL (token caducado, media_id inválido, o versión de
+      // API deprecada): cortamos aquí con un error claro en vez de pasar
+      // "undefined" al curl de descarga y luego un archivo vacío a Whisper.
+      console.error("[WHISPER] Meta no devolvió url del audio:", mediaResp.slice(0, 300));
+      return NextResponse.json({ error: "No se pudo resolver el audio en Meta" }, { status: 502 });
+    }
 
     execSync(
-      `curl -s -o ${tmpFile} "${url}" -H "Authorization: Bearer ${wa_token}"`,
+      `curl -s -L -o ${tmpFile} "${url}" -H "Authorization: Bearer ${wa_token}"`,
       { timeout: 30000 }
     );
 

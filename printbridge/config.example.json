@@ -1,5 +1,5 @@
 {
-  "apiBaseUrl": "https://TU-DOMINIO-DE-SANLUCA",
+  "apiBaseUrl": "https://sanlucaristorante.com",
   "bridgeKey": "PON-AQUI-EL-MISMO-VALOR-DE-PRINT_BRIDGE_KEY-DEL-VPS",
   "pollIntervalMs": 3000,
   "printers": {
