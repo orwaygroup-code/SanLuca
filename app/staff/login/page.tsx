@@ -69,6 +69,7 @@ function StaffLoginInner() {
             <label style={styles.label}>Usuario</label>
             <input
               style={styles.input}
+              autoFocus
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
@@ -132,20 +133,20 @@ const styles: Record<string, React.CSSProperties> = {
   },
   brand: { fontSize: "0.7rem", letterSpacing: "0.4em", color: "#ba843c", fontWeight: 800, textAlign: "center" },
   title: { margin: "14px 0 0", fontSize: "1.25rem", color: "#f5f1e8", fontWeight: 700, textAlign: "center" },
-  subtitle: { margin: "6px 0 0", fontSize: "0.82rem", color: "rgba(245,241,232,0.5)", textAlign: "center" },
+  subtitle: { margin: "6px 0 0", fontSize: "0.82rem", color: "rgba(245,241,232,0.68)", textAlign: "center" },
   label: {
-    display: "block", fontSize: "0.62rem", letterSpacing: "0.16em", textTransform: "uppercase",
-    color: "rgba(245,241,232,0.45)", fontWeight: 700, marginBottom: 6,
+    display: "block", fontSize: "0.64rem", letterSpacing: "0.16em", textTransform: "uppercase",
+    color: "rgba(245,241,232,0.62)", fontWeight: 700, marginBottom: 6,
   },
   input: {
-    width: "100%", padding: "12px 14px", borderRadius: 10, boxSizing: "border-box",
-    border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.05)",
+    width: "100%", padding: "12px 14px", minHeight: 48, borderRadius: 10, boxSizing: "border-box",
+    border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.05)",
     color: "#f5f1e8", fontSize: "0.95rem", fontFamily: "inherit",
   },
-  error: { margin: 0, color: "#e05555", fontSize: "0.82rem" },
+  error: { margin: 0, color: "#e8766b", fontSize: "0.84rem", fontWeight: 600 },
   button: {
-    padding: "13px 0", borderRadius: 10, border: "none", background: "#ba843c",
-    color: "#fff", fontWeight: 700, fontSize: "0.9rem", letterSpacing: "0.05em",
+    padding: "14px 0", minHeight: 48, borderRadius: 10, border: "none", background: "#ba843c",
+    color: "#16201f", fontWeight: 800, fontSize: "0.9rem", letterSpacing: "0.05em",
     textTransform: "uppercase", fontFamily: "inherit",
   },
 };

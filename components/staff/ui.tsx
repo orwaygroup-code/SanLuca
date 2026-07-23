@@ -10,16 +10,19 @@ import { buildTotalLines, formatMXN, type ComandaMoney } from "@/lib/displayTota
  * TicketPreview. Todo inline-style, sin dependencias externas.
  */
 
+// Paleta AA (WCAG): sobre bg/panel, `dim` ≈ 7:1 y `faint` ≈ 5:1 — ambos pasan
+// 4.5:1 para texto normal. No bajar estas alphas: las tablets se usan también
+// bajo luz de día (terraza 8–13 h) donde el gris débil desaparece.
 export const C = {
   bg: "#16201f",
   panel: "#1a2628",
   panel2: "#1f2d2c",
   gold: "#ba843c",
   cream: "#f5f1e8",
-  dim: "rgba(245,241,232,0.55)",
-  faint: "rgba(245,241,232,0.35)",
-  border: "rgba(186,132,60,0.22)",
-  line: "rgba(255,255,255,0.08)",
+  dim: "rgba(245,241,232,0.68)",
+  faint: "rgba(245,241,232,0.55)",
+  border: "rgba(186,132,60,0.3)",
+  line: "rgba(255,255,255,0.1)",
   green: "#3f9d6f",
   red: "#d9534f",
   blue: "#4a82c4",
@@ -43,13 +46,15 @@ export const STATUS_LABEL: Record<string, string> = {
   FREE: "Libre",
 };
 
+// Variantes claras de estado: se usan como TEXTO de badge y borde sobre fondo
+// oscuro, por eso van más luminosas que los acentos base (AA ≥4.5:1).
 export const STATUS_COLOR: Record<string, string> = {
-  OPEN: C.blue,
-  IN_SERVICE: C.green,
-  AWAITING_PAYMENT: C.amber,
+  OPEN: "#6fa3e0",
+  IN_SERVICE: "#57b586",
+  AWAITING_PAYMENT: "#e0b054",
   PAID: C.dim,
-  CANCELLED: C.red,
-  FREE: "rgba(255,255,255,0.18)",
+  CANCELLED: "#e8766b",
+  FREE: "rgba(245,241,232,0.5)",
 };
 
 // ─────────────────────────────────────────────────────────── StaffHeader ──
@@ -111,9 +116,17 @@ export function useToasts() {
 export function ToastHost({ toasts, onClose }: { toasts: Toast[]; onClose: (id: number) => void }) {
   const color = { success: C.green, error: C.red, info: C.blue };
   return (
-    <div style={tS.host}>
+    <div style={tS.host} role="status" aria-live="polite">
       {toasts.map((t) => (
-        <div key={t.id} style={{ ...tS.toast, borderLeft: `4px solid ${color[t.kind]}` }} onClick={() => onClose(t.id)}>
+        <div
+          key={t.id}
+          style={{
+            ...tS.toast,
+            border: `1px solid ${color[t.kind]}`,
+            background: `color-mix(in srgb, ${color[t.kind]} 12%, ${C.panel})`,
+          }}
+          onClick={() => onClose(t.id)}
+        >
           {t.message}
         </div>
       ))}
@@ -264,10 +277,13 @@ export function TicketPreview({ folio, table, money, taxEnabled, items, splits, 
 
 // ──────────────────────────────────────────────────────── misc helpers ──
 export function Badge({ text, color }: { text: string; color: string }) {
+  // Outline + tinte: el color va en el TEXTO (contraste AA sobre oscuro), no
+  // como fondo con texto blanco (eso fallaba 4.5:1 en casi todos los estados).
   return (
     <span style={{
-      display: "inline-block", padding: "2px 9px", borderRadius: 999, fontSize: "0.66rem",
-      fontWeight: 700, letterSpacing: "0.04em", color: "#fff", background: color, whiteSpace: "nowrap",
+      display: "inline-block", padding: "3px 10px", borderRadius: 999, fontSize: "0.7rem",
+      fontWeight: 700, letterSpacing: "0.04em", color, border: `1px solid ${color}`,
+      background: `color-mix(in srgb, ${color} 12%, transparent)`, whiteSpace: "nowrap",
     }}>{text}</span>
   );
 }
@@ -279,8 +295,8 @@ export function Spinner({ label = "Cargando…" }: { label?: string }) {
 export function EmptyState({ text }: { text: string }) {
   return (
     <div style={{
-      padding: "48px 20px", textAlign: "center", color: C.faint, fontSize: "0.9rem",
-      border: `1px dashed ${C.line}`, borderRadius: 14, margin: "8px 0",
+      padding: "48px 20px", textAlign: "center", color: C.dim, fontSize: "0.9rem",
+      border: `1px dashed rgba(255,255,255,0.16)`, borderRadius: 14, margin: "8px 0",
     }}>{text}</div>
   );
 }
@@ -306,12 +322,12 @@ const hS: Record<string, React.CSSProperties> = {
   brand: { fontSize: "0.56rem", letterSpacing: "0.36em", color: C.gold, fontWeight: 800 },
   title: { fontSize: "1rem", color: C.cream, fontWeight: 700, lineHeight: 1.2 },
   back: {
-    width: 34, height: 34, borderRadius: 8, border: `1px solid ${C.line}`, background: "transparent",
-    color: C.cream, fontSize: "1.1rem", cursor: "pointer",
+    width: 44, height: 44, borderRadius: 10, border: `1px solid ${C.line}`, background: "transparent",
+    color: C.cream, fontSize: "1.15rem", cursor: "pointer",
   },
   logout: {
-    padding: "8px 14px", borderRadius: 8, border: `1px solid ${C.line}`, background: "transparent",
-    color: C.dim, fontSize: "0.78rem", fontWeight: 600, cursor: "pointer",
+    padding: "11px 16px", minHeight: 44, borderRadius: 10, border: `1px solid ${C.line}`, background: "transparent",
+    color: C.dim, fontSize: "0.8rem", fontWeight: 600, cursor: "pointer",
   },
 };
 
@@ -325,18 +341,24 @@ const mS: Record<string, React.CSSProperties> = {
   box: { width: "100%", background: C.panel, border: `1px solid ${C.border}`, borderRadius: 16, boxShadow: "0 24px 64px rgba(0,0,0,0.6)" },
   head: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px", borderBottom: `1px solid ${C.line}` },
   title: { color: C.cream, fontWeight: 700, fontSize: "0.98rem" },
-  x: { background: "transparent", border: "none", color: C.dim, fontSize: "1.4rem", cursor: "pointer", lineHeight: 1 },
+  x: {
+    width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center",
+    background: "transparent", border: "none", color: C.dim, fontSize: "1.4rem", cursor: "pointer", lineHeight: 1,
+  },
 };
 
+// Botones: tinta oscura sobre dorado sólido (5.1:1 AA) — el blanco sobre dorado
+// fallaba (3.3:1). Danger usa rojo profundo para que el blanco sí pase (5.5:1).
+// minHeight 44 = target táctil para tablets en servicio.
 export const btn: Record<string, React.CSSProperties> = {
-  primary: { padding: "10px 18px", borderRadius: 9, border: "none", background: C.gold, color: "#fff", fontWeight: 700, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" },
-  ghost: { padding: "10px 18px", borderRadius: 9, border: `1px solid ${C.line}`, background: "transparent", color: C.dim, fontWeight: 600, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" },
-  danger: { padding: "10px 18px", borderRadius: 9, border: "none", background: C.red, color: "#fff", fontWeight: 700, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" },
+  primary: { padding: "12px 20px", minHeight: 44, borderRadius: 10, border: "none", background: C.gold, color: "#16201f", fontWeight: 800, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" },
+  ghost: { padding: "12px 20px", minHeight: 44, borderRadius: 10, border: `1px solid rgba(255,255,255,0.18)`, background: "transparent", color: C.dim, fontWeight: 600, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" },
+  danger: { padding: "12px 20px", minHeight: 44, borderRadius: 10, border: "none", background: "#b23730", color: "#fff", fontWeight: 700, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" },
 };
 
 export const fld: Record<string, React.CSSProperties> = {
-  label: { display: "block", fontSize: "0.62rem", letterSpacing: "0.14em", textTransform: "uppercase", color: C.faint, fontWeight: 700, marginBottom: 6 },
-  input: { width: "100%", padding: "11px 13px", borderRadius: 9, boxSizing: "border-box", border: `1px solid ${C.line}`, background: "rgba(255,255,255,0.05)", color: C.cream, fontSize: "0.9rem", fontFamily: "inherit" },
+  label: { display: "block", fontSize: "0.64rem", letterSpacing: "0.14em", textTransform: "uppercase", color: C.dim, fontWeight: 700, marginBottom: 6 },
+  input: { width: "100%", padding: "12px 14px", minHeight: 44, borderRadius: 10, boxSizing: "border-box", border: `1px solid rgba(255,255,255,0.18)`, background: "rgba(255,255,255,0.05)", color: C.cream, fontSize: "0.9rem", fontFamily: "inherit" },
 };
 
 const tk: Record<string, React.CSSProperties> = {

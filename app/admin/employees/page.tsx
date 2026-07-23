@@ -110,15 +110,15 @@ export default function EmployeesPage() {
               {rows.map((row) => (
                 <tr key={row.id} style={{ opacity: row.active ? 1 : 0.45 }}>
                   <td style={S.td}>{row.fullName}</td>
-                  <td style={{ ...S.td, color: "rgba(245,241,232,0.6)" }}>{row.username}</td>
+                  <td style={{ ...S.td, color: "rgba(245,241,232,0.72)" }}>{row.username}</td>
                   <td style={S.td}><span style={{ ...S.badge, borderColor: ROLE_COLOR[row.role], color: ROLE_COLOR[row.role] }}>{ROLE_LABEL[row.role]}</span></td>
-                  <td style={S.td}><span style={{ color: row.active ? "#4caf50" : "#e05555", fontWeight: 600, fontSize: "0.78rem" }}>{row.active ? "Activo" : "Inactivo"}</span></td>
-                  <td style={{ ...S.td, color: "rgba(245,241,232,0.55)", fontSize: "0.78rem" }}>{fmtDateTime(row.lastLoginAt)}</td>
+                  <td style={S.td}><span style={{ color: row.active ? "#4caf50" : "#e8766b", fontWeight: 600, fontSize: "0.78rem" }}>{row.active ? "Activo" : "Inactivo"}</span></td>
+                  <td style={{ ...S.td, color: "rgba(245,241,232,0.68)", fontSize: "0.78rem" }}>{fmtDateTime(row.lastLoginAt)}</td>
                   <td style={S.td}>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       <button style={S.miniBtn} onClick={() => setEditTarget(row)}>Editar</button>
                       <button style={S.miniBtn} onClick={() => setPinTarget(row)}>Cambiar PIN</button>
-                      <button style={{ ...S.miniBtn, borderColor: row.active ? "rgba(224,85,85,0.5)" : "rgba(76,175,80,0.5)", color: row.active ? "#e05555" : "#4caf50" }} onClick={() => toggleActive(row)}>
+                      <button style={{ ...S.miniBtn, borderColor: row.active ? "rgba(224,85,85,0.5)" : "rgba(76,175,80,0.5)", color: row.active ? "#e8766b" : "#4caf50" }} onClick={() => toggleActive(row)}>
                         {row.active ? "Desactivar" : "Reactivar"}
                       </button>
                     </div>
@@ -145,7 +145,7 @@ function PinReveal({ fullName, pin, onClose }: { fullName: string; pin: string; 
         <p style={S.kicker}>PIN asignado</p>
         <p style={{ color: "#f5f1e8", margin: "4px 0 0", fontWeight: 700 }}>{fullName}</p>
         <div style={{ margin: "20px 0", fontSize: "2.6rem", letterSpacing: "0.4em", color: "#ba843c", fontWeight: 800 }}>{pin}</div>
-        <p style={{ color: "rgba(245,241,232,0.6)", fontSize: "0.82rem", margin: 0 }}>Anótalo ahora. No se puede volver a consultar; solo regenerar.</p>
+        <p style={{ color: "rgba(245,241,232,0.72)", fontSize: "0.84rem", margin: 0 }}>Anótalo ahora. No se puede volver a consultar; solo regenerar.</p>
         <button style={{ ...S.primaryBtn, marginTop: 22, width: "100%" }} onClick={onClose}>Entendido</button>
       </div>
     </Overlay>
@@ -184,7 +184,7 @@ function PinModal({ row, onClose, onDone }: {
             placeholder="ej. 4821"
           />
         </div>
-        {error && <p style={{ color: "#e05555", fontSize: "0.82rem", margin: 0 }}>⚠ {error}</p>}
+        {error && <p style={{ color: "#e8766b", fontSize: "0.82rem", margin: 0 }}>⚠ {error}</p>}
         <button
           style={{ ...S.primaryBtn, opacity: pinOk && !saving ? 1 : 0.5 }}
           disabled={!pinOk || saving}
@@ -258,7 +258,7 @@ function EmployeeFormModal({ mode, row, onClose, onSaved }: {
             <input style={S.input} inputMode="numeric" maxLength={4} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="Vacío = se genera automático" />
           </div>
         )}
-        {error && <p style={{ color: "#e05555", fontSize: "0.82rem", margin: 0 }}>⚠ {error}</p>}
+        {error && <p style={{ color: "#e8766b", fontSize: "0.82rem", margin: 0 }}>⚠ {error}</p>}
         <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
           <button style={S.ghostBtn} onClick={onClose}>Cancelar</button>
           <button style={{ ...S.primaryBtn, flex: 1, opacity: canSave && !saving ? 1 : 0.5 }} onClick={submit} disabled={!canSave || saving}>{saving ? "Guardando…" : mode === "create" ? "Crear" : "Guardar"}</button>
@@ -292,14 +292,14 @@ const S: Record<string, React.CSSProperties> = {
   select: { padding: "9px 12px", borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.15)", color: "#f5f1e8", fontSize: "0.82rem", fontFamily: "inherit" },
   search: { flex: 1, minWidth: 200, padding: "9px 12px", borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.15)", color: "#f5f1e8", fontSize: "0.82rem", fontFamily: "inherit" },
   table: { width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" },
-  th: { textAlign: "left", padding: "10px 20px", fontSize: "0.62rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(245,241,232,0.4)", borderBottom: "1px solid rgba(255,255,255,0.1)", whiteSpace: "nowrap" },
+  th: { textAlign: "left", padding: "10px 20px", fontSize: "0.62rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(245,241,232,0.58)", borderBottom: "1px solid rgba(255,255,255,0.1)", whiteSpace: "nowrap" },
   td: { padding: "12px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)", verticalAlign: "middle" },
   badge: { display: "inline-block", padding: "2px 10px", borderRadius: 999, border: "1px solid", fontSize: "0.72rem", fontWeight: 600 },
-  empty: { textAlign: "center", color: "rgba(245,241,232,0.4)", marginTop: 60 },
-  primaryBtn: { padding: "9px 16px", borderRadius: 8, border: "1px solid #ba843c", background: "rgba(186,132,60,0.85)", color: "#fff", fontWeight: 700, fontSize: "0.78rem", letterSpacing: "0.04em", cursor: "pointer", fontFamily: "inherit" },
-  ghostBtn: { flex: 1, padding: "10px 0", borderRadius: 8, border: "1px solid rgba(255,255,255,0.15)", background: "transparent", color: "rgba(245,241,232,0.6)", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit" },
-  miniBtn: { padding: "5px 10px", borderRadius: 7, border: "1px solid rgba(186,132,60,0.4)", background: "transparent", color: "#ba843c", fontSize: "0.72rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
-  kicker: { fontSize: "0.62rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#ba843c", fontWeight: 700, margin: 0 },
-  label: { display: "block", fontSize: "0.6rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(245,241,232,0.45)", fontWeight: 700, marginBottom: 5 },
-  input: { width: "100%", padding: "10px 12px", borderRadius: 8, boxSizing: "border-box", border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.05)", color: "#f5f1e8", fontSize: "0.88rem", fontFamily: "inherit" },
+  empty: { textAlign: "center", color: "rgba(245,241,232,0.62)", marginTop: 60 },
+  primaryBtn: { padding: "12px 18px", minHeight: 44, borderRadius: 9, border: "none", background: "#ba843c", color: "#16201f", fontWeight: 800, fontSize: "0.8rem", letterSpacing: "0.04em", cursor: "pointer", fontFamily: "inherit" },
+  ghostBtn: { flex: 1, padding: "12px 0", minHeight: 44, borderRadius: 9, border: "1px solid rgba(255,255,255,0.18)", background: "transparent", color: "rgba(245,241,232,0.72)", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit" },
+  miniBtn: { padding: "9px 14px", minHeight: 40, borderRadius: 8, border: "1px solid rgba(186,132,60,0.5)", background: "transparent", color: "#c9964a", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" },
+  kicker: { fontSize: "0.62rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#c9964a", fontWeight: 700, margin: 0 },
+  label: { display: "block", fontSize: "0.62rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(245,241,232,0.62)", fontWeight: 700, marginBottom: 5 },
+  input: { width: "100%", padding: "12px 13px", minHeight: 44, borderRadius: 9, boxSizing: "border-box", border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.05)", color: "#f5f1e8", fontSize: "0.9rem", fontFamily: "inherit" },
 };

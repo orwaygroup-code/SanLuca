@@ -85,7 +85,8 @@ body {
 
 input::placeholder,
 textarea::placeholder {
-  color: white(28, 38, 40, 0.3);
+  /* fix: antes decía `white(...)` (función inexistente → caía al default). */
+  color: rgba(28, 38, 40, 0.55);
 }
 
 /* ── Animations ── */
@@ -1154,7 +1155,7 @@ textarea::placeholder {
   height: 40px;
   outline: none;
 }
-.adm-search-input::placeholder { color: rgba(255,255,255,0.25); }
+.adm-search-input::placeholder { color: rgba(255,255,255,0.55); }
 .adm-search-input:focus { border-color: rgba(186,132,60,0.5); }
 .adm-search-btn {
   background: rgba(186,132,60,0.15);
@@ -1211,7 +1212,7 @@ textarea::placeholder {
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.12em;
-  color: rgba(255,255,255,0.35);
+  color: rgba(255,255,255,0.62);
   white-space: nowrap;
 }
 .adm-date-separator__label--today {
@@ -1239,7 +1240,7 @@ textarea::placeholder {
 }
 .adm-day-guests {
   font-weight: 500;
-  color: rgba(245,241,232,0.35);
+  color: rgba(245,241,232,0.62);
 }
 .adm-day-chips {
   display: flex;
@@ -1344,7 +1345,7 @@ textarea::placeholder {
   font-size: 0.72rem;
 }
 .adm-row-label {
-  color: rgba(245,241,232,0.35);
+  color: rgba(245,241,232,0.62);
   font-weight: 700;
   letter-spacing: 0.08em;
   min-width: 70px;
@@ -1416,7 +1417,7 @@ textarea::placeholder {
 
 .adm-empty {
   text-align: center;
-  color: rgba(245,241,232,0.35);
+  color: rgba(245,241,232,0.62);
   padding: 60px 20px;
   font-size: 0.9rem;
   letter-spacing: 0.06em;
@@ -2134,4 +2135,25 @@ select option {
 select option:checked {
   background-color: rgba(186, 132, 60, 0.14);
   color: #f5f1e8;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Accesibilidad global (WCAG AA) — paneles y sitio
+   ═══════════════════════════════════════════════════════════ */
+
+/* Foco visible con teclado en TODO elemento interactivo (no afecta clics). */
+:focus-visible {
+  outline: 2px solid #c9964a;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Usuarios con reduced-motion: sin animaciones ni transiciones decorativas. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
