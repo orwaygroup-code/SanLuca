@@ -8,8 +8,24 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
+/** Path de la página que pidió el manifest (mismo origen), vía Referer. */
+function refererPath(request: NextRequest): string | null {
+  const ref = request.headers.get("referer");
+  if (!ref) return null;
+  try {
+    const u = new URL(ref);
+    if (u.origin !== request.nextUrl.origin) return null; // solo mismo origen
+    return u.pathname || null;
+  } catch {
+    return null;
+  }
+}
+
 export function GET(request: NextRequest) {
-  const raw = request.nextUrl.searchParams.get("start") ?? "/staff/comandas";
+  // Prioridad: ?start= explícito (lo pone PwaRegister) → Referer (la página que
+  // linkeó el manifest en carga dura) → default. Así el start_url es SIEMPRE la
+  // página donde se ancla, aunque Chrome lea el <link> del SSR sin ?start.
+  const raw = request.nextUrl.searchParams.get("start") ?? refererPath(request) ?? "/staff/comandas";
   // Solo rutas internas (empieza con "/" y no "//") — evita redirección externa.
   const start_url = raw.startsWith("/") && !raw.startsWith("//") ? raw : "/staff/comandas";
 
