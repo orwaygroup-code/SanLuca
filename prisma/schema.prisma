@@ -688,9 +688,10 @@ model ComandaPrint {
   splitConfig         Json?        // { ticketNumber, itemIds: [...], total }
   ticketsPrinted      Int          @default(1)
 
-  status              String       @default("SUCCESS") // SUCCESS | FAILED | RETRYING
+  status              String       @default("SUCCESS") // PENDING | SUCCESS | FAILED | RETRYING
   attemptCount        Int          @default(1)
   errorMessage        String?
+  payload             Json?        // snapshot listo-para-imprimir que consume el PrintBridge (ESC/POS)
 
   printedAt           DateTime     @default(now())
 

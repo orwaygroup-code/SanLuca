@@ -32,10 +32,12 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const comanda = await prisma.comanda.findFirst({
     where: { id, tenantId: TENANT },
     select: {
-      id: true, waiterId: true,
+      id: true, waiterId: true, folio: true,
+      subtotal: true, taxAmount: true, total: true,
+      table: { select: { number: true, section: { select: { name: true } } } },
       items: {
         where: { status: { not: "CANCELLED" } },
-        select: { id: true, quantity: true, unitPriceSnapshot: true, lineTotal: true, status: true },
+        select: { id: true, quantity: true, unitPriceSnapshot: true, lineTotal: true, status: true, dishNameSnapshot: true },
       },
       prints: { select: { type: true } },
     },
@@ -96,15 +98,52 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     authorizationReason: isReprint ? authorizationReason : null,
   };
 
+  // Snapshot listo-para-imprimir del ticket de cliente → lo consume el PrintBridge.
+  const tableLabel = `Mesa ${comanda.table.number} - ${comanda.table.section.name}`;
+  const nowIso = new Date().toISOString();
+  const itemInfo = new Map(
+    comanda.items.map((i) => [i.id, { name: i.dishNameSnapshot, unit: Number(i.unitPriceSnapshot) }]),
+  );
+
   if (splitTickets) {
     // Un ComandaPrint por cada grupo de la división.
     await prisma.$transaction(
-      splitTickets.map((t) =>
-        prisma.comandaPrint.create({ data: { ...common, splitConfig: t, ticketsPrinted: 1 } }),
-      ),
+      splitTickets.map((t) => {
+        const lines = t.units.map((u) => {
+          const info = itemInfo.get(u.itemId)!;
+          return { qty: u.quantity, name: info.name, unit: info.unit, total: +(info.unit * u.quantity).toFixed(2) };
+        });
+        return prisma.comandaPrint.create({
+          data: {
+            ...common,
+            splitConfig: t,
+            ticketsPrinted: 1,
+            status: "PENDING",
+            payload: {
+              kind: "customer", folio: comanda.folio, table: tableLabel, time: nowIso,
+              reprint: isReprint, ticketNumber: t.ticketNumber, items: lines, total: t.total,
+            },
+          },
+        });
+      }),
     );
   } else {
-    await prisma.comandaPrint.create({ data: { ...common, splitConfig: undefined, ticketsPrinted: 1 } });
+    const lines = comanda.items.map((i) => ({
+      qty: i.quantity, name: i.dishNameSnapshot, unit: Number(i.unitPriceSnapshot), total: Number(i.lineTotal),
+    }));
+    await prisma.comandaPrint.create({
+      data: {
+        ...common,
+        splitConfig: undefined,
+        ticketsPrinted: 1,
+        status: "PENDING",
+        payload: {
+          kind: "customer", folio: comanda.folio, table: tableLabel, time: nowIso,
+          reprint: isReprint, ticketNumber: null, items: lines,
+          subtotal: Number(comanda.subtotal), tax: Number(comanda.taxAmount), total: Number(comanda.total),
+        },
+      },
+    });
   }
 
   const updated = await prisma.comanda.findFirst({ where: { id, tenantId: TENANT }, include: COMANDA_INCLUDE });

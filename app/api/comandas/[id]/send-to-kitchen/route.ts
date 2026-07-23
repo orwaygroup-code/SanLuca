@@ -25,7 +25,11 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
   const comanda = await prisma.comanda.findFirst({
     where: { id, tenantId: TENANT },
-    select: { id: true, waiterId: true, status: true },
+    select: {
+      id: true, waiterId: true, status: true, folio: true, guestsActual: true,
+      waiter: { select: { fullName: true } },
+      table:  { select: { number: true, section: { select: { name: true } } } },
+    },
   });
   if (!comanda) return NextResponse.json<ApiResponse>({ success: false, error: "Comanda no encontrada" }, { status: 404 });
   if (!canModifyComanda(s.role, comanda.waiterId === s.staffId)) {
@@ -34,30 +38,48 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
   const pending = await prisma.comandaItem.findMany({
     where: { comandaId: id, tenantId: TENANT, status: "PENDING" },
-    select: { id: true, prepAreaSnapshot: true },
+    select: { id: true, prepAreaSnapshot: true, dishNameSnapshot: true, quantity: true, kitchenNotes: true, modifiers: true },
   });
   if (pending.length === 0) {
     return NextResponse.json<ApiResponse>({ success: false, error: "No hay items pendientes por enviar" }, { status: 400 });
   }
 
   const areas = Array.from(new Set(pending.map((i) => i.prepAreaSnapshot))); // BARRA / COCINA
+  const tableLabel = `Mesa ${comanda.table.number} - ${comanda.table.section.name}`;
+  const nowIso = new Date().toISOString();
 
   await prisma.$transaction([
     prisma.comandaItem.updateMany({
       where: { comandaId: id, tenantId: TENANT, status: "PENDING" },
       data: { status: "SENT", sentAt: new Date() },
     }),
-    ...areas.map((area) =>
-      prisma.comandaPrint.create({
+    ...areas.map((area) => {
+      const areaItems = pending
+        .filter((i) => i.prepAreaSnapshot === area)
+        .map((i) => ({ qty: i.quantity, name: i.dishNameSnapshot, notes: i.kitchenNotes ?? null, mods: i.modifiers ?? null }));
+      // Snapshot listo-para-imprimir → el PrintBridge lo convierte a ESC/POS.
+      const payload = {
+        kind:   "kitchen",
+        folio:  comanda.folio,
+        table:  tableLabel,
+        waiter: comanda.waiter.fullName,
+        guests: comanda.guestsActual,
+        area,
+        time:   nowIso,
+        items:  areaItems,
+      };
+      return prisma.comandaPrint.create({
         data: {
-          tenantId: TENANT,
-          comandaId: id,
-          type: "KITCHEN_BAR",
-          target: prepAreaToTarget(area),
+          tenantId:     TENANT,
+          comandaId:    id,
+          type:         "KITCHEN_BAR",
+          target:       prepAreaToTarget(area),
           executedById: s.staffId,
+          status:       "PENDING",
+          payload,
         },
-      }),
-    ),
+      });
+    }),
     prisma.comanda.update({ where: { id }, data: { status: "IN_SERVICE" } }),
   ]);
 

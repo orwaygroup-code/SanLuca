@@ -1,0 +1,13 @@
+{
+  "name": "sanluca-printbridge",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Puente de impresion ESC/POS para San Luca. Corre en la PC de caja, jala tickets del sistema y los manda a las impresoras termicas de la red local.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
