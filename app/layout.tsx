@@ -22,6 +22,7 @@ export const metadata: Metadata = {
   description:
     "Restaurante italiano premium en Aguascalientes. Cocina artesanal con ingredientes frescos y recetas de tres generaciones.",
   applicationName: "San Luca",
+  manifest: "/api/manifest",   // dinámico: start_url = página donde se ancla (ver PwaRegister)
   appleWebApp: {
     capable: true,
     title: "San Luca",

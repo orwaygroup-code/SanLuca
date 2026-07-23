@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { buildTotalLines, formatMXN, type ComandaMoney } from "@/lib/displayTotals";
+import { InstallButton } from "@/components/InstallButton";
 
 /**
  * Primitivos de UI compartidos por las vistas de Staff (Fase B.2):
@@ -79,6 +80,7 @@ export function StaffHeader(props: {
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         {props.right}
+        <InstallButton style={hS.install} />
         {props.userName && (
           <div style={{ textAlign: "right", lineHeight: 1.2 }}>
             <div style={{ color: C.cream, fontSize: "0.82rem", fontWeight: 600 }}>{props.userName}</div>
@@ -328,6 +330,10 @@ const hS: Record<string, React.CSSProperties> = {
   logout: {
     padding: "11px 16px", minHeight: 44, borderRadius: 10, border: `1px solid ${C.line}`, background: "transparent",
     color: C.dim, fontSize: "0.8rem", fontWeight: 600, cursor: "pointer",
+  },
+  install: {
+    padding: "11px 15px", minHeight: 44, borderRadius: 10, border: `1px solid ${C.border}`, background: "transparent",
+    color: C.gold, fontSize: "0.78rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
   },
 };
 
