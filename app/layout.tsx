@@ -15,15 +15,22 @@ import "@/styles/san-luca.css";
 import { LayoutWrapper } from "@/components/LayoutWrapper";
 import { LanguageProvider } from "@/lib/i18n";
 import { SessionProvider } from "@/lib/session-client";
+import { PwaRegister } from "@/components/PwaRegister";
 
 export const metadata: Metadata = {
   title: "San Luca Ristorante — Auténtica Cocina Italiana",
   description:
     "Restaurante italiano premium en Aguascalientes. Cocina artesanal con ingredientes frescos y recetas de tres generaciones.",
+  applicationName: "San Luca",
+  appleWebApp: {
+    capable: true,
+    title: "San Luca",
+    statusBarStyle: "black-translucent",
+  },
   icons: {
-    icon:     "/images/favicon.png",   // pestaña del navegador
+    icon:     "/images/favicon.png",           // pestaña del navegador
     shortcut: "/images/favicon.png",
-    apple:    "/images/favicon.png",   // iOS al guardar en pantalla de inicio
+    apple:    "/icons/apple-touch-icon.png",   // iOS al guardar en pantalla de inicio
   },
   openGraph: {
     images: ["/images/og-logo.png"],   // imagen que aparece al compartir en redes / Google
@@ -34,6 +41,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
+  themeColor: "#1a2224",
 };
 
 export default function RootLayout({
@@ -51,6 +59,7 @@ export default function RootLayout({
         />
       </head>
       <body>
+        <PwaRegister />
         <SessionProvider>
           <LanguageProvider>
             <LayoutWrapper>{children}</LayoutWrapper>
