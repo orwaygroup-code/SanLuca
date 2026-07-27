@@ -163,8 +163,8 @@ export function ReservationForm() {
         if (!data.data.hasAvailability) {
           const reason = data.data.reason;
           const msg = reason === "already_blocked_large_group"
-            ? `El área ${form.sectionPreference} ya tiene una reserva de grupo grande ese día.`
-            : `El área ${form.sectionPreference} ya tiene reservas para ese día y no puede reservarse completa. Elige otra área u otra fecha.`;
+            ? `El área ${form.sectionPreference} ya tiene un grupo grande cerca de ese horario.`
+            : `El área ${form.sectionPreference} ya tiene reservas cerca de ese horario y no puede reservarse completa. Elige otra área u otro horario.`;
           setSearchError(msg);
           return;
         }
@@ -175,7 +175,7 @@ export function ReservationForm() {
       // ── Reserva normal ──
       if (!data.data.hasAvailability) {
         const msg = data.data.blockedByLargeGroup
-          ? `El área ${form.sectionPreference} está reservada completa para ese día por un grupo grande. Elige otra área u otro día.`
+          ? `El área ${form.sectionPreference} está apartada por un grupo grande cerca de ese horario. Elige otra área u otro horario.`
           : `Sin disponibilidad en ${form.sectionPreference} para ese horario. Elige otra área u horario.`;
         setSearchError(msg);
         return;

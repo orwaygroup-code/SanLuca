@@ -1364,7 +1364,7 @@ function NewReservationModal({
                                         Cancelar
                                     </button>
                                 </div>
-                                <p style={{ margin: 0, fontSize: "0.68rem", color: "rgba(186,132,60,0.75)", lineHeight: 1.4 }}>Grupos de +15 personas reservan el área completa por todo el día.</p>
+                                <p style={{ margin: 0, fontSize: "0.68rem", color: "rgba(186,132,60,0.75)", lineHeight: 1.4 }}>Grupos de +15 personas reservan el área completa en su horario (ventana de ±3½ h), no todo el día.</p>
                             </div>
                         )}
                     </div>
@@ -1443,7 +1443,7 @@ function NewReservationModal({
                     <div style={{ background: "rgba(186,132,60,0.07)", border: "1px solid rgba(186,132,60,0.25)", borderRadius: 10, padding: "14px 16px" }}>
                         <p style={{ margin: "0 0 6px", fontSize: "0.75rem", fontWeight: 700, color: "#ba843c", letterSpacing: "0.04em" }}>RESERVA EXCLUSIVA DE ÁREA</p>
                         <p style={{ margin: 0, fontSize: "0.8rem", color: "rgba(245,241,232,0.65)", lineHeight: 1.6 }}>
-                            El área completa de <strong style={{ color: "rgba(245,241,232,0.85)" }}>{section}</strong> quedará bloqueada para el grupo durante todo el <strong style={{ color: "rgba(245,241,232,0.85)" }}>{readableDate}</strong>.
+                            El área completa de <strong style={{ color: "rgba(245,241,232,0.85)" }}>{section}</strong> queda en exclusiva para el grupo en su horario del <strong style={{ color: "rgba(245,241,232,0.85)" }}>{readableDate}</strong> — unas 3½ horas antes y después de la hora reservada. Fuera de ese lapso, el área sigue disponible para otras reservas.
                         </p>
                     </div>
                     {saveError && <p style={{ margin: 0, color: "#e8766b", fontSize: "0.82rem" }}>⚠ {saveError}</p>}

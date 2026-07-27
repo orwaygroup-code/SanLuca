@@ -132,7 +132,7 @@ const es = {
       backBtn:   "Cambiar",
     },
     largeGroupConfirmTitle: "Reserva de Grupo Grande",
-    largeGroupConfirmBody:  "Reservarás el área completa por todo el día. Confirma los datos antes de continuar.",
+    largeGroupConfirmBody:  "Reservarás el área completa en exclusiva alrededor de tu horario (unas 3½ h antes y después). Confirma los datos antes de continuar.",
   },
 
   // ── LOGIN / REGISTER ─────────────────────────

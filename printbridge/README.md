@@ -59,15 +59,21 @@ Si sale papel, la impresora + red + puerto 9100 están bien.
 
 | Destino del sistema | Impresora(s) física(s) | Transporte |
 |---|---|---|
-| CAJA | `192.168.0.15` (conectarla a la red con IP fija — decisión final) | `tcp` |
 | BARRA (bebidas) | `192.168.0.11` | `tcp` |
 | COCINA (platillos) | **Las 3**: HORNO `.12` + FRÍA `.13` + CALIENTE `.14` — cada una recibe copia del ticket | `tcp` (lista) |
+
+> **CAJA — modo PRUEBA:** en el config, `CAJA` apunta temporalmente a la IP de
+> HORNO (`192.168.0.12`) para poder probar el flujo completo (incluido el ticket
+> de cuenta). La impresora física de caja (Epson TM-T20II, USB) es la de
+> **NationalSoft** y NO se toca. Cuando se decida el destino real de la cuenta:
+> o se deja en NationalSoft (borrar `CAJA` del config) o se le crea una cola raw
+> aparte para no tocar el driver Epson.
 
 Decisión operativa: **sin división por estación** — todo platillo de cocina se
 imprime en las tres impresoras de cocina y cada estación toma lo suyo. Bebidas
 solo a barra. (El config de arriba ya viene así.)
 
-### Plan B — si la de caja NO se puede conectar a red: compartirla por USB
+### Impresora USB (CAJA): compartirla en Windows
 
 1. Panel de control → Dispositivos e impresoras → clic derecho en la impresora
    de CAJA → **Propiedades de impresora** → pestaña **Compartir**.

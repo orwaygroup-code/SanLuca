@@ -28,7 +28,10 @@ const ESC = "\x1b", GS = "\x1d";
 const INIT = ESC + "@";
 const BOLD_ON = ESC + "E" + "\x01", BOLD_OFF = ESC + "E" + "\x00";
 const BIG_ON = GS + "!" + "\x11", BIG_OFF = GS + "!" + "\x00"; // doble alto+ancho
-const CUT = "\n\n\n" + GS + "V" + "\x00";                       // corte total
+// Avance ANTES del corte: hay ~1.5–2 cm entre el cabezal y la cuchilla, así que
+// sin suficiente feed las últimas líneas se quedan adentro y el ticket sale corto.
+// ESC d 8 = avanza 8 líneas; luego GS V 0 = corte total (el que YA funcionó).
+const CUT = ESC + "d" + "\x08" + GS + "V" + "\x00"; // feed 8 líneas + corte total
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -95,11 +98,15 @@ function sendToTcp(pr, data) {
     const socket = new net.Socket();
     let done = false;
     const finish = (err) => { if (done) return; done = true; try { socket.destroy(); } catch {} err ? reject(err) : resolve(); };
-    socket.setTimeout(8000);
+    socket.setTimeout(10000);
     socket.on("timeout", () => finish(new Error("timeout de conexion a " + pr.ip)));
     socket.on("error", (e) => finish(e));
+    // 'close' se dispara cuando TODOS los bytes salieron y el socket cerró.
+    socket.on("close", () => finish(null));
     socket.connect(pr.port || 9100, pr.ip, () => {
-      socket.write(Buffer.from(data, "latin1"), () => setTimeout(() => finish(null), 300));
+      // end() escribe el buffer y cierra en limpio → garantiza que se envíe
+      // todo antes de cerrar (write()+destroy() podía truncar el final).
+      socket.end(Buffer.from(data, "latin1"));
     });
   });
 }
