@@ -64,6 +64,11 @@ export function formatFolio(year: number, seq: number): string {
   return `COM-${year}-${String(seq).padStart(4, "0")}`;
 }
 
+/** Folio de sesión de caja CAJA-AAAA-NNNN. */
+export function formatCashFolio(year: number, seq: number): string {
+  return `CAJA-${year}-${String(seq).padStart(4, "0")}`;
+}
+
 /** prepArea → impresora física (PrintTarget) al enviar a cocina/barra. */
 export function prepAreaToTarget(prepArea: "BARRA" | "COCINA"): "BARRA" | "COCINA" {
   return prepArea; // 1:1 en B.1 (2 áreas). Si se subdividen áreas, se mapea aquí.

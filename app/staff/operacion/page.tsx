@@ -7,8 +7,9 @@ import {
   C, StaffHeader, Spinner, EmptyState, Badge, Modal, ConfirmModal, btn, fld, formatMXN,
   STATUS_LABEL, STATUS_COLOR, useToasts, ToastHost, useStaffLogout,
 } from "@/components/staff/ui";
-import { apiFetch, type TableStatus, type ReservationToday, type Comanda } from "@/components/staff/types";
+import { apiFetch, type TableStatus, type ReservationToday, type Comanda, type CashSession, type CutSnapshot, type PayResult } from "@/components/staff/types";
 import { GoldSelect } from "@/components/ui/GoldSelect";
+import { TurnoBar, OpenTurnoModal, CloseCashSessionModal, CajaMonitor, PayModal } from "@/components/staff/caja";
 
 const MX_TZ = "America/Mexico_City";
 function hhmm(iso: string): string {
@@ -22,14 +23,26 @@ export default function OperacionPage() {
   const logout = useStaffLogout();
   const { toasts, push, dismiss } = useToasts();
 
-  const [tab, setTab] = useState<"reservas" | "mesas">("reservas");
+  const [tab, setTab] = useState<"reservas" | "mesas" | "monitor">("reservas");
   const [reservations, setReservations] = useState<ReservationToday[] | null>(null);
   const [tables, setTables] = useState<TableStatus[] | null>(null);
   const [seatRes, setSeatRes] = useState<ReservationToday | null>(null);
   const [closeTarget, setCloseTarget] = useState<TableStatus | null>(null);
   const [busy, setBusy] = useState(false);
 
+  // ── caja / turno ──
+  const [session, setSession] = useState<CashSession | null>(null);
+  const [cut, setCut] = useState<CutSnapshot | null>(null);
+  const [openTurno, setOpenTurno] = useState(false);
+  const [closeTurno, setCloseTurno] = useState(false);
+  const [payTarget, setPayTarget] = useState<number | null>(null);
+
   const allowed = staff && ["OPERATION", "CAPTAIN", "MANAGER"].includes(staff.role);
+
+  const loadSession = useCallback(async () => {
+    const r = await apiFetch<{ session: CashSession | null; cut: CutSnapshot | null }>("/api/caja/sessions/current");
+    if (r.ok) { setSession(r.data!.session); setCut(r.data!.cut); }
+  }, []);
 
   const load = useCallback(async () => {
     const [res, tbl] = await Promise.all([
@@ -38,7 +51,8 @@ export default function OperacionPage() {
     ]);
     if (res.ok) setReservations(res.data!); else { setReservations([]); push(res.error ?? "Error reservas", "error"); }
     if (tbl.ok) setTables(tbl.data!); else { setTables([]); push(tbl.error ?? "Error mesas", "error"); }
-  }, [push]);
+    await loadSession();
+  }, [push, loadSession]);
 
   useEffect(() => {
     if (!loading && !staff) { router.replace("/staff/login?next=/staff/operacion"); return; }
@@ -70,9 +84,12 @@ export default function OperacionPage() {
         right={<button style={btn.ghost} onClick={load}>↻</button>}
       />
 
+      <TurnoBar session={session} cut={cut} onOpenTurno={() => setOpenTurno(true)} onCloseTurno={() => setCloseTurno(true)} />
+
       <div style={page.tabs}>
         <button style={{ ...page.tab, ...(tab === "reservas" ? page.tabOn : {}) }} onClick={() => setTab("reservas")}>Reservas de hoy</button>
         <button style={{ ...page.tab, ...(tab === "mesas" ? page.tabOn : {}) }} onClick={() => setTab("mesas")}>Mesas</button>
+        <button style={{ ...page.tab, ...(tab === "monitor" ? page.tabOn : {}) }} onClick={() => { setTab("monitor"); loadSession(); }}>Monitor</button>
       </div>
 
       <main style={page.main}>
@@ -99,7 +116,7 @@ export default function OperacionPage() {
               ))}
             </div>
           )
-        ) : (
+        ) : tab === "mesas" ? (
           tables === null ? <Spinner /> : (
             tables!.length === 0 ? <EmptyState text="Sin mesas activas." /> : (
             <div style={page.grid}>
@@ -116,9 +133,10 @@ export default function OperacionPage() {
                         {t.comanda.folio} · {formatMXN(t.comanda.total)}
                       </div>
                       {t.comanda.waiter && <div style={{ color: C.faint, fontSize: "0.72rem" }}>{t.comanda.waiter.fullName}</div>}
-                      <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                      <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
                         <button style={{ ...btn.ghost, padding: "7px 12px", fontSize: "0.78rem" }} onClick={() => router.push(`/staff/comandas/${t.comanda!.id}`)}>Ver</button>
-                        <button style={{ ...btn.primary, padding: "7px 12px", fontSize: "0.78rem" }} onClick={() => setCloseTarget(t)}>Cobrar / cerrar</button>
+                        <button style={{ ...btn.primary, padding: "7px 12px", fontSize: "0.78rem" }} onClick={() => setPayTarget(t.comanda!.id)}>Cobrar</button>
+                        <button style={{ ...btn.ghost, padding: "7px 12px", fontSize: "0.72rem" }} onClick={() => setCloseTarget(t)}>Cerrar</button>
                       </div>
                     </>
                   )}
@@ -127,6 +145,8 @@ export default function OperacionPage() {
             </div>
             )
           )
+        ) : (
+          <CajaMonitor session={session} cut={cut} />
         )}
       </main>
 
@@ -140,12 +160,46 @@ export default function OperacionPage() {
 
       <ConfirmModal
         open={!!closeTarget}
-        title="Cerrar comanda"
-        message={closeTarget?.comanda ? `Marcar ${closeTarget.comanda.folio} (Mesa ${closeTarget.number}) como PAGADA y liberar la mesa. La caja cobra por fuera. ¿Continuar?` : ""}
-        confirmLabel="Cerrar (pagada)"
+        title="Cerrar sin cobro"
+        message={closeTarget?.comanda ? `Marcar ${closeTarget.comanda.folio} (Mesa ${closeTarget.number}) como PAGADA y liberar la mesa SIN registrar cobro (cortesía / ya pagada aparte). Para cobrar en caja usa «Cobrar». ¿Continuar?` : ""}
+        confirmLabel="Cerrar sin cobro"
         busy={busy}
         onConfirm={doClose}
         onCancel={() => setCloseTarget(null)}
+      />
+
+      <OpenTurnoModal
+        open={openTurno}
+        onClose={() => setOpenTurno(false)}
+        onOpened={(s) => { setOpenTurno(false); setSession(s); loadSession(); push(`Turno ${s.folio} abierto`, "success"); }}
+        onError={(m) => push(m, "error")}
+      />
+
+      <CloseCashSessionModal
+        open={closeTurno}
+        session={session}
+        cut={cut}
+        onClose={() => setCloseTurno(false)}
+        onClosed={(r) => {
+          setCloseTurno(false); setSession(null); setCut(null);
+          const d = r.difference;
+          push(Math.abs(d) < 0.01 ? "Corte cuadrado ✓" : `Corte: ${d > 0 ? "sobran" : "faltan"} ${formatMXN(Math.abs(d))}`, Math.abs(d) < 0.01 ? "success" : "info");
+        }}
+        onError={(m) => push(m, "error")}
+      />
+
+      <PayModal
+        open={payTarget !== null}
+        comandaId={payTarget}
+        hasOpenSession={!!session}
+        onClose={() => setPayTarget(null)}
+        onPaid={(r: PayResult) => {
+          setPayTarget(null);
+          push(r.settled ? "Cuenta cobrada y cerrada" : `Abono registrado · restan ${formatMXN(r.remaining)}`, "success");
+          if (r.changeGiven > 0) push(`Cambio: ${formatMXN(r.changeGiven)}`, "info");
+          load();
+        }}
+        onError={(m) => push(m, "error")}
       />
 
       <ToastHost toasts={toasts} onClose={dismiss} />

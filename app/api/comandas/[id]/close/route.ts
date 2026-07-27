@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireStaffRole } from "@/lib/staff-auth-server";
-import { TENANT, ACTIVE_STATUSES, COMANDA_INCLUDE } from "@/lib/comanda";
+import { TENANT, ACTIVE_STATUSES, COMANDA_INCLUDE, settleComanda, completeLinkedReservation } from "@/lib/comanda";
 import type { ApiResponse } from "@/types";
 
 function parseId(raw: string): number | null {
@@ -30,17 +30,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     return NextResponse.json<ApiResponse>({ success: false, error: `Comanda ${comanda.status}: no se puede cerrar` }, { status: 409 });
   }
 
-  await prisma.comanda.update({
-    where: { id },
-    data: { status: "PAID", closedAt: new Date(), closedById: s.staffId },
-  });
-
-  // Si la comanda estaba ligada a una reserva, marcarla COMPLETED (best-effort).
-  if (comanda.reservationId) {
-    await prisma.reservation
-      .update({ where: { id: comanda.reservationId }, data: { status: "COMPLETED", checkedInAt: new Date() } })
-      .catch((e) => console.error("[Comandas] no se pudo completar la reserva:", e));
-  }
+  await settleComanda(prisma, id, s.staffId);
+  await completeLinkedReservation(id);
 
   const updated = await prisma.comanda.findFirst({ where: { id, tenantId: TENANT }, include: COMANDA_INCLUDE });
   return NextResponse.json<ApiResponse>({ success: true, data: updated });

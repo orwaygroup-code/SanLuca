@@ -4,9 +4,11 @@
  * string en JSON — por eso los montos son number | string (Number() los normaliza).
  */
 
-export type ComandaStatus = "OPEN" | "IN_SERVICE" | "AWAITING_PAYMENT" | "PAID" | "CANCELLED";
+export type ComandaStatus =
+  | "OPEN" | "IN_SERVICE" | "AWAITING_PAYMENT" | "PARTIALLY_PAID" | "PAID" | "MERGED" | "CANCELLED";
 export type ItemStatus = "PENDING" | "SENT" | "READY" | "SERVED" | "CANCELLED";
 export type PrepArea = "BARRA" | "COCINA";
+export type PaymentMethod = "CASH" | "CARD_DEBIT" | "CARD_CREDIT" | "TRANSFER";
 
 export interface CItem {
   id: number;
@@ -19,6 +21,7 @@ export interface CItem {
   modifiersExtraCost: number | string;
   kitchenNotes: string | null;
   lineTotal: number | string;
+  discountAmount: number | string;
   status: ItemStatus;
   addedAt: string;
   sentAt: string | null;
@@ -45,6 +48,11 @@ export interface Comanda {
   subtotal: number | string;
   taxAmount: number | string;
   total: number | string;
+  amountPaid: number | string;
+  tipTotal: number | string;
+  discountTotal: number | string;
+  reopenCount: number;
+  cashSessionId: number | null;
   openedAt: string;
   closedAt: string | null;
   tableId: string;
@@ -54,6 +62,54 @@ export interface Comanda {
   prints: CPrint[];
   table: CTableRef;
   waiter: CWaiterRef;
+}
+
+// ── Caja / POS ──────────────────────────────────────────────────────────────
+
+export interface CutMethodRow { method: PaymentMethod; count: number; amount: number; tip: number }
+
+export interface CutSnapshot {
+  sessionId: number;
+  folio: string;
+  shift: string | null;
+  openingFloat: number;
+  byMethod: CutMethodRow[];
+  totalCollected: number;
+  totalTips: number;
+  cashCollected: number;
+  expectedCash: number;
+  paymentsCount: number;
+  comandasSettled: number;
+  generatedAt: string;
+}
+
+export interface StaffRef { id: number; fullName: string; username: string }
+
+export interface CashSession {
+  id: number;
+  folio: string;
+  status: "OPEN" | "CLOSED";
+  shift: string | null;
+  openingFloat: number | string;
+  expectedCash: number | string | null;
+  countedCash: number | string | null;
+  difference: number | string | null;
+  openedById: number;
+  closedById: number | null;
+  openedBy?: StaffRef | null;
+  closedBy?: StaffRef | null;
+  notes: string | null;
+  openedAt: string;
+  closedAt: string | null;
+}
+
+/** Respuesta de POST /api/comandas/:id/pay */
+export interface PayResult {
+  comanda: Comanda;
+  settled: boolean;
+  amountPaid: number;
+  remaining: number;
+  changeGiven: number;
 }
 
 export interface TableStatus {

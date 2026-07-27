@@ -56,6 +56,18 @@ export async function requireComandaSupervisor(req: NextRequest): Promise<DualAc
 }
 
 /**
+ * CAJA: OPERATION/CAPTAIN/MANAGER (sl_staff) o ADMIN (sl_session), con `staffId`
+ * NO nulo (los registros de caja llevan FK obligatoria a Staff). WAITER excluido.
+ * Para turno, cobro y estado de caja.
+ */
+export async function requireCashier(req: NextRequest): Promise<DualActor | null> {
+  const a = await resolveActor(req);
+  if (!a) return null;
+  const ok = a.role === "ADMIN" || a.role === "OPERATION" || isCaptainOrManager(a.role as StaffRole);
+  return ok && a.staffId != null ? a : null;
+}
+
+/**
  * Solo ADMIN del realm sl_session (Ricardo). Para el panel /admin/* migrado
  * (CRUD empleados, reportes, settings). Devuelve su `staffId` vinculado para
  * auditoría (createdById, etc.). NO usa resolveActor para no confundirse si

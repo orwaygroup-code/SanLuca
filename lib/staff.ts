@@ -65,6 +65,28 @@ export async function resolvePin(
   return { pin, hash: await hashPin(pin) };
 }
 
+/**
+ * Override de supervisor: devuelve el `staffId` de un CAPTAIN/MANAGER activo del
+ * tenant cuyo PIN coincide, o null. Autoriza acciones sensibles de caja
+ * (descuento, reabrir, merge, traspaso) SIN cambiar de sesión — el cajero
+ * (OPERATION) inicia, un supervisor teclea su PIN en el modal. Reutiliza verifyPin.
+ */
+export async function verifySupervisorPin(
+  pin: string,
+  opts: { tenantId?: number } = {},
+): Promise<number | null> {
+  if (!/^\d{4}$/.test(pin)) return null;
+  const tenantId = opts.tenantId ?? DEFAULT_TENANT;
+  const supers = await prisma.staff.findMany({
+    where: { tenantId, active: true, role: { in: ["CAPTAIN", "MANAGER"] } },
+    select: { id: true, pinHash: true },
+  });
+  for (const s of supers) {
+    if (await verifyPin(pin, s.pinHash)) return s.id;
+  }
+  return null;
+}
+
 /** Error tipado para PIN duplicado → el API lo mapea a 409. */
 export class PinConflictError extends Error {
   constructor() {

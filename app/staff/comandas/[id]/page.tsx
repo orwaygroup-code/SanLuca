@@ -7,8 +7,9 @@ import {
   C, StaffHeader, Spinner, EmptyState, Badge, Modal, ConfirmModal, ReasonModal,
   TicketPreview, btn, fld, formatMXN, STATUS_LABEL, STATUS_COLOR, useToasts, ToastHost, useStaffLogout,
 } from "@/components/staff/ui";
-import { apiFetch, type Comanda, type CItem } from "@/components/staff/types";
+import { apiFetch, type Comanda, type CItem, type PayResult, type CashSession, type CutSnapshot } from "@/components/staff/types";
 import { SplitBillModal } from "@/components/staff/SplitBillModal";
+import { PayModal, DiscountModal, MergeModal, TransferItemModal, ReopenModal } from "@/components/staff/caja";
 import { buildTotalLines } from "@/lib/displayTotals";
 import { buildSplitsPayload, effectiveTaxRate, divisionMoney, unitsSubtotal } from "@/lib/splitBill";
 
@@ -40,6 +41,14 @@ export default function ComandaDetailPage() {
   const [askBill, setAskBill] = useState(false);
   const [reprint, setReprint] = useState(false);
 
+  // ── caja ──
+  const [payOpen, setPayOpen] = useState(false);
+  const [discountTarget, setDiscountTarget] = useState<{ itemId?: number; itemName?: string } | null>(null);
+  const [mergeOpen, setMergeOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [reopenOpen, setReopenOpen] = useState(false);
+  const [hasSession, setHasSession] = useState(false);
+
   // División de cuenta: cada entrada (División 1..N) es un Map itemId → unidades
   // asignadas a esa división. Permite repartir fracciones de un mismo platillo.
   const [splits, setSplits] = useState<Map<number, number>[]>([]);
@@ -66,6 +75,10 @@ export default function ComandaDetailPage() {
     if (staff) {
       refresh();
       apiFetch<{ taxEnabled: boolean }>("/api/admin/settings").then((r) => { if (r.ok) setTaxEnabled(r.data!.taxEnabled); });
+      if (staff.role !== "WAITER") {
+        apiFetch<{ session: CashSession | null; cut: CutSnapshot | null }>("/api/caja/sessions/current")
+          .then((r) => { if (r.ok) setHasSession(!!r.data!.session); });
+      }
     }
   }, [loading, staff, id, router, refresh]);
 
@@ -179,6 +192,13 @@ export default function ComandaDetailPage() {
   const canCancel = (it: CItem) => it.status === "PENDING" || isSupervisor;
   const totalLines = buildTotalLines(c, taxEnabled);
 
+  // Caja: OPERATION/CAPTAIN/MANAGER operan la cuenta; WAITER solo captura.
+  const isCashier = staff?.role === "OPERATION" || staff?.role === "CAPTAIN" || staff?.role === "MANAGER";
+  const cajaActive = ["OPEN", "IN_SERVICE", "AWAITING_PAYMENT", "PARTIALLY_PAID"].includes(c.status);
+  const isPaid = c.status === "PAID";
+  const amountPaid = Number(c.amountPaid);
+  const remaining = Math.max(0, Math.round((Number(c.total) - amountPaid) * 100) / 100);
+
   // ── render de división de cuenta ──
   const rate = effectiveTaxRate(c);
   const unitsOf = (split: Map<number, number>) => [...split.entries()].map(([itemId, quantity]) => ({ itemId, quantity }));
@@ -203,7 +223,15 @@ export default function ComandaDetailPage() {
         </div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <span style={{ color: C.cream, fontWeight: 700, fontSize: "0.9rem" }}>{formatMXN(Number(it.lineTotal))}</span>
+        <div style={{ textAlign: "right" }}>
+          <span style={{ color: C.cream, fontWeight: 700, fontSize: "0.9rem" }}>{formatMXN(Number(it.lineTotal) - Number(it.discountAmount))}</span>
+          {Number(it.discountAmount) > 0 && (
+            <div style={{ color: C.gold, fontSize: "0.68rem" }}>−{formatMXN(Number(it.discountAmount))} desc.</div>
+          )}
+        </div>
+        {isCashier && cajaActive && (
+          <button style={page.discBtn} title="Descuento a este producto" onClick={() => setDiscountTarget({ itemId: it.id, itemName: it.dishNameSnapshot })}>%</button>
+        )}
         {editable && canCancel(it) && (
           <button style={page.cancelX} title="Cancelar item" onClick={() => setCancelItem(it)}>×</button>
         )}
@@ -331,6 +359,29 @@ export default function ComandaDetailPage() {
           )}
         </section>
 
+        {/* Acciones de CAJA (OPERATION/CAPTAIN/MANAGER). Las sensibles piden PIN. */}
+        {isCashier && (cajaActive || isPaid) && (
+          <section style={{ ...page.actions, marginTop: 12, borderTop: `1px solid ${C.line}`, paddingTop: 14 }}>
+            {cajaActive && (
+              <button style={btn.primary} onClick={() => setPayOpen(true)} disabled={busy}>
+                Cobrar{amountPaid > 0 ? ` · restan ${formatMXN(remaining)}` : ""}
+              </button>
+            )}
+            {cajaActive && (
+              <button style={btn.ghost} onClick={() => setDiscountTarget({})} disabled={busy || liveItems.length === 0}>Descuento a la cuenta</button>
+            )}
+            {cajaActive && (
+              <button style={btn.ghost} onClick={() => setMergeOpen(true)} disabled={busy}>Juntar cuentas</button>
+            )}
+            {cajaActive && (
+              <button style={btn.ghost} onClick={() => setTransferOpen(true)} disabled={busy || liveItems.length === 0}>Traspasar producto</button>
+            )}
+            {isPaid && (
+              <button style={btn.ghost} onClick={() => setReopenOpen(true)} disabled={busy}>Reabrir cuenta</button>
+            )}
+          </section>
+        )}
+
         {(c.status === "AWAITING_PAYMENT" || alreadyPrinted || splits.length > 0) && (
           <section style={{ marginTop: 18 }}>
             <TicketPreview
@@ -410,6 +461,54 @@ export default function ComandaDetailPage() {
         busy={busy}
         onConfirm={createSplit}
         onClose={() => setSplitOpen(false)}
+      />
+
+      {/* ── Modales de CAJA ── */}
+      <PayModal
+        open={payOpen}
+        comandaId={payOpen ? c.id : null}
+        hasOpenSession={hasSession}
+        onClose={() => setPayOpen(false)}
+        onPaid={(r: PayResult) => {
+          setPayOpen(false); setComanda(r.comanda);
+          push(r.settled ? "Cuenta cobrada y cerrada" : `Abono registrado · restan ${formatMXN(r.remaining)}`, "success");
+          if (r.changeGiven > 0) push(`Cambio a entregar: ${formatMXN(r.changeGiven)}`, "info");
+        }}
+        onError={(m) => push(m, "error")}
+      />
+
+      <DiscountModal
+        open={discountTarget !== null}
+        comandaId={c.id}
+        itemId={discountTarget?.itemId ?? null}
+        itemName={discountTarget?.itemName}
+        onClose={() => setDiscountTarget(null)}
+        onDone={(cc) => { setDiscountTarget(null); setComanda(cc); push("Descuento aplicado", "success"); }}
+        onError={(m) => push(m, "error")}
+      />
+
+      <MergeModal
+        open={mergeOpen}
+        target={c}
+        onClose={() => setMergeOpen(false)}
+        onDone={(cc) => { setMergeOpen(false); setComanda(cc); push("Cuentas juntadas", "success"); }}
+        onError={(m) => push(m, "error")}
+      />
+
+      <TransferItemModal
+        open={transferOpen}
+        from={c}
+        onClose={() => setTransferOpen(false)}
+        onDone={(cc) => { setTransferOpen(false); setComanda(cc); push("Producto traspasado", "success"); }}
+        onError={(m) => push(m, "error")}
+      />
+
+      <ReopenModal
+        open={reopenOpen}
+        comanda={c}
+        onClose={() => setReopenOpen(false)}
+        onDone={(cc) => { setReopenOpen(false); setComanda(cc); push("Cuenta reabierta", "success"); }}
+        onError={(m) => push(m, "error")}
       />
 
       <ToastHost toasts={toasts} onClose={dismiss} />
@@ -550,6 +649,7 @@ const page: Record<string, React.CSSProperties> = {
   panelHead: { padding: "12px 18px", borderBottom: `1px solid ${C.line}`, color: C.faint, fontSize: "0.66rem", letterSpacing: "0.16em", textTransform: "uppercase", fontWeight: 700 },
   itemRow: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "12px 18px", borderBottom: `1px solid ${C.line}` },
   cancelX: { width: 30, height: 30, borderRadius: 7, border: `1px solid ${C.red}`, background: "transparent", color: C.red, fontSize: "1.1rem", cursor: "pointer", lineHeight: 1 },
+  discBtn: { width: 30, height: 30, borderRadius: 7, border: `1px solid ${C.gold}`, background: "transparent", color: C.gold, fontSize: "0.92rem", fontWeight: 700, cursor: "pointer", lineHeight: 1 },
   actions: { display: "flex", flexWrap: "wrap", gap: 10, marginTop: 4 },
   splitHead: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "10px 18px", background: "rgba(255,255,255,0.03)", borderBottom: `1px solid ${C.line}`, fontSize: "0.7rem", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700 },
   splitHeadDivision: { background: "rgba(186,132,60,0.08)", borderTop: `1px solid ${C.border}` },

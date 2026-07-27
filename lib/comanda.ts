@@ -1,5 +1,8 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
-import { computeTotals, type TaxSettings } from "./comandaTotals";
+import { computeTotals, round2, type TaxSettings } from "./comandaTotals";
+
+type Db = typeof prisma | Prisma.TransactionClient;
 
 /**
  * Servicio de Comandas (Fase B.1). Usa el cliente admin `prisma` (BYPASSRLS):
@@ -9,8 +12,9 @@ import { computeTotals, type TaxSettings } from "./comandaTotals";
 
 export const TENANT = 1;
 
-/** Estados de comanda considerados "activos" (en el piso). */
-export const ACTIVE_STATUSES = ["OPEN", "IN_SERVICE", "AWAITING_PAYMENT"] as const;
+/** Estados de comanda considerados "activos" (en el piso). Incluye
+ *  PARTIALLY_PAID: sigue ocupando la mesa mientras se cobra por partes. */
+export const ACTIVE_STATUSES = ["OPEN", "IN_SERVICE", "AWAITING_PAYMENT", "PARTIALLY_PAID"] as const;
 
 /** Include estándar para devolver una comanda con su detalle. */
 export const COMANDA_INCLUDE = {
@@ -31,16 +35,56 @@ export async function loadTaxSettings(): Promise<TaxSettings> {
  * NO cancelados. Se llama tras agregar o cancelar un item.
  */
 export async function recalcComandaTotals(comandaId: number) {
-  const items = await prisma.comandaItem.findMany({
-    where: { comandaId, tenantId: TENANT, status: { not: "CANCELLED" } },
-    select: { lineTotal: true },
-  });
+  const [items, comanda] = await Promise.all([
+    prisma.comandaItem.findMany({
+      where: { comandaId, tenantId: TENANT, status: { not: "CANCELLED" } },
+      select: { lineTotal: true, discountAmount: true },
+    }),
+    prisma.comanda.findUnique({ where: { id: comandaId }, select: { discountTotal: true } }),
+  ]);
   const settings = await loadTaxSettings();
-  const totals = computeTotals(items.map((i) => Number(i.lineTotal)), settings);
+  // 1) descuento POR PRODUCTO: se resta a cada línea. 2) descuento A LA CUENTA:
+  // se resta al bruto. El resultado (bruto ya con IVA) se pasa a computeTotals,
+  // que hace el desglose de IVA hacia atrás (los precios incluyen IVA).
+  const grossLines = items.map((i) => Math.max(0, round2(Number(i.lineTotal) - Number(i.discountAmount))));
+  const gross = Math.max(0, round2(grossLines.reduce((s, x) => s + x, 0) - Number(comanda?.discountTotal ?? 0)));
+  const totals = computeTotals([gross], settings);
   return prisma.comanda.update({
     where: { id: comandaId },
     data: { subtotal: totals.subtotal, taxAmount: totals.taxAmount, total: totals.total },
   });
+}
+
+/**
+ * Marca una comanda PAID (terminal) + closedAt/closedById + sesión de caja
+ * opcional. Seguro dentro de `$transaction`. La reserva ligada se completa
+ * aparte con `completeLinkedReservation` (best-effort, fuera de la tx).
+ * Compartido por los endpoints `close` (cierre sin cobro) y `pay` (al liquidar).
+ */
+export async function settleComanda(
+  db: Db,
+  comandaId: number,
+  closedById: number,
+  cashSessionId?: number | null,
+) {
+  await db.comanda.update({
+    where: { id: comandaId },
+    data: {
+      status: "PAID",
+      closedAt: new Date(),
+      closedById,
+      ...(cashSessionId ? { cashSessionId } : {}),
+    },
+  });
+}
+
+/** Si la comanda tenía reserva ligada, la marca COMPLETED. Best-effort, fuera de tx. */
+export async function completeLinkedReservation(comandaId: number) {
+  const c = await prisma.comanda.findUnique({ where: { id: comandaId }, select: { reservationId: true } });
+  if (!c?.reservationId) return;
+  await prisma.reservation
+    .update({ where: { id: c.reservationId }, data: { status: "COMPLETED", checkedInAt: new Date() } })
+    .catch((e) => console.error("[Comandas] no se pudo completar la reserva:", e));
 }
 
 /** ¿El error de Prisma es violación de unique constraint (P2002)? */

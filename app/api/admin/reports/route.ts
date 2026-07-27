@@ -45,6 +45,14 @@ export async function GET(request: NextRequest) {
     where: { tenantId: TENANT, status: { in: [...ACTIVE_STATUSES] } },
   });
 
+  // Desglose por método de pago + propinas (pagos NO anulados dentro del rango).
+  const payGroups = await prisma.comandaPayment.groupBy({
+    by: ["method"],
+    where: { tenantId: TENANT, voided: false, createdAt: { gte: from, lte: now } },
+    _sum: { amount: true, tip: true },
+    _count: { _all: true },
+  });
+
   let sales = 0, taxCollected = 0, guests = 0;
   const byHour = new Map<number, number>();
   const bySection = new Map<string, { sales: number; comandas: number }>();
@@ -78,16 +86,26 @@ export async function GET(request: NextRequest) {
   const round = (n: number) => Math.round(n * 100) / 100;
   const comandas = paid.length;
 
+  const byMethod = payGroups.map((g) => ({
+    method: g.method,
+    amount: round(Number(g._sum.amount ?? 0)),
+    tip: round(Number(g._sum.tip ?? 0)),
+    count: g._count._all,
+  })).sort((a, b) => b.amount - a.amount);
+  const tips = round(byMethod.reduce((s, m) => s + m.tip, 0));
+
   const data = {
     range, from: from.toISOString(), to: now.toISOString(),
     kpis: {
       sales: round(sales),
       taxCollected: round(taxCollected),
+      tips,
       comandas,
       guests,
       avgTicket: comandas ? round(sales / comandas) : 0,
       activeNow,
     },
+    byMethod,
     byHour: Array.from(byHour.entries()).sort((a, b) => a[0] - b[0]).map(([hour, s]) => ({ hour, sales: round(s) })),
     bySection: Array.from(bySection.entries()).map(([section, v]) => ({ section, sales: round(v.sales), comandas: v.comandas })).sort((a, b) => b.sales - a.sales),
     byWaiter: Array.from(byWaiter.entries()).map(([waiter, v]) => ({ waiter, sales: round(v.sales), comandas: v.comandas })).sort((a, b) => b.sales - a.sales),

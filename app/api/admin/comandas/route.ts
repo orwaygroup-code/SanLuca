@@ -8,7 +8,13 @@ const MX_TZ = "America/Mexico_City";
 const DAY = 86_400_000;
 const mxToday = () => new Intl.DateTimeFormat("en-CA", { timeZone: MX_TZ }).format(new Date());
 
-interface AuditEvent { kind: "PRINT" | "REPRINT" | "TABLE_CHANGE" | "WAITER_CHANGE" | "ITEM_CANCEL"; at: string; actor: string; detail: string; reason: string | null }
+type AuditKind =
+  | "PRINT" | "REPRINT" | "TABLE_CHANGE" | "WAITER_CHANGE" | "ITEM_CANCEL"
+  | "PAYMENT" | "PAYMENT_VOID" | "DISCOUNT" | "MERGE" | "TRANSFER" | "REOPEN";
+interface AuditEvent { kind: AuditKind; at: string; actor: string; detail: string; reason: string | null }
+
+const MXN = (n: number) => `$${(Math.round(n * 100) / 100).toFixed(2)}`;
+const METHOD_LABEL: Record<string, string> = { CASH: "Efectivo", CARD_DEBIT: "Débito", CARD_CREDIT: "Crédito", TRANSFER: "Transferencia" };
 
 /**
  * GET /api/admin/comandas?range=today|7d|30d — auditoría de comandas para Ricardo.
@@ -46,8 +52,38 @@ export async function GET(request: NextRequest) {
       tableChanges: { select: { fromTableId: true, toTableId: true, reason: true, changedAt: true, changedBy: { select: { fullName: true } } } },
       waiterChanges: { select: { fromWaiterId: true, toWaiterId: true, reason: true, changedAt: true, changedBy: { select: { fullName: true } } } },
       items: { where: { status: "CANCELLED" }, select: { dishNameSnapshot: true, quantity: true, cancelledReason: true, cancelledById: true, cancelledAt: true } },
+      payments: { select: { method: true, amount: true, tip: true, voided: true, voidedReason: true, voidedAt: true, createdAt: true, receivedBy: { select: { fullName: true } }, voidedById: true } },
+      discounts: { select: { scope: true, type: true, value: true, amount: true, reason: true, createdAt: true, authorizedBy: { select: { fullName: true } }, item: { select: { dishNameSnapshot: true } } } },
+      reopens: { select: { reason: true, voidedPayments: true, reopenedAt: true, reopenedBy: { select: { fullName: true } } } },
     },
   });
+
+  // MERGE y TRANSFER referencian comandas por scalar (sin back-relation) → query aparte.
+  const ids = comandas.map((c) => c.id);
+  const folioById = new Map(comandas.map((c) => [c.id, c.folio]));
+  const [merges, transfers] = await Promise.all([
+    prisma.comandaMerge.findMany({
+      where: { tenantId: TENANT, OR: [{ targetComandaId: { in: ids } }, { sourceComandaId: { in: ids } }] },
+      select: { sourceComandaId: true, targetComandaId: true, sourceFolio: true, itemCount: true, reason: true, mergedAt: true, mergedBy: { select: { fullName: true } } },
+    }),
+    prisma.comandaItemTransfer.findMany({
+      where: { tenantId: TENANT, OR: [{ fromComandaId: { in: ids } }, { toComandaId: { in: ids } }] },
+      select: { fromComandaId: true, toComandaId: true, dishNameSnapshot: true, quantity: true, reason: true, movedAt: true, movedBy: { select: { fullName: true } } },
+    }),
+  ]);
+  const extraByComanda = new Map<number, AuditEvent[]>();
+  const pushExtra = (cid: number, ev: AuditEvent) => {
+    const arr = extraByComanda.get(cid) ?? [];
+    arr.push(ev); extraByComanda.set(cid, arr);
+  };
+  for (const m of merges) {
+    if (ids.includes(m.targetComandaId)) pushExtra(m.targetComandaId, { kind: "MERGE", at: m.mergedAt.toISOString(), actor: m.mergedBy.fullName, detail: `Juntó cuenta ${m.sourceFolio} (${m.itemCount} prod.)`, reason: m.reason });
+    if (ids.includes(m.sourceComandaId)) pushExtra(m.sourceComandaId, { kind: "MERGE", at: m.mergedAt.toISOString(), actor: m.mergedBy.fullName, detail: `Cuenta juntada a ${folioById.get(m.targetComandaId) ?? "?"}`, reason: m.reason });
+  }
+  for (const t of transfers) {
+    if (ids.includes(t.fromComandaId)) pushExtra(t.fromComandaId, { kind: "TRANSFER", at: t.movedAt.toISOString(), actor: t.movedBy.fullName, detail: `Traspasó ${t.quantity}× ${t.dishNameSnapshot} → ${folioById.get(t.toComandaId) ?? "?"}`, reason: t.reason });
+    if (ids.includes(t.toComandaId)) pushExtra(t.toComandaId, { kind: "TRANSFER", at: t.movedAt.toISOString(), actor: t.movedBy.fullName, detail: `Recibió ${t.quantity}× ${t.dishNameSnapshot} ← ${folioById.get(t.fromComandaId) ?? "?"}`, reason: t.reason });
+  }
 
   const data = comandas.map((c) => {
     const events: AuditEvent[] = [];
@@ -71,6 +107,23 @@ export async function GET(request: NextRequest) {
     for (const it of c.items) {
       events.push({ kind: "ITEM_CANCEL", at: (it.cancelledAt ?? c.openedAt).toISOString(), actor: sName(it.cancelledById), detail: `Canceló ${it.quantity}× ${it.dishNameSnapshot}`, reason: it.cancelledReason });
     }
+    for (const p of c.payments) {
+      if (p.voided) {
+        events.push({ kind: "PAYMENT_VOID", at: (p.voidedAt ?? p.createdAt).toISOString(), actor: sName(p.voidedById), detail: `Anuló pago ${MXN(Number(p.amount))} (${METHOD_LABEL[p.method] ?? p.method})`, reason: p.voidedReason });
+      } else {
+        const tip = Number(p.tip) > 0 ? ` + propina ${MXN(Number(p.tip))}` : "";
+        events.push({ kind: "PAYMENT", at: p.createdAt.toISOString(), actor: p.receivedBy.fullName, detail: `Cobró ${MXN(Number(p.amount))} (${METHOD_LABEL[p.method] ?? p.method})${tip}`, reason: null });
+      }
+    }
+    for (const d of c.discounts) {
+      const scope = d.scope === "ITEM" ? `producto${d.item ? ` (${d.item.dishNameSnapshot})` : ""}` : "cuenta";
+      const val = d.type === "PERCENT" ? `${Number(d.value)}%` : MXN(Number(d.value));
+      events.push({ kind: "DISCOUNT", at: d.createdAt.toISOString(), actor: d.authorizedBy.fullName, detail: `Descuento a ${scope}: ${val} (−${MXN(Number(d.amount))})`, reason: d.reason });
+    }
+    for (const r of c.reopens) {
+      events.push({ kind: "REOPEN", at: r.reopenedAt.toISOString(), actor: r.reopenedBy.fullName, detail: r.voidedPayments ? "Reabrió cuenta (anuló pagos)" : "Reabrió cuenta (conservó pagos)", reason: r.reason });
+    }
+    events.push(...(extraByComanda.get(c.id) ?? []));
     events.sort((x, y) => (x.at < y.at ? 1 : -1));
 
     return {

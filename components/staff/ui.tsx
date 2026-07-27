@@ -41,7 +41,9 @@ export const STATUS_LABEL: Record<string, string> = {
   OPEN: "Abierta",
   IN_SERVICE: "En servicio",
   AWAITING_PAYMENT: "Por cobrar",
+  PARTIALLY_PAID: "Pago parcial",
   PAID: "Pagada",
+  MERGED: "Juntada",
   CANCELLED: "Cancelada",
   FREE: "Libre",
 };
@@ -52,7 +54,9 @@ export const STATUS_COLOR: Record<string, string> = {
   OPEN: "#6fa3e0",
   IN_SERVICE: "#57b586",
   AWAITING_PAYMENT: "#e0b054",
+  PARTIALLY_PAID: "#d8a13a",
   PAID: C.dim,
+  MERGED: "rgba(245,241,232,0.5)",
   CANCELLED: "#e8766b",
   FREE: "rgba(245,241,232,0.5)",
 };

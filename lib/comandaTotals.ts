@@ -28,6 +28,23 @@ export function lineTotal(unitPrice: number, quantity: number, modifiersExtraCos
   return round2((unitPrice + modifiersExtraCost) * quantity);
 }
 
+/**
+ * Monto BRUTO (IVA incluido) de un descuento sobre una base dada.
+ * - PERCENT: base × value/100 (value = 10 → 10%).
+ * - FIXED:   value en pesos.
+ * Siempre acotado a [0, base] → nunca deja el total negativo. El IVA se desglosa
+ * después en computeTotals sobre el bruto ya descontado (los precios incluyen IVA).
+ */
+export function computeDiscountAmount(
+  base: number,
+  type: "PERCENT" | "FIXED",
+  value: number,
+): number {
+  if (!(base > 0) || !(value > 0)) return 0;
+  const raw = type === "PERCENT" ? base * (value / 100) : value;
+  return round2(Math.min(Math.max(0, raw), base));
+}
+
 /** Totales de la comanda a partir de los lineTotals (IVA incluido si aplica). */
 export function computeTotals(lineTotals: number[], settings: TaxSettings): ComandaTotals {
   const total = round2(lineTotals.reduce((sum, x) => sum + x, 0));
