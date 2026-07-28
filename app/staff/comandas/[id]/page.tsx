@@ -249,6 +249,8 @@ export default function ComandaDetailPage() {
   const c = comanda!;
   const canCancel = (it: CItem) => it.status === "PENDING" || isSupervisor;
   const totalLines = buildTotalLines(c, taxEnabled);
+  // El tiempo actual debe tener al menos un platillo antes de abrir otro (evita tiempos vacíos).
+  const currentCourseHasItems = liveItems.some((i) => Number(i.course) === currentCourse);
 
   // Caja: OPERATION/CAPTAIN/MANAGER operan la cuenta; WAITER solo captura.
   const isCashier = staff?.role === "OPERATION" || staff?.role === "CAPTAIN" || staff?.role === "MANAGER";
@@ -416,7 +418,13 @@ export default function ComandaDetailPage() {
             <button data-tour="add" style={btn.ghost} onClick={() => setMenuOpen(true)} disabled={busy}>+ Agregar platillos ({courseLabel(currentCourse)})</button>
           )}
           {editable && (
-            <button data-tour="course" style={btn.ghost} onClick={() => setCurrentCourse((prev) => prev + 1)} disabled={busy}>＋ Nuevo tiempo</button>
+            <button
+              data-tour="course"
+              style={btn.ghost}
+              onClick={() => setCurrentCourse((prev) => prev + 1)}
+              disabled={busy || !currentCourseHasItems}
+              title={!currentCourseHasItems ? "Agrega al menos un platillo a este tiempo antes de abrir otro" : undefined}
+            >＋ Nuevo tiempo</button>
           )}
           {editable && pendingCount > 0 && (
             <button data-tour="send" style={btn.primary} onClick={sendToKitchen} disabled={busy}>Enviar a cocina ({pendingCount})</button>
