@@ -80,12 +80,16 @@ export function TipsPanel({ onToast }: { onToast: (m: string, kind?: "success" |
         <div style={s.head}><span>Por mesero</span><span style={{ color: C.gold }}>reserva = tarjeta + transferencia</span></div>
         {waiters.length === 0 ? (
           <div style={{ color: C.faint, fontSize: "0.86rem", padding: "10px 0" }}>Aún no hay ventas cobradas en este turno.</div>
-        ) : waiters.map((w) => (
+        ) : waiters.map((w) => {
+          const stale = !!w.settled && w.salesTotal > w.settled.salesTotal + 0.005;
+          return (
           <div key={w.waiterId} style={s.waiter}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
               <span style={{ color: C.cream, fontWeight: 700 }}>{w.fullName}</span>
-              {w.settled ? (
+              {w.settled && !stale ? (
                 <span style={{ fontWeight: 800, color: C.green, fontSize: "0.82rem" }}>✓ Liquidado</span>
+              ) : stale ? (
+                <span style={{ fontWeight: 800, color: C.amber, fontSize: "0.82rem" }}>Re-liquidar</span>
               ) : (
                 <span style={{ fontWeight: 800, color: w.direction === "COLLECT" ? C.amber : w.direction === "PAY" ? C.green : C.dim, fontSize: "0.82rem" }}>
                   {w.direction === "PAY" ? `Se le paga ${formatMXN(w.amount)}` : w.direction === "COLLECT" ? `Debe ${formatMXN(w.amount)}` : "A mano"}
@@ -96,12 +100,21 @@ export function TipsPanel({ onToast }: { onToast: (m: string, kind?: "success" |
               Venta {formatMXN(w.salesTotal)} · Reserva {formatMXN(w.reserveDigital)} · Punto −{formatMXN(w.deduction)}
             </div>
 
-            {w.settled ? (
+            {w.settled && !stale ? (
               <div style={{ color: C.dim, fontSize: "0.74rem", marginTop: 6 }}>
                 {w.settled.direction === "PAY" && `Caja le pagó ${formatMXN(w.settled.amount)}`}
                 {w.settled.direction === "COLLECT" && `Recibió ${formatMXN(w.settled.cashReceived ?? 0)} · cambio ${formatMXN(w.settled.changeGiven)} (cobrado ${formatMXN(w.settled.amount)})`}
                 {w.settled.direction === "EVEN" && "Sin movimiento (reserva = punto)"}
                 {w.settled.settledBy ? ` · por ${w.settled.settledBy}` : ""}
+              </div>
+            ) : stale ? (
+              <div style={{ marginTop: 8 }}>
+                <div style={{ color: C.amber, fontSize: "0.74rem", marginBottom: 6 }}>
+                  Vendió {formatMXN(w.salesTotal - w.settled!.salesTotal)} más después de liquidar — vuelve a liquidar antes del corte.
+                </div>
+                <button style={{ ...btn.ghost, padding: "9px 14px", fontSize: "0.82rem", borderColor: C.amber, color: C.amber }} onClick={() => setTarget(w)}>
+                  Re-liquidar ({w.direction === "PAY" ? `pagar ${formatMXN(w.amount)}` : w.direction === "COLLECT" ? `cobrar ${formatMXN(w.amount)}` : "a mano"})
+                </button>
               </div>
             ) : w.hasActive ? (
               <div style={{ color: C.amber, fontSize: "0.74rem", marginTop: 8 }}>Tiene cuentas abiertas — ciérralas/cóbralas antes de liquidar.</div>
@@ -116,7 +129,8 @@ export function TipsPanel({ onToast }: { onToast: (m: string, kind?: "success" |
               </div>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Reparto a áreas (solo lectura — lo configura el admin en Ajustes) */}

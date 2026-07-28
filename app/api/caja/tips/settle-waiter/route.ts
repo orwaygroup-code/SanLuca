@@ -41,13 +41,6 @@ export async function POST(request: NextRequest) {
   }
 
   // 2) ¿Ya liquidado en este turno?
-  const existing = await prisma.waiterTipSettlement.findUnique({
-    where: { cashSessionId_waiterId: { cashSessionId: session.id, waiterId } },
-  });
-  if (existing) {
-    return NextResponse.json<ApiResponse>({ success: false, error: "Este mesero ya está liquidado en este turno" }, { status: 409 });
-  }
-
   // 3) PIN del propio mesero (autorización).
   const okPin = await verifyWaiterPin(waiterId, pin);
   if (!okPin) {
@@ -64,7 +57,16 @@ export async function POST(request: NextRequest) {
   const policy = normalizePolicy(settings?.tipPolicy);
   const calc = computeWaiterSettlement(w.salesTotal, policy.pointPercent, w.reserveDigital);
 
-  // 5) COLLECT: valida efectivo recibido y calcula cambio.
+  // 5) ¿Ya liquidado? Solo se permite RE-liquidar si vendió MÁS después (su venta
+  //    actual supera la que se liquidó). Si no cambió, no hay nada que rehacer.
+  const existing = await prisma.waiterTipSettlement.findUnique({
+    where: { cashSessionId_waiterId: { cashSessionId: session.id, waiterId } },
+  });
+  if (existing && w.salesTotal <= Number(existing.salesTotal) + 0.005) {
+    return NextResponse.json<ApiResponse>({ success: false, error: "Este mesero ya está liquidado en este turno" }, { status: 409 });
+  }
+
+  // 6) COLLECT: valida efectivo recibido y calcula cambio.
   let cashReceived: number | null = null;
   let changeGiven = 0;
   if (calc.direction === "COLLECT") {
@@ -78,24 +80,32 @@ export async function POST(request: NextRequest) {
     changeGiven = round2(Math.max(0, cashReceived - calc.amount));
   }
 
-  const created = await prisma.waiterTipSettlement.create({
-    data: {
-      tenantId: TENANT,
-      cashSessionId: session.id,
-      waiterId,
-      salesTotal: calc.salesTotal,
-      pointPercent: policy.pointPercent,
-      deduction: calc.deduction,
-      reserveCard: calc.reserve,
-      net: calc.net,
-      direction: calc.direction,
-      amount: calc.amount,
-      cashReceived,
-      changeGiven,
-      settledById: a.staffId,
-    },
-    include: { waiter: { select: { fullName: true } }, settledBy: { select: { fullName: true } } },
-  });
+  const settlementData = {
+    tenantId: TENANT,
+    cashSessionId: session.id,
+    waiterId,
+    salesTotal: calc.salesTotal,
+    pointPercent: policy.pointPercent,
+    deduction: calc.deduction,
+    reserveCard: calc.reserve,
+    net: calc.net,
+    direction: calc.direction,
+    amount: calc.amount,
+    cashReceived,
+    changeGiven,
+    settledById: a.staffId,
+    ...(existing ? { notes: `Re-liquidado (venta previa ${Number(existing.salesTotal).toFixed(2)})` } : {}),
+  };
+  const include = { waiter: { select: { fullName: true } }, settledBy: { select: { fullName: true } } };
 
-  return NextResponse.json<ApiResponse>({ success: true, data: { settlement: created, changeGiven } });
+  // Re-liquidación = reemplaza la anterior (delete + create atómico) para recalcular
+  // sobre la venta actual; el neto refleja el total final (caja concilia el delta físico).
+  const created = existing
+    ? await prisma.$transaction(async (tx) => {
+        await tx.waiterTipSettlement.delete({ where: { id: existing.id } });
+        return tx.waiterTipSettlement.create({ data: settlementData, include });
+      })
+    : await prisma.waiterTipSettlement.create({ data: settlementData, include });
+
+  return NextResponse.json<ApiResponse>({ success: true, data: { settlement: created, changeGiven, resettled: !!existing } });
 }

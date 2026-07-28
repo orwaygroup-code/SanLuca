@@ -62,16 +62,31 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   }
 
   // No cerrar sin liquidar la propina (7%) de cada mesero con ventas del turno.
+  // Se bloquea si falta liquidar a alguien, o si un mesero ya liquidado siguió
+  // vendiendo después (su venta actual supera la que se liquidó → 7% incompleto).
   const waiterBase = await loadWaiterBase(id);
   if (waiterBase.length > 0) {
-    const settled = await prisma.waiterTipSettlement.findMany({ where: { cashSessionId: id }, select: { waiterId: true } });
-    const settledIds = new Set(settled.map((s) => s.waiterId));
-    const missing = waiterBase.filter((w) => !settledIds.has(w.waiterId));
+    const settled = await prisma.waiterTipSettlement.findMany({
+      where: { cashSessionId: id },
+      select: { waiterId: true, salesTotal: true },
+    });
+    const settledMap = new Map(settled.map((s) => [s.waiterId, Number(s.salesTotal)]));
+    const missing = waiterBase.filter((w) => !settledMap.has(w.waiterId));
     if (missing.length > 0) {
       return NextResponse.json<ApiResponse>(
         {
           success: false,
           error: `Falta liquidar la propina de ${missing.length} mesero(s): ${missing.map((w) => w.fullName).join(", ")}. Ve a la pestaña «Propinas» y liquídalos antes del corte.`,
+        },
+        { status: 409 },
+      );
+    }
+    const stale = waiterBase.filter((w) => w.salesTotal > (settledMap.get(w.waiterId) ?? 0) + 0.005);
+    if (stale.length > 0) {
+      return NextResponse.json<ApiResponse>(
+        {
+          success: false,
+          error: `${stale.length} mesero(s) vendieron más después de liquidar (${stale.map((w) => w.fullName).join(", ")}). Vuelve a liquidarlos antes del corte.`,
         },
         { status: 409 },
       );
