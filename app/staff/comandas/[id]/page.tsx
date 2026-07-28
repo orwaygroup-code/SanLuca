@@ -4,8 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useStaffSession } from "@/lib/staff-session-client";
 import {
-  C, StaffHeader, Spinner, EmptyState, Badge, Modal, ConfirmModal, ReasonModal,
-  TicketPreview, btn, fld, formatMXN, STATUS_LABEL, STATUS_COLOR, useToasts, ToastHost, useStaffLogout,
+  C, StaffHeader, Spinner, EmptyState, Badge, ConfirmModal, ReasonModal,
+  TicketPreview, btn, formatMXN, STATUS_LABEL, STATUS_COLOR, useToasts, ToastHost, useStaffLogout,
 } from "@/components/staff/ui";
 import { apiFetch, type Comanda, type CItem, type PayResult, type CashSession, type CutSnapshot } from "@/components/staff/types";
 import { SplitBillModal } from "@/components/staff/SplitBillModal";
@@ -14,8 +14,6 @@ import { MenuSelector } from "@/components/staff/MenuSelector";
 import { buildTotalLines } from "@/lib/displayTotals";
 import { buildSplitsPayload, effectiveTaxRate, divisionMoney, unitsSubtotal } from "@/lib/splitBill";
 
-interface MenuDish { id: string; name: string; price: number; description: string | null }
-interface MenuCat { id: string; name: string; dishes: MenuDish[] }
 
 const ITEM_STATUS_LABEL: Record<string, string> = {
   PENDING: "Por enviar", SENT: "En cocina", READY: "Listo", SERVED: "Servido", CANCELLED: "Cancelado",
@@ -554,130 +552,6 @@ export default function ComandaDetailPage() {
   );
 }
 
-// ───────────────────────────────────────────────────── Menu modal ──
-function MenuModal({ open, onClose, onAdd, busy }: {
-  open: boolean; onClose: () => void;
-  onAdd: (dishId: string, quantity: number, modifiers: string | null, kitchenNotes: string | null) => Promise<boolean>;
-  busy: boolean;
-}) {
-  const [cats, setCats] = useState<MenuCat[] | null>(null);
-  const [activeCat, setActiveCat] = useState<string>("");
-  const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<MenuDish | null>(null);
-  const [qty, setQty] = useState(1);
-  const [modifiers, setModifiers] = useState("");
-  const [notes, setNotes] = useState("");
-  const [error, setError] = useState<string | null>(null);
-
-  const loadMenu = useCallback(() => {
-    setError(null);
-    apiFetch<MenuCat[]>("/api/menu").then((r) => {
-      if (r.ok) { setCats(r.data!); setActiveCat(r.data![0]?.id ?? ""); }
-      else setError(r.error ?? "No se pudo cargar el menú");
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!open) { setSelected(null); setQuery(""); return; }
-    if (cats) return;
-    loadMenu();
-  }, [open, cats, loadMenu]);
-
-  const dishes = useMemo(() => {
-    if (!cats) return [];
-    const base = query.trim()
-      ? cats.flatMap((c) => c.dishes).filter((d) => d.name.toLowerCase().includes(query.toLowerCase()))
-      : (cats.find((c) => c.id === activeCat)?.dishes ?? []);
-    return base;
-  }, [cats, activeCat, query]);
-
-  const resetForm = () => { setSelected(null); setQty(1); setModifiers(""); setNotes(""); };
-
-  const add = async () => {
-    if (!selected) return;
-    const ok = await onAdd(selected.id, qty, modifiers.trim() || null, notes.trim() || null);
-    if (ok) resetForm();
-  };
-
-  return (
-    <Modal open={open} title={selected ? selected.name : "Agregar del menú"} onClose={() => { resetForm(); onClose(); }} width={520}>
-      {cats === null ? (
-        error ? (
-          <div style={{ textAlign: "center", padding: "24px 8px" }}>
-            <div style={{ color: C.red, marginBottom: 14 }}>{error}</div>
-            <button style={btn.primary} onClick={loadMenu}>Reintentar</button>
-          </div>
-        ) : (
-          <Spinner label="Cargando menú…" />
-        )
-      ) : selected ? (
-        <>
-          <div style={{ color: C.gold, fontWeight: 800, fontSize: "1.05rem" }}>{formatMXN(selected.price)}</div>
-          <label style={{ ...fld.label, marginTop: 16 }}>Cantidad</label>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <button style={stepper} onClick={() => setQty((q) => Math.max(1, q - 1))}>−</button>
-            <span style={{ color: C.cream, fontWeight: 800, fontSize: "1.2rem", minWidth: 36, textAlign: "center" }}>{qty}</span>
-            <button style={stepper} onClick={() => setQty((q) => Math.min(50, q + 1))}>+</button>
-          </div>
-          <label style={{ ...fld.label, marginTop: 16 }}>Modificadores (opcional)</label>
-          <input style={fld.input} value={modifiers} onChange={(e) => setModifiers(e.target.value)} placeholder="ej. sin cebolla, término medio" />
-          <label style={{ ...fld.label, marginTop: 14 }}>Notas a cocina (opcional)</label>
-          <input style={fld.input} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="ej. alergia a nuez" />
-          <div style={{ display: "flex", gap: 10, justifyContent: "space-between", marginTop: 20 }}>
-            <button style={btn.ghost} onClick={resetForm} disabled={busy}>← Menú</button>
-            <button style={{ ...btn.primary, opacity: busy ? 0.6 : 1 }} onClick={add} disabled={busy}>
-              {busy ? "Agregando…" : `Agregar ${qty}`}
-            </button>
-          </div>
-        </>
-      ) : (
-        <>
-          <input style={{ ...fld.input, marginBottom: 12 }} value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar platillo…" />
-          {!query.trim() && (
-            <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 10, marginBottom: 6 }}>
-              {cats.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => setActiveCat(cat.id)}
-                  style={{
-                    ...catTab,
-                    background: cat.id === activeCat ? C.gold : "transparent",
-                    color: cat.id === activeCat ? "#fff" : C.dim,
-                    borderColor: cat.id === activeCat ? C.gold : C.line,
-                  }}
-                >{cat.name}</button>
-              ))}
-            </div>
-          )}
-          <div style={{ maxHeight: "46vh", overflowY: "auto" }}>
-            {dishes.length === 0 ? (
-              <EmptyState text="Sin platillos." />
-            ) : dishes.map((d) => (
-              <button key={d.id} style={dishRow} onClick={() => { setSelected(d); setQty(1); }}>
-                <span style={{ color: C.cream, fontSize: "0.9rem" }}>{d.name}</span>
-                <span style={{ color: C.gold, fontWeight: 700, fontSize: "0.85rem" }}>{formatMXN(d.price)}</span>
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-    </Modal>
-  );
-}
-
-const stepper: React.CSSProperties = {
-  width: 40, height: 40, borderRadius: 9, border: `1px solid ${C.line}`,
-  background: "transparent", color: C.cream, fontSize: "1.3rem", cursor: "pointer",
-};
-const catTab: React.CSSProperties = {
-  padding: "7px 13px", borderRadius: 999, border: "1px solid", fontSize: "0.78rem",
-  fontWeight: 600, whiteSpace: "nowrap", cursor: "pointer", fontFamily: "inherit",
-};
-const dishRow: React.CSSProperties = {
-  width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12,
-  padding: "12px 12px", borderRadius: 9, border: "none", background: "transparent",
-  borderBottom: `1px solid ${C.line}`, cursor: "pointer", fontFamily: "inherit", textAlign: "left",
-};
 
 const page: Record<string, React.CSSProperties> = {
   root: { minHeight: "100vh", background: C.bg },
