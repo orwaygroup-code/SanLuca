@@ -426,6 +426,11 @@ export default function ComandaDetailPage() {
               title={!currentCourseHasItems ? "Agrega al menos un platillo a este tiempo antes de abrir otro" : undefined}
             >＋ Nuevo tiempo</button>
           )}
+          {editable && liveItems.length > 0 && !currentCourseHasItems && (
+            <span style={{ flexBasis: "100%", color: C.amber, fontSize: "0.78rem", display: "flex", alignItems: "center", gap: 6 }}>
+              ⚠ El {courseLabel(currentCourse)} está vacío — agrégale un platillo antes de abrir otro tiempo.
+            </span>
+          )}
           {editable && pendingCount > 0 && (
             <button data-tour="send" style={btn.primary} onClick={sendToKitchen} disabled={busy}>Enviar a cocina ({pendingCount})</button>
           )}
