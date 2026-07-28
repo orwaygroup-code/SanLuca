@@ -11,12 +11,13 @@ import { apiFetch, comandaLabel, type TableStatus, type ReservationToday, type C
 import { GoldSelect } from "@/components/ui/GoldSelect";
 import { TurnoBar, OpenTurnoModal, CloseCashSessionModal, CajaMonitor, PayModal } from "@/components/staff/caja";
 import { Tour, type TourStep } from "@/components/staff/Tour";
+import { TipsPanel } from "@/components/staff/TipsPanel";
 
 /** Tutorial guiado de la vista Caja / Operación. */
 const OPERACION_TOUR: TourStep[] = [
   { title: "Tu vista de Caja y Hostess", body: "Desde aquí sientas reservas, ves las cuentas activas, cobras y haces el corte del turno." },
   { target: "turno", title: "Abre el cajón primero", body: "Antes de cobrar, abre el turno con el fondo inicial. Aquí mismo cierras la caja y haces el corte (arqueo + diferencia).", task: "Si no hay turno, toca «Abrir cajón»." },
-  { target: "tabs", title: "Cuatro pestañas", body: "«Reservas» para sentar, «Mesas» para las cuentas activas, «Para llevar» para cuentas sin mesa (para llevar / cuenta X), y «Monitor» para la venta del turno." },
+  { target: "tabs", title: "Cinco pestañas", body: "«Reservas» para sentar, «Mesas» para las cuentas activas, «Para llevar» para cuentas sin mesa, «Monitor» para la venta del turno, y «Propinas» para el reparto de puntos." },
   { target: "monitor", title: "Monitor del turno (corte X)", body: "Cuánto llevas cobrado por método (efectivo/tarjeta/transferencia), propinas y el efectivo esperado en el cajón — sin cerrar nada.", task: "Toca «Monitor» para verlo." },
   { title: "A cobrar", body: "En «Mesas», toca «Cobrar» en una cuenta para registrar el pago (mixto/parcial/propina/cambio). Reabre este tutorial con «?» cuando quieras." },
 ];
@@ -33,7 +34,7 @@ export default function OperacionPage() {
   const logout = useStaffLogout();
   const { toasts, push, dismiss } = useToasts();
 
-  const [tab, setTab] = useState<"reservas" | "mesas" | "llevar" | "monitor">("reservas");
+  const [tab, setTab] = useState<"reservas" | "mesas" | "llevar" | "monitor" | "propinas">("reservas");
   const [reservations, setReservations] = useState<ReservationToday[] | null>(null);
   const [tables, setTables] = useState<TableStatus[] | null>(null);
   const [seatRes, setSeatRes] = useState<ReservationToday | null>(null);
@@ -122,6 +123,7 @@ export default function OperacionPage() {
         <button style={{ ...page.tab, ...(tab === "mesas" ? page.tabOn : {}) }} onClick={() => setTab("mesas")}>Mesas</button>
         <button style={{ ...page.tab, ...(tab === "llevar" ? page.tabOn : {}) }} onClick={() => setTab("llevar")}>Para llevar</button>
         <button data-tour="monitor" style={{ ...page.tab, ...(tab === "monitor" ? page.tabOn : {}) }} onClick={() => { setTab("monitor"); loadSession(); }}>Monitor</button>
+        <button style={{ ...page.tab, ...(tab === "propinas" ? page.tabOn : {}) }} onClick={() => { setTab("propinas"); loadSession(); }}>Propinas</button>
       </div>
 
       <main style={page.main}>
@@ -200,8 +202,10 @@ export default function OperacionPage() {
               </div>
             )}
           </div>
-        ) : (
+        ) : tab === "monitor" ? (
           <CajaMonitor session={session} cut={cut} />
+        ) : (
+          <TipsPanel onToast={push} />
         )}
       </main>
 

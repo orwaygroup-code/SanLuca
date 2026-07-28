@@ -188,7 +188,7 @@ export function CloseCashSessionModal({ open, session, cut, onClose, onClosed, o
             <span>Efectivo esperado</span><span>{formatMXN(cut.expectedCash)}</span>
           </div>
           <div style={{ ...kv, color: C.faint, fontSize: "0.78rem" }}><span>Tarjetas + transferencias</span><span>{formatMXN(round2(cut.totalCollected - cut.cashCollected))}</span></div>
-          <div style={{ ...kv, color: C.faint, fontSize: "0.78rem" }}><span>Propinas</span><span>{formatMXN(cut.totalTips)}</span></div>
+          <div style={{ ...kv, color: C.faint, fontSize: "0.78rem" }}><span>Propinas (aparte de caja)</span><span>{formatMXN(cut.totalTips)}</span></div>
         </div>
       )}
       <Field label="Arqueo: efectivo contado en el cajón">
@@ -259,7 +259,7 @@ export function CajaMonitor({ session, cut }: { session: CashSession | null; cut
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={mon.grid}>
         <Kpi label="Cobrado (turno)" value={formatMXN(cut.totalCollected)} big />
-        <Kpi label="Propinas" value={formatMXN(cut.totalTips)} />
+        <Kpi label="Propinas (apartado)" value={formatMXN(cut.totalTips)} />
         <Kpi label="Efectivo esperado" value={formatMXN(cut.expectedCash)} />
         <Kpi label="Cuentas cobradas" value={String(cut.comandasSettled)} />
       </div>

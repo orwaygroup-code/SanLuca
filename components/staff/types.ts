@@ -120,6 +120,49 @@ export interface PayResult {
   changeGiven: number;
 }
 
+// ── Reparto de propinas / Puntos ─────────────────────────────────────────────
+
+export interface TipArea { name: string; percent: number }
+
+export interface WaiterBase {
+  waiterId: number;
+  fullName: string;
+  salesTotal: number | string;
+  tipsRegistered: number | string;
+}
+
+export interface TipSettlementWaiterRow {
+  waiterId: number;
+  salesTotal: number | string;
+  tipsRegistered: number | string;
+  cashTipsDeclared: number | string;
+  pointPercent: number | string;
+  deduction: number | string;
+  netTip: number | string;
+  waiter?: { fullName: string };
+}
+
+export interface TipSettlement {
+  id: number;
+  cashSessionId: number;
+  pointPercent: number | string;
+  salesTotal: number | string;
+  tipsRegistered: number | string;
+  cashTipsDeclared: number | string;
+  poolTotal: number | string;
+  notes: string | null;
+  createdAt: string;
+  waiters: TipSettlementWaiterRow[];
+  areas: { name: string; percent: number | string; amount: number | string }[];
+}
+
+export interface TipsCurrent {
+  session: CashSession | null;
+  base?: WaiterBase[];
+  saved?: TipSettlement | null;
+  defaultAreas?: TipArea[];
+}
+
 export interface TableStatus {
   id: string;
   number: number;

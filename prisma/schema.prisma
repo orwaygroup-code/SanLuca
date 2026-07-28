@@ -110,6 +110,9 @@ model Staff {
   itemTransfers         ComandaItemTransfer[] @relation("ItemTransferAuthor")
   mergesAuthored        ComandaMerge[]        @relation("MergeAuthor")
   reopensAuthored       ComandaReopen[]       @relation("ReopenAuthor")
+  // Reparto de propinas (Fase Propinas)
+  tipSettlementsCreated TipSettlement[]       @relation("TipSettlementCreator")
+  tipSettlementRows     TipSettlementWaiter[] @relation("TipSettlementWaiter")
   user                  User? // vínculo dual-realm (Ricardo). Inverso de User.staff
 
   @@index([tenantId, role, active])
@@ -813,8 +816,9 @@ model CashSession {
   openedAt DateTime  @default(now())
   closedAt DateTime?
 
-  payments ComandaPayment[]
-  comandas Comanda[]
+  payments      ComandaPayment[]
+  comandas      Comanda[]
+  tipSettlement TipSettlement?
 
   @@index([tenantId, status])
   @@index([tenantId, openedAt])
@@ -925,6 +929,69 @@ model ComandaReopen {
 }
 
 // ============================================
+// REPARTO DE PROPINAS / PUNTOS (Fase Propinas)
+// Un reparto por turno de caja. Las propinas viven APARTE de la caja (no entran
+// al efectivo esperado). El "punto" = % sobre la venta del mesero que se descuenta
+// y se reparte a áreas (barra/cocina/garroteros/encargados/caja). Editable por corte.
+// ============================================
+
+model TipSettlement {
+  id            Int         @id @default(autoincrement())
+  tenantId      Int         @default(1)
+  cashSessionId Int         @unique // un reparto por turno
+  cashSession   CashSession @relation(fields: [cashSessionId], references: [id], onDelete: Cascade)
+
+  pointPercent     Decimal @db.Decimal(6, 3) // suma de los % de área (referencia)
+  salesTotal       Decimal @db.Decimal(10, 2)
+  tipsRegistered   Decimal @db.Decimal(10, 2) // propinas de tarjeta/registradas
+  cashTipsDeclared Decimal @db.Decimal(10, 2) // efectivo declarado (Σ meseros)
+  poolTotal        Decimal @db.Decimal(10, 2) // Σ descuentos = a repartir a áreas
+
+  notes       String?  @db.Text
+  createdById Int
+  createdBy   Staff    @relation("TipSettlementCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  waiters TipSettlementWaiter[]
+  areas   TipSettlementArea[]
+
+  @@index([tenantId])
+}
+
+model TipSettlementWaiter {
+  id           Int           @id @default(autoincrement())
+  tenantId     Int           @default(1)
+  settlementId Int
+  settlement   TipSettlement @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+
+  waiterId Int
+  waiter   Staff @relation("TipSettlementWaiter", fields: [waiterId], references: [id])
+
+  salesTotal       Decimal @db.Decimal(10, 2)
+  tipsRegistered   Decimal @db.Decimal(10, 2)
+  cashTipsDeclared Decimal @default(0) @db.Decimal(10, 2)
+  pointPercent     Decimal @db.Decimal(6, 3)
+  deduction        Decimal @db.Decimal(10, 2) // salesTotal × pointPercent/100
+  netTip           Decimal @db.Decimal(10, 2) // (registered + cashDeclared) − deduction (puede ser negativo)
+
+  @@index([tenantId, settlementId])
+}
+
+model TipSettlementArea {
+  id           Int           @id @default(autoincrement())
+  tenantId     Int           @default(1)
+  settlementId Int
+  settlement   TipSettlement @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+
+  name    String // "Barra", "Cocina", "Garroteros", "Encargados", "Caja"
+  percent Decimal @db.Decimal(6, 3) // % sobre la venta total
+  amount  Decimal @db.Decimal(10, 2)
+
+  @@index([tenantId, settlementId])
+}
+
+// ============================================
 // CONFIGURACIÓN DEL RESTAURANTE (IVA configurable, Fase B.1)
 // 1 fila por tenant. El cálculo de totales la consulta.
 // ============================================
@@ -934,6 +1001,7 @@ model RestaurantSettings {
   tenantId    Int      @unique @default(1)
   taxEnabled  Boolean  @default(true)
   taxRate     Decimal  @default(0.16) @db.Decimal(5, 4)
+  tipPolicy   Json? // política default de reparto de propinas: { areas: [{ name, percent }] }
   updatedAt   DateTime @updatedAt
   updatedById Int?
   updatedBy   Staff?   @relation(fields: [updatedById], references: [id])
