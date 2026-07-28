@@ -150,7 +150,7 @@ export function Modal({ open, title, onClose, children, width = 420 }: {
           <span style={mS.title}>{title}</span>
           <button style={mS.x} onClick={onClose} aria-label="Cerrar">×</button>
         </div>
-        <div style={{ padding: "16px 20px 20px" }}>{children}</div>
+        <div style={{ padding: "16px 20px 20px", overflowY: "auto", flex: 1 }}>{children}</div>
       </div>
     </div>
   );
@@ -342,8 +342,8 @@ const tS: Record<string, React.CSSProperties> = {
 
 const mS: Record<string, React.CSSProperties> = {
   overlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 80, padding: 16 },
-  box: { width: "100%", background: C.panel, border: `1px solid ${C.border}`, borderRadius: 16, boxShadow: "0 24px 64px rgba(0,0,0,0.6)" },
-  head: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px", borderBottom: `1px solid ${C.line}` },
+  box: { width: "100%", background: C.panel, border: `1px solid ${C.border}`, borderRadius: 16, boxShadow: "0 24px 64px rgba(0,0,0,0.6)", maxHeight: "calc(100vh - 32px)", display: "flex", flexDirection: "column", overflow: "hidden" },
+  head: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px", borderBottom: `1px solid ${C.line}`, flexShrink: 0 },
   title: { color: C.cream, fontWeight: 700, fontSize: "0.98rem" },
   x: {
     width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center",

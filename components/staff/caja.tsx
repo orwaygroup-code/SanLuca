@@ -13,6 +13,7 @@ import {
   type PayResult,
 } from "./types";
 import { GoldSelect } from "@/components/ui/GoldSelect";
+import { splitPaymentLines } from "@/lib/paymentSplit";
 
 /**
  * Componentes de CAJA (POS) — Fase 2. Todos controlados: la página dueña del
@@ -299,8 +300,8 @@ function Kpi({ label, value, big }: { label: string; value: string; big?: boolea
 
 // ══════════════════════════════════════════════════════════════ PayModal ══
 
-interface DraftLine { method: PaymentMethod; amount: string; received: string; tip: string; reference: string }
-const newLine = (amount = ""): DraftLine => ({ method: "CASH", amount, received: "", tip: "", reference: "" });
+interface DraftLine { method: PaymentMethod; tendered: string; reference: string }
+const newLine = (tendered = ""): DraftLine => ({ method: "CASH", tendered, reference: "" });
 
 export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onError }: {
   open: boolean; comandaId: number | null; hasOpenSession: boolean;
@@ -328,16 +329,13 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
   const paidBefore = comanda ? round2(Number(comanda.amountPaid)) : 0;
   const remaining = round2(total - paidBefore);
 
-  const sumAmount = round2(lines.reduce((s, l) => s + num(l.amount), 0));
-  const sumTip = round2(lines.reduce((s, l) => s + num(l.tip), 0));
-  const changePreview = round2(
-    lines.reduce((s, l) => (l.method === "CASH" && l.received.trim() ? s + Math.max(0, num(l.received) - num(l.amount)) : s), 0),
-  );
-  const newRemaining = round2(remaining - sumAmount);
+  const calc = splitPaymentLines(lines.map((l) => ({ method: l.method, tendered: num(l.tendered), reference: l.reference })), remaining);
+  const coveredNow = round2(calc.reduce((s, c) => s + c.billPortion, 0));
+  const sumTip = round2(calc.reduce((s, c) => s + c.tip, 0));
+  const sumChange = round2(calc.reduce((s, c) => s + c.change, 0));
+  const newRemaining = round2(remaining - coveredNow);
   const settledPreview = newRemaining <= 0.01;
-  const overpay = sumAmount > remaining + 0.01;
-  const cashShort = lines.some((l) => l.method === "CASH" && l.received.trim() && num(l.received) < num(l.amount) - 0.01);
-  const canSubmit = !!comanda && sumAmount > 0 && !overpay && !cashShort && !busy;
+  const canSubmit = !!comanda && coveredNow > 0 && !busy;
 
   const setLine = (i: number, patch: Partial<DraftLine>) => setLines((ls) => ls.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
   const addLine = () => setLines((ls) => [...ls, newLine(newRemaining > 0 ? newRemaining.toFixed(2) : "")]);
@@ -346,13 +344,18 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
   const submit = async () => {
     if (!comanda) return;
     setBusy(true);
-    const payments = lines.map((l) => ({
-      method: l.method,
-      amount: num(l.amount),
-      received: l.method === "CASH" && l.received.trim() ? num(l.received) : null,
-      tip: num(l.tip),
-      reference: l.reference.trim() || null,
-    })).filter((p) => p.amount > 0);
+    // Envía a cada método SOLO lo que cubre de la cuenta (amount). En efectivo,
+    // received = lo entregado → el server calcula el cambio. En tarjeta/transfer,
+    // el excedente va como tip (propina del mesero).
+    const payments = calc
+      .filter((c) => c.billPortion > 0)
+      .map((c) => ({
+        method: c.method,
+        amount: c.billPortion,
+        received: c.method === "CASH" ? c.tendered : null,
+        tip: c.tip,
+        reference: c.reference.trim() || null,
+      }));
     const r = await apiFetch<PayResult>(`/api/comandas/${comanda.id}/pay`, {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ payments }),
     });
@@ -379,55 +382,58 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
             <div style={{ ...kv, color: C.cream, fontWeight: 800 }}><span>Saldo por cobrar</span><span>{formatMXN(remaining)}</span></div>
           </div>
 
-          {lines.map((l, i) => (
-            <div key={i} style={{ border: `1px solid ${C.line}`, borderRadius: 12, padding: "10px 12px", marginTop: 12 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ color: C.faint, fontSize: "0.7rem", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700 }}>Pago {i + 1}</span>
-                {lines.length > 1 && <button style={pill.remove} onClick={() => removeLine(i)}>Quitar</button>}
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 8 }}>
-                <div>
-                  <label style={fld.label}>Método</label>
-                  <GoldSelect value={l.method} onChange={(v) => setLine(i, { method: v as PaymentMethod, received: "" })} options={METHOD_OPTIONS} />
+          {calc.map((c, i) => {
+            const isCash = c.method === "CASH";
+            return (
+              <div key={i} style={{ border: `1px solid ${C.line}`, borderRadius: 12, padding: "10px 12px", marginTop: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ color: C.faint, fontSize: "0.7rem", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700 }}>Pago {i + 1}</span>
+                  {lines.length > 1 && <button style={pill.remove} onClick={() => removeLine(i)}>Quitar</button>}
                 </div>
-                <div>
-                  <label style={fld.label}>Monto a la cuenta</label>
-                  <MoneyInput value={l.amount} onChange={(v) => setLine(i, { amount: v })} />
-                </div>
-                {l.method === "CASH" ? (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 8 }}>
                   <div>
-                    <label style={fld.label}>Efectivo recibido</label>
-                    <MoneyInput value={l.received} onChange={(v) => setLine(i, { received: v })} />
+                    <label style={fld.label}>Método</label>
+                    <GoldSelect value={c.method} onChange={(v) => setLine(i, { method: v as PaymentMethod })} options={METHOD_OPTIONS} />
                   </div>
-                ) : (
                   <div>
+                    <label style={fld.label}>{isCash ? "Efectivo recibido" : "Monto a cobrar"}</label>
+                    <MoneyInput value={lines[i].tendered} onChange={(v) => setLine(i, { tendered: v })} placeholder={c.remainingBefore > 0 ? c.remainingBefore.toFixed(2) : "0.00"} />
+                  </div>
+                </div>
+                {!isCash && (
+                  <div style={{ marginTop: 8 }}>
                     <label style={fld.label}>Referencia (opcional)</label>
-                    <input style={fld.input} value={l.reference} onChange={(e) => setLine(i, { reference: e.target.value })} placeholder="últimos 4 / auth" />
+                    <input style={fld.input} value={lines[i].reference} onChange={(e) => setLine(i, { reference: e.target.value })} placeholder="últimos 4 / auth" />
                   </div>
                 )}
-                <div>
-                  <label style={fld.label}>Propina (opcional)</label>
-                  <MoneyInput value={l.tip} onChange={(v) => setLine(i, { tip: v })} />
+                <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 3 }}>
+                  <div style={{ ...kv, color: C.faint, fontSize: "0.78rem" }}><span>Cubre de la cuenta</span><span>{formatMXN(c.billPortion)}</span></div>
+                  {isCash && c.change > 0 && (
+                    <div style={{ ...kv, color: C.blue, fontWeight: 700, fontSize: "0.82rem" }}><span>Cambio a entregar</span><span>{formatMXN(c.change)}</span></div>
+                  )}
+                  {!isCash && c.tip > 0 && (
+                    <div style={{ ...kv, color: C.gold, fontWeight: 700, fontSize: "0.82rem" }}><span>Propina al mesero (excedente)</span><span>{formatMXN(c.tip)}</span></div>
+                  )}
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
-          <button style={{ ...btn.ghost, marginTop: 12, width: "100%" }} onClick={addLine} disabled={busy}>+ Agregar otro método (pago mixto)</button>
+          <button style={{ ...btn.ghost, marginTop: 12, width: "100%", opacity: settledPreview ? 0.5 : 1 }} onClick={addLine} disabled={busy || settledPreview}>
+            + Agregar otro método{newRemaining > 0 ? ` · falta ${formatMXN(newRemaining)}` : ""}
+          </button>
 
           <div style={{ background: C.panel2, border: `1px solid ${C.line}`, borderRadius: 12, padding: "12px 14px", marginTop: 12 }}>
-            <div style={{ ...kv, color: C.cream, fontWeight: 700 }}><span>Este cobro</span><span>{formatMXN(sumAmount)}</span></div>
-            {sumTip > 0 && <div style={{ ...kv, color: C.faint, fontSize: "0.78rem" }}><span>Propinas</span><span>{formatMXN(sumTip)}</span></div>}
-            {changePreview > 0 && <div style={{ ...kv, color: C.blue, fontWeight: 700 }}><span>Cambio a entregar</span><span>{formatMXN(changePreview)}</span></div>}
-            <div style={{ ...kv, color: settledPreview ? C.green : C.dim, fontWeight: 800, borderTop: `1px solid ${C.line}`, marginTop: 4, paddingTop: 6 }}>
-              <span>{settledPreview ? "Salda la cuenta" : "Saldo restante"}</span>
+            <div style={{ ...kv, color: C.cream, fontWeight: 700 }}><span>Cubierto ahora</span><span>{formatMXN(coveredNow)}</span></div>
+            {sumTip > 0 && <div style={{ ...kv, color: C.gold, fontSize: "0.82rem" }}><span>Propina al mesero</span><span>{formatMXN(sumTip)}</span></div>}
+            {sumChange > 0 && <div style={{ ...kv, color: C.blue, fontSize: "0.82rem" }}><span>Cambio a entregar</span><span>{formatMXN(sumChange)}</span></div>}
+            <div style={{ ...kv, color: settledPreview ? C.green : C.amber, fontWeight: 800, borderTop: `1px solid ${C.line}`, marginTop: 4, paddingTop: 6 }}>
+              <span>{settledPreview ? "Salda la cuenta" : "Falta por cubrir"}</span>
               <span>{settledPreview ? "✓" : formatMXN(Math.max(0, newRemaining))}</span>
             </div>
-            {overpay && <div style={{ color: C.red, fontSize: "0.78rem", marginTop: 6 }}>El cobro excede el saldo. Usa el efectivo recibido para el cambio, no el monto.</div>}
-            {cashShort && <div style={{ color: C.red, fontSize: "0.78rem", marginTop: 6 }}>El efectivo recibido es menor al monto de ese pago.</div>}
           </div>
 
-          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 18 }}>
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 18, position: "sticky", bottom: 0, background: C.panel, paddingTop: 10 }}>
             <button style={btn.ghost} onClick={onClose} disabled={busy}>Cancelar</button>
             <button style={{ ...btn.primary, opacity: canSubmit ? 1 : 0.5 }} onClick={submit} disabled={!canSubmit}>
               {busy ? "Cobrando…" : settledPreview ? "Cobrar y cerrar" : "Registrar abono"}
