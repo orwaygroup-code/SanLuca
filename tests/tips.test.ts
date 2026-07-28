@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import {
   DEFAULT_TIP_AREAS, DEFAULT_POINT_PERCENT, sumAreaPercents,
   computeDeduction, computeNetTip, distributePool, normalizePolicy,
+  computeWaiterSettlement,
 } from "../lib/tips";
 
 test("punto default = 7%", () => {
@@ -52,4 +53,37 @@ test("normalizePolicy: parsea { pointPercent, areas } o cae al default", () => {
   assert.deepEqual(p.areas, [{ name: "Barra", percent: 3 }]);
   assert.equal(normalizePolicy(null).pointPercent, 7);
   assert.deepEqual(normalizePolicy({ areas: [] }).areas, DEFAULT_TIP_AREAS);
+});
+
+// ── Liquidación por mesero (v2) ──────────────────────────────────────────────
+test("liquidación PAY: reserva 10% > 7% → caja paga el 3% (ejemplo del cliente)", () => {
+  // Vendió 1000, tiene 100 (10%) en tarjeta+transfer. 7% = 70. Se le pagan 30.
+  const c = computeWaiterSettlement(1000, 7, 100);
+  assert.equal(c.deduction, 70);
+  assert.equal(c.net, 30);
+  assert.equal(c.direction, "PAY");
+  assert.equal(c.amount, 30);
+});
+
+test("liquidación COLLECT: reserva 4% < 7% → el mesero completa el faltante", () => {
+  // Vendió 1000, tiene 40 (4%) en reserva. 7% = 70. Debe completar 30 en efectivo.
+  const c = computeWaiterSettlement(1000, 7, 40);
+  assert.equal(c.deduction, 70);
+  assert.equal(c.net, -30);
+  assert.equal(c.direction, "COLLECT");
+  assert.equal(c.amount, 30);
+});
+
+test("liquidación EVEN: reserva = 7% exacto → sin movimiento", () => {
+  const c = computeWaiterSettlement(1000, 7, 70);
+  assert.equal(c.net, 0);
+  assert.equal(c.direction, "EVEN");
+  assert.equal(c.amount, 0);
+});
+
+test("liquidación sin ventas ni reserva → EVEN en 0", () => {
+  const c = computeWaiterSettlement(0, 7, 0);
+  assert.equal(c.deduction, 0);
+  assert.equal(c.direction, "EVEN");
+  assert.equal(c.amount, 0);
 });

@@ -87,6 +87,26 @@ export async function verifySupervisorPin(
   return null;
 }
 
+/**
+ * Verifica que `pin` pertenezca al empleado `staffId` (activo del tenant). Usado
+ * para que un MESERO autorice SU propia liquidación de propina en caja (teclea su
+ * PIN sin cambiar de sesión). Devuelve true/false; nunca revela de quién es el PIN.
+ */
+export async function verifyWaiterPin(
+  staffId: number,
+  pin: string,
+  opts: { tenantId?: number } = {},
+): Promise<boolean> {
+  if (!/^\d{4}$/.test(pin)) return false;
+  const tenantId = opts.tenantId ?? DEFAULT_TENANT;
+  const s = await prisma.staff.findFirst({
+    where: { id: staffId, tenantId, active: true },
+    select: { pinHash: true },
+  });
+  if (!s) return false;
+  return verifyPin(pin, s.pinHash);
+}
+
 /** Error tipado para PIN duplicado → el API lo mapea a 409. */
 export class PinConflictError extends Error {
   constructor() {

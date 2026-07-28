@@ -15,7 +15,41 @@ type Db = typeof prisma | Prisma.TransactionClient;
 
 export interface TipArea { name: string; percent: number } // "percent" = peso relativo de reparto del pool
 export interface TipPolicy { pointPercent: number; areas: TipArea[] } // punto (% de venta) + reparto a áreas
-export interface WaiterBase { waiterId: number; fullName: string; salesTotal: number; tipsRegistered: number }
+export interface WaiterBase {
+  waiterId: number;
+  fullName: string;
+  salesTotal: number;
+  tipsRegistered: number; // Σ propina de TODOS los métodos (referencia)
+  reserveDigital: number; // Σ propina de tarjeta + transferencia = reserva que retiene la casa
+}
+
+/** Métodos "digitales" cuya propina retiene la casa (forman la reserva del mesero). */
+export const DIGITAL_TIP_METHODS = ["CARD_DEBIT", "CARD_CREDIT", "TRANSFER"] as const;
+
+export type TipDirection = "PAY" | "COLLECT" | "EVEN";
+export interface WaiterSettlementCalc {
+  salesTotal: number;
+  pointPercent: number;
+  deduction: number; // 7% de la venta = su punto al pool
+  reserve: number; // propinas digitales retenidas
+  net: number; // reserve − deduction (signo: + se paga, − se cobra)
+  direction: TipDirection;
+  amount: number; // |net| a mover
+}
+
+/**
+ * Liquidación de UN mesero: concilia su reserva digital (tarjeta+transfer) contra
+ * su punto (7% de venta). net = reserve − deduction. Si net>0 la caja le PAGA ese
+ * excedente; si net<0 el mesero COBRA-completa el faltante en efectivo; net==0 = a mano.
+ */
+export function computeWaiterSettlement(salesTotal: number, pointPercent: number, reserve: number): WaiterSettlementCalc {
+  const s = round2(salesTotal);
+  const r = round2(reserve);
+  const deduction = computeDeduction(s, pointPercent);
+  const net = round2(r - deduction);
+  const direction: TipDirection = net > 0 ? "PAY" : net < 0 ? "COLLECT" : "EVEN";
+  return { salesTotal: s, pointPercent, deduction, reserve: r, net, direction, amount: round2(Math.abs(net)) };
+}
 
 /** Punto default: 7% sobre la venta total del mesero. */
 export const DEFAULT_POINT_PERCENT = 7;
@@ -86,14 +120,16 @@ export async function loadWaiterBase(cashSessionId: number, db: Db = prisma): Pr
       waiterId: true,
       total: true,
       waiter: { select: { fullName: true } },
-      payments: { where: { voided: false }, select: { tip: true } },
+      payments: { where: { voided: false }, select: { tip: true, method: true } },
     },
   });
+  const digital = new Set<string>(DIGITAL_TIP_METHODS);
   const map = new Map<number, WaiterBase>();
   for (const c of comandas) {
-    const cur = map.get(c.waiterId) ?? { waiterId: c.waiterId, fullName: c.waiter.fullName, salesTotal: 0, tipsRegistered: 0 };
+    const cur = map.get(c.waiterId) ?? { waiterId: c.waiterId, fullName: c.waiter.fullName, salesTotal: 0, tipsRegistered: 0, reserveDigital: 0 };
     cur.salesTotal = round2(cur.salesTotal + Number(c.total));
     cur.tipsRegistered = round2(cur.tipsRegistered + c.payments.reduce((s, p) => s + Number(p.tip), 0));
+    cur.reserveDigital = round2(cur.reserveDigital + c.payments.reduce((s, p) => s + (digital.has(p.method) ? Number(p.tip) : 0), 0));
     map.set(c.waiterId, cur);
   }
   return [...map.values()].sort((a, b) => b.salesTotal - a.salesTotal);

@@ -15,12 +15,15 @@ import {
 } from "../lib/comandaRules";
 
 // ── canModifyComanda ────────────────────────────────────────────────
-test("WAITER solo modifica SUS comandas; OPERATION no captura", () => {
+test("WAITER y OPERATION solo modifican SUS comandas; supervisores cualquiera", () => {
   assert.equal(canModifyComanda("WAITER", true), true);
   assert.equal(canModifyComanda("WAITER", false), false);  // comanda de otro mesero
   assert.equal(canModifyComanda("CAPTAIN", false), true);
   assert.equal(canModifyComanda("MANAGER", false), true);
-  assert.equal(canModifyComanda("OPERATION", true), false);
+  // OPERATION (Perla) SÍ captura sus propias cuentas "para llevar" / sin mesa,
+  // pero no las de otros meseros.
+  assert.equal(canModifyComanda("OPERATION", true), true);
+  assert.equal(canModifyComanda("OPERATION", false), false);
 });
 
 // ── canCancelItem ───────────────────────────────────────────────────

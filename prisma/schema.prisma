@@ -113,6 +113,8 @@ model Staff {
   // Reparto de propinas (Fase Propinas)
   tipSettlementsCreated TipSettlement[]       @relation("TipSettlementCreator")
   tipSettlementRows     TipSettlementWaiter[] @relation("TipSettlementWaiter")
+  waiterTipsReceived    WaiterTipSettlement[] @relation("WaiterTipSettlementWaiter") // liquidaciones donde es el mesero
+  waiterTipsSettled     WaiterTipSettlement[] @relation("WaiterTipSettler") // liquidaciones que ejecutó como caja
   user                  User? // vínculo dual-realm (Ricardo). Inverso de User.staff
 
   @@index([tenantId, role, active])
@@ -816,9 +818,10 @@ model CashSession {
   openedAt DateTime  @default(now())
   closedAt DateTime?
 
-  payments      ComandaPayment[]
-  comandas      Comanda[]
-  tipSettlement TipSettlement?
+  payments             ComandaPayment[]
+  comandas             Comanda[]
+  tipSettlement        TipSettlement?
+  waiterTipSettlements WaiterTipSettlement[] @relation("CashSessionWaiterTips")
 
   @@index([tenantId, status])
   @@index([tenantId, openedAt])
@@ -989,6 +992,49 @@ model TipSettlementArea {
   amount  Decimal @db.Decimal(10, 2)
 
   @@index([tenantId, settlementId])
+}
+
+enum TipSettlementDirection {
+  PAY // caja PAGA al mesero (reserva digital > 7%)
+  COLLECT // caja COBRA al mesero el faltante en efectivo (reserva digital < 7%)
+  EVEN // reserva == 7%, sin movimiento
+}
+
+// Liquidación de propina POR MESERO dentro de un turno (Fase Propinas v2). Cada
+// mesero cierra sus cuentas, llega a caja y se concilia su "reserva" (propinas de
+// tarjeta + transferencia que retiene la casa) contra su "punto" (7% de su venta
+// del turno). Si la reserva supera el 7%, caja le PAGA el excedente; si no alcanza,
+// el mesero COMPLETA el faltante en efectivo (COLLECT). Su PIN autoriza. El corte
+// del turno se bloquea hasta que todos los meseros con venta estén liquidados.
+// Una liquidación por (turno, mesero).
+model WaiterTipSettlement {
+  id            Int         @id @default(autoincrement())
+  tenantId      Int         @default(1)
+  cashSessionId Int
+  cashSession   CashSession @relation("CashSessionWaiterTips", fields: [cashSessionId], references: [id], onDelete: Cascade)
+
+  waiterId Int
+  waiter   Staff @relation("WaiterTipSettlementWaiter", fields: [waiterId], references: [id])
+
+  salesTotal   Decimal @db.Decimal(10, 2) // venta del mesero en el turno (al liquidar)
+  pointPercent Decimal @db.Decimal(6, 3) // % aplicado (snapshot de la póliza)
+  deduction    Decimal @db.Decimal(10, 2) // salesTotal × pointPercent/100 = su punto al pool
+  reserveCard  Decimal @db.Decimal(10, 2) // propinas tarjeta + transferencia retenidas por la casa
+  net          Decimal @db.Decimal(10, 2) // reserveCard − deduction (positivo = se paga, negativo = se cobra)
+
+  direction    TipSettlementDirection
+  amount       Decimal                @db.Decimal(10, 2) // |net| movido (pagado al mesero o cobrado en efectivo)
+  cashReceived Decimal?               @db.Decimal(10, 2) // efectivo entregado por el mesero (solo COLLECT)
+  changeGiven  Decimal                @default(0) @db.Decimal(10, 2) // cambio devuelto (solo COLLECT)
+
+  settledById Int
+  settledBy   Staff    @relation("WaiterTipSettler", fields: [settledById], references: [id])
+  printId     Int? // ticket de liquidación impreso (ComandaPrint), si aplica
+  notes       String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  @@unique([cashSessionId, waiterId]) // una liquidación por mesero por turno
+  @@index([tenantId, cashSessionId])
 }
 
 // ============================================

@@ -5,6 +5,7 @@ import { requireCashier } from "@/lib/dualAuth";
 import { TENANT, ACTIVE_STATUSES } from "@/lib/comanda";
 import { round2 } from "@/lib/comandaTotals";
 import { buildCut, CASH_SESSION_INCLUDE } from "@/lib/caja";
+import { loadWaiterBase } from "@/lib/tips";
 import type { ApiResponse } from "@/types";
 
 function parseId(raw: string): number | null {
@@ -58,6 +59,23 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       },
       { status: 409 },
     );
+  }
+
+  // No cerrar sin liquidar la propina (7%) de cada mesero con ventas del turno.
+  const waiterBase = await loadWaiterBase(id);
+  if (waiterBase.length > 0) {
+    const settled = await prisma.waiterTipSettlement.findMany({ where: { cashSessionId: id }, select: { waiterId: true } });
+    const settledIds = new Set(settled.map((s) => s.waiterId));
+    const missing = waiterBase.filter((w) => !settledIds.has(w.waiterId));
+    if (missing.length > 0) {
+      return NextResponse.json<ApiResponse>(
+        {
+          success: false,
+          error: `Falta liquidar la propina de ${missing.length} mesero(s): ${missing.map((w) => w.fullName).join(", ")}. Ve a la pestaña «Propinas» y liquídalos antes del corte.`,
+        },
+        { status: 409 },
+      );
+    }
   }
 
   const cut = await buildCut(id);
