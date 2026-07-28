@@ -16,9 +16,13 @@ import { apiFetch } from "./types";
 type Area = "COCINA" | "BARRA";
 interface Dish { id: string; name: string; price: number; description: string | null; imageUrl: string | null; prepArea: Area | null }
 interface Cat { id: string; name: string; dishes: Dish[] }
-interface FlatDish extends Dish { catId: string; catName: string; area: Area }
+interface FlatDish extends Dish { catId: string; catName: string; area: Area; turno: Turno }
 
 const areaOf = (d: { prepArea: Area | null }): Area => (d.prepArea === "BARRA" ? "BARRA" : "COCINA");
+// Turno (comida/brunch) derivado del nombre: las categorías de brunch traen "(Brunch)".
+type Turno = "comida" | "brunch";
+const turnoOf = (catName: string): Turno => (/\(brunch\)/i.test(catName) ? "brunch" : "comida");
+const cleanSection = (name: string) => name.replace(/\s*\(brunch\)\s*/i, "").trim(); // "Cafetería (Brunch)" → "Cafetería"
 const fmtQty = (q: number) => String(Math.round(q * 100) / 100); // 0.5, 1.5, 2 — sin ruido de float
 const clampQty = (v: number) => Math.round(Math.max(0.1, Math.min(99, v)) * 10) / 10; // paso 0.1, [0.1, 99]
 
@@ -30,6 +34,7 @@ export function MenuSelector({ open, onClose, onAdd, busy }: {
 }) {
   const [cats, setCats] = useState<Cat[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [turno, setTurno] = useState<Turno>("comida");
   const [clase, setClase] = useState<Area>("COCINA");
   const [section, setSection] = useState<string>(""); // "" = todas
   const [query, setQuery] = useState("");
@@ -62,15 +67,15 @@ export function MenuSelector({ open, onClose, onAdd, busy }: {
   }, [open, selected, onClose]);
 
   const allDishes: FlatDish[] = useMemo(
-    () => (cats ?? []).flatMap((cat) => cat.dishes.map((d) => ({ ...d, catId: cat.id, catName: cat.name, area: areaOf(d) }))),
+    () => (cats ?? []).flatMap((cat) => cat.dishes.map((d) => ({ ...d, catId: cat.id, catName: cat.name, area: areaOf(d), turno: turnoOf(cat.name) }))),
     [cats],
   );
 
   const sections = useMemo(() => {
     const seen = new Map<string, string>();
-    for (const d of allDishes) if (d.area === clase && !seen.has(d.catId)) seen.set(d.catId, d.catName);
+    for (const d of allDishes) if (d.turno === turno && d.area === clase && !seen.has(d.catId)) seen.set(d.catId, cleanSection(d.catName));
     return [...seen.entries()].map(([id, name]) => ({ id, name }));
-  }, [allDishes, clase]);
+  }, [allDishes, turno, clase]);
 
   const searching = query.trim().length > 0;
   const dishes = useMemo(() => {
@@ -78,8 +83,8 @@ export function MenuSelector({ open, onClose, onAdd, busy }: {
       const q = query.trim().toLowerCase();
       return allDishes.filter((d) => d.name.toLowerCase().includes(q) || (d.description ?? "").toLowerCase().includes(q));
     }
-    return allDishes.filter((d) => d.area === clase && (section === "" || d.catId === section));
-  }, [allDishes, searching, query, clase, section]);
+    return allDishes.filter((d) => d.turno === turno && d.area === clase && (section === "" || d.catId === section));
+  }, [allDishes, searching, query, turno, clase, section]);
 
   const pick = (d: FlatDish) => { setSelected(d); setQty(1); setComment(""); };
   const confirmAdd = async () => {
@@ -128,6 +133,23 @@ export function MenuSelector({ open, onClose, onAdd, busy }: {
             />
             {query && <button style={s.clearSearch} onClick={() => setQuery("")} aria-label="Limpiar búsqueda">×</button>}
           </div>
+
+          {/* Turno (Comida / Brunch) — nivel más amplio */}
+          {!searching && (
+            <div style={s.turnoRow}>
+              {([["comida", "Comida"], ["brunch", "Brunch"]] as const).map(([val, label]) => {
+                const on = turno === val;
+                return (
+                  <button
+                    key={val}
+                    onClick={() => { setTurno(val); setSection(""); }}
+                    aria-pressed={on}
+                    style={{ ...s.turnoTab, ...(on ? s.turnoTabOn : {}) }}
+                  >{label}</button>
+                );
+              })}
+            </div>
+          )}
 
           {/* Clase (solo cuando NO se está buscando) */}
           {!searching && (
@@ -269,12 +291,18 @@ const s: Record<string, React.CSSProperties> = {
     border: "none", background: "transparent", color: C.dim, fontSize: "1.3rem", cursor: "pointer", lineHeight: 1,
   },
 
+  turnoRow: { display: "flex", gap: 8, padding: "10px 16px 2px" },
+  turnoTab: {
+    flex: 1, minHeight: 46, borderRadius: 12, border: `1px solid ${C.line}`, background: "transparent",
+    color: C.dim, fontWeight: 800, fontSize: "0.98rem", cursor: "pointer", fontFamily: "inherit",
+  },
+  turnoTabOn: { background: C.gold, color: "#16201f", borderColor: C.gold },
   claseRow: { display: "flex", gap: 8, padding: "6px 16px 4px" },
   claseTab: {
     flex: 1, minHeight: 48, borderRadius: 12, border: `1px solid ${C.line}`, background: "transparent",
     color: C.dim, fontWeight: 700, fontSize: "0.92rem", cursor: "pointer", fontFamily: "inherit",
   },
-  claseTabOn: { background: C.gold, color: "#16201f", borderColor: C.gold },
+  claseTabOn: { background: "color-mix(in srgb, #ba843c 16%, transparent)", color: C.gold, borderColor: C.border },
 
   chips: { display: "flex", gap: 8, overflowX: "auto", padding: "10px 16px", flexWrap: "nowrap" },
   chip: {
