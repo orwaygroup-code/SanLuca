@@ -12,11 +12,12 @@ export const isCaptainOrManager = (role: StaffRole): boolean =>
  * ¿Puede este staff capturar/modificar la comanda?
  * - WAITER: solo SUS comandas (waiterId === su staffId).
  * - CAPTAIN / MANAGER: cualquiera.
- * - OPERATION: no captura items.
+ * - OPERATION: solo SUS comandas (las cuentas "para llevar" / sin mesa que ella
+ *   misma abre en Caja llevan su waiterId, y debe poder capturarles platillos).
  */
 export function canModifyComanda(role: StaffRole, isOwner: boolean): boolean {
   if (isCaptainOrManager(role)) return true;
-  if (role === "WAITER") return isOwner;
+  if (role === "WAITER" || role === "OPERATION") return isOwner;
   return false;
 }
 

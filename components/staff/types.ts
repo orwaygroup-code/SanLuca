@@ -170,7 +170,7 @@ export interface TableStatus {
   capacity: number;
   section: string;
   state: ComandaStatus | "FREE";
-  comanda: { id: number; folio: string; status: ComandaStatus; total: number; guests: number; waiter: { id: number; fullName: string } | null } | null;
+  comanda: { id: number; folio: string; status: ComandaStatus; total: number; guests: number; waiter: { id: number; fullName: string } | null; billPrinted: boolean } | null;
 }
 
 export interface ReservationToday {

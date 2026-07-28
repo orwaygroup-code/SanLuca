@@ -155,9 +155,13 @@ export default function OperacionPage() {
                         {t.comanda.folio} · {formatMXN(t.comanda.total)}
                       </div>
                       {t.comanda.waiter && <div style={{ color: C.faint, fontSize: "0.72rem" }}>{t.comanda.waiter.fullName}</div>}
-                      <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                      <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
                         <button style={{ ...btn.ghost, padding: "7px 12px", fontSize: "0.78rem" }} onClick={() => router.push(`/staff/comandas/${t.comanda!.id}`)}>Ver</button>
-                        <button style={{ ...btn.primary, padding: "7px 12px", fontSize: "0.78rem" }} onClick={() => setPayTarget(t.comanda!.id)}>Cobrar</button>
+                        {t.comanda.billPrinted ? (
+                          <button style={{ ...btn.primary, padding: "7px 12px", fontSize: "0.78rem" }} onClick={() => setPayTarget(t.comanda!.id)}>Cobrar</button>
+                        ) : (
+                          <span style={{ color: C.amber, fontSize: "0.72rem" }}>⚠ Falta imprimir la cuenta</span>
+                        )}
                       </div>
                     </>
                   )}
@@ -180,9 +184,13 @@ export default function OperacionPage() {
                       <Badge text={STATUS_LABEL[c.status] ?? c.status} color={STATUS_COLOR[c.status] ?? C.dim} />
                     </div>
                     <div style={{ color: C.cream, fontSize: "0.82rem", marginTop: 8 }}>{c.folio} · {formatMXN(Number(c.total))}</div>
-                    <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
                       <button style={{ ...btn.ghost, padding: "7px 12px", fontSize: "0.78rem" }} onClick={() => router.push(`/staff/comandas/${c.id}`)}>Ver</button>
-                      <button style={{ ...btn.primary, padding: "7px 12px", fontSize: "0.78rem" }} onClick={() => setPayTarget(c.id)}>Cobrar</button>
+                      {(c.prints ?? []).some((p) => p.type === "CUSTOMER_FINAL") ? (
+                        <button style={{ ...btn.primary, padding: "7px 12px", fontSize: "0.78rem" }} onClick={() => setPayTarget(c.id)}>Cobrar</button>
+                      ) : (
+                        <span style={{ color: C.amber, fontSize: "0.72rem" }}>⚠ Falta imprimir la cuenta</span>
+                      )}
                     </div>
                   </div>
                 ))}

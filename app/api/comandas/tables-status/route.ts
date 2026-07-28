@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
     select: {
       id: true, folio: true, status: true, tableId: true, total: true, guestsActual: true,
       waiter: { select: { id: true, fullName: true } },
+      prints: { where: { type: "CUSTOMER_FINAL" }, select: { id: true }, take: 1 }, // ¿ya se imprimió la cuenta?
     },
   });
   const byTable = new Map(activeComandas.map((c) => [c.tableId, c]));
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
       section: t.section.name,
       state: c ? c.status : "FREE",
       comanda: c
-        ? { id: c.id, folio: c.folio, status: c.status, total: Number(c.total), guests: c.guestsActual, waiter: c.waiter }
+        ? { id: c.id, folio: c.folio, status: c.status, total: Number(c.total), guests: c.guestsActual, waiter: c.waiter, billPrinted: c.prints.length > 0 }
         : null,
     };
   });

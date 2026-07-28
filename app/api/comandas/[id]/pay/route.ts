@@ -97,6 +97,12 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     return NextResponse.json<ApiResponse>({ success: false, error: `Comanda ${comanda.status}: no se puede cobrar` }, { status: 409 });
   }
 
+  // No cobrar sin haber impreso la cuenta primero (ticket físico antes del cobro).
+  const billPrints = await prisma.comandaPrint.count({ where: { comandaId: id, type: "CUSTOMER_FINAL" } });
+  if (billPrints === 0) {
+    return NextResponse.json<ApiResponse>({ success: false, error: "Imprime la cuenta antes de cobrar" }, { status: 409 });
+  }
+
   const total = round2(Number(comanda.total));
   const alreadyPaid = round2(Number(comanda.amountPaid));
   const outcome = computePaymentOutcome(total, alreadyPaid, lines);

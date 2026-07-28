@@ -457,10 +457,15 @@ export default function ComandaDetailPage() {
         {/* Acciones de CAJA (OPERATION/CAPTAIN/MANAGER). Las sensibles piden PIN. */}
         {isCashier && (cajaActive || isPaid) && (
           <section data-tour="caja" style={{ ...page.actions, marginTop: 12, borderTop: `1px solid ${C.line}`, paddingTop: 14 }}>
-            {cajaActive && (
+            {cajaActive && alreadyPrinted && (
               <button style={btn.primary} onClick={() => setPayOpen(true)} disabled={busy}>
                 Cobrar{amountPaid > 0 ? ` · restan ${formatMXN(remaining)}` : ""}
               </button>
+            )}
+            {cajaActive && !alreadyPrinted && (
+              <span style={{ color: C.amber, fontSize: "0.78rem", alignSelf: "center" }}>
+                ⚠ Imprime la cuenta antes de cobrar.
+              </span>
             )}
             {cajaActive && (
               <button style={btn.ghost} onClick={() => setDiscountTarget({})} disabled={busy || liveItems.length === 0}>Descuento a la cuenta</button>
