@@ -16,7 +16,7 @@ export interface CItem {
   dishNameSnapshot: string;
   unitPriceSnapshot: number | string;
   prepAreaSnapshot: PrepArea;
-  quantity: number;
+  quantity: number | string; // Decimal — puede ser fraccional (0.5, 1.5). Usar Number().
   modifiers: string | null;
   modifiersExtraCost: number | string;
   kitchenNotes: string | null;

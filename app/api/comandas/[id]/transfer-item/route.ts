@@ -62,18 +62,21 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   if (!item) return NextResponse.json<ApiResponse>({ success: false, error: "Producto no encontrado en la cuenta origen" }, { status: 404 });
   if (item.status === "CANCELLED") return NextResponse.json<ApiResponse>({ success: false, error: "El producto está cancelado" }, { status: 409 });
 
-  const qty = body?.quantity != null ? Number(body.quantity) : item.quantity;
-  if (!Number.isInteger(qty) || qty < 1 || qty > item.quantity) {
-    return NextResponse.json<ApiResponse>({ success: false, error: `Cantidad a traspasar inválida (1–${item.quantity})` }, { status: 400 });
+  const itemQty = Number(item.quantity);
+  const qty = body?.quantity != null ? Math.round(Number(body.quantity) * 100) / 100 : itemQty;
+  // Permite traspasar el renglón COMPLETO (aunque sea fraccional, p.ej. 0.5) o una
+  // cantidad ENTERA parcial. No fracciona un renglón en fracciones más chicas.
+  if (!(qty > 0) || qty > itemQty || (!Number.isInteger(qty) && qty !== itemQty)) {
+    return NextResponse.json<ApiResponse>({ success: false, error: `Cantidad a traspasar inválida (1–${itemQty})` }, { status: 400 });
   }
 
   const unitPrice = Number(item.unitPriceSnapshot);
   const modExtra = Number(item.modifiersExtraCost);
-  const movedDiscount = round2((Number(item.discountAmount) * qty) / item.quantity);
+  const movedDiscount = round2((Number(item.discountAmount) * qty) / itemQty);
   const movedLineTotal = calcLineTotal(unitPrice, qty, modExtra);
 
   const ops =
-    qty === item.quantity
+    qty === itemQty
       ? [
           // Traspaso total: reasigna el renglón completo.
           prisma.comandaItem.update({ where: { id: itemId }, data: { comandaId: toId } }),
@@ -83,8 +86,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           prisma.comandaItem.update({
             where: { id: itemId },
             data: {
-              quantity: item.quantity - qty,
-              lineTotal: calcLineTotal(unitPrice, item.quantity - qty, modExtra),
+              quantity: round2(itemQty - qty),
+              lineTotal: calcLineTotal(unitPrice, round2(itemQty - qty), modExtra),
               discountAmount: round2(Number(item.discountAmount) - movedDiscount),
             },
           }),

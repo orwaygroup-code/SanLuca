@@ -69,11 +69,11 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   }
 
   // Validar splits (si vienen) contra los items vivos de la comanda.
-  const maxQtyById = new Map(comanda.items.map((i) => [i.id, i.quantity]));
+  const maxQtyById = new Map(comanda.items.map((i) => [i.id, Number(i.quantity)]));
   const itemsById = new Map(
     comanda.items.map((i) => [i.id, {
       unitPriceSnapshot: Number(i.unitPriceSnapshot),
-      quantity: i.quantity,
+      quantity: Number(i.quantity),
       lineTotal: Number(i.lineTotal),
     }]),
   );
@@ -129,7 +129,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     );
   } else {
     const lines = comanda.items.map((i) => ({
-      qty: i.quantity, name: i.dishNameSnapshot, unit: Number(i.unitPriceSnapshot), total: Number(i.lineTotal),
+      qty: Number(i.quantity), name: i.dishNameSnapshot, unit: Number(i.unitPriceSnapshot), total: Number(i.lineTotal),
     }));
     await prisma.comandaPrint.create({
       data: {

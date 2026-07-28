@@ -15,6 +15,8 @@ function parseId(raw: string): number | null {
  * POST /api/comandas/:id/items — agrega un item. WAITER de SU comanda, o CAPTAIN/MANAGER.
  * Hace SNAPSHOT de nombre, precio y prepArea (si el menú cambia, la comanda conserva el suyo).
  * Body: { dishId, quantity?, modifiers?, modifiersExtraCost?, kitchenNotes? }
+ * quantity admite DECIMALES (medias/fracciones de producto, p.ej. 0.5, 1.5).
+ * Precio lineal: lineTotal = (precio + extra) × cantidad.
  */
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   const s = await getStaffSession(request);
@@ -41,7 +43,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   if (typeof dishId !== "string") {
     return NextResponse.json<ApiResponse>({ success: false, error: "dishId es obligatorio" }, { status: 400 });
   }
-  const qty = Number.isInteger(quantity) && quantity > 0 ? quantity : 1;
+  // Cantidad decimal: >0, redondeada a 2 decimales, acotada. Default 1 si es inválida.
+  const rawQty = typeof quantity === "number" && Number.isFinite(quantity) && quantity > 0 ? quantity : 1;
+  const qty = Math.min(999, Math.round(rawQty * 100) / 100);
   const extra = typeof modifiersExtraCost === "number" && modifiersExtraCost >= 0 ? modifiersExtraCost : 0;
 
   const dish = await prisma.dish.findFirst({ where: { id: dishId }, select: { name: true, price: true, prepArea: true } });

@@ -56,7 +56,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     ...areas.map((area) => {
       const areaItems = pending
         .filter((i) => i.prepAreaSnapshot === area)
-        .map((i) => ({ qty: i.quantity, name: i.dishNameSnapshot, notes: i.kitchenNotes ?? null, mods: i.modifiers ?? null }));
+        .map((i) => ({ qty: Number(i.quantity), name: i.dishNameSnapshot, notes: i.kitchenNotes ?? null, mods: i.modifiers ?? null }));
       // Snapshot listo-para-imprimir → el PrintBridge lo convierte a ESC/POS.
       const payload = {
         kind:   "kitchen",

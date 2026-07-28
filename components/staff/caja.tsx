@@ -579,7 +579,7 @@ export function TransferItemModal({ open, from, onClose, onDone, onError }: {
 
   const itemOptions = liveItems.map((i) => ({ value: String(i.id), label: `${i.quantity}× ${i.dishNameSnapshot}` }));
   const targetOptions = (list ?? []).map((c) => ({ value: String(c.id), label: `${c.folio} · Mesa ${c.table.number}` }));
-  const maxQty = selectedItem?.quantity ?? 1;
+  const maxQty = selectedItem ? Number(selectedItem.quantity) : 1;
 
   const submit = async () => {
     if (!from || !selectedItem || !toId) return;
@@ -604,7 +604,7 @@ export function TransferItemModal({ open, from, onClose, onDone, onError }: {
           <GoldSelect value={itemId} onChange={setItemId} options={itemOptions} placeholder="— Selecciona producto —" />
         )}
       </Field>
-      {selectedItem && selectedItem.quantity > 1 && (
+      {selectedItem && maxQty > 1 && (
         <Field label={`Cantidad (de ${maxQty})`}>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <button style={stepper} onClick={() => setQty((q) => Math.max(1, q - 1))}>−</button>

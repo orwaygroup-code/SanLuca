@@ -52,6 +52,8 @@ function row(left, right, w) {
 }
 function money(n) { return "$" + Number(n).toFixed(2); }
 function fmtTime(iso) { try { return new Date(iso).toLocaleString("es-MX"); } catch { return iso; } }
+// Cantidad: entera -> "2", fraccional -> "0.5" / "1.5" (sin ruido de float ni ".00").
+function qfmt(q) { return String(Math.round(Number(q) * 100) / 100); }
 
 function renderKitchen(p, w) {
   let o = INIT;
@@ -61,7 +63,7 @@ function renderKitchen(p, w) {
   o += center(fmtTime(p.time), w) + "\n";
   o += rule(w) + "\n";
   for (const it of p.items) {
-    o += BOLD_ON + it.qty + " x " + ascii(it.name) + BOLD_OFF + "\n";
+    o += BOLD_ON + qfmt(it.qty) + " x " + ascii(it.name) + BOLD_OFF + "\n";
     if (it.mods)  o += "   + " + ascii(it.mods) + "\n";
     if (it.notes) o += "   * " + ascii(it.notes) + "\n";
   }
@@ -79,7 +81,7 @@ function renderCustomer(p, w) {
   o += center(fmtTime(p.time), w) + "\n";
   o += rule(w) + "\n";
   for (const it of p.items) {
-    o += it.qty + " x " + ascii(it.name) + "\n";
+    o += qfmt(it.qty) + " x " + ascii(it.name) + "\n";
     o += row("   " + money(it.unit) + " c/u", money(it.total), w) + "\n";
   }
   o += rule(w) + "\n";

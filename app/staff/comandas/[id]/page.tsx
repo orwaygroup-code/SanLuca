@@ -10,6 +10,7 @@ import {
 import { apiFetch, type Comanda, type CItem, type PayResult, type CashSession, type CutSnapshot } from "@/components/staff/types";
 import { SplitBillModal } from "@/components/staff/SplitBillModal";
 import { PayModal, DiscountModal, MergeModal, TransferItemModal, ReopenModal } from "@/components/staff/caja";
+import { MenuSelector } from "@/components/staff/MenuSelector";
 import { buildTotalLines } from "@/lib/displayTotals";
 import { buildSplitsPayload, effectiveTaxRate, divisionMoney, unitsSubtotal } from "@/lib/splitBill";
 
@@ -22,6 +23,9 @@ const ITEM_STATUS_LABEL: Record<string, string> = {
 const ITEM_STATUS_COLOR: Record<string, string> = {
   PENDING: C.amber, SENT: C.blue, READY: C.green, SERVED: C.dim, CANCELLED: C.red,
 };
+
+/** Formatea cantidad decimal para mostrar: 0.5, 1.5, 2 (sin ruido de float). */
+const fmtQty = (q: number) => String(Math.round(q * 100) / 100);
 
 export default function ComandaDetailPage() {
   const router = useRouter();
@@ -40,6 +44,7 @@ export default function ComandaDetailPage() {
   const [cancelItem, setCancelItem] = useState<CItem | null>(null);
   const [askBill, setAskBill] = useState(false);
   const [reprint, setReprint] = useState(false);
+  const [clearAsk, setClearAsk] = useState(false);
 
   // ── caja ──
   const [payOpen, setPayOpen] = useState(false);
@@ -90,7 +95,10 @@ export default function ComandaDetailPage() {
   // ── división de cuenta (derivados) ──
   const itemById = useMemo(() => new Map(liveItems.map((i) => [i.id, i])), [liveItems]);
   const unitPriceById = useMemo(() => new Map(liveItems.map((i) => [i.id, Number(i.unitPriceSnapshot)])), [liveItems]);
-  const totalLiveUnits = useMemo(() => liveItems.reduce((s, i) => s + i.quantity, 0), [liveItems]);
+  const totalLiveUnits = useMemo(() => liveItems.reduce((s, i) => s + Number(i.quantity), 0), [liveItems]);
+  // ¿Alguna línea tiene cantidad fraccional? Si sí, la división POR UNIDAD se desactiva
+  // (las líneas fraccionales van completas a un ticket, no se subdividen).
+  const hasFractional = useMemo(() => liveItems.some((i) => !Number.isInteger(Number(i.quantity))), [liveItems]);
 
   // Unidades ya asignadas (a cualquier división), por itemId.
   const assignedQtyById = useMemo(() => {
@@ -102,18 +110,18 @@ export default function ComandaDetailPage() {
   // Items con unidades aún disponibles en la matriz (no asignadas a ninguna división).
   const matrixItemsWithQty = useMemo(() =>
     liveItems
-      .map((it) => ({ ...it, remainingQty: it.quantity - (assignedQtyById.get(it.id) ?? 0) }))
+      .map((it) => ({ ...it, remainingQty: Number(it.quantity) - (assignedQtyById.get(it.id) ?? 0) }))
       .filter((it) => it.remainingQty > 0),
     [liveItems, assignedQtyById]);
 
-  const canSplit = (editable ?? false) && !alreadyPrinted;
+  const canSplit = (editable ?? false) && !alreadyPrinted && !hasFractional;
 
   // Mantener las divisiones consistentes con los items vivos: si un item se
   // cancela se quita de sus divisiones; si una cantidad asignada excede la
   // ordenada actual se recorta; las divisiones que quedan vacías se descartan.
   // (Items nuevos no entran a ninguna división → caen a la matriz con qty completa.)
   useEffect(() => {
-    const maxById = new Map(liveItems.map((i) => [i.id, i.quantity]));
+    const maxById = new Map(liveItems.map((i) => [i.id, Number(i.quantity)]));
     setSplits((prev) => {
       let changed = false;
       const pruned: Map<number, number>[] = [];
@@ -177,6 +185,22 @@ export default function ComandaDetailPage() {
     else push(r.error ?? "No se pudo cancelar", "error");
   };
 
+  // Vaciar borrador: borra TODOS los platillos aún no enviados (status PENDING).
+  const clearDraft = async () => {
+    setClearAsk(false);
+    const pend = liveItems.filter((i) => i.status === "PENDING");
+    if (pend.length === 0) return;
+    setBusy(true);
+    for (const it of pend) {
+      await apiFetch(`/api/comandas/${id}/items/${it.id}`, {
+        method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}),
+      });
+    }
+    setBusy(false);
+    await refresh();
+    push("Borrador vaciado", "success");
+  };
+
   if (loading || (!comanda && !notFound)) return <div style={page.root}><Spinner /></div>;
 
   if (notFound) {
@@ -211,7 +235,7 @@ export default function ComandaDetailPage() {
     <div key={it.id} style={page.itemRow}>
       <div style={{ minWidth: 0 }}>
         <div style={{ color: C.cream, fontSize: "0.92rem", fontWeight: 600 }}>
-          {it.quantity}× {it.dishNameSnapshot}
+          {fmtQty(Number(it.quantity))}× {it.dishNameSnapshot}
         </div>
         {(it.modifiers || it.kitchenNotes) && (
           <div style={{ color: C.faint, fontSize: "0.74rem", marginTop: 2 }}>
@@ -342,6 +366,9 @@ export default function ComandaDetailPage() {
           {editable && pendingCount > 0 && (
             <button style={btn.primary} onClick={sendToKitchen} disabled={busy}>Enviar a cocina ({pendingCount})</button>
           )}
+          {editable && pendingCount > 0 && (
+            <button style={btn.ghost} onClick={() => setClearAsk(true)} disabled={busy}>Vaciar ({pendingCount})</button>
+          )}
           {editable && (
             <button style={btn.ghost} onClick={() => setAskBill(true)} disabled={busy || liveItems.length === 0}>Pedir cuenta</button>
           )}
@@ -389,7 +416,7 @@ export default function ComandaDetailPage() {
               table={`Mesa ${c.table.number}`}
               money={c}
               taxEnabled={taxEnabled}
-              items={previewSplits ? undefined : liveItems.map((i) => ({ name: i.dishNameSnapshot, qty: i.quantity, total: Number(i.lineTotal) }))}
+              items={previewSplits ? undefined : liveItems.map((i) => ({ name: i.dishNameSnapshot, qty: Number(i.quantity), total: Number(i.lineTotal) }))}
               splits={previewSplits}
               footer="¡Gracias por su visita!"
             />
@@ -397,8 +424,8 @@ export default function ComandaDetailPage() {
         )}
       </main>
 
-      {/* Menú para agregar */}
-      <MenuModal
+      {/* Menú para agregar (pantalla completa) */}
+      <MenuSelector
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         onAdd={async (dishId, quantity, modifiers, kitchenNotes) => {
@@ -413,7 +440,7 @@ export default function ComandaDetailPage() {
         <ConfirmModal
           open
           title="Cancelar platillo"
-          message={`¿Quitar «${cancelItem.quantity}× ${cancelItem.dishNameSnapshot}»? Aún no se ha enviado a cocina.`}
+          message={`¿Quitar «${fmtQty(Number(cancelItem.quantity))}× ${cancelItem.dishNameSnapshot}»? Aún no se ha enviado a cocina.`}
           confirmLabel="Quitar"
           danger
           busy={busy}
@@ -509,6 +536,17 @@ export default function ComandaDetailPage() {
         onClose={() => setReopenOpen(false)}
         onDone={(cc) => { setReopenOpen(false); setComanda(cc); push("Cuenta reabierta", "success"); }}
         onError={(m) => push(m, "error")}
+      />
+
+      <ConfirmModal
+        open={clearAsk}
+        title="Vaciar borrador"
+        message={`¿Borrar los ${pendingCount} platillo(s) por enviar? Aún no se mandan a cocina; esto no afecta lo ya enviado.`}
+        confirmLabel="Vaciar"
+        danger
+        busy={busy}
+        onConfirm={clearDraft}
+        onCancel={() => setClearAsk(false)}
       />
 
       <ToastHost toasts={toasts} onClose={dismiss} />

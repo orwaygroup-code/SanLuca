@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
 
     for (const it of c.items) {
       const d = dishes.get(it.dishNameSnapshot) ?? { qty: 0, revenue: 0 };
-      d.qty += it.quantity; d.revenue += Number(it.lineTotal); dishes.set(it.dishNameSnapshot, d);
+      d.qty += Number(it.quantity); d.revenue += Number(it.lineTotal); dishes.set(it.dishNameSnapshot, d);
     }
   }
 
