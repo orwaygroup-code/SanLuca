@@ -148,7 +148,7 @@ export default function ComandaDetailPage() {
       .filter((it) => it.remainingQty > 0),
     [liveItems, assignedQtyById]);
 
-  const canSplit = (editable ?? false) && !alreadyPrinted && !hasFractional;
+  const splittable = !alreadyPrinted && !hasFractional;
 
   // Mantener las divisiones consistentes con los items vivos: si un item se
   // cancela se quita de sus divisiones; si una cantidad asignada excede la
@@ -256,6 +256,7 @@ export default function ComandaDetailPage() {
   const isCashier = staff?.role === "OPERATION" || staff?.role === "CAPTAIN" || staff?.role === "MANAGER";
   const cajaActive = ["OPEN", "IN_SERVICE", "AWAITING_PAYMENT", "PARTIALLY_PAID"].includes(c.status);
   const isPaid = c.status === "PAID";
+  const awaitingBill = c.status === "AWAITING_PAYMENT"; // cuenta pedida, en espera de impresión/cobro en caja
   const amountPaid = Number(c.amountPaid);
   const remaining = Math.max(0, Math.round((Number(c.total) - amountPaid) * 100) / 100);
 
@@ -388,7 +389,7 @@ export default function ComandaDetailPage() {
                       <span style={{ color: C.gold, fontWeight: 700 }}>División {idx + 1}</span>
                       <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
                         <span style={{ color: C.cream, fontWeight: 700 }}>{formatMXN(unitsSubtotal(units, unitPriceById))}</span>
-                        {canSplit && (
+                        {splittable && (
                           <button style={page.splitRemove} onClick={() => removeSplit(idx)}>Eliminar</button>
                         )}
                       </span>
@@ -440,32 +441,39 @@ export default function ComandaDetailPage() {
           {editable && (
             <button style={btn.ghost} onClick={() => setAskBill(true)} disabled={busy || liveItems.length === 0}>Pedir cuenta</button>
           )}
-          {canSplit && totalLiveUnits > 1 && (
-            <button style={btn.ghost} onClick={() => setSplitOpen(true)} disabled={busy || matrixItemsWithQty.length === 0}>
-              {splits.length === 0 ? "Dividir cuenta" : "Dividir otra cuenta"}
-            </button>
-          )}
-          {!alreadyPrinted ? (
-            <button style={btn.primary} onClick={() => doPrint()} disabled={busy || liveItems.length === 0}>Imprimir cuenta</button>
-          ) : isSupervisor ? (
-            <button style={btn.ghost} onClick={() => setReprint(true)} disabled={busy}>Reimprimir (autorizado)</button>
-          ) : (
-            <span style={{ color: C.faint, fontSize: "0.76rem", alignSelf: "center" }}>Ticket ya impreso · reimpresión la autoriza Capitán</span>
+          {/* Cuenta ya pedida y el que la ve NO es caja (mesero): candado informativo. */}
+          {!editable && !isCashier && (
+            <span style={{ flexBasis: "100%", color: C.faint, fontSize: "0.82rem", display: "flex", alignItems: "center", gap: 6 }}>
+              🔒 Cuenta enviada a caja — ya no se puede modificar.
+            </span>
           )}
         </section>
 
         {/* Acciones de CAJA (OPERATION/CAPTAIN/MANAGER). Las sensibles piden PIN. */}
         {isCashier && (cajaActive || isPaid) && (
           <section data-tour="caja" style={{ ...page.actions, marginTop: 12, borderTop: `1px solid ${C.line}`, paddingTop: 14 }}>
+            {/* Cuenta pedida, sin imprimir: Perla imprime el ticket (o lo divide antes). */}
+            {awaitingBill && !alreadyPrinted && (
+              <span style={{ flexBasis: "100%", color: C.amber, fontWeight: 800, fontSize: "0.92rem", display: "flex", alignItems: "center", gap: 6 }}>
+                🧾 Requiere impresión de ticket
+              </span>
+            )}
+            {awaitingBill && !alreadyPrinted && (
+              <button style={btn.primary} onClick={() => doPrint()} disabled={busy || liveItems.length === 0}>Imprimir ticket</button>
+            )}
+            {awaitingBill && !alreadyPrinted && splittable && totalLiveUnits > 1 && (
+              <button style={btn.ghost} onClick={() => setSplitOpen(true)} disabled={busy || matrixItemsWithQty.length === 0}>
+                {splits.length === 0 ? "Dividir cuenta" : "Dividir otra cuenta"}
+              </button>
+            )}
+            {/* Ya impreso: cobrar (y reimpresión supervisada). */}
             {cajaActive && alreadyPrinted && (
               <button style={btn.primary} onClick={() => setPayOpen(true)} disabled={busy}>
                 Cobrar{amountPaid > 0 ? ` · restan ${formatMXN(remaining)}` : ""}
               </button>
             )}
-            {cajaActive && !alreadyPrinted && (
-              <span style={{ color: C.amber, fontSize: "0.78rem", alignSelf: "center" }}>
-                ⚠ Imprime la cuenta antes de cobrar.
-              </span>
+            {cajaActive && alreadyPrinted && isSupervisor && (
+              <button style={btn.ghost} onClick={() => setReprint(true)} disabled={busy}>Reimprimir (autorizado)</button>
             )}
             {cajaActive && (
               <button style={btn.ghost} onClick={() => setDiscountTarget({})} disabled={busy || liveItems.length === 0}>Descuento a la cuenta</button>

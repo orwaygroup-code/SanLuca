@@ -49,6 +49,7 @@ export default function OperacionPage() {
   const autoTourDone = useRef(false);
   const [takeout, setTakeout] = useState<Comanda[] | null>(null); // cuentas sin mesa (para llevar)
   const [newAccount, setNewAccount] = useState(false);
+  const [printing, setPrinting] = useState<number | null>(null); // comanda cuyo ticket se está imprimiendo
 
   const allowed = staff && ["OPERATION", "CAPTAIN", "MANAGER"].includes(staff.role);
 
@@ -83,6 +84,17 @@ export default function OperacionPage() {
     }
   }, [staff, allowed]);
   const closeTour = () => { setTourOpen(false); try { localStorage.setItem("sl_tour_operacion_v1", "1"); } catch { /* ignore */ } };
+
+  // Perla imprime el ticket de una cuenta ya pedida (target CAJA) → habilita el cobro.
+  const doPrintBill = async (comandaId: number) => {
+    setPrinting(comandaId);
+    const r = await apiFetch<Comanda>(`/api/comandas/${comandaId}/print`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: "{}",
+    });
+    setPrinting(null);
+    if (r.ok) { push("Ticket enviado a impresión", "success"); load(); }
+    else push(r.error ?? "No se pudo imprimir", "error");
+  };
 
   if (loading || !staff || !allowed) return <div style={page.root}><Spinner /></div>;
 
@@ -159,8 +171,12 @@ export default function OperacionPage() {
                         <button style={{ ...btn.ghost, padding: "7px 12px", fontSize: "0.78rem" }} onClick={() => router.push(`/staff/comandas/${t.comanda!.id}`)}>Ver</button>
                         {t.comanda.billPrinted ? (
                           <button style={{ ...btn.primary, padding: "7px 12px", fontSize: "0.78rem" }} onClick={() => setPayTarget(t.comanda!.id)}>Cobrar</button>
+                        ) : t.comanda.status === "AWAITING_PAYMENT" ? (
+                          <button style={{ ...btn.primary, padding: "7px 12px", fontSize: "0.78rem" }} onClick={() => doPrintBill(t.comanda!.id)} disabled={printing === t.comanda!.id}>
+                            {printing === t.comanda!.id ? "Imprimiendo…" : "🧾 Imprimir ticket"}
+                          </button>
                         ) : (
-                          <span style={{ color: C.amber, fontSize: "0.72rem" }}>⚠ Falta imprimir la cuenta</span>
+                          <span style={{ color: C.faint, fontSize: "0.72rem" }}>En servicio</span>
                         )}
                       </div>
                     </>
@@ -188,8 +204,12 @@ export default function OperacionPage() {
                       <button style={{ ...btn.ghost, padding: "7px 12px", fontSize: "0.78rem" }} onClick={() => router.push(`/staff/comandas/${c.id}`)}>Ver</button>
                       {(c.prints ?? []).some((p) => p.type === "CUSTOMER_FINAL") ? (
                         <button style={{ ...btn.primary, padding: "7px 12px", fontSize: "0.78rem" }} onClick={() => setPayTarget(c.id)}>Cobrar</button>
+                      ) : c.status === "AWAITING_PAYMENT" ? (
+                        <button style={{ ...btn.primary, padding: "7px 12px", fontSize: "0.78rem" }} onClick={() => doPrintBill(c.id)} disabled={printing === c.id}>
+                          {printing === c.id ? "Imprimiendo…" : "🧾 Imprimir ticket"}
+                        </button>
                       ) : (
-                        <span style={{ color: C.amber, fontSize: "0.72rem" }}>⚠ Falta imprimir la cuenta</span>
+                        <span style={{ color: C.faint, fontSize: "0.72rem" }}>En captura</span>
                       )}
                     </div>
                   </div>
