@@ -627,7 +627,7 @@ export default function ComandaDetailPage() {
 
 const page: Record<string, React.CSSProperties> = {
   root: { minHeight: "100vh", background: C.bg },
-  main: { padding: "18px", maxWidth: 720, margin: "0 auto", paddingBottom: 60 },
+  main: { padding: "18px", maxWidth: 960, margin: "0 auto", paddingBottom: 60 },
   head: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 },
   panel: { background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden", marginBottom: 14 },
   panelHead: { padding: "12px 18px", borderBottom: `1px solid ${C.line}`, color: C.faint, fontSize: "0.66rem", letterSpacing: "0.16em", textTransform: "uppercase", fontWeight: 700 },

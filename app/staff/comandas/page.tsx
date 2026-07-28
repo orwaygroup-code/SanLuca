@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStaffSession } from "@/lib/staff-session-client";
 import {
@@ -8,6 +8,15 @@ import {
   STATUS_LABEL, STATUS_COLOR, useToasts, ToastHost, useStaffLogout,
 } from "@/components/staff/ui";
 import { apiFetch, type Comanda, type TableStatus } from "@/components/staff/types";
+import { Tour, type TourStep } from "@/components/staff/Tour";
+
+/** Tutorial guiado de la vista Mesero (mis comandas). */
+const MESERO_TOUR: TourStep[] = [
+  { title: "Tus comandas", body: "Aquí ves solo las mesas y cuentas que TÚ tienes abiertas. Toca cualquiera para capturar platillos, cambiar cantidades o mandar a cocina/barra." },
+  { target: "nueva", title: "Abrir una mesa nueva", body: "Toca «+ Comanda»: primero eliges el área (Salón, Terraza, Privado…), luego la mesa libre y cuántos comensales son.", task: "Toca «+ Comanda» para probar." },
+  { target: "lista", title: "Tus cuentas activas", body: "Cada tarjeta muestra el folio, la mesa o nombre, cuántos platillos lleva y el total en vivo. Tócala para entrar a capturar." },
+  { title: "¿Dudas después?", body: "Puedes reabrir este tutorial cuando quieras con el botón «?» de arriba a la derecha." },
+];
 
 /**
  * Vista Mesero — lista de SUS comandas activas y apertura de comanda nueva.
@@ -21,6 +30,8 @@ export default function MeseroComandasPage() {
 
   const [comandas, setComandas] = useState<Comanda[] | null>(null);
   const [openModal, setOpenModal] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
+  const autoTourDone = useRef(false);
 
   const load = useCallback(async () => {
     const r = await apiFetch<Comanda[]>("/api/comandas");
@@ -33,6 +44,15 @@ export default function MeseroComandasPage() {
     if (staff) load();
   }, [loading, staff, router, load]);
 
+  // Auto-abrir el tutorial la primera vez (una vez por dispositivo).
+  useEffect(() => {
+    if (!autoTourDone.current && staff && typeof window !== "undefined" && !localStorage.getItem("sl_tour_comandas_v1")) {
+      autoTourDone.current = true;
+      setTourOpen(true);
+    }
+  }, [staff]);
+  const closeTour = () => { setTourOpen(false); try { localStorage.setItem("sl_tour_comandas_v1", "1"); } catch { /* ignore */ } };
+
   if (loading || !staff) return <div style={page.root}><Spinner /></div>;
 
   return (
@@ -42,10 +62,16 @@ export default function MeseroComandasPage() {
         role={staff.role}
         userName={staff.fullName}
         onLogout={logout}
-        right={<button style={btn.primary} onClick={() => setOpenModal(true)}>+ Comanda</button>}
+        right={
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button onClick={() => setTourOpen(true)} title="Tutorial" aria-label="Abrir tutorial"
+              style={{ width: 40, height: 40, borderRadius: 999, border: `1px solid ${C.border}`, background: "transparent", color: C.gold, fontWeight: 800, fontSize: "1.05rem", cursor: "pointer" }}>?</button>
+            <button data-tour="nueva" style={btn.primary} onClick={() => setOpenModal(true)}>+ Comanda</button>
+          </div>
+        }
       />
 
-      <main style={page.main}>
+      <main style={page.main} data-tour="lista">
         {comandas === null ? (
           <Spinner />
         ) : comandas.length === 0 ? (
@@ -80,6 +106,7 @@ export default function MeseroComandasPage() {
         onCreated={(id) => { setOpenModal(false); router.push(`/staff/comandas/${id}`); }}
         onError={(m) => push(m, "error")}
       />
+      <Tour steps={MESERO_TOUR} open={tourOpen} onClose={closeTour} />
       <ToastHost toasts={toasts} onClose={dismiss} />
     </div>
   );
@@ -106,7 +133,9 @@ function NewComandaModal({ open, defaultWaiterId, onClose, onCreated, onError }:
   }, [open, onError]);
 
   const freeTables = useMemo(() => (tables ?? []).filter((t) => t.state === "FREE"), [tables]);
-  const sections = useMemo(() => [...new Set(freeTables.map((t) => t.section))].sort(), [freeTables]);
+  // Áreas derivadas de TODAS las mesas activas (no solo las libres): así un área
+  // con su única mesa ocupada (p. ej. Privado) sigue apareciendo en el selector.
+  const sections = useMemo(() => [...new Set((tables ?? []).map((t) => t.section))].sort(), [tables]);
   const sectionTables = useMemo(
     () => freeTables.filter((t) => t.section === section).sort((a, b) => a.number - b.number),
     [freeTables, section],
@@ -202,7 +231,7 @@ const nc: Record<string, React.CSSProperties> = {
 
 const page: Record<string, React.CSSProperties> = {
   root: { minHeight: "100vh", background: C.bg },
-  main: { padding: "18px", maxWidth: 980, margin: "0 auto" },
+  main: { padding: "18px", maxWidth: 1200, margin: "0 auto" },
   grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 14 },
   card: {
     textAlign: "left", cursor: "pointer", background: C.panel, border: `1px solid ${C.border}`,

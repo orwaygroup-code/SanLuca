@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStaffSession } from "@/lib/staff-session-client";
 import {
-  C, StaffHeader, Spinner, EmptyState, Badge, Modal, ConfirmModal, btn, fld, formatMXN,
+  C, StaffHeader, Spinner, EmptyState, Badge, Modal, btn, fld, formatMXN,
   STATUS_LABEL, STATUS_COLOR, useToasts, ToastHost, useStaffLogout,
 } from "@/components/staff/ui";
 import { apiFetch, comandaLabel, type TableStatus, type ReservationToday, type Comanda, type CashSession, type CutSnapshot, type PayResult } from "@/components/staff/types";
@@ -38,8 +38,6 @@ export default function OperacionPage() {
   const [reservations, setReservations] = useState<ReservationToday[] | null>(null);
   const [tables, setTables] = useState<TableStatus[] | null>(null);
   const [seatRes, setSeatRes] = useState<ReservationToday | null>(null);
-  const [closeTarget, setCloseTarget] = useState<TableStatus | null>(null);
-  const [busy, setBusy] = useState(false);
 
   // ── caja / turno ──
   const [session, setSession] = useState<CashSession | null>(null);
@@ -85,16 +83,6 @@ export default function OperacionPage() {
     }
   }, [staff, allowed]);
   const closeTour = () => { setTourOpen(false); try { localStorage.setItem("sl_tour_operacion_v1", "1"); } catch { /* ignore */ } };
-
-  const doClose = async () => {
-    if (!closeTarget?.comanda) return;
-    setBusy(true);
-    const r = await apiFetch<Comanda>(`/api/comandas/${closeTarget.comanda.id}/close`, { method: "POST" });
-    setBusy(false);
-    setCloseTarget(null);
-    if (r.ok) { push("Comanda cerrada (pagada)", "success"); load(); }
-    else push(r.error ?? "No se pudo cerrar", "error");
-  };
 
   if (loading || !staff || !allowed) return <div style={page.root}><Spinner /></div>;
 
@@ -170,7 +158,6 @@ export default function OperacionPage() {
                       <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
                         <button style={{ ...btn.ghost, padding: "7px 12px", fontSize: "0.78rem" }} onClick={() => router.push(`/staff/comandas/${t.comanda!.id}`)}>Ver</button>
                         <button style={{ ...btn.primary, padding: "7px 12px", fontSize: "0.78rem" }} onClick={() => setPayTarget(t.comanda!.id)}>Cobrar</button>
-                        <button style={{ ...btn.ghost, padding: "7px 12px", fontSize: "0.72rem" }} onClick={() => setCloseTarget(t)}>Cerrar</button>
                       </div>
                     </>
                   )}
@@ -215,16 +202,6 @@ export default function OperacionPage() {
         onClose={() => setSeatRes(null)}
         onSeated={(id) => { setSeatRes(null); load(); router.push(`/staff/comandas/${id}`); }}
         onError={(m) => push(m, "error")}
-      />
-
-      <ConfirmModal
-        open={!!closeTarget}
-        title="Cerrar sin cobro"
-        message={closeTarget?.comanda ? `Marcar ${closeTarget.comanda.folio} (Mesa ${closeTarget.number}) como PAGADA y liberar la mesa SIN registrar cobro (cortesía / ya pagada aparte). Para cobrar en caja usa «Cobrar». ¿Continuar?` : ""}
-        confirmLabel="Cerrar sin cobro"
-        busy={busy}
-        onConfirm={doClose}
-        onCancel={() => setCloseTarget(null)}
       />
 
       <NuevaCuentaModal
@@ -380,10 +357,10 @@ const stepper: React.CSSProperties = {
 
 const page: Record<string, React.CSSProperties> = {
   root: { minHeight: "100vh", background: C.bg },
-  tabs: { display: "flex", gap: 6, padding: "12px 18px 0", maxWidth: 980, margin: "0 auto", width: "100%", boxSizing: "border-box" },
+  tabs: { display: "flex", gap: 6, padding: "12px 18px 0", maxWidth: 1200, margin: "0 auto", width: "100%", boxSizing: "border-box" },
   tab: { flex: 1, padding: "11px 0", borderRadius: 10, border: `1px solid ${C.line}`, background: "transparent", color: C.dim, fontWeight: 700, fontSize: "0.84rem", cursor: "pointer", fontFamily: "inherit" },
   tabOn: { background: C.panel, color: C.cream, borderColor: C.border },
-  main: { padding: "16px 18px", maxWidth: 980, margin: "0 auto" },
+  main: { padding: "16px 18px", maxWidth: 1200, margin: "0 auto" },
   list: { display: "flex", flexDirection: "column", gap: 10 },
   resRow: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px" },
   grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 },

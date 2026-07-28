@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStaffSession } from "@/lib/staff-session-client";
 import {
@@ -9,8 +9,17 @@ import {
 } from "@/components/staff/ui";
 import { apiFetch, type Comanda, type TableStatus } from "@/components/staff/types";
 import { GoldSelect } from "@/components/ui/GoldSelect";
+import { Tour, type TourStep } from "@/components/staff/Tour";
 
 interface WaiterOpt { id: number; fullName: string; role: string }
+
+/** Tutorial guiado de la vista Capitán. */
+const CAPITAN_TOUR: TourStep[] = [
+  { title: "Vista Capitán", body: "Supervisas TODAS las comandas del piso, sin importar de qué mesero sean. Desde aquí mueves mesas, reasignas meseros o cancelas cuentas." },
+  { target: "grid", title: "Todo el piso a la vista", body: "Cada tarjeta es una comanda activa: folio, mesa o cuenta, mesero, número de personas y total en vivo." },
+  { target: "acciones", title: "Acciones de supervisión", body: "En cada cuenta: «Ver» abre el detalle, «Mover mesa» la cambia de lugar, «Cambiar mesero» la reasigna, y «Cancelar» la anula (pide motivo para auditoría)." },
+  { target: "refrescar", title: "Mantén el piso al día", body: "El piso cambia rápido. Toca «↻» para refrescar la lista, o reabre este tutorial con el botón «?»." },
+];
 
 /** Vista Capitán — supervisión de todas las comandas: mover mesa, cambiar mesero, cancelar. */
 export default function CapitanPage() {
@@ -27,6 +36,8 @@ export default function CapitanPage() {
   const [moveTarget, setMoveTarget] = useState<Comanda | null>(null);
   const [waiterTarget, setWaiterTarget] = useState<Comanda | null>(null);
   const [cancelTarget, setCancelTarget] = useState<Comanda | null>(null);
+  const [tourOpen, setTourOpen] = useState(false);
+  const autoTourDone = useRef(false);
 
   const allowed = staff && (staff.role === "CAPTAIN" || staff.role === "MANAGER");
 
@@ -47,6 +58,15 @@ export default function CapitanPage() {
     if (staff && allowed) load();
   }, [loading, staff, allowed, router, load]);
 
+  // Auto-abrir el tutorial la primera vez (una vez por dispositivo).
+  useEffect(() => {
+    if (!autoTourDone.current && staff && allowed && typeof window !== "undefined" && !localStorage.getItem("sl_tour_capitan_v1")) {
+      autoTourDone.current = true;
+      setTourOpen(true);
+    }
+  }, [staff, allowed]);
+  const closeTour = () => { setTourOpen(false); try { localStorage.setItem("sl_tour_capitan_v1", "1"); } catch { /* ignore */ } };
+
   const act = useCallback(async (path: string, body: unknown, okMsg: string, done: () => void) => {
     setBusy(true);
     const r = await apiFetch<Comanda>(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -60,13 +80,19 @@ export default function CapitanPage() {
   return (
     <div style={page.root}>
       <StaffHeader title="Capitán" role={staff.role} userName={staff.fullName} onLogout={logout}
-        right={<button style={btn.ghost} onClick={load}>↻</button>} />
+        right={
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button onClick={() => setTourOpen(true)} title="Tutorial" aria-label="Abrir tutorial"
+              style={{ width: 40, height: 40, borderRadius: 999, border: `1px solid ${C.border}`, background: "transparent", color: C.gold, fontWeight: 800, fontSize: "1.05rem", cursor: "pointer" }}>?</button>
+            <button data-tour="refrescar" style={btn.ghost} onClick={load}>↻</button>
+          </div>
+        } />
 
       <main style={page.main}>
         {comandas === null ? <Spinner /> :
         comandas.length === 0 ? <EmptyState text="No hay comandas activas en el piso." /> : (
-          <div style={page.grid}>
-            {comandas.map((c) => {
+          <div style={page.grid} data-tour="grid">
+            {comandas.map((c, idx) => {
               const live = c.items.filter((i) => i.status !== "CANCELLED");
               return (
                 <div key={c.id} style={page.card}>
@@ -81,7 +107,7 @@ export default function CapitanPage() {
                     {c.waiter.fullName} · {c.guestsActual} pers · {live.length} items
                   </div>
                   <div style={{ color: C.cream, fontSize: "1.05rem", fontWeight: 800, margin: "8px 0 12px" }}>{formatMXN(Number(c.total))}</div>
-                  <div style={page.cardActions}>
+                  <div style={page.cardActions} data-tour={idx === 0 ? "acciones" : undefined}>
                     <button style={mini} onClick={() => router.push(`/staff/comandas/${c.id}`)}>Ver</button>
                     <button style={mini} onClick={() => setMoveTarget(c)}>Mover mesa</button>
                     <button style={mini} onClick={() => setWaiterTarget(c)}>Cambiar mesero</button>
@@ -130,6 +156,7 @@ export default function CapitanPage() {
         onCancel={() => setCancelTarget(null)}
       />
 
+      <Tour steps={CAPITAN_TOUR} open={tourOpen} onClose={closeTour} />
       <ToastHost toasts={toasts} onClose={dismiss} />
     </div>
   );
@@ -173,7 +200,7 @@ const mini: React.CSSProperties = {
 
 const page: Record<string, React.CSSProperties> = {
   root: { minHeight: "100vh", background: C.bg },
-  main: { padding: "18px", maxWidth: 1040, margin: "0 auto" },
+  main: { padding: "18px", maxWidth: 1200, margin: "0 auto" },
   grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: 14 },
   card: { background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, padding: "16px 16px 18px" },
   cardActions: { display: "flex", flexWrap: "wrap", gap: 7 },

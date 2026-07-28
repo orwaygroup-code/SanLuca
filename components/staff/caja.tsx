@@ -699,7 +699,7 @@ const bar: Record<string, React.CSSProperties> = {
   root: {
     display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
     background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12,
-    padding: "10px 14px", maxWidth: 980, margin: "12px auto 0", width: "100%", boxSizing: "border-box",
+    padding: "10px 14px", maxWidth: 1200, margin: "12px auto 0", width: "100%", boxSizing: "border-box",
   },
 };
 
