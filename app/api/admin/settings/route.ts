@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { resolveActor, requireAdminOrStaffManager } from "@/lib/dualAuth";
 import { TENANT } from "@/lib/comanda";
+import { normalizePolicy } from "@/lib/tips";
 import type { ApiResponse } from "@/types";
 
 /** Crea la fila de settings del tenant si no existe (IVA 16% activo por default). */
@@ -31,6 +33,10 @@ export async function PATCH(request: NextRequest) {
     data.taxRate = body.taxRate;
   } else if (body.taxRate !== undefined) {
     return NextResponse.json<ApiResponse>({ success: false, error: "taxRate inválido (0 ≤ x < 1)" }, { status: 400 });
+  }
+  // Política de reparto de propinas (punto% + áreas). Solo admin/manager la edita.
+  if (body.tipPolicy !== undefined) {
+    data.tipPolicy = normalizePolicy(body.tipPolicy) as unknown as Prisma.InputJsonValue;
   }
 
   await ensureSettings();

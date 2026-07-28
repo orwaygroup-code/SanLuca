@@ -3,13 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { requireCashier } from "@/lib/dualAuth";
 import { TENANT } from "@/lib/comanda";
 import { getOpenSession } from "@/lib/caja";
-import { loadWaiterBase, normalizeAreas, DEFAULT_TIP_AREAS } from "@/lib/tips";
+import { loadWaiterBase, normalizePolicy } from "@/lib/tips";
 import type { ApiResponse } from "@/types";
 
 /**
  * GET /api/caja/tips/current — datos del reparto de propinas del turno ABIERTO.
  * Devuelve: el turno, la base por mesero (ventas + propinas registradas), el
- * reparto ya guardado (si existe) y la política default de áreas. requireCashier.
+ * reparto ya guardado (si existe) y la POLÍTICA (punto% + áreas) — que solo el
+ * admin edita en Ajustes; Perla la ve pero no la cambia. requireCashier.
  */
 export async function GET(request: NextRequest) {
   const a = await requireCashier(request);
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
     prisma.restaurantSettings.findUnique({ where: { tenantId: TENANT }, select: { tipPolicy: true } }),
   ]);
 
-  const defaultAreas = settings?.tipPolicy ? normalizeAreas(settings.tipPolicy) : DEFAULT_TIP_AREAS;
+  const policy = normalizePolicy(settings?.tipPolicy);
 
-  return NextResponse.json<ApiResponse>({ success: true, data: { session, base, saved, defaultAreas } });
+  return NextResponse.json<ApiResponse>({ success: true, data: { session, base, saved, policy } });
 }

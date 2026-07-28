@@ -123,6 +123,7 @@ export interface PayResult {
 // ── Reparto de propinas / Puntos ─────────────────────────────────────────────
 
 export interface TipArea { name: string; percent: number }
+export interface TipPolicy { pointPercent: number; areas: TipArea[] }
 
 export interface WaiterBase {
   waiterId: number;
@@ -160,7 +161,7 @@ export interface TipsCurrent {
   session: CashSession | null;
   base?: WaiterBase[];
   saved?: TipSettlement | null;
-  defaultAreas?: TipArea[];
+  policy?: TipPolicy;
 }
 
 export interface TableStatus {
