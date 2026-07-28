@@ -150,6 +150,17 @@ function sendToPrinter(pr, data) {
   return pr.type === "share" ? sendToShare(pr, data) : sendToTcp(pr, data);
 }
 
+// Descripción legible de un destino (para el log de arranque). Soporta USB
+// (compartida de Windows), TCP de red, y destinos con varias impresoras.
+function descOne(pr) {
+  return pr.type === "share"
+    ? "USB \\\\localhost\\" + pr.share + " (" + (pr.width || 48) + "col)"
+    : (pr.ip || "?") + ":" + (pr.port || 9100) + " (" + (pr.width || 48) + "col)";
+}
+function descTarget(v) {
+  return (Array.isArray(v) ? v : [v]).map(descOne).join(" + ");
+}
+
 async function ack(id, ok, error) {
   try {
     await fetch(apiBaseUrl + "/api/print-jobs/" + id + "/ack", {
@@ -198,7 +209,7 @@ async function poll() {
 
 console.log("PrintBridge San Luca");
 console.log("  API:", apiBaseUrl, "| poll cada", pollIntervalMs, "ms");
-console.log("  Impresoras:", Object.entries(printers).map(([k, v]) => k + "=" + v.ip + ":" + (v.port || 9100) + " (" + (v.width || 48) + "col)").join("  "));
+console.log("  Impresoras:", Object.entries(printers).map(([k, v]) => k + "=" + descTarget(v)).join("  "));
 console.log("  Esperando tickets... (Ctrl+C para salir)\n");
 
 (async function loop() { for (;;) { await poll(); await sleep(pollIntervalMs); } })();

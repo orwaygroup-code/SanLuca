@@ -3,7 +3,7 @@
   "bridgeKey": "PON-AQUI-EL-MISMO-VALOR-DE-PRINT_BRIDGE_KEY-DEL-VPS",
   "pollIntervalMs": 3000,
   "printers": {
-    "CAJA":  { "type": "tcp", "ip": "192.168.0.12", "port": 9100, "width": 48 },
+    "CAJA":  { "type": "share", "share": "CAJA", "width": 48 },
     "BARRA": { "type": "tcp", "ip": "192.168.0.11", "port": 9100, "width": 48 },
     "COCINA": [
       { "type": "tcp", "ip": "192.168.0.12", "port": 9100, "width": 48 },
