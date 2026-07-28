@@ -56,13 +56,20 @@ export interface Comanda {
   cashSessionId: number | null;
   openedAt: string;
   closedAt: string | null;
-  tableId: string;
+  tableId: string | null;
+  customName: string | null; // nombre de la cuenta cuando no hay mesa (para llevar / cuenta X)
   waiterId: number;
   reservationId: string | null;
   items: CItem[];
   prints: CPrint[];
-  table: CTableRef;
+  table: CTableRef | null;
   waiter: CWaiterRef;
+}
+
+/** Etiqueta corta de una comanda: "Mesa 5" o el nombre de la cuenta sin mesa. */
+export function comandaLabel(c: { table: CTableRef | null; customName?: string | null }): string {
+  if (c.table) return `Mesa ${c.table.number}`;
+  return (c.customName && c.customName.trim()) || "Cuenta sin mesa";
 }
 
 // ── Caja / POS ──────────────────────────────────────────────────────────────

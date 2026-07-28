@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { C, Modal, Badge, Spinner, EmptyState, btn, fld, formatMXN } from "./ui";
 import {
   apiFetch,
+  comandaLabel,
   type Comanda,
   type CItem,
   type CashSession,
@@ -373,7 +374,7 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
       ) : (
         <>
           <div style={{ background: C.panel2, border: `1px solid ${C.line}`, borderRadius: 12, padding: "12px 14px" }}>
-            <div style={{ ...kv, color: C.dim }}><span>{comanda.folio} · Mesa {comanda.table.number}</span><span>Total {formatMXN(total)}</span></div>
+            <div style={{ ...kv, color: C.dim }}><span>{comanda.folio} · {comandaLabel(comanda)}</span><span>Total {formatMXN(total)}</span></div>
             {paidBefore > 0 && <div style={{ ...kv, color: C.faint, fontSize: "0.78rem" }}><span>Pagado antes</span><span>{formatMXN(paidBefore)}</span></div>}
             <div style={{ ...kv, color: C.cream, fontWeight: 800 }}><span>Saldo por cobrar</span><span>{formatMXN(remaining)}</span></div>
           </div>
@@ -515,7 +516,7 @@ export function MergeModal({ open, target, onClose, onDone, onError }: {
 
   // Solo cuentas sin pagos pueden juntarse (el endpoint lo exige).
   const candidates = (list ?? []).filter((c) => Number(c.amountPaid) === 0);
-  const options = candidates.map((c) => ({ value: String(c.id), label: `${c.folio} · Mesa ${c.table.number} · ${formatMXN(Number(c.total))}` }));
+  const options = candidates.map((c) => ({ value: String(c.id), label: `${c.folio} · ${comandaLabel(c)} · ${formatMXN(Number(c.total))}` }));
 
   const submit = async () => {
     if (!target || !sourceId) return;
@@ -578,7 +579,7 @@ export function TransferItemModal({ open, from, onClose, onDone, onError }: {
   useEffect(() => { setQty(1); }, [itemId]);
 
   const itemOptions = liveItems.map((i) => ({ value: String(i.id), label: `${i.quantity}× ${i.dishNameSnapshot}` }));
-  const targetOptions = (list ?? []).map((c) => ({ value: String(c.id), label: `${c.folio} · Mesa ${c.table.number}` }));
+  const targetOptions = (list ?? []).map((c) => ({ value: String(c.id), label: `${c.folio} · ${comandaLabel(c)}` }));
   const maxQty = selectedItem ? Number(selectedItem.quantity) : 1;
 
   const submit = async () => {

@@ -50,7 +50,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
   await prisma.$transaction([
     prisma.comandaTableChange.create({
-      data: { tenantId: TENANT, comandaId: id, fromTableId: comanda.tableId, toTableId, changedById: s.staffId, reason },
+      data: { tenantId: TENANT, comandaId: id, fromTableId: comanda.tableId ?? "", toTableId, changedById: s.staffId, reason },
     }),
     prisma.comanda.update({ where: { id }, data: { tableId: toTableId } }),
   ]);

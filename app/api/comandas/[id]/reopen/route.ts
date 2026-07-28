@@ -46,11 +46,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     return NextResponse.json<ApiResponse>({ success: false, error: `Solo se reabren cuentas PAID (esta está ${comanda.status})` }, { status: 409 });
   }
 
-  // La mesa no puede terminar con dos cuentas activas.
-  const busy = await prisma.comanda.findFirst({
-    where: { tenantId: TENANT, tableId: comanda.tableId, status: { in: [...ACTIVE_STATUSES] }, id: { not: id } },
-    select: { folio: true },
-  });
+  // La mesa no puede terminar con dos cuentas activas (solo aplica si tiene mesa).
+  const busy = comanda.tableId
+    ? await prisma.comanda.findFirst({
+        where: { tenantId: TENANT, tableId: comanda.tableId, status: { in: [...ACTIVE_STATUSES] }, id: { not: id } },
+        select: { folio: true },
+      })
+    : null;
   if (busy) {
     return NextResponse.json<ApiResponse>(
       { success: false, error: `La mesa ya tiene otra cuenta activa (${busy.folio}); no se puede reabrir aquí` },

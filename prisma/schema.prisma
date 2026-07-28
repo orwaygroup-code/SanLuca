@@ -615,8 +615,11 @@ model Comanda {
 
   folio String @unique // COM-2026-0001
 
-  tableId String // Table.id es cuid → String (adaptado del plan que decía Int)
-  table   Table  @relation(fields: [tableId], references: [id])
+  tableId String? // opcional: las cuentas "para llevar" / sin mesa no tienen mesa
+  table   Table?  @relation(fields: [tableId], references: [id])
+
+  // Nombre de la cuenta cuando NO hay mesa (para llevar / cuenta X): "Para llevar - Juan"
+  customName String?
 
   reservationId String?      @unique
   reservation   Reservation? @relation(fields: [reservationId], references: [id])

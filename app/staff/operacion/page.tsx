@@ -7,7 +7,7 @@ import {
   C, StaffHeader, Spinner, EmptyState, Badge, Modal, ConfirmModal, btn, fld, formatMXN,
   STATUS_LABEL, STATUS_COLOR, useToasts, ToastHost, useStaffLogout,
 } from "@/components/staff/ui";
-import { apiFetch, type TableStatus, type ReservationToday, type Comanda, type CashSession, type CutSnapshot, type PayResult } from "@/components/staff/types";
+import { apiFetch, comandaLabel, type TableStatus, type ReservationToday, type Comanda, type CashSession, type CutSnapshot, type PayResult } from "@/components/staff/types";
 import { GoldSelect } from "@/components/ui/GoldSelect";
 import { TurnoBar, OpenTurnoModal, CloseCashSessionModal, CajaMonitor, PayModal } from "@/components/staff/caja";
 import { Tour, type TourStep } from "@/components/staff/Tour";
@@ -16,7 +16,7 @@ import { Tour, type TourStep } from "@/components/staff/Tour";
 const OPERACION_TOUR: TourStep[] = [
   { title: "Tu vista de Caja y Hostess", body: "Desde aquí sientas reservas, ves las cuentas activas, cobras y haces el corte del turno." },
   { target: "turno", title: "Abre el cajón primero", body: "Antes de cobrar, abre el turno con el fondo inicial. Aquí mismo cierras la caja y haces el corte (arqueo + diferencia).", task: "Si no hay turno, toca «Abrir cajón»." },
-  { target: "tabs", title: "Tres pestañas", body: "«Reservas de hoy» para sentar, «Mesas» para ver cuentas activas y cobrar, y «Monitor» para la venta del turno en vivo." },
+  { target: "tabs", title: "Cuatro pestañas", body: "«Reservas» para sentar, «Mesas» para las cuentas activas, «Para llevar» para cuentas sin mesa (para llevar / cuenta X), y «Monitor» para la venta del turno." },
   { target: "monitor", title: "Monitor del turno (corte X)", body: "Cuánto llevas cobrado por método (efectivo/tarjeta/transferencia), propinas y el efectivo esperado en el cajón — sin cerrar nada.", task: "Toca «Monitor» para verlo." },
   { title: "A cobrar", body: "En «Mesas», toca «Cobrar» en una cuenta para registrar el pago (mixto/parcial/propina/cambio). Reabre este tutorial con «?» cuando quieras." },
 ];
@@ -33,7 +33,7 @@ export default function OperacionPage() {
   const logout = useStaffLogout();
   const { toasts, push, dismiss } = useToasts();
 
-  const [tab, setTab] = useState<"reservas" | "mesas" | "monitor">("reservas");
+  const [tab, setTab] = useState<"reservas" | "mesas" | "llevar" | "monitor">("reservas");
   const [reservations, setReservations] = useState<ReservationToday[] | null>(null);
   const [tables, setTables] = useState<TableStatus[] | null>(null);
   const [seatRes, setSeatRes] = useState<ReservationToday | null>(null);
@@ -48,6 +48,8 @@ export default function OperacionPage() {
   const [payTarget, setPayTarget] = useState<number | null>(null);
   const [tourOpen, setTourOpen] = useState(false);
   const autoTourDone = useRef(false);
+  const [takeout, setTakeout] = useState<Comanda[] | null>(null); // cuentas sin mesa (para llevar)
+  const [newAccount, setNewAccount] = useState(false);
 
   const allowed = staff && ["OPERATION", "CAPTAIN", "MANAGER"].includes(staff.role);
 
@@ -57,12 +59,14 @@ export default function OperacionPage() {
   }, []);
 
   const load = useCallback(async () => {
-    const [res, tbl] = await Promise.all([
+    const [res, tbl, cmd] = await Promise.all([
       apiFetch<ReservationToday[]>("/api/comandas/reservations-today"),
       apiFetch<TableStatus[]>("/api/comandas/tables-status"),
+      apiFetch<Comanda[]>("/api/comandas"),
     ]);
     if (res.ok) setReservations(res.data!); else { setReservations([]); push(res.error ?? "Error reservas", "error"); }
     if (tbl.ok) setTables(tbl.data!); else { setTables([]); push(tbl.error ?? "Error mesas", "error"); }
+    setTakeout(cmd.ok ? (cmd.data ?? []).filter((c) => !c.table) : []); // solo cuentas sin mesa
     await loadSession();
   }, [push, loadSession]);
 
@@ -116,6 +120,7 @@ export default function OperacionPage() {
       <div style={page.tabs} data-tour="tabs">
         <button style={{ ...page.tab, ...(tab === "reservas" ? page.tabOn : {}) }} onClick={() => setTab("reservas")}>Reservas de hoy</button>
         <button style={{ ...page.tab, ...(tab === "mesas" ? page.tabOn : {}) }} onClick={() => setTab("mesas")}>Mesas</button>
+        <button style={{ ...page.tab, ...(tab === "llevar" ? page.tabOn : {}) }} onClick={() => setTab("llevar")}>Para llevar</button>
         <button data-tour="monitor" style={{ ...page.tab, ...(tab === "monitor" ? page.tabOn : {}) }} onClick={() => { setTab("monitor"); loadSession(); }}>Monitor</button>
       </div>
 
@@ -172,6 +177,29 @@ export default function OperacionPage() {
             </div>
             )
           )
+        ) : tab === "llevar" ? (
+          <div>
+            <button style={{ ...btn.primary, marginBottom: 14 }} onClick={() => setNewAccount(true)}>+ Nueva cuenta (para llevar / sin mesa)</button>
+            {takeout === null ? <Spinner /> : takeout.length === 0 ? (
+              <EmptyState text="Sin cuentas para llevar. Crea una con «+ Nueva cuenta»." />
+            ) : (
+              <div style={page.grid}>
+                {takeout.map((c) => (
+                  <div key={c.id} style={{ ...page.tableCard, borderColor: STATUS_COLOR[c.status] ?? C.line }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                      <span style={{ color: C.cream, fontWeight: 800, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{comandaLabel(c)}</span>
+                      <Badge text={STATUS_LABEL[c.status] ?? c.status} color={STATUS_COLOR[c.status] ?? C.dim} />
+                    </div>
+                    <div style={{ color: C.cream, fontSize: "0.82rem", marginTop: 8 }}>{c.folio} · {formatMXN(Number(c.total))}</div>
+                    <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                      <button style={{ ...btn.ghost, padding: "7px 12px", fontSize: "0.78rem" }} onClick={() => router.push(`/staff/comandas/${c.id}`)}>Ver</button>
+                      <button style={{ ...btn.primary, padding: "7px 12px", fontSize: "0.78rem" }} onClick={() => setPayTarget(c.id)}>Cobrar</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         ) : (
           <CajaMonitor session={session} cut={cut} />
         )}
@@ -193,6 +221,14 @@ export default function OperacionPage() {
         busy={busy}
         onConfirm={doClose}
         onCancel={() => setCloseTarget(null)}
+      />
+
+      <NuevaCuentaModal
+        open={newAccount}
+        waiterId={staff.id}
+        onClose={() => setNewAccount(false)}
+        onCreated={(id) => { setNewAccount(false); router.push(`/staff/comandas/${id}`); }}
+        onError={(m) => push(m, "error")}
       />
 
       <OpenTurnoModal
@@ -289,6 +325,44 @@ function SeatModal({ res, freeTables, onClose, onSeated, onError }: {
         <button style={btn.ghost} onClick={onClose} disabled={busy}>Cancelar</button>
         <button style={{ ...btn.primary, opacity: !tableId || busy ? 0.5 : 1 }} onClick={seat} disabled={!tableId || busy}>
           {busy ? "Abriendo…" : "Abrir comanda"}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+// ─────────────────────────────────── Modal: cuenta sin mesa (para llevar) ──
+function NuevaCuentaModal({ open, waiterId, onClose, onCreated, onError }: {
+  open: boolean; waiterId: number;
+  onClose: () => void; onCreated: (id: number) => void; onError: (m: string) => void;
+}) {
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { if (open) { setName(""); setBusy(false); } }, [open]);
+
+  const submit = async () => {
+    if (!name.trim() || busy) return;
+    setBusy(true);
+    const r = await apiFetch<Comanda>("/api/comandas", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ customName: name.trim(), waiterId }),
+    });
+    setBusy(false);
+    if (r.ok) onCreated(r.data!.id);
+    else onError(r.error ?? "No se pudo crear la cuenta");
+  };
+
+  return (
+    <Modal open={open} title="Nueva cuenta sin mesa" onClose={onClose}>
+      <p style={{ margin: "0 0 4px", color: C.dim, fontSize: "0.86rem", lineHeight: 1.5 }}>
+        Para llevar, o una cuenta especial sin mesa. Ponle un nombre para identificarla.
+      </p>
+      <label style={{ ...fld.label, marginTop: 12 }}>Nombre de la cuenta</label>
+      <input style={fld.input} value={name} onChange={(e) => setName(e.target.value)} placeholder="ej. Para llevar - Juan, Cuenta barra 3" autoFocus />
+      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 22 }}>
+        <button style={btn.ghost} onClick={onClose} disabled={busy}>Cancelar</button>
+        <button style={{ ...btn.primary, opacity: !name.trim() || busy ? 0.5 : 1 }} onClick={submit} disabled={!name.trim() || busy}>
+          {busy ? "Creando…" : "Crear cuenta"}
         </button>
       </div>
     </Modal>

@@ -34,6 +34,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     select: {
       id: true, waiterId: true, folio: true,
       subtotal: true, taxAmount: true, total: true,
+      customName: true,
       table: { select: { number: true, section: { select: { name: true } } } },
       items: {
         where: { status: { not: "CANCELLED" } },
@@ -99,7 +100,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   };
 
   // Snapshot listo-para-imprimir del ticket de cliente → lo consume el PrintBridge.
-  const tableLabel = `Mesa ${comanda.table.number} - ${comanda.table.section.name}`;
+  const tableLabel = comanda.table ? `Mesa ${comanda.table.number} - ${comanda.table.section.name}` : (comanda.customName || "Cuenta sin mesa");
   const nowIso = new Date().toISOString();
   const itemInfo = new Map(
     comanda.items.map((i) => [i.id, { name: i.dishNameSnapshot, unit: Number(i.unitPriceSnapshot) }]),

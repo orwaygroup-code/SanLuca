@@ -8,7 +8,6 @@ import {
   STATUS_LABEL, STATUS_COLOR, useToasts, ToastHost, useStaffLogout,
 } from "@/components/staff/ui";
 import { apiFetch, type Comanda, type TableStatus } from "@/components/staff/types";
-import { GoldSelect } from "@/components/ui/GoldSelect";
 
 /**
  * Vista Mesero — lista de SUS comandas activas y apertura de comanda nueva.
@@ -60,7 +59,7 @@ export default function MeseroComandasPage() {
                   <Badge text={STATUS_LABEL[c.status] ?? c.status} color={STATUS_COLOR[c.status] ?? C.dim} />
                 </div>
                 <div style={{ color: C.cream, fontSize: "1.05rem", fontWeight: 700, marginTop: 8 }}>
-                  Mesa {c.table.number} · {c.table.section.name}
+                  {c.table ? `Mesa ${c.table.number} · ${c.table.section.name}` : (c.customName || "Cuenta sin mesa")}
                 </div>
                 <div style={{ color: C.dim, fontSize: "0.8rem", marginTop: 2 }}>
                   {c.guestsActual} pers · {c.items.filter((i) => i.status !== "CANCELLED").length} items
@@ -92,12 +91,14 @@ function NewComandaModal({ open, defaultWaiterId, onClose, onCreated, onError }:
   onClose: () => void; onCreated: (id: number) => void; onError: (m: string) => void;
 }) {
   const [tables, setTables] = useState<TableStatus[] | null>(null);
+  const [section, setSection] = useState("");
   const [tableId, setTableId] = useState("");
   const [guests, setGuests] = useState(2);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!open) { setTableId(""); setGuests(2); return; }
+    if (!open) { setSection(""); setTableId(""); setGuests(2); return; }
+    setTables(null);
     apiFetch<TableStatus[]>("/api/comandas/tables-status").then((r) => {
       if (r.ok) setTables(r.data!);
       else onError(r.error ?? "No se pudieron cargar las mesas");
@@ -105,6 +106,11 @@ function NewComandaModal({ open, defaultWaiterId, onClose, onCreated, onError }:
   }, [open, onError]);
 
   const freeTables = useMemo(() => (tables ?? []).filter((t) => t.state === "FREE"), [tables]);
+  const sections = useMemo(() => [...new Set(freeTables.map((t) => t.section))].sort(), [freeTables]);
+  const sectionTables = useMemo(
+    () => freeTables.filter((t) => t.section === section).sort((a, b) => a.number - b.number),
+    [freeTables, section],
+  );
 
   const submit = async () => {
     if (!tableId || busy) return;
@@ -120,28 +126,48 @@ function NewComandaModal({ open, defaultWaiterId, onClose, onCreated, onError }:
   };
 
   return (
-    <Modal open={open} title="Abrir comanda" onClose={onClose}>
+    <Modal open={open} title="Abrir mesa" onClose={onClose}>
       {tables === null ? (
         <Spinner label="Cargando mesas…" />
+      ) : freeTables.length === 0 ? (
+        <p style={{ color: C.amber, fontSize: "0.86rem", padding: "8px 0" }}>No hay mesas libres en este momento.</p>
       ) : (
         <>
-          <label style={fld.label}>Mesa libre</label>
-          <GoldSelect
-            value={tableId}
-            onChange={setTableId}
-            options={freeTables.map((t) => ({ value: t.id, label: `Mesa ${t.number} · ${t.section} (cap. ${t.capacity})` }))}
-            placeholder="— Selecciona mesa —"
-          />
-          {freeTables.length === 0 && (
-            <p style={{ color: C.amber, fontSize: "0.78rem", marginTop: 8 }}>No hay mesas libres en este momento.</p>
+          <label style={fld.label}>1 · Elige el área</label>
+          <div style={nc.chips}>
+            {sections.map((sec) => (
+              <button key={sec} onClick={() => { setSection(sec); setTableId(""); }} style={{ ...nc.chip, ...(section === sec ? nc.chipOn : {}) }}>{sec}</button>
+            ))}
+          </div>
+
+          {section && (
+            <>
+              <label style={{ ...fld.label, marginTop: 18 }}>2 · Mesa libre en {section}</label>
+              {sectionTables.length === 0 ? (
+                <p style={{ color: C.faint, fontSize: "0.82rem" }}>Sin mesas libres en esta área.</p>
+              ) : (
+                <div style={nc.chips}>
+                  {sectionTables.map((t) => (
+                    <button key={t.id} onClick={() => setTableId(t.id)} style={{ ...nc.tableChip, ...(tableId === t.id ? nc.chipOn : {}) }}>
+                      <span style={{ fontWeight: 800, fontSize: "0.95rem" }}>Mesa {t.number}</span>
+                      <span style={{ fontSize: "0.62rem", opacity: 0.75 }}>cap. {t.capacity}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
           )}
 
-          <label style={{ ...fld.label, marginTop: 16 }}>Comensales</label>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <button style={stepper} onClick={() => setGuests((g) => Math.max(1, g - 1))}>−</button>
-            <span style={{ color: C.cream, fontWeight: 800, fontSize: "1.2rem", minWidth: 36, textAlign: "center" }}>{guests}</span>
-            <button style={stepper} onClick={() => setGuests((g) => Math.min(40, g + 1))}>+</button>
-          </div>
+          {tableId && (
+            <>
+              <label style={{ ...fld.label, marginTop: 18 }}>3 · Comensales</label>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <button style={stepper} onClick={() => setGuests((g) => Math.max(1, g - 1))}>−</button>
+                <span style={{ color: C.cream, fontWeight: 800, fontSize: "1.2rem", minWidth: 36, textAlign: "center" }}>{guests}</span>
+                <button style={stepper} onClick={() => setGuests((g) => Math.min(40, g + 1))}>+</button>
+              </div>
+            </>
+          )}
 
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 22 }}>
             <button style={btn.ghost} onClick={onClose} disabled={busy}>Cancelar</button>
@@ -158,6 +184,20 @@ function NewComandaModal({ open, defaultWaiterId, onClose, onCreated, onError }:
 const stepper: React.CSSProperties = {
   width: 40, height: 40, borderRadius: 9, border: `1px solid ${C.line}`,
   background: "transparent", color: C.cream, fontSize: "1.3rem", cursor: "pointer",
+};
+
+const nc: Record<string, React.CSSProperties> = {
+  chips: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 },
+  chip: {
+    minHeight: 44, padding: "0 16px", borderRadius: 10, border: `1px solid ${C.line}`, background: "transparent",
+    color: C.dim, fontWeight: 700, fontSize: "0.86rem", cursor: "pointer", fontFamily: "inherit",
+  },
+  tableChip: {
+    minWidth: 78, minHeight: 56, padding: "6px 12px", borderRadius: 10, border: `1px solid ${C.line}`,
+    background: "transparent", color: C.cream, cursor: "pointer", fontFamily: "inherit",
+    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2,
+  },
+  chipOn: { background: C.gold, color: "#16201f", borderColor: C.gold },
 };
 
 const page: Record<string, React.CSSProperties> = {

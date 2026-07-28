@@ -12,10 +12,12 @@ function mxYear(): number {
 }
 
 /**
- * POST /api/comandas — abre una comanda en una mesa. Cualquier staff (WAITER+).
- * Body: { tableId, guests, reservationId?, waiterId?, notes? }
- * - waiterId default = quien abre (si es WAITER, él mismo).
- * - shift se detecta por la hora actual (brunch/cena).
+ * POST /api/comandas — abre una comanda. Cualquier staff (WAITER+).
+ * Body: { tableId?, guests?, reservationId?, waiterId?, notes?, customName? }
+ * - CON mesa: tableId + guests (regla "1 comanda activa por mesa").
+ * - SIN mesa (para llevar / cuenta X): customName (nombre) en vez de tableId; sin
+ *   límite de "1 por mesa" y guests default 1.
+ * - waiterId default = quien abre. shift por hora (brunch/cena).
  * - folio COM-AAAA-NNNN secuencial por año, con reintento ante carrera.
  */
 export async function POST(request: NextRequest) {
@@ -23,24 +25,33 @@ export async function POST(request: NextRequest) {
   if (!s) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));
-  const { tableId, guests, reservationId, waiterId, notes } = body || {};
-  if (typeof tableId !== "string" || typeof guests !== "number" || guests < 1) {
-    return NextResponse.json<ApiResponse>({ success: false, error: "tableId y guests son obligatorios" }, { status: 400 });
+  const { tableId, guests, reservationId, waiterId, notes, customName } = body || {};
+  const hasTable = typeof tableId === "string" && tableId.length > 0;
+  const name = typeof customName === "string" ? customName.trim().slice(0, 80) : "";
+  if (!hasTable && !name) {
+    return NextResponse.json<ApiResponse>({ success: false, error: "Indica una mesa, o un nombre para la cuenta sin mesa" }, { status: 400 });
+  }
+  // Comensales: obligatorio (≥1) con mesa; para cuenta sin mesa default 1.
+  const guestsN = typeof guests === "number" && guests >= 1 ? guests : (hasTable ? 0 : 1);
+  if (hasTable && guestsN < 1) {
+    return NextResponse.json<ApiResponse>({ success: false, error: "guests es obligatorio para una mesa" }, { status: 400 });
   }
 
-  const table = await prisma.table.findFirst({ where: { id: tableId }, select: { id: true } });
-  if (!table) return NextResponse.json<ApiResponse>({ success: false, error: "Mesa no encontrada" }, { status: 404 });
+  if (hasTable) {
+    const table = await prisma.table.findFirst({ where: { id: tableId }, select: { id: true } });
+    if (!table) return NextResponse.json<ApiResponse>({ success: false, error: "Mesa no encontrada" }, { status: 404 });
 
-  // Una mesa no puede tener 2 comandas activas a la vez.
-  const busy = await prisma.comanda.findFirst({
-    where: { tenantId: TENANT, tableId, status: { in: [...ACTIVE_STATUSES] } },
-    select: { id: true, folio: true },
-  });
-  if (busy) {
-    return NextResponse.json<ApiResponse>(
-      { success: false, error: `La mesa ya tiene una comanda activa (${busy.folio})` },
-      { status: 409 },
-    );
+    // Una mesa no puede tener 2 comandas activas a la vez (no aplica a cuentas sin mesa).
+    const busy = await prisma.comanda.findFirst({
+      where: { tenantId: TENANT, tableId, status: { in: [...ACTIVE_STATUSES] } },
+      select: { id: true, folio: true },
+    });
+    if (busy) {
+      return NextResponse.json<ApiResponse>(
+        { success: false, error: `La mesa ya tiene una comanda activa (${busy.folio})` },
+        { status: 409 },
+      );
+    }
   }
 
   // Si se especifica un waiterId distinto, validar que exista y esté activo
@@ -57,9 +68,10 @@ export async function POST(request: NextRequest) {
   const year = mxYear();
   const baseData = {
     tenantId: TENANT,
-    tableId,
+    tableId: hasTable ? tableId : null,
+    customName: hasTable ? null : name,
     reservationId: typeof reservationId === "string" ? reservationId : null,
-    guestsActual: guests,
+    guestsActual: guestsN,
     waiterId: typeof waiterId === "number" ? waiterId : s.staffId,
     openedById: s.staffId,
     shift,

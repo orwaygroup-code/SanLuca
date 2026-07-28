@@ -28,6 +28,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     select: {
       id: true, waiterId: true, status: true, folio: true, guestsActual: true,
       waiter: { select: { fullName: true } },
+      customName: true,
       table:  { select: { number: true, section: { select: { name: true } } } },
     },
   });
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   }
 
   const areas = Array.from(new Set(pending.map((i) => i.prepAreaSnapshot))); // BARRA / COCINA
-  const tableLabel = `Mesa ${comanda.table.number} - ${comanda.table.section.name}`;
+  const tableLabel = comanda.table ? `Mesa ${comanda.table.number} - ${comanda.table.section.name}` : (comanda.customName || "Cuenta sin mesa");
   const nowIso = new Date().toISOString();
 
   await prisma.$transaction([

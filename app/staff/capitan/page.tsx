@@ -75,7 +75,7 @@ export default function CapitanPage() {
                     <Badge text={STATUS_LABEL[c.status] ?? c.status} color={STATUS_COLOR[c.status] ?? C.dim} />
                   </div>
                   <div style={{ color: C.cream, fontSize: "1.05rem", fontWeight: 700, marginTop: 8 }}>
-                    Mesa {c.table.number} · {c.table.section.name}
+                    {c.table ? `Mesa ${c.table.number} · ${c.table.section.name}` : (c.customName || "Cuenta sin mesa")}
                   </div>
                   <div style={{ color: C.dim, fontSize: "0.8rem", marginTop: 2 }}>
                     {c.waiter.fullName} · {c.guestsActual} pers · {live.length} items
@@ -97,7 +97,7 @@ export default function CapitanPage() {
       {/* Mover mesa */}
       <PickModal
         open={!!moveTarget}
-        title={moveTarget ? `Mover ${moveTarget.folio} de Mesa ${moveTarget.table.number}` : ""}
+        title={moveTarget ? `Mover ${moveTarget.folio} de ${moveTarget.table ? `Mesa ${moveTarget.table.number}` : "cuenta sin mesa"}` : ""}
         label="Nueva mesa (libre)"
         options={freeTables.map((t) => ({ value: t.id, label: `Mesa ${t.number} · ${t.section} (cap. ${t.capacity})` }))}
         emptyMsg="No hay mesas libres."

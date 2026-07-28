@@ -345,7 +345,7 @@ export default function ComandaDetailPage() {
       <main style={page.main}>
         <div style={page.head}>
           <div>
-            <div style={{ color: C.cream, fontSize: "1.2rem", fontWeight: 800 }}>Mesa {c.table.number} · {c.table.section.name}</div>
+            <div style={{ color: C.cream, fontSize: "1.2rem", fontWeight: 800 }}>{c.table ? `Mesa ${c.table.number} · ${c.table.section.name}` : (c.customName || "Cuenta sin mesa")}</div>
             <div style={{ color: C.dim, fontSize: "0.84rem", marginTop: 2 }}>{c.guestsActual} comensales · mesero {c.waiter.fullName}</div>
           </div>
         </div>
@@ -468,7 +468,7 @@ export default function ComandaDetailPage() {
           <section style={{ marginTop: 18 }}>
             <TicketPreview
               folio={c.folio}
-              table={`Mesa ${c.table.number}`}
+              table={c.table ? `Mesa ${c.table.number}` : (c.customName || "Cuenta sin mesa")}
               money={c}
               taxEnabled={taxEnabled}
               items={previewSplits ? undefined : liveItems.map((i) => ({ name: i.dishNameSnapshot, qty: Number(i.quantity), total: Number(i.lineTotal) }))}
