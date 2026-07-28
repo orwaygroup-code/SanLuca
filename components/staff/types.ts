@@ -17,6 +17,7 @@ export interface CItem {
   unitPriceSnapshot: number | string;
   prepAreaSnapshot: PrepArea;
   quantity: number | string; // Decimal — puede ser fraccional (0.5, 1.5). Usar Number().
+  course: number; // "tiempo" del platillo (1º, 2º…) — agrupa/separa en el ticket
   modifiers: string | null;
   modifiersExtraCost: number | string;
   kitchenNotes: string | null;

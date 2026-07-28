@@ -25,6 +25,10 @@ const ITEM_STATUS_COLOR: Record<string, string> = {
 /** Formatea cantidad decimal para mostrar: 0.5, 1.5, 2 (sin ruido de float). */
 const fmtQty = (q: number) => String(Math.round(q * 100) / 100);
 
+/** Etiqueta de "tiempo" (curso): 1 → "1er tiempo", 2 → "2do tiempo"… */
+const COURSE_ORD = ["", "1er", "2do", "3er", "4to", "5to", "6to", "7mo", "8vo", "9no", "10mo"];
+const courseLabel = (n: number) => `${COURSE_ORD[n] ?? `${n}º`} tiempo`;
+
 export default function ComandaDetailPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
@@ -43,6 +47,7 @@ export default function ComandaDetailPage() {
   const [askBill, setAskBill] = useState(false);
   const [reprint, setReprint] = useState(false);
   const [clearAsk, setClearAsk] = useState(false);
+  const [currentCourse, setCurrentCourse] = useState(1); // "tiempo" al que se agregan nuevos platillos
 
   // ── caja ──
   const [payOpen, setPayOpen] = useState(false);
@@ -97,6 +102,12 @@ export default function ComandaDetailPage() {
   // ¿Alguna línea tiene cantidad fraccional? Si sí, la división POR UNIDAD se desactiva
   // (las líneas fraccionales van completas a un ticket, no se subdividen).
   const hasFractional = useMemo(() => liveItems.some((i) => !Number.isInteger(Number(i.quantity))), [liveItems]);
+
+  // "Tiempo actual" se mantiene al día con el máximo existente (nunca lo baja).
+  useEffect(() => {
+    const mc = liveItems.reduce((m, i) => Math.max(m, i.course || 1), 1);
+    setCurrentCourse((prev) => Math.max(prev, mc));
+  }, [liveItems]);
 
   // Unidades ya asignadas (a cualquier división), por itemId.
   const assignedQtyById = useMemo(() => {
@@ -309,7 +320,14 @@ export default function ComandaDetailPage() {
           {liveItems.length === 0 ? (
             <EmptyState text="Sin platillos. Agrega del menú." />
           ) : splits.length === 0 ? (
-            <div>{liveItems.map(renderItemRow)}</div>
+            <div>
+              {[...new Set(liveItems.map((i) => i.course))].sort((a, b) => a - b).map((cn, _i, arr) => (
+                <div key={cn}>
+                  {arr.length > 1 && <div style={page.courseSep}>{courseLabel(cn)}</div>}
+                  {liveItems.filter((i) => i.course === cn).map(renderItemRow)}
+                </div>
+              ))}
+            </div>
           ) : (
             <div>
               {/* Matriz (cuenta principal): unidades aún sin dividir */}
@@ -359,7 +377,10 @@ export default function ComandaDetailPage() {
         {/* Acciones */}
         <section style={page.actions}>
           {editable && (
-            <button style={btn.ghost} onClick={() => setMenuOpen(true)} disabled={busy}>+ Agregar platillos</button>
+            <button style={btn.ghost} onClick={() => setMenuOpen(true)} disabled={busy}>+ Agregar platillos ({courseLabel(currentCourse)})</button>
+          )}
+          {editable && (
+            <button style={btn.ghost} onClick={() => setCurrentCourse((prev) => prev + 1)} disabled={busy}>＋ Nuevo tiempo</button>
           )}
           {editable && pendingCount > 0 && (
             <button style={btn.primary} onClick={sendToKitchen} disabled={busy}>Enviar a cocina ({pendingCount})</button>
@@ -427,7 +448,7 @@ export default function ComandaDetailPage() {
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         onAdd={async (dishId, quantity, modifiers, kitchenNotes) => {
-          const ok = await post(`/api/comandas/${id}/items`, { dishId, quantity, modifiers, kitchenNotes }, "Platillo agregado");
+          const ok = await post(`/api/comandas/${id}/items`, { dishId, quantity, modifiers, kitchenNotes, course: currentCourse }, "Platillo agregado");
           return ok;
         }}
         busy={busy}
@@ -559,6 +580,7 @@ const page: Record<string, React.CSSProperties> = {
   head: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 },
   panel: { background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden", marginBottom: 14 },
   panelHead: { padding: "12px 18px", borderBottom: `1px solid ${C.line}`, color: C.faint, fontSize: "0.66rem", letterSpacing: "0.16em", textTransform: "uppercase", fontWeight: 700 },
+  courseSep: { padding: "8px 18px", background: "rgba(186,132,60,0.08)", borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.line}`, color: C.gold, fontSize: "0.68rem", letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 700 },
   itemRow: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "12px 18px", borderBottom: `1px solid ${C.line}` },
   cancelX: { width: 30, height: 30, borderRadius: 7, border: `1px solid ${C.red}`, background: "transparent", color: C.red, fontSize: "1.1rem", cursor: "pointer", lineHeight: 1 },
   discBtn: { width: 30, height: 30, borderRadius: 7, border: `1px solid ${C.gold}`, background: "transparent", color: C.gold, fontSize: "0.92rem", fontWeight: 700, cursor: "pointer", lineHeight: 1 },

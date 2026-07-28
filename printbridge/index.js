@@ -54,6 +54,9 @@ function money(n) { return "$" + Number(n).toFixed(2); }
 function fmtTime(iso) { try { return new Date(iso).toLocaleString("es-MX"); } catch { return iso; } }
 // Cantidad: entera -> "2", fraccional -> "0.5" / "1.5" (sin ruido de float ni ".00").
 function qfmt(q) { return String(Math.round(Number(q) * 100) / 100); }
+// Etiqueta de "tiempo" (curso): 1 -> "1er TIEMPO", 2 -> "2do TIEMPO"…
+const COURSE_ORD = ["", "1er", "2do", "3er", "4to", "5to", "6to", "7mo", "8vo", "9no", "10mo"];
+function courseLabel(n) { return (COURSE_ORD[n] || (n + "o")) + " TIEMPO"; }
 
 function renderKitchen(p, w) {
   let o = INIT;
@@ -62,7 +65,16 @@ function renderKitchen(p, w) {
   o += center(p.folio + " - " + ascii(p.waiter), w) + "\n";
   o += center(fmtTime(p.time), w) + "\n";
   o += rule(w) + "\n";
+  // Separadores de tiempo: solo si la comanda mezcla varios cursos.
+  const firstCourse = p.items.length ? (p.items[0].course || 1) : 1;
+  const multiCourse = p.items.some((x) => (x.course || 1) !== firstCourse);
+  let lastCourse = null;
   for (const it of p.items) {
+    const c = it.course || 1;
+    if (multiCourse && c !== lastCourse) {
+      o += "\n" + BOLD_ON + center("-- " + courseLabel(c) + " --", w) + BOLD_OFF + "\n";
+      lastCourse = c;
+    }
     o += BOLD_ON + qfmt(it.qty) + " x " + ascii(it.name) + BOLD_OFF + "\n";
     if (it.mods)  o += "   + " + ascii(it.mods) + "\n";
     if (it.notes) o += "   * " + ascii(it.notes) + "\n";

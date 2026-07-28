@@ -39,10 +39,12 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   }
 
   const body = await request.json().catch(() => ({}));
-  const { dishId, quantity, modifiers, modifiersExtraCost, kitchenNotes } = body || {};
+  const { dishId, quantity, modifiers, modifiersExtraCost, kitchenNotes, course } = body || {};
   if (typeof dishId !== "string") {
     return NextResponse.json<ApiResponse>({ success: false, error: "dishId es obligatorio" }, { status: 400 });
   }
+  // "tiempo" del platillo (1º, 2º…): entero ≥1, default 1.
+  const courseNum = Number.isInteger(course) && course >= 1 ? course : 1;
   // Cantidad decimal: >0, redondeada a 2 decimales, acotada. Default 1 si es inválida.
   const rawQty = typeof quantity === "number" && Number.isFinite(quantity) && quantity > 0 ? quantity : 1;
   const qty = Math.min(999, Math.round(rawQty * 100) / 100);
@@ -68,6 +70,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       unitPriceSnapshot: dish.price,
       prepAreaSnapshot: dish.prepArea,
       quantity: qty,
+      course: courseNum,
       modifiers: typeof modifiers === "string" ? modifiers : null,
       modifiersExtraCost: extra,
       kitchenNotes: typeof kitchenNotes === "string" ? kitchenNotes : null,

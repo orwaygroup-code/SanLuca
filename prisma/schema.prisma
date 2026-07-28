@@ -692,6 +692,8 @@ model ComandaItem {
 
   quantity Decimal @default(1) @db.Decimal(6, 2) // permite medias/decimales (0.5, 1.5…); precio lineal = cantidad × precio
 
+  course Int @default(1) // "tiempo" del platillo (1º, 2º, 3º…); agrupa/separa en el ticket de cocina
+
   modifiers          String? @db.Text
   modifiersExtraCost Decimal @default(0) @db.Decimal(10, 2)
   kitchenNotes       String? @db.Text
