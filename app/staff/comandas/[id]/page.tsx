@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useStaffSession } from "@/lib/staff-session-client";
 import {
@@ -11,6 +11,7 @@ import { apiFetch, type Comanda, type CItem, type PayResult, type CashSession, t
 import { SplitBillModal } from "@/components/staff/SplitBillModal";
 import { PayModal, DiscountModal, MergeModal, TransferItemModal, ReopenModal } from "@/components/staff/caja";
 import { MenuSelector } from "@/components/staff/MenuSelector";
+import { Tour, type TourStep } from "@/components/staff/Tour";
 import { buildTotalLines } from "@/lib/displayTotals";
 import { buildSplitsPayload, effectiveTaxRate, divisionMoney, unitsSubtotal } from "@/lib/splitBill";
 
@@ -28,6 +29,18 @@ const fmtQty = (q: number) => String(Math.round(q * 100) / 100);
 /** Etiqueta de "tiempo" (curso): 1 → "1er tiempo", 2 → "2do tiempo"… */
 const COURSE_ORD = ["", "1er", "2do", "3er", "4to", "5to", "6to", "7mo", "8vo", "9no", "10mo"];
 const courseLabel = (n: number) => `${COURSE_ORD[n] ?? `${n}º`} tiempo`;
+
+/** Tutorial guiado (estilo videojuego) de lo nuevo del comandero. */
+const COMANDERO_TOUR: TourStep[] = [
+  { title: "Bienvenido al comandero", body: "En un minuto te muestro lo nuevo para levantar pedidos rápido y sin errores." },
+  { target: "add", title: "El menú, a pantalla completa", body: "Eliges platillos navegando Comida/Brunch → Alimentos/Bebidas → sección → platillo, con fotos. Puedes pedir medias órdenes (½, 0.3, 1.5…) y dejar un comentario a cocina.", task: "Ábrelo tocando «+ Agregar platillos» y regresa aquí." },
+  { target: "course", title: "Tiempos del servicio", body: "Marca los tiempos (1er, 2do, 3er…). Lo que agregues después cae en ese tiempo y sale SEPARADO en el ticket de cocina.", task: "Toca «＋ Nuevo tiempo» para abrir el 2do tiempo." },
+  { target: "items", title: "Tu comanda en vivo", body: "Aquí ves lo que llevas, agrupado por tiempo. Toca la × de un platillo para quitarlo antes de enviarlo." },
+  { target: "send", title: "Enviar a cocina", body: "Manda lo pendiente a cocina y barra e imprime los tickets. Hasta que envíes, todo es un borrador editable." },
+  { target: "clear", title: "¿Te equivocaste?", body: "«Vaciar» borra de un golpe todo lo que aún NO enviaste. Lo ya enviado no se toca." },
+  { target: "caja", title: "Cobrar y más (Caja)", body: "Si eres Caja/Operación: aquí cobras (efectivo, tarjeta, mixto), aplicas descuentos con PIN, juntas o traspasas cuentas y reabres. El turno y el corte viven en la vista de Operación." },
+  { title: "¡Listo para el servicio!", body: "Eso es todo lo nuevo. Puedes reabrir este tutorial cuando quieras con el botón «?» del encabezado." },
+];
 
 export default function ComandaDetailPage() {
   const router = useRouter();
@@ -48,6 +61,8 @@ export default function ComandaDetailPage() {
   const [reprint, setReprint] = useState(false);
   const [clearAsk, setClearAsk] = useState(false);
   const [currentCourse, setCurrentCourse] = useState(1); // "tiempo" al que se agregan nuevos platillos
+  const [tourOpen, setTourOpen] = useState(false);
+  const autoTourDone = useRef(false);
 
   // ── caja ──
   const [payOpen, setPayOpen] = useState(false);
@@ -108,6 +123,16 @@ export default function ComandaDetailPage() {
     const mc = liveItems.reduce((m, i) => Math.max(m, i.course || 1), 1);
     setCurrentCourse((prev) => Math.max(prev, mc));
   }, [liveItems]);
+
+  // Auto-abrir el tutorial la primera vez que se carga una comanda (una vez por dispositivo).
+  useEffect(() => {
+    if (!autoTourDone.current && comanda && typeof window !== "undefined" && !localStorage.getItem("sl_tour_comandero_v1")) {
+      autoTourDone.current = true;
+      setTourOpen(true);
+    }
+  }, [comanda]);
+
+  const closeTour = () => { setTourOpen(false); try { localStorage.setItem("sl_tour_comandero_v1", "1"); } catch { /* ignore */ } };
 
   // Unidades ya asignadas (a cualquier división), por itemId.
   const assignedQtyById = useMemo(() => {
@@ -303,7 +328,18 @@ export default function ComandaDetailPage() {
         userName={staff?.fullName}
         onLogout={logout}
         onBack={() => router.push(backHref)}
-        right={<Badge text={STATUS_LABEL[c.status] ?? c.status} color={STATUS_COLOR[c.status] ?? C.dim} />}
+        right={
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button
+              data-tour="help"
+              onClick={() => setTourOpen(true)}
+              title="Tutorial"
+              aria-label="Abrir tutorial"
+              style={{ width: 40, height: 40, borderRadius: 999, border: `1px solid ${C.border}`, background: "transparent", color: C.gold, fontWeight: 800, fontSize: "1.05rem", cursor: "pointer" }}
+            >?</button>
+            <Badge text={STATUS_LABEL[c.status] ?? c.status} color={STATUS_COLOR[c.status] ?? C.dim} />
+          </div>
+        }
       />
 
       <main style={page.main}>
@@ -315,7 +351,7 @@ export default function ComandaDetailPage() {
         </div>
 
         {/* Items */}
-        <section style={page.panel}>
+        <section style={page.panel} data-tour="items">
           <div style={page.panelHead}>Platillos</div>
           {liveItems.length === 0 ? (
             <EmptyState text="Sin platillos. Agrega del menú." />
@@ -377,16 +413,16 @@ export default function ComandaDetailPage() {
         {/* Acciones */}
         <section style={page.actions}>
           {editable && (
-            <button style={btn.ghost} onClick={() => setMenuOpen(true)} disabled={busy}>+ Agregar platillos ({courseLabel(currentCourse)})</button>
+            <button data-tour="add" style={btn.ghost} onClick={() => setMenuOpen(true)} disabled={busy}>+ Agregar platillos ({courseLabel(currentCourse)})</button>
           )}
           {editable && (
-            <button style={btn.ghost} onClick={() => setCurrentCourse((prev) => prev + 1)} disabled={busy}>＋ Nuevo tiempo</button>
+            <button data-tour="course" style={btn.ghost} onClick={() => setCurrentCourse((prev) => prev + 1)} disabled={busy}>＋ Nuevo tiempo</button>
           )}
           {editable && pendingCount > 0 && (
-            <button style={btn.primary} onClick={sendToKitchen} disabled={busy}>Enviar a cocina ({pendingCount})</button>
+            <button data-tour="send" style={btn.primary} onClick={sendToKitchen} disabled={busy}>Enviar a cocina ({pendingCount})</button>
           )}
           {editable && pendingCount > 0 && (
-            <button style={btn.ghost} onClick={() => setClearAsk(true)} disabled={busy}>Vaciar ({pendingCount})</button>
+            <button data-tour="clear" style={btn.ghost} onClick={() => setClearAsk(true)} disabled={busy}>Vaciar ({pendingCount})</button>
           )}
           {editable && (
             <button style={btn.ghost} onClick={() => setAskBill(true)} disabled={busy || liveItems.length === 0}>Pedir cuenta</button>
@@ -407,7 +443,7 @@ export default function ComandaDetailPage() {
 
         {/* Acciones de CAJA (OPERATION/CAPTAIN/MANAGER). Las sensibles piden PIN. */}
         {isCashier && (cajaActive || isPaid) && (
-          <section style={{ ...page.actions, marginTop: 12, borderTop: `1px solid ${C.line}`, paddingTop: 14 }}>
+          <section data-tour="caja" style={{ ...page.actions, marginTop: 12, borderTop: `1px solid ${C.line}`, paddingTop: 14 }}>
             {cajaActive && (
               <button style={btn.primary} onClick={() => setPayOpen(true)} disabled={busy}>
                 Cobrar{amountPaid > 0 ? ` · restan ${formatMXN(remaining)}` : ""}
@@ -567,6 +603,8 @@ export default function ComandaDetailPage() {
         onConfirm={clearDraft}
         onCancel={() => setClearAsk(false)}
       />
+
+      <Tour steps={COMANDERO_TOUR} open={tourOpen} onClose={closeTour} />
 
       <ToastHost toasts={toasts} onClose={dismiss} />
     </div>

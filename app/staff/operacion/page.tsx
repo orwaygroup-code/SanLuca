@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStaffSession } from "@/lib/staff-session-client";
 import {
@@ -10,6 +10,16 @@ import {
 import { apiFetch, type TableStatus, type ReservationToday, type Comanda, type CashSession, type CutSnapshot, type PayResult } from "@/components/staff/types";
 import { GoldSelect } from "@/components/ui/GoldSelect";
 import { TurnoBar, OpenTurnoModal, CloseCashSessionModal, CajaMonitor, PayModal } from "@/components/staff/caja";
+import { Tour, type TourStep } from "@/components/staff/Tour";
+
+/** Tutorial guiado de la vista Caja / Operación. */
+const OPERACION_TOUR: TourStep[] = [
+  { title: "Tu vista de Caja y Hostess", body: "Desde aquí sientas reservas, ves las cuentas activas, cobras y haces el corte del turno." },
+  { target: "turno", title: "Abre el cajón primero", body: "Antes de cobrar, abre el turno con el fondo inicial. Aquí mismo cierras la caja y haces el corte (arqueo + diferencia).", task: "Si no hay turno, toca «Abrir cajón»." },
+  { target: "tabs", title: "Tres pestañas", body: "«Reservas de hoy» para sentar, «Mesas» para ver cuentas activas y cobrar, y «Monitor» para la venta del turno en vivo." },
+  { target: "monitor", title: "Monitor del turno (corte X)", body: "Cuánto llevas cobrado por método (efectivo/tarjeta/transferencia), propinas y el efectivo esperado en el cajón — sin cerrar nada.", task: "Toca «Monitor» para verlo." },
+  { title: "A cobrar", body: "En «Mesas», toca «Cobrar» en una cuenta para registrar el pago (mixto/parcial/propina/cambio). Reabre este tutorial con «?» cuando quieras." },
+];
 
 const MX_TZ = "America/Mexico_City";
 function hhmm(iso: string): string {
@@ -36,6 +46,8 @@ export default function OperacionPage() {
   const [openTurno, setOpenTurno] = useState(false);
   const [closeTurno, setCloseTurno] = useState(false);
   const [payTarget, setPayTarget] = useState<number | null>(null);
+  const [tourOpen, setTourOpen] = useState(false);
+  const autoTourDone = useRef(false);
 
   const allowed = staff && ["OPERATION", "CAPTAIN", "MANAGER"].includes(staff.role);
 
@@ -60,6 +72,15 @@ export default function OperacionPage() {
     if (staff && allowed) load();
   }, [loading, staff, allowed, router, load]);
 
+  // Auto-abrir el tutorial la primera vez (una vez por dispositivo).
+  useEffect(() => {
+    if (!autoTourDone.current && staff && allowed && typeof window !== "undefined" && !localStorage.getItem("sl_tour_operacion_v1")) {
+      autoTourDone.current = true;
+      setTourOpen(true);
+    }
+  }, [staff, allowed]);
+  const closeTour = () => { setTourOpen(false); try { localStorage.setItem("sl_tour_operacion_v1", "1"); } catch { /* ignore */ } };
+
   const doClose = async () => {
     if (!closeTarget?.comanda) return;
     setBusy(true);
@@ -81,15 +102,21 @@ export default function OperacionPage() {
         role={staff.role}
         userName={staff.fullName}
         onLogout={logout}
-        right={<button style={btn.ghost} onClick={load}>↻</button>}
+        right={
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button data-tour="help" onClick={() => setTourOpen(true)} title="Tutorial" aria-label="Abrir tutorial"
+              style={{ width: 40, height: 40, borderRadius: 999, border: `1px solid ${C.border}`, background: "transparent", color: C.gold, fontWeight: 800, fontSize: "1.05rem", cursor: "pointer" }}>?</button>
+            <button style={btn.ghost} onClick={load}>↻</button>
+          </div>
+        }
       />
 
-      <TurnoBar session={session} cut={cut} onOpenTurno={() => setOpenTurno(true)} onCloseTurno={() => setCloseTurno(true)} />
+      <div data-tour="turno"><TurnoBar session={session} cut={cut} onOpenTurno={() => setOpenTurno(true)} onCloseTurno={() => setCloseTurno(true)} /></div>
 
-      <div style={page.tabs}>
+      <div style={page.tabs} data-tour="tabs">
         <button style={{ ...page.tab, ...(tab === "reservas" ? page.tabOn : {}) }} onClick={() => setTab("reservas")}>Reservas de hoy</button>
         <button style={{ ...page.tab, ...(tab === "mesas" ? page.tabOn : {}) }} onClick={() => setTab("mesas")}>Mesas</button>
-        <button style={{ ...page.tab, ...(tab === "monitor" ? page.tabOn : {}) }} onClick={() => { setTab("monitor"); loadSession(); }}>Monitor</button>
+        <button data-tour="monitor" style={{ ...page.tab, ...(tab === "monitor" ? page.tabOn : {}) }} onClick={() => { setTab("monitor"); loadSession(); }}>Monitor</button>
       </div>
 
       <main style={page.main}>
@@ -201,6 +228,8 @@ export default function OperacionPage() {
         }}
         onError={(m) => push(m, "error")}
       />
+
+      <Tour steps={OPERACION_TOUR} open={tourOpen} onClose={closeTour} />
 
       <ToastHost toasts={toasts} onClose={dismiss} />
     </div>
