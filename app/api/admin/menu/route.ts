@@ -13,7 +13,7 @@ import type { ApiResponse } from "@/types";
 const DISH_SELECT = {
   id: true, name: true, description: true, price: true, imageUrl: true,
   available: true, isExtra: true, position: true, prepArea: true, categoryId: true,
-  category: { select: { id: true, name: true } },
+  category: { select: { id: true, name: true, cartaId: true, carta: { select: { id: true, name: true, turno: true, clase: true } } } },
   createdAt: true,
 } as const;
 
@@ -26,12 +26,14 @@ export async function GET(request: NextRequest) {
   const isExtra = searchParams.get("isExtra");
   const q = searchParams.get("q")?.trim();
   const categoryId = searchParams.get("categoryId");
+  const cartaId = searchParams.get("cartaId");
   const available = searchParams.get("available");
 
   const dishes = await prisma.dish.findMany({
     where: {
       ...(isExtra === "true" ? { isExtra: true } : isExtra === "false" ? { isExtra: false } : {}),
       ...(categoryId ? { categoryId } : {}),
+      ...(cartaId ? { category: { cartaId } } : {}),
       ...(available === "true" ? { available: true } : available === "false" ? { available: false } : {}),
       ...(q ? { OR: [
         { name: { contains: q, mode: "insensitive" } },

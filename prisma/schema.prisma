@@ -125,11 +125,33 @@ model Staff {
 // MENÚ
 // ============================================
 
+enum MenuTurno {
+  COMIDA
+  BRUNCH
+}
+
+// Carta = agrupación de categorías dentro de un turno (nivel 2 del menú).
+// Ej: Comida→Clásica (COCINA), Comida→Vinos (BARRA), Brunch→Brunch (COCINA).
+// `clase` reusa PrepArea: COCINA = alimentos, BARRA = bebidas.
+model Carta {
+  id         String         @id @default(cuid())
+  name       String // "Clásica", "Autor", "Bebidas", "Postres", "Destilados", "Vinos", "Brunch"
+  turno      MenuTurno
+  clase      PrepArea // COCINA = alimentos, BARRA = bebidas
+  position   Int?
+  categories MenuCategory[]
+  createdAt  DateTime       @default(now())
+
+  @@unique([turno, name])
+}
+
 model MenuCategory {
   id        String   @id @default(cuid())
   name      String
   position  Int?
   imageUrl  String?
+  cartaId   String? // FK a Carta (turno + clase). Null = sin clasificar aún.
+  carta     Carta?   @relation(fields: [cartaId], references: [id])
   dishes    Dish[]
   createdAt DateTime @default(now())
 }

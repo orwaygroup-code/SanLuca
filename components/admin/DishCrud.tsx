@@ -6,43 +6,47 @@ import { useSession } from "@/lib/session-client";
 import { GoldSelect, type SelectOption } from "@/components/ui/GoldSelect";
 
 /**
- * CRUD de platillos del menú (y de "Extras"). Un extra es un Dish con
- * isExtra=true: oculto del menú público, pero pedible por meseros y con su precio
- * especial. `available` = "Mostrar en menú". Solo ADMIN. Mismo componente para
- * ambos apartados vía la prop `isExtra`.
+ * CRUD de platillos del menú (y de "Extras"). Jerarquía: Turno (Comida/Brunch) →
+ * Carta → Categoría → Platillo. La "clase" de una carta (Alimentos=COCINA /
+ * Bebidas=BARRA) filtra qué cartas aplican y da el prepArea del platillo. Un extra
+ * es un Dish con isExtra=true (oculto del menú público, pedible por meseros). Solo
+ * ADMIN. Mismo componente para ambos apartados vía la prop `isExtra`.
  */
 
-type PrepArea = "BARRA" | "COCINA";
+type Turno = "COMIDA" | "BRUNCH";
+type Clase = "COCINA" | "BARRA";
 
+interface CartaRef { id: string; name: string; turno: Turno; clase: Clase }
 interface DishRow {
   id: string; name: string; description: string | null; price: number;
   imageUrl: string | null; available: boolean; isExtra: boolean;
-  position: number | null; prepArea: PrepArea | null;
-  categoryId: string; category: { id: string; name: string } | null; createdAt: string;
+  position: number | null; prepArea: Clase | null;
+  categoryId: string; category: { id: string; name: string; cartaId: string | null; carta: CartaRef | null } | null;
+  createdAt: string;
 }
-interface CatRow { id: string; name: string; position: number | null; _count?: { dishes: number } }
+interface CartaRow { id: string; name: string; turno: Turno; clase: Clase; position: number | null; _count?: { categories: number } }
+interface CatRow { id: string; name: string; position: number | null; cartaId: string | null }
 
 const money = (n: number) => "$" + Number(n).toFixed(2);
-const PREP_LABEL: Record<PrepArea, string> = { COCINA: "Alimentos", BARRA: "Bebidas" };
-const PREP_OPTIONS: SelectOption[] = [
-  { value: "", label: "— Sin área —" },
-  { value: "COCINA", label: "Alimentos (cocina)" },
-  { value: "BARRA", label: "Bebidas (barra)" },
-];
+const TURNO_LABEL: Record<Turno, string> = { COMIDA: "Comida", BRUNCH: "Brunch" };
+const TURNO_OPTIONS: SelectOption[] = [{ value: "COMIDA", label: "Comida" }, { value: "BRUNCH", label: "Brunch" }];
+const CLASE_OPTIONS: SelectOption[] = [{ value: "COCINA", label: "Alimentos (cocina)" }, { value: "BARRA", label: "Bebidas (barra)" }];
 const AVAIL_FILTER: SelectOption[] = [
   { value: "", label: "Visibles y ocultos" },
   { value: "true", label: "Solo visibles en menú" },
   { value: "false", label: "Solo ocultos" },
 ];
 
+async function getJson(url: string) { const r = await fetch(url, { credentials: "same-origin" }); return r.json().catch(() => null); }
+
 export function DishCrud({ isExtra }: { isExtra: boolean }) {
   const router = useRouter();
   const session = useSession();
 
   const [rows, setRows] = useState<DishRow[]>([]);
-  const [cats, setCats] = useState<CatRow[]>([]);
+  const [cartas, setCartas] = useState<CartaRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [catFilter, setCatFilter] = useState("");
+  const [cartaFilter, setCartaFilter] = useState("");
   const [availFilter, setAvailFilter] = useState<"" | "true" | "false">("");
   const [query, setQuery] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
@@ -54,26 +58,24 @@ export function DishCrud({ isExtra }: { isExtra: boolean }) {
     if (!session.user || session.user.role !== "ADMIN") router.replace("/login?mode=login");
   }, [session.loading, session.user, router]);
 
-  const loadCats = useCallback(async () => {
-    const r = await fetch("/api/admin/menu/categories", { credentials: "same-origin" });
-    const d = await r.json().catch(() => null);
-    if (d?.success) setCats(d.data as CatRow[]);
+  const loadCartas = useCallback(async () => {
+    const d = await getJson("/api/admin/menu/cartas");
+    if (d?.success) setCartas(d.data as CartaRow[]);
   }, []);
 
   const fetchList = useCallback(async () => {
     setLoading(true);
     const params = new URLSearchParams();
     params.set("isExtra", String(isExtra));
-    if (catFilter) params.set("categoryId", catFilter);
+    if (cartaFilter) params.set("cartaId", cartaFilter);
     if (availFilter) params.set("available", availFilter);
     if (query.trim()) params.set("q", query.trim());
-    const r = await fetch(`/api/admin/menu?${params}`, { credentials: "same-origin" });
-    const d = await r.json().catch(() => null);
+    const d = await getJson(`/api/admin/menu?${params}`);
     if (d?.success) setRows(d.data as DishRow[]);
     setLoading(false);
-  }, [isExtra, catFilter, availFilter, query]);
+  }, [isExtra, cartaFilter, availFilter, query]);
 
-  useEffect(() => { if (session.user?.role === "ADMIN") loadCats(); }, [session.user, loadCats]);
+  useEffect(() => { if (session.user?.role === "ADMIN") loadCartas(); }, [session.user, loadCartas]);
   useEffect(() => { if (session.user?.role === "ADMIN") fetchList(); }, [session.user, fetchList]);
 
   const toggleAvailable = async (row: DishRow) => {
@@ -99,7 +101,10 @@ export function DishCrud({ isExtra }: { isExtra: boolean }) {
   }
 
   const title = isExtra ? "EXTRAS" : "PLATILLOS";
-  const catOptions: SelectOption[] = [{ value: "", label: "Todas las categorías" }, ...cats.map((c) => ({ value: c.id, label: c.name }))];
+  const cartaFilterOptions: SelectOption[] = [
+    { value: "", label: "Todas las cartas" },
+    ...cartas.map((c) => ({ value: c.id, label: `${TURNO_LABEL[c.turno]} · ${c.name}` })),
+  ];
 
   return (
     <div style={S.page}>
@@ -115,7 +120,7 @@ export function DishCrud({ isExtra }: { isExtra: boolean }) {
       )}
 
       <div style={S.filters}>
-        <GoldSelect value={catFilter} onChange={setCatFilter} options={catOptions} placeholder="Categoría" style={{ minWidth: 180 }} />
+        <GoldSelect value={cartaFilter} onChange={setCartaFilter} options={cartaFilterOptions} placeholder="Carta" style={{ minWidth: 200 }} />
         <GoldSelect value={availFilter} onChange={(v) => setAvailFilter(v as "" | "true" | "false")} options={AVAIL_FILTER} placeholder="Visibilidad" style={{ minWidth: 180 }} />
         <input style={S.search} placeholder="Buscar platillo…" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && fetchList()} />
       </div>
@@ -123,7 +128,7 @@ export function DishCrud({ isExtra }: { isExtra: boolean }) {
       {loading ? <p style={S.empty}>Cargando…</p> : rows.length === 0 ? <p style={S.empty}>Sin {isExtra ? "extras" : "platillos"}. Toca «+» para agregar.</p> : (
         <div style={{ overflowX: "auto" }}>
           <table style={S.table}>
-            <thead><tr>{["", "Nombre", "Categoría", "Área", "Precio", "En menú", "Acciones"].map((h, i) => <th key={i} style={S.th}>{h}</th>)}</tr></thead>
+            <thead><tr>{["", "Nombre", "Turno · Carta · Categoría", "Precio", "En menú", "Acciones"].map((h, i) => <th key={i} style={S.th}>{h}</th>)}</tr></thead>
             <tbody>
               {rows.map((row) => (
                 <tr key={row.id} style={{ opacity: row.available ? 1 : 0.6 }}>
@@ -132,8 +137,9 @@ export function DishCrud({ isExtra }: { isExtra: boolean }) {
                     <div style={{ color: "#f5f1e8", fontWeight: 600 }}>{row.name}</div>
                     {row.description && <div style={{ color: "rgba(245,241,232,0.5)", fontSize: "0.74rem", maxWidth: 320, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{row.description}</div>}
                   </td>
-                  <td style={{ ...S.td, color: "rgba(245,241,232,0.72)" }}>{row.category?.name ?? "—"}</td>
-                  <td style={{ ...S.td, color: "rgba(245,241,232,0.72)", fontSize: "0.8rem" }}>{row.prepArea ? PREP_LABEL[row.prepArea] : "—"}</td>
+                  <td style={{ ...S.td, color: "rgba(245,241,232,0.72)", fontSize: "0.8rem" }}>
+                    {row.category?.carta ? `${TURNO_LABEL[row.category.carta.turno]} · ${row.category.carta.name} · ` : ""}{row.category?.name ?? "—"}
+                  </td>
                   <td style={{ ...S.td, color: "#f5f1e8", fontWeight: 700, whiteSpace: "nowrap" }}>{money(row.price)}</td>
                   <td style={S.td}><Switch on={row.available} onClick={() => toggleAvailable(row)} labelOn="Mostrar" labelOff="Oculto" /></td>
                   <td style={S.td}>
@@ -149,8 +155,8 @@ export function DishCrud({ isExtra }: { isExtra: boolean }) {
         </div>
       )}
 
-      {createOpen && <DishFormModal mode="create" isExtra={isExtra} cats={cats} onCategoriesChanged={loadCats} onClose={() => setCreateOpen(false)} onSaved={() => { setCreateOpen(false); fetchList(); }} />}
-      {editTarget && <DishFormModal mode="edit" isExtra={isExtra} row={editTarget} cats={cats} onCategoriesChanged={loadCats} onClose={() => setEditTarget(null)} onSaved={() => { setEditTarget(null); fetchList(); }} />}
+      {createOpen && <DishFormModal mode="create" isExtra={isExtra} onClose={() => setCreateOpen(false)} onSaved={() => { setCreateOpen(false); loadCartas(); fetchList(); }} />}
+      {editTarget && <DishFormModal mode="edit" isExtra={isExtra} row={editTarget} onClose={() => setEditTarget(null)} onSaved={() => { setEditTarget(null); loadCartas(); fetchList(); }} />}
       {delTarget && (
         <Overlay onClose={() => setDelTarget(null)}>
           <p style={S.kicker}>Eliminar</p>
@@ -169,32 +175,62 @@ export function DishCrud({ isExtra }: { isExtra: boolean }) {
 }
 
 // ─────────────────────────────────────────────────────── Form modal ──
-function DishFormModal({ mode, isExtra, row, cats, onCategoriesChanged, onClose, onSaved }: {
-  mode: "create" | "edit"; isExtra: boolean; row?: DishRow; cats: CatRow[];
-  onCategoriesChanged: () => void; onClose: () => void; onSaved: () => void;
+function DishFormModal({ mode, isExtra, row, onClose, onSaved }: {
+  mode: "create" | "edit"; isExtra: boolean; row?: DishRow; onClose: () => void; onSaved: () => void;
 }) {
+  const c0 = row?.category?.carta ?? null;
+  const [turno, setTurno] = useState<string>(c0?.turno ?? "");
+  const [clase, setClase] = useState<string>(c0?.clase ?? "");
+  const [cartaId, setCartaId] = useState(c0?.id ?? "");
+  const [categoryId, setCategoryId] = useState(row?.categoryId ?? "");
   const [name, setName] = useState(row?.name ?? "");
   const [description, setDescription] = useState(row?.description ?? "");
   const [price, setPrice] = useState(row ? String(row.price) : "");
   const [imageUrl, setImageUrl] = useState(row?.imageUrl ?? "");
-  const [categoryId, setCategoryId] = useState(row?.categoryId ?? "");
-  const [prepArea, setPrepArea] = useState<string>(row?.prepArea ?? "");
   const [available, setAvailable] = useState(row ? row.available : !isExtra); // extras nacen ocultos
+
+  const [cartas, setCartas] = useState<CartaRow[]>([]);
+  const [cats, setCats] = useState<CatRow[]>([]);
+  const [newCarta, setNewCarta] = useState("");
   const [newCat, setNewCat] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // Cartas disponibles según turno + clase.
+  useEffect(() => {
+    if (turno !== "COMIDA" && turno !== "BRUNCH") { setCartas([]); return; }
+    if (clase !== "COCINA" && clase !== "BARRA") { setCartas([]); return; }
+    getJson(`/api/admin/menu/cartas?turno=${turno}&clase=${clase}`).then((d) => { if (d?.success) setCartas(d.data as CartaRow[]); });
+  }, [turno, clase]);
+
+  // Categorías de la carta elegida.
+  useEffect(() => {
+    if (!cartaId) { setCats([]); return; }
+    getJson(`/api/admin/menu/categories?cartaId=${cartaId}`).then((d) => { if (d?.success) setCats(d.data as CatRow[]); });
+  }, [cartaId]);
+
   const priceNum = Number(price);
   const canSave = name.trim().length > 0 && categoryId && Number.isFinite(priceNum) && priceNum >= 0 && !saving;
 
-  const createCategory = async () => {
-    if (!newCat.trim()) return;
-    const r = await fetch("/api/admin/menu/categories", {
+  const createCarta = async () => {
+    if (!newCarta.trim() || turno === "" || clase === "") { setError("Elige turno y área antes de crear una carta"); return; }
+    const r = await fetch("/api/admin/menu/cartas", {
       method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newCat.trim() }),
+      body: JSON.stringify({ name: newCarta.trim(), turno, clase }),
     });
     const d = await r.json().catch(() => null);
-    if (d?.success) { setNewCat(""); setCategoryId(d.data.id); onCategoriesChanged(); }
+    if (d?.success) { setNewCarta(""); const nd = await getJson(`/api/admin/menu/cartas?turno=${turno}&clase=${clase}`); if (nd?.success) setCartas(nd.data as CartaRow[]); setCartaId(d.data.id); setCategoryId(""); }
+    else setError(d?.error ?? "No se pudo crear la carta");
+  };
+
+  const createCategory = async () => {
+    if (!newCat.trim() || !cartaId) { setError("Elige una carta antes de crear una categoría"); return; }
+    const r = await fetch("/api/admin/menu/categories", {
+      method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newCat.trim(), cartaId }),
+    });
+    const d = await r.json().catch(() => null);
+    if (d?.success) { setNewCat(""); const nd = await getJson(`/api/admin/menu/categories?cartaId=${cartaId}`); if (nd?.success) setCats(nd.data as CatRow[]); setCategoryId(d.data.id); }
     else setError(d?.error ?? "No se pudo crear la categoría");
   };
 
@@ -206,7 +242,7 @@ function DishFormModal({ mode, isExtra, row, cats, onCategoriesChanged, onClose,
       price: priceNum,
       imageUrl: imageUrl.trim() || null,
       categoryId,
-      prepArea: prepArea || null,
+      prepArea: clase || null, // el área del platillo = la clase de su carta
       available,
       isExtra,
     };
@@ -221,19 +257,57 @@ function DishFormModal({ mode, isExtra, row, cats, onCategoriesChanged, onClose,
     else { setError(d?.error ?? "Error al guardar"); setSaving(false); }
   };
 
+  const claseReady = turno !== "" && clase !== "";
+  const cartaOptions: SelectOption[] = cartas.map((c) => ({ value: c.id, label: c.name }));
   const catOptions: SelectOption[] = cats.map((c) => ({ value: c.id, label: c.name }));
 
   return (
     <Overlay onClose={onClose}>
       <p style={S.kicker}>{mode === "create" ? (isExtra ? "Nuevo extra" : "Nuevo platillo") : "Editar"}</p>
       <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 16 }}>
+        {/* Cascada: Turno → Área → Carta → Categoría */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div>
+            <label style={S.label}>1 · Turno</label>
+            <GoldSelect value={turno} onChange={(v) => { setTurno(v); setCartaId(""); setCategoryId(""); }} options={TURNO_OPTIONS} placeholder="Comida / Brunch" />
+          </div>
+          <div>
+            <label style={S.label}>2 · Área</label>
+            <GoldSelect value={clase} onChange={(v) => { setClase(v); setCartaId(""); setCategoryId(""); }} options={CLASE_OPTIONS} placeholder="Alimentos / Bebidas" />
+          </div>
+        </div>
+
+        {claseReady && (
+          <div>
+            <label style={S.label}>3 · Carta</label>
+            <GoldSelect value={cartaId} onChange={(v) => { setCartaId(v); setCategoryId(""); }} options={cartaOptions} placeholder={cartaOptions.length ? "Elige carta" : "Sin cartas — crea una"} />
+            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+              <input style={{ ...S.input, flex: 1 }} value={newCarta} onChange={(e) => setNewCarta(e.target.value)} placeholder="…o crea una carta nueva" />
+              <button style={S.ghostBtnAuto} onClick={createCarta} disabled={!newCarta.trim()}>Crear</button>
+            </div>
+          </div>
+        )}
+
+        {cartaId && (
+          <div>
+            <label style={S.label}>4 · Categoría</label>
+            <GoldSelect value={categoryId} onChange={setCategoryId} options={catOptions} placeholder={catOptions.length ? "Elige categoría" : "Sin categorías — crea una"} />
+            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+              <input style={{ ...S.input, flex: 1 }} value={newCat} onChange={(e) => setNewCat(e.target.value)} placeholder="…o crea una categoría nueva" />
+              <button style={S.ghostBtnAuto} onClick={createCategory} disabled={!newCat.trim()}>Crear</button>
+            </div>
+          </div>
+        )}
+
+        <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "2px 0" }} />
+
         <div>
-          <label style={S.label}>Nombre</label>
-          <input style={S.input} value={name} onChange={(e) => setName(e.target.value)} placeholder="ej. Risotto de trufa" autoFocus />
+          <label style={S.label}>Nombre del platillo</label>
+          <input style={S.input} value={name} onChange={(e) => setName(e.target.value)} placeholder="ej. Risotto de trufa" />
         </div>
         <div>
           <label style={S.label}>Descripción (opcional)</label>
-          <textarea style={{ ...S.input, minHeight: 64, resize: "vertical" }} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Breve descripción" />
+          <textarea style={{ ...S.input, minHeight: 60, resize: "vertical" }} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Breve descripción" />
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div>
@@ -241,21 +315,9 @@ function DishFormModal({ mode, isExtra, row, cats, onCategoriesChanged, onClose,
             <input style={S.input} inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value.replace(/[^\d.]/g, ""))} placeholder="0.00" />
           </div>
           <div>
-            <label style={S.label}>Área de preparación</label>
-            <GoldSelect value={prepArea} onChange={setPrepArea} options={PREP_OPTIONS} placeholder="— Sin área —" />
+            <label style={S.label}>Imagen (ruta/URL, opcional)</label>
+            <input style={S.input} value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="/images/menu/…/foto.png" />
           </div>
-        </div>
-        <div>
-          <label style={S.label}>Categoría</label>
-          <GoldSelect value={categoryId} onChange={setCategoryId} options={catOptions} placeholder="Elige una categoría" />
-          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-            <input style={{ ...S.input, flex: 1 }} value={newCat} onChange={(e) => setNewCat(e.target.value)} placeholder="…o crea una categoría nueva" />
-            <button style={S.ghostBtnAuto} onClick={createCategory} disabled={!newCat.trim()}>Crear</button>
-          </div>
-        </div>
-        <div>
-          <label style={S.label}>Imagen (ruta o URL, opcional)</label>
-          <input style={S.input} value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="/images/menu/…/foto.png" />
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 2px" }}>
           <span style={{ color: "rgba(245,241,232,0.8)", fontSize: "0.85rem" }}>Mostrar en el menú público</span>

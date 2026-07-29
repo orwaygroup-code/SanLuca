@@ -67,6 +67,11 @@ if [ -f scripts/backfill-created-by.ts ]; then
   npx tsx scripts/backfill-created-by.ts
   ok "Backfill completo"
 fi
+if [ -f scripts/migrate-cartas.ts ]; then
+  log "Migración de cartas del menú (turno/carta)"
+  npx tsx scripts/migrate-cartas.ts
+  ok "Cartas migradas"
+fi
 
 # 7. Restart
 log "PM2 restart"
