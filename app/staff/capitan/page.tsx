@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useStaffSession } from "@/lib/staff-session-client";
 import {
   C, StaffHeader, Spinner, EmptyState, Badge, Modal, ReasonModal, btn, fld, formatMXN,
-  STATUS_LABEL, STATUS_COLOR, useToasts, ToastHost, useStaffLogout,
+  STATUS_LABEL, STATUS_COLOR, useToasts, ToastHost, useStaffLogout, usePoll,
 } from "@/components/staff/ui";
 import { apiFetch, type Comanda, type TableStatus } from "@/components/staff/types";
 import { GoldSelect } from "@/components/ui/GoldSelect";
@@ -57,6 +57,8 @@ export default function CapitanPage() {
     if (staff && !allowed) { router.replace("/staff/login"); return; }
     if (staff && allowed) load();
   }, [loading, staff, allowed, router, load]);
+
+  usePoll(load, 7000, !!(staff && allowed)); // refresco en vivo de comandas del piso
 
   // Auto-abrir el tutorial la primera vez (una vez por dispositivo).
   useEffect(() => {

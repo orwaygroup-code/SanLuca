@@ -5,11 +5,11 @@ import { useParams, useRouter } from "next/navigation";
 import { useStaffSession } from "@/lib/staff-session-client";
 import {
   C, StaffHeader, Spinner, EmptyState, Badge, ConfirmModal, ReasonModal,
-  TicketPreview, btn, formatMXN, STATUS_LABEL, STATUS_COLOR, useToasts, ToastHost, useStaffLogout,
+  TicketPreview, btn, formatMXN, STATUS_LABEL, STATUS_COLOR, useToasts, ToastHost, useStaffLogout, usePoll,
 } from "@/components/staff/ui";
 import { apiFetch, type Comanda, type CItem, type PayResult, type CashSession, type CutSnapshot } from "@/components/staff/types";
 import { SplitBillModal } from "@/components/staff/SplitBillModal";
-import { PayModal, DiscountModal, MergeModal, TransferItemModal, ReopenModal } from "@/components/staff/caja";
+import { PayModal, DiscountModal, MergeModal, TransferItemModal } from "@/components/staff/caja";
 import { MenuSelector } from "@/components/staff/MenuSelector";
 import { Tour, type TourStep } from "@/components/staff/Tour";
 import { buildTotalLines } from "@/lib/displayTotals";
@@ -69,7 +69,6 @@ export default function ComandaDetailPage() {
   const [discountTarget, setDiscountTarget] = useState<{ itemId?: number; itemName?: string } | null>(null);
   const [mergeOpen, setMergeOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
-  const [reopenOpen, setReopenOpen] = useState(false);
   const [hasSession, setHasSession] = useState(false);
 
   // División de cuenta: cada entrada (División 1..N) es un Map itemId → unidades
@@ -104,6 +103,10 @@ export default function ComandaDetailPage() {
       }
     }
   }, [loading, staff, id, router, refresh]);
+
+  // Refresco en vivo del detalle; pausado mientras el selector de platillos está
+  // abierto para no interrumpir la captura.
+  usePoll(refresh, 9000, !!comanda && !menuOpen);
 
   const liveItems = useMemo(() => (comanda?.items ?? []).filter((i) => i.status !== "CANCELLED"), [comanda]);
   const pendingCount = useMemo(() => liveItems.filter((i) => i.status === "PENDING").length, [liveItems]);
@@ -484,9 +487,6 @@ export default function ComandaDetailPage() {
             {cajaActive && (
               <button style={btn.ghost} onClick={() => setTransferOpen(true)} disabled={busy || liveItems.length === 0}>Traspasar producto</button>
             )}
-            {isPaid && (
-              <button style={btn.ghost} onClick={() => setReopenOpen(true)} disabled={busy}>Reabrir cuenta</button>
-            )}
           </section>
         )}
 
@@ -608,14 +608,6 @@ export default function ComandaDetailPage() {
         from={c}
         onClose={() => setTransferOpen(false)}
         onDone={(cc) => { setTransferOpen(false); setComanda(cc); push("Producto traspasado", "success"); }}
-        onError={(m) => push(m, "error")}
-      />
-
-      <ReopenModal
-        open={reopenOpen}
-        comanda={c}
-        onClose={() => setReopenOpen(false)}
-        onDone={(cc) => { setReopenOpen(false); setComanda(cc); push("Cuenta reabierta", "success"); }}
         onError={(m) => push(m, "error")}
       />
 

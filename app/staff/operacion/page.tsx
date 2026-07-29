@@ -5,10 +5,9 @@ import { useRouter } from "next/navigation";
 import { useStaffSession } from "@/lib/staff-session-client";
 import {
   C, StaffHeader, Spinner, EmptyState, Badge, Modal, btn, fld, formatMXN,
-  STATUS_LABEL, STATUS_COLOR, useToasts, ToastHost, useStaffLogout,
+  STATUS_LABEL, STATUS_COLOR, useToasts, ToastHost, useStaffLogout, usePoll,
 } from "@/components/staff/ui";
 import { apiFetch, comandaLabel, type TableStatus, type ReservationToday, type Comanda, type CashSession, type CutSnapshot, type PayResult } from "@/components/staff/types";
-import { GoldSelect } from "@/components/ui/GoldSelect";
 import { TurnoBar, OpenTurnoModal, CloseCashSessionModal, CajaMonitor, PayModal } from "@/components/staff/caja";
 import { Tour, type TourStep } from "@/components/staff/Tour";
 import { TipsPanel } from "@/components/staff/TipsPanel";
@@ -75,6 +74,8 @@ export default function OperacionPage() {
     if (staff && !allowed) { router.replace("/staff/login"); return; }
     if (staff && allowed) load();
   }, [loading, staff, allowed, router, load]);
+
+  usePoll(load, 7000, !!(staff && allowed)); // refresco en vivo de mesas/reservas/cuentas
 
   // Auto-abrir el tutorial la primera vez (una vez por dispositivo).
   useEffect(() => {
@@ -285,22 +286,28 @@ function SeatModal({ res, freeTables, onClose, onSeated, onError }: {
   res: ReservationToday | null; freeTables: TableStatus[];
   onClose: () => void; onSeated: (comandaId: number) => void; onError: (m: string) => void;
 }) {
+  const [section, setSection] = useState("");
   const [tableId, setTableId] = useState("");
   const [guests, setGuests] = useState(2);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    if (res) { setTableId(res.tableId ?? ""); setGuests(res.guests || 2); }
-  }, [res]);
-
+  // Mesas ofrecibles: las libres + (si la reserva ya trae mesa asignada) esa mesa.
   const options = useMemo(() => {
-    if (!res) return freeTables;
-    // si la reserva ya tiene mesa asignada, ofrécela aunque no esté "FREE" en el mapa
-    if (res.table && !freeTables.some((t) => t.id === res.table!.id)) {
+    if (res?.table && !freeTables.some((t) => t.id === res.table!.id)) {
       return [{ id: res.table.id, number: res.table.number, capacity: 0, section: res.table.section.name, state: "FREE" as const, comanda: null }, ...freeTables];
     }
     return freeTables;
   }, [res, freeTables]);
+  const sections = useMemo(() => [...new Set(options.map((t) => t.section))].sort(), [options]);
+  const sectionTables = useMemo(() => options.filter((t) => t.section === section).sort((a, b) => a.number - b.number), [options, section]);
+
+  useEffect(() => {
+    if (res) {
+      setGuests(res.guests || 2);
+      if (res.table) { setSection(res.table.section.name); setTableId(res.table.id); }
+      else { setSection(""); setTableId(""); }
+    }
+  }, [res]);
 
   const seat = async () => {
     if (!res || !tableId || busy) return;
@@ -317,19 +324,42 @@ function SeatModal({ res, freeTables, onClose, onSeated, onError }: {
 
   return (
     <Modal open={!!res} title={res ? `Sentar a ${res.guestName}` : ""} onClose={onClose}>
-      <label style={fld.label}>Mesa</label>
-      <GoldSelect
-        value={tableId}
-        onChange={setTableId}
-        options={options.map((t) => ({ value: t.id, label: `Mesa ${t.number} · ${t.section}${t.capacity ? ` (cap. ${t.capacity})` : ""}` }))}
-        placeholder="— Selecciona mesa —"
-      />
-      <label style={{ ...fld.label, marginTop: 16 }}>Comensales</label>
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <button style={stepper} onClick={() => setGuests((g) => Math.max(1, g - 1))}>−</button>
-        <span style={{ color: C.cream, fontWeight: 800, fontSize: "1.2rem", minWidth: 36, textAlign: "center" }}>{guests}</span>
-        <button style={stepper} onClick={() => setGuests((g) => Math.min(40, g + 1))}>+</button>
+      <label style={fld.label}>1 · Elige el área</label>
+      <div style={nc.chips}>
+        {sections.map((sec) => (
+          <button key={sec} onClick={() => { setSection(sec); setTableId(""); }} style={{ ...nc.chip, ...(section === sec ? nc.chipOn : {}) }}>{sec}</button>
+        ))}
       </div>
+
+      {section && (
+        <>
+          <label style={{ ...fld.label, marginTop: 18 }}>2 · Mesa libre en {section}</label>
+          {sectionTables.length === 0 ? (
+            <p style={{ color: C.faint, fontSize: "0.82rem" }}>Sin mesas libres en esta área.</p>
+          ) : (
+            <div style={nc.chips}>
+              {sectionTables.map((t) => (
+                <button key={t.id} onClick={() => setTableId(t.id)} style={{ ...nc.tableChip, ...(tableId === t.id ? nc.chipOn : {}) }}>
+                  <span style={{ fontWeight: 800, fontSize: "0.95rem" }}>Mesa {t.number}</span>
+                  {t.capacity ? <span style={{ fontSize: "0.62rem", opacity: 0.75 }}>cap. {t.capacity}</span> : null}
+                </button>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {tableId && (
+        <>
+          <label style={{ ...fld.label, marginTop: 18 }}>3 · Comensales</label>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <button style={stepper} onClick={() => setGuests((g) => Math.max(1, g - 1))}>−</button>
+            <span style={{ color: C.cream, fontWeight: 800, fontSize: "1.2rem", minWidth: 36, textAlign: "center" }}>{guests}</span>
+            <button style={stepper} onClick={() => setGuests((g) => Math.min(40, g + 1))}>+</button>
+          </div>
+        </>
+      )}
+
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 22 }}>
         <button style={btn.ghost} onClick={onClose} disabled={busy}>Cancelar</button>
         <button style={{ ...btn.primary, opacity: !tableId || busy ? 0.5 : 1 }} onClick={seat} disabled={!tableId || busy}>
@@ -381,6 +411,20 @@ function NuevaCuentaModal({ open, waiterId, onClose, onCreated, onError }: {
 const stepper: React.CSSProperties = {
   width: 40, height: 40, borderRadius: 9, border: `1px solid ${C.line}`,
   background: "transparent", color: C.cream, fontSize: "1.3rem", cursor: "pointer",
+};
+
+const nc: Record<string, React.CSSProperties> = {
+  chips: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 },
+  chip: {
+    minHeight: 44, padding: "0 16px", borderRadius: 10, border: `1px solid ${C.line}`, background: "transparent",
+    color: C.dim, fontWeight: 700, fontSize: "0.86rem", cursor: "pointer", fontFamily: "inherit",
+  },
+  tableChip: {
+    minWidth: 78, minHeight: 56, padding: "6px 12px", borderRadius: 10, border: `1px solid ${C.line}`,
+    background: "transparent", color: C.cream, cursor: "pointer", fontFamily: "inherit",
+    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2,
+  },
+  chipOn: { background: C.gold, color: "#16201f", borderColor: C.gold },
 };
 
 const page: Record<string, React.CSSProperties> = {

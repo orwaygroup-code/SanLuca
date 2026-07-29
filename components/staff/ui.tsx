@@ -1,8 +1,24 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { buildTotalLines, formatMXN, type ComandaMoney } from "@/lib/displayTotals";
+
+/**
+ * Refresco EN VIVO: llama `fn` cada `ms` mientras `active`. Usa un ref para no
+ * reprogramar el intervalo en cada render (la fn cambia identidad seguido).
+ * Pausa cuando la pestaña está oculta para no golpear el server de fondo.
+ */
+export function usePoll(fn: () => void, ms = 7000, active = true) {
+  const ref = useRef(fn);
+  ref.current = fn;
+  useEffect(() => {
+    if (!active) return;
+    const tick = () => { if (typeof document === "undefined" || !document.hidden) ref.current(); };
+    const t = setInterval(tick, ms);
+    return () => clearInterval(t);
+  }, [ms, active]);
+}
 
 /**
  * Primitivos de UI compartidos por las vistas de Staff (Fase B.2):

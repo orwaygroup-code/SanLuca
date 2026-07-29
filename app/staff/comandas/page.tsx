@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useStaffSession } from "@/lib/staff-session-client";
 import {
   C, StaffHeader, Spinner, EmptyState, Badge, Modal, btn, fld, formatMXN,
-  STATUS_LABEL, STATUS_COLOR, useToasts, ToastHost, useStaffLogout,
+  STATUS_LABEL, STATUS_COLOR, useToasts, ToastHost, useStaffLogout, usePoll,
 } from "@/components/staff/ui";
 import { apiFetch, type Comanda, type TableStatus } from "@/components/staff/types";
 import { Tour, type TourStep } from "@/components/staff/Tour";
@@ -43,6 +43,8 @@ export default function MeseroComandasPage() {
     if (!loading && !staff) { router.replace("/staff/login?next=/staff/comandas"); return; }
     if (staff) load();
   }, [loading, staff, router, load]);
+
+  usePoll(load, 8000, !!staff); // refresco en vivo de mis comandas
 
   // Auto-abrir el tutorial la primera vez (una vez por dispositivo).
   useEffect(() => {
