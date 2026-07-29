@@ -47,7 +47,7 @@ export function MenuSelector({ open, onClose, onAdd, busy }: {
 
   const loadMenu = useCallback(() => {
     setError(null);
-    apiFetch<Cat[]>("/api/menu").then((r) => {
+    apiFetch<Cat[]>("/api/comandas/menu").then((r) => {
       if (r.ok) setCats(r.data ?? []);
       else setError(r.error ?? "No se pudo cargar el menú");
     });

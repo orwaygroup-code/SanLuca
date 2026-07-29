@@ -102,3 +102,26 @@ export const staffUpdateSchema = z.object({
 export type StaffLoginInput  = z.infer<typeof staffLoginSchema>;
 export type StaffCreateInput = z.infer<typeof staffCreateSchema>;
 export type StaffUpdateInput = z.infer<typeof staffUpdateSchema>;
+
+// ── Platillos / Menú (CRUD admin) ─────────────
+const prepAreaRule = z.enum(["BARRA", "COCINA"]);
+export const dishCreateSchema = z.object({
+  name: z.string().min(1, "El nombre es obligatorio").max(120),
+  description: z.string().max(1000).nullish(),
+  price: z.number({ invalid_type_error: "Precio inválido" }).nonnegative("El precio no puede ser negativo"),
+  imageUrl: z.string().max(500).nullish(),
+  categoryId: z.string().min(1, "Elige una categoría"),
+  prepArea: prepAreaRule.nullish(),
+  available: z.boolean().optional(),
+  isExtra: z.boolean().optional(),
+  position: z.number().int().nullish(),
+});
+export const dishUpdateSchema = dishCreateSchema.partial().refine((d) => Object.keys(d).length > 0, { message: "Sin cambios" });
+
+export const menuCategoryCreateSchema = z.object({
+  name: z.string().min(1, "El nombre es obligatorio").max(120),
+  position: z.number().int().nullish(),
+});
+
+export type DishCreateInput = z.infer<typeof dishCreateSchema>;
+export type DishUpdateInput = z.infer<typeof dishUpdateSchema>;

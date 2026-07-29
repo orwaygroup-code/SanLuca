@@ -23,6 +23,29 @@ export async function getMenuCategories() {
   });
 }
 
+/**
+ * Menú para el STAFF (comandero): incluye los platillos visibles del menú
+ * (available) MÁS los "extras" (isExtra), que están ocultos del menú público
+ * pero los meseros deben poder pedir. Un platillo agotado (available=false y NO
+ * extra) queda fuera. Misma forma que getMenuCategories.
+ */
+export async function getStaffMenuCategories() {
+  return prisma.menuCategory.findMany({
+    orderBy: { position: "asc" },
+    select: {
+      id: true,
+      name: true,
+      imageUrl: true,
+      position: true,
+      createdAt: true,
+      dishes: {
+        where: { OR: [{ available: true }, { isExtra: true }] },
+        orderBy: { position: "asc" },
+      },
+    },
+  });
+}
+
 export async function getMenuCategoryById(id: string) {
   return prisma.menuCategory.findUnique({
     where: { id },
