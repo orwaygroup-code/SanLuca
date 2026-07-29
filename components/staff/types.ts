@@ -6,13 +6,14 @@
 
 export type ComandaStatus =
   | "OPEN" | "IN_SERVICE" | "AWAITING_PAYMENT" | "PARTIALLY_PAID" | "PAID" | "MERGED" | "CANCELLED";
-export type ItemStatus = "PENDING" | "SENT" | "READY" | "SERVED" | "CANCELLED";
+export type ItemStatus = "PENDING" | "SENT" | "IN_PREP" | "READY" | "SERVED" | "DELIVERED" | "CANCELLED";
 export type PrepArea = "BARRA" | "COCINA";
 export type PaymentMethod = "CASH" | "CARD_DEBIT" | "CARD_CREDIT" | "TRANSFER";
 
 export interface CItem {
   id: number;
-  dishId: string;
+  dishId: string | null; // null cuando es un extra/especial de caja
+  isExtra?: boolean;
   dishNameSnapshot: string;
   unitPriceSnapshot: number | string;
   prepAreaSnapshot: PrepArea;
