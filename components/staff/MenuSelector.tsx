@@ -14,14 +14,17 @@ import { apiFetch } from "./types";
  */
 
 type Area = "COCINA" | "BARRA";
-interface Dish { id: string; name: string; price: number; description: string | null; imageUrl: string | null; prepArea: Area | null }
-interface Cat { id: string; name: string; dishes: Dish[] }
-interface FlatDish extends Dish { catId: string; catName: string; area: Area; turno: Turno }
-
-const areaOf = (d: { prepArea: Area | null }): Area => (d.prepArea === "BARRA" ? "BARRA" : "COCINA");
-// Turno (comida/brunch) derivado del nombre: las categorías de brunch traen "(Brunch)".
 type Turno = "comida" | "brunch";
-const turnoOf = (catName: string): Turno => (/\(brunch\)/i.test(catName) ? "brunch" : "comida");
+interface CartaRef { id: string; name: string; turno: "COMIDA" | "BRUNCH"; clase: Area; position: number | null }
+interface Dish { id: string; name: string; price: number; description: string | null; imageUrl: string | null; prepArea: Area | null }
+interface Cat { id: string; name: string; dishes: Dish[]; carta: CartaRef | null }
+interface FlatDish extends Dish { catId: string; catName: string; cartaId: string; cartaName: string; turno: Turno }
+
+// Turno + carta REALES desde la estructura de la BD. Fallback al hack "(Brunch)"
+// solo si una categoría aún no tiene carta asignada (no debería tras la migración).
+const turnoOf = (cat: Cat): Turno => (cat.carta ? (cat.carta.turno === "BRUNCH" ? "brunch" : "comida") : (/\(brunch\)/i.test(cat.name) ? "brunch" : "comida"));
+const cartaIdOf = (cat: Cat): string => cat.carta?.id ?? "_sin";
+const cartaNameOf = (cat: Cat): string => cat.carta?.name ?? "Otros";
 const cleanSection = (name: string) => name.replace(/\s*\(brunch\)\s*/i, "").trim(); // "Cafetería (Brunch)" → "Cafetería"
 const fmtQty = (q: number) => String(Math.round(q * 100) / 100); // 0.5, 1.5, 2 — sin ruido de float
 const clampQty = (v: number) => Math.round(Math.max(0.1, Math.min(99, v)) * 10) / 10; // paso 0.1, [0.1, 99]
@@ -35,7 +38,7 @@ export function MenuSelector({ open, onClose, onAdd, busy }: {
   const [cats, setCats] = useState<Cat[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [turno, setTurno] = useState<Turno>("comida");
-  const [clase, setClase] = useState<Area>("COCINA");
+  const [carta, setCarta] = useState<string>(""); // cartaId; "" hasta auto-seleccionar la 1ª del turno
   const [section, setSection] = useState<string>(""); // "" = todas
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<FlatDish | null>(null);
@@ -67,15 +70,28 @@ export function MenuSelector({ open, onClose, onAdd, busy }: {
   }, [open, selected, onClose]);
 
   const allDishes: FlatDish[] = useMemo(
-    () => (cats ?? []).flatMap((cat) => cat.dishes.map((d) => ({ ...d, catId: cat.id, catName: cat.name, area: areaOf(d), turno: turnoOf(cat.name) }))),
+    () => (cats ?? []).flatMap((cat) => cat.dishes.map((d) => ({ ...d, catId: cat.id, catName: cat.name, cartaId: cartaIdOf(cat), cartaName: cartaNameOf(cat), turno: turnoOf(cat) }))),
     [cats],
   );
 
+  // Cartas del turno actual (nivel 2).
+  const cartas = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const d of allDishes) if (d.turno === turno && !seen.has(d.cartaId)) seen.set(d.cartaId, d.cartaName);
+    return [...seen.entries()].map(([id, name]) => ({ id, name }));
+  }, [allDishes, turno]);
+
+  // Categorías (secciones) de la carta elegida (nivel 3).
   const sections = useMemo(() => {
     const seen = new Map<string, string>();
-    for (const d of allDishes) if (d.turno === turno && d.area === clase && !seen.has(d.catId)) seen.set(d.catId, cleanSection(d.catName));
+    for (const d of allDishes) if (d.turno === turno && d.cartaId === carta && !seen.has(d.catId)) seen.set(d.catId, cleanSection(d.catName));
     return [...seen.entries()].map(([id, name]) => ({ id, name }));
-  }, [allDishes, turno, clase]);
+  }, [allDishes, turno, carta]);
+
+  // Al cambiar de turno (o al cargar), fija la primera carta disponible.
+  useEffect(() => {
+    if (cartas.length && !cartas.some((c) => c.id === carta)) { setCarta(cartas[0].id); setSection(""); }
+  }, [cartas, carta]);
 
   const searching = query.trim().length > 0;
   const dishes = useMemo(() => {
@@ -83,8 +99,8 @@ export function MenuSelector({ open, onClose, onAdd, busy }: {
       const q = query.trim().toLowerCase();
       return allDishes.filter((d) => d.name.toLowerCase().includes(q) || (d.description ?? "").toLowerCase().includes(q));
     }
-    return allDishes.filter((d) => d.turno === turno && d.area === clase && (section === "" || d.catId === section));
-  }, [allDishes, searching, query, turno, clase, section]);
+    return allDishes.filter((d) => d.turno === turno && d.cartaId === carta && (section === "" || d.catId === section));
+  }, [allDishes, searching, query, turno, carta, section]);
 
   const pick = (d: FlatDish) => { setSelected(d); setQty(1); setComment(""); };
   const confirmAdd = async () => {
@@ -151,20 +167,17 @@ export function MenuSelector({ open, onClose, onAdd, busy }: {
             </div>
           )}
 
-          {/* Clase (solo cuando NO se está buscando) */}
-          {!searching && (
-            <div style={s.claseRow}>
-              {([["COCINA", "Alimentos"], ["BARRA", "Bebidas"]] as const).map(([val, label]) => {
-                const on = clase === val;
-                return (
-                  <button
-                    key={val}
-                    onClick={() => { setClase(val); setSection(""); }}
-                    aria-pressed={on}
-                    style={{ ...s.claseTab, ...(on ? s.claseTabOn : {}) }}
-                  >{label}</button>
-                );
-              })}
+          {/* Carta (cartas del turno) — nivel 2 */}
+          {!searching && cartas.length > 0 && (
+            <div style={s.chips}>
+              {cartas.map((ca) => (
+                <button
+                  key={ca.id}
+                  onClick={() => { setCarta(ca.id); setSection(""); }}
+                  aria-pressed={carta === ca.id}
+                  style={{ ...s.chip, minHeight: 44, fontWeight: 700, ...(carta === ca.id ? s.chipOn : {}) }}
+                >{ca.name}</button>
+              ))}
             </div>
           )}
 

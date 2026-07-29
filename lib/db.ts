@@ -38,6 +38,7 @@ export async function getStaffMenuCategories() {
       imageUrl: true,
       position: true,
       createdAt: true,
+      carta: { select: { id: true, name: true, turno: true, clase: true, position: true } },
       dishes: {
         where: { OR: [{ available: true }, { isExtra: true }] },
         orderBy: { position: "asc" },
