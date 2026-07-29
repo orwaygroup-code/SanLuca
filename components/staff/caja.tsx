@@ -445,69 +445,6 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
   );
 }
 
-// ═════════════════════════════════════════════════════════════ ExtraModal ══
-
-export function ExtraModal({ open, comandaId, onClose, onDone, onError }: {
-  open: boolean; comandaId: number | null;
-  onClose: () => void; onDone: (c: Comanda) => void; onError: (m: string) => void;
-}) {
-  const [name, setName] = useState("");
-  const [price, setPrice] = useState("");
-  const [qty, setQty] = useState(1);
-  const [busy, setBusy] = useState(false);
-  useEffect(() => { if (open) { setName(""); setPrice(""); setQty(1); setBusy(false); } }, [open]);
-
-  const priceNum = num(price);
-  const lineTotal = round2(priceNum * qty);
-  const canSubmit = comandaId != null && name.trim().length > 0 && priceNum > 0 && !busy;
-  const step: React.CSSProperties = { width: 38, height: 38, borderRadius: 9, border: `1px solid ${C.line}`, background: "transparent", color: C.cream, fontSize: "1.2rem", cursor: "pointer" };
-
-  const submit = async () => {
-    if (!canSubmit) return;
-    setBusy(true);
-    const r = await apiFetch<Comanda>(`/api/comandas/${comandaId}/extra`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name.trim(), price: priceNum, quantity: qty }),
-    });
-    setBusy(false);
-    if (r.ok) onDone(r.data!);
-    else onError(r.error ?? "No se pudo agregar el extra");
-  };
-
-  return (
-    <Modal open={open} title="Agregar extra / especial" onClose={onClose}>
-      <p style={{ margin: "0 0 12px", color: C.dim, fontSize: "0.86rem", lineHeight: 1.5 }}>
-        Un cargo que NO está en el menú (especial del chef, paquete, precio especial). Sale en la cuenta con el nombre y monto que pongas.
-      </p>
-      <label style={fld.label}>Nombre (como saldrá en el ticket)</label>
-      <input style={fld.input} value={name} onChange={(e) => setName(e.target.value)} placeholder="ej. Especial del chef, Paquete cumpleaños" autoFocus />
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 12 }}>
-        <div>
-          <label style={fld.label}>Precio unitario</label>
-          <MoneyInput value={price} onChange={setPrice} placeholder="0.00" />
-        </div>
-        <div>
-          <label style={fld.label}>Cantidad</label>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <button style={step} onClick={() => setQty((q) => Math.max(1, q - 1))}>−</button>
-            <span style={{ color: C.cream, fontWeight: 800, fontSize: "1.1rem", minWidth: 28, textAlign: "center" }}>{qty}</span>
-            <button style={step} onClick={() => setQty((q) => Math.min(99, q + 1))}>+</button>
-          </div>
-        </div>
-      </div>
-      <div style={{ ...kv, color: C.cream, fontWeight: 800, marginTop: 14, borderTop: `1px solid ${C.line}`, paddingTop: 10 }}>
-        <span>Total del extra</span><span>{formatMXN(lineTotal)}</span>
-      </div>
-      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 18 }}>
-        <button style={btn.ghost} onClick={onClose} disabled={busy}>Cancelar</button>
-        <button style={{ ...btn.primary, opacity: canSubmit ? 1 : 0.5 }} onClick={submit} disabled={!canSubmit}>
-          {busy ? "Agregando…" : "Agregar a la cuenta"}
-        </button>
-      </div>
-    </Modal>
-  );
-}
-
 // ═════════════════════════════════════════════════════════ DiscountModal ══
 
 export function DiscountModal({ open, comandaId, itemId, itemName, onClose, onDone, onError }: {

@@ -140,7 +140,8 @@ model Dish {
   description      String?
   price            Float
   imageUrl         String?
-  available        Boolean           @default(true)
+  available        Boolean           @default(true) // "Mostrar en menú" público
+  isExtra          Boolean           @default(false) // extra/especial (paquete de Ricardo); oculto del menú, lo piden meseros
   position         Int?
   categoryId       String
   category         MenuCategory      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
@@ -690,10 +691,8 @@ model ComandaItem {
   comandaId Int
   comanda   Comanda @relation(fields: [comandaId], references: [id], onDelete: Cascade)
 
-  dishId String? // null cuando es un "extra"/especial de caja (no es un platillo del menú)
-  dish   Dish?   @relation(fields: [dishId], references: [id])
-
-  isExtra Boolean @default(false) // extra/especial que agrega caja con nombre y precio en el momento
+  dishId String
+  dish   Dish   @relation(fields: [dishId], references: [id])
 
   // Snapshot al agregar (el menú puede cambiar después)
   dishNameSnapshot  String

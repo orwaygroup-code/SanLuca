@@ -9,7 +9,7 @@ import {
 } from "@/components/staff/ui";
 import { apiFetch, type Comanda, type CItem, type PayResult, type CashSession, type CutSnapshot } from "@/components/staff/types";
 import { SplitBillModal } from "@/components/staff/SplitBillModal";
-import { PayModal, DiscountModal, MergeModal, TransferItemModal, ExtraModal } from "@/components/staff/caja";
+import { PayModal, DiscountModal, MergeModal, TransferItemModal } from "@/components/staff/caja";
 import { MenuSelector } from "@/components/staff/MenuSelector";
 import { Tour, type TourStep } from "@/components/staff/Tour";
 import { buildTotalLines } from "@/lib/displayTotals";
@@ -56,7 +56,6 @@ export default function ComandaDetailPage() {
   const [busy, setBusy] = useState(false);
 
   const [menuOpen, setMenuOpen] = useState(false);
-  const [extraOpen, setExtraOpen] = useState(false);
   const [cancelItem, setCancelItem] = useState<CItem | null>(null);
   const [askBill, setAskBill] = useState(false);
   const [reprint, setReprint] = useState(false);
@@ -480,9 +479,6 @@ export default function ComandaDetailPage() {
               <button style={btn.ghost} onClick={() => setReprint(true)} disabled={busy}>Reimprimir (autorizado)</button>
             )}
             {cajaActive && (
-              <button style={btn.ghost} onClick={() => setExtraOpen(true)} disabled={busy}>＋ Extra / especial</button>
-            )}
-            {cajaActive && (
               <button style={btn.ghost} onClick={() => setDiscountTarget({})} disabled={busy || liveItems.length === 0}>Descuento a la cuenta</button>
             )}
             {cajaActive && (
@@ -612,14 +608,6 @@ export default function ComandaDetailPage() {
         from={c}
         onClose={() => setTransferOpen(false)}
         onDone={(cc) => { setTransferOpen(false); setComanda(cc); push("Producto traspasado", "success"); }}
-        onError={(m) => push(m, "error")}
-      />
-
-      <ExtraModal
-        open={extraOpen}
-        comandaId={c.id}
-        onClose={() => setExtraOpen(false)}
-        onDone={(cc) => { setExtraOpen(false); setComanda(cc); push("Extra agregado a la cuenta", "success"); }}
         onError={(m) => push(m, "error")}
       />
 

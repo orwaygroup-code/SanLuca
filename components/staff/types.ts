@@ -12,8 +12,7 @@ export type PaymentMethod = "CASH" | "CARD_DEBIT" | "CARD_CREDIT" | "TRANSFER";
 
 export interface CItem {
   id: number;
-  dishId: string | null; // null cuando es un extra/especial de caja
-  isExtra?: boolean;
+  dishId: string;
   dishNameSnapshot: string;
   unitPriceSnapshot: number | string;
   prepAreaSnapshot: PrepArea;
