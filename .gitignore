@@ -48,3 +48,6 @@ San Luca AI WhatsApp*.json
 *.backup
 *.backup-*
 /src/
+
+# Imágenes subidas desde el CRUD de platillos (se crean en el servidor)
+/public/uploads/

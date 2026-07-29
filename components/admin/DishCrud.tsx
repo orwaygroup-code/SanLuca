@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/session-client";
 import { GoldSelect, type SelectOption } from "@/components/ui/GoldSelect";
@@ -195,6 +195,22 @@ function DishFormModal({ mode, isExtra, row, onClose, onSaved }: {
   const [newCat, setNewCat] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // permite volver a elegir el mismo archivo
+    if (!file) return;
+    setUploading(true); setError(null);
+    const fd = new FormData();
+    fd.append("file", file);
+    const r = await fetch("/api/admin/menu/upload", { method: "POST", credentials: "same-origin", body: fd });
+    const d = await r.json().catch(() => null);
+    setUploading(false);
+    if (d?.success) setImageUrl(d.data.path);
+    else setError(d?.error ?? "No se pudo subir la imagen");
+  };
 
   // Cartas disponibles según turno + clase.
   useEffect(() => {
@@ -309,15 +325,22 @@ function DishFormModal({ mode, isExtra, row, onClose, onSaved }: {
           <label style={S.label}>Descripción (opcional)</label>
           <textarea style={{ ...S.input, minHeight: 60, resize: "vertical" }} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Breve descripción" />
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <div>
-            <label style={S.label}>Precio (MXN)</label>
-            <input style={S.input} inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value.replace(/[^\d.]/g, ""))} placeholder="0.00" />
+        <div>
+          <label style={S.label}>Precio (MXN)</label>
+          <input style={S.input} inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value.replace(/[^\d.]/g, ""))} placeholder="0.00" />
+        </div>
+        <div>
+          <label style={S.label}>Imagen (opcional)</label>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {imageUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={imageUrl} alt="" style={{ width: 44, height: 44, borderRadius: 8, objectFit: "cover", flexShrink: 0, border: "1px solid rgba(255,255,255,0.15)" }} />
+            )}
+            <input style={{ ...S.input, flex: 1 }} value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="Sube una imagen o pega una ruta/URL" />
+            <button type="button" style={S.ghostBtnAuto} onClick={() => fileRef.current?.click()} disabled={uploading}>{uploading ? "Subiendo…" : "📁 Subir"}</button>
+            <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" style={{ display: "none" }} onChange={handleFile} />
           </div>
-          <div>
-            <label style={S.label}>Imagen (ruta/URL, opcional)</label>
-            <input style={S.input} value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="/images/menu/…/foto.png" />
-          </div>
+          <p style={{ color: "rgba(245,241,232,0.5)", fontSize: "0.72rem", margin: "6px 0 0" }}>PNG, JPG, WEBP o GIF (máx 5 MB). Se guarda en el servidor.</p>
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 2px" }}>
           <span style={{ color: "rgba(245,241,232,0.8)", fontSize: "0.85rem" }}>Mostrar en el menú público</span>
