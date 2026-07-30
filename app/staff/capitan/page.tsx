@@ -84,6 +84,9 @@ export default function CapitanPage() {
       <StaffHeader title="Capitán" role={staff.role} userName={staff.fullName} onLogout={logout}
         right={
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {staff.role === "MANAGER" && (
+              <button style={{ ...btn.ghost, minHeight: 40, padding: "0 14px", fontSize: "0.82rem" }} onClick={() => router.push("/admin")}>Panel</button>
+            )}
             <button onClick={() => setTourOpen(true)} title="Tutorial" aria-label="Abrir tutorial"
               style={{ width: 40, height: 40, borderRadius: 999, border: `1px solid ${C.border}`, background: "transparent", color: C.gold, fontWeight: 800, fontSize: "1.05rem", cursor: "pointer" }}>?</button>
             <button data-tour="refrescar" style={btn.ghost} onClick={load}>↻</button>

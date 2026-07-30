@@ -139,6 +139,9 @@ export function AuthForm() {
                 if (data.error === "WRONG_CREDENTIALS") {
                     throw new Error("Uno de los datos es correcto pero no podemos decirte cuál es el incorrecto.");
                 }
+                if (data.error === "USE_PIN") {
+                    throw new Error("Tu cuenta de administrador entra con PIN. Ingresa en /staff con tu usuario y PIN.");
+                }
                 throw new Error(data.error);
             }
             await session.refresh();

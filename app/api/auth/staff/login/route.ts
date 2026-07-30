@@ -7,6 +7,7 @@ import {
   staffSessionCookieString,
   type StaffRole,
 } from "@/lib/staff-session";
+import { signSession, sessionCookieString, type Role } from "@/lib/session";
 import type { ApiResponse } from "@/types";
 
 /**
@@ -61,6 +62,20 @@ export async function POST(request: NextRequest) {
       data: { id: staff.id, username: staff.username, fullName: staff.fullName, role: staff.role },
     });
     res.headers.set("Set-Cookie", staffSessionCookieString(token));
+
+    // Puente de identidad: si este Staff está ligado a un User ADMIN/HOSTES
+    // (hoy solo Ricardo, vía User.staffId), emite TAMBIÉN la cookie sl_session
+    // para que /admin y /crm funcionen con el mismo login por PIN. Se agrega
+    // como segunda cabecera Set-Cookie (append) para conservar ambas cookies.
+    const linkedUser = await prisma.user.findFirst({
+      where: { staffId: staff.id },
+      select: { id: true, role: true },
+    });
+    if (linkedUser && (linkedUser.role === "ADMIN" || linkedUser.role === "HOSTES")) {
+      const userToken = signSession({ sub: linkedUser.id, role: linkedUser.role as Role });
+      res.headers.append("Set-Cookie", sessionCookieString(userToken));
+    }
+
     return res;
   } catch (error) {
     console.error("[API] POST /api/auth/staff/login error:", error);

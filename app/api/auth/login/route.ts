@@ -42,6 +42,16 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // Puente de identidad: los ADMIN entran SOLO por PIN en /staff (que
+        // auto-genera esta sesión). Se bloquea el login por correo para que el
+        // panel no cuelgue del landing. HOSTES por correo sigue funcionando.
+        if (user.role === "ADMIN") {
+            return NextResponse.json<ApiResponse>(
+                { success: false, error: "USE_PIN" },
+                { status: 403 }
+            );
+        }
+
         const token = signSession({ sub: user.id, role: user.role as Role });
         const res = NextResponse.json<ApiResponse>({
             success: true,
