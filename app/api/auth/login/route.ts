@@ -42,10 +42,12 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Puente de identidad: los ADMIN entran SOLO por PIN en /staff (que
-        // auto-genera esta sesión). Se bloquea el login por correo para que el
-        // panel no cuelgue del landing. HOSTES por correo sigue funcionando.
-        if (user.role === "ADMIN") {
+        // Puente de identidad: un ADMIN ligado a un Staff (tiene PIN, hoy solo
+        // Ricardo) entra SOLO por PIN en /staff (que auto-genera esta sesión) →
+        // se bloquea su login por correo para que el panel no cuelgue del landing.
+        // Un ADMIN SIN Staff ligado (p. ej. Francesca) NO tiene PIN: se le deja el
+        // correo para no dejarlo fuera del sistema. HOSTES por correo también sigue.
+        if (user.role === "ADMIN" && user.staffId != null) {
             return NextResponse.json<ApiResponse>(
                 { success: false, error: "USE_PIN" },
                 { status: 403 }
