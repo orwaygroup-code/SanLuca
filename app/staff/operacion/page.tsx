@@ -110,6 +110,8 @@ export default function OperacionPage() {
         onLogout={logout}
         right={
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button style={navBtn} onClick={() => router.push("/staff/reservas")}>Reservas</button>
+            <button style={navBtn} onClick={() => router.push("/staff/historial")}>Historial</button>
             <button data-tour="help" onClick={() => setTourOpen(true)} title="Tutorial" aria-label="Abrir tutorial"
               style={{ width: 40, height: 40, borderRadius: 999, border: `1px solid ${C.border}`, background: "transparent", color: C.gold, fontWeight: 800, fontSize: "1.05rem", cursor: "pointer" }}>?</button>
             <button style={btn.ghost} onClick={load}>↻</button>
@@ -411,6 +413,11 @@ function NuevaCuentaModal({ open, waiterId, onClose, onCreated, onError }: {
 const stepper: React.CSSProperties = {
   width: 40, height: 40, borderRadius: 9, border: `1px solid ${C.line}`,
   background: "transparent", color: C.cream, fontSize: "1.3rem", cursor: "pointer",
+};
+
+const navBtn: React.CSSProperties = {
+  padding: "9px 14px", minHeight: 40, borderRadius: 10, border: `1px solid ${C.line}`,
+  background: "transparent", color: C.dim, fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit",
 };
 
 const nc: Record<string, React.CSSProperties> = {

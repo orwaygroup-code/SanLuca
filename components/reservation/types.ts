@@ -1,3 +1,5 @@
+import type { SelectOption } from "@/components/ui/GoldSelect";
+
 export interface AvailableTable {
   id:       string;
   number:   number;
@@ -44,4 +46,40 @@ export interface AvailabilityData {
   isLargeGroup?:       boolean;
   blockedByLargeGroup?: boolean;
   reason?:             string | null;
+}
+
+// ── Shared reservation constants & types (admin page + reservation modals) ──
+export const MX_TZ = "America/Mexico_City";
+
+export const MODAL_SECTIONS = ["Terraza", "Planta Alta", "Salón", "Privado"] as const;
+
+export const OCCASION_OPTIONS: SelectOption[] = [
+  { value: "",                  label: "— Sin celebración —"  },
+  { value: "Cumpleaños",        label: "🎂  Cumpleaños"        },
+  { value: "Aniversario",       label: "🥂  Aniversario"       },
+  { value: "Cena de negocios",  label: "💼  Cena de negocios"  },
+  { value: "Pedida de mano",    label: "💍  Pedida de mano"    },
+  { value: "Otro",              label: "✨  Otro"              },
+];
+
+export interface Reservation {
+    id:                string;
+    guestName:         string;
+    guestPhone:        string;
+    date:              string;
+    guests:            number;
+    sectionPreference: string | null;
+    occasion:          string | null;
+    notes:             string | null;
+    status:            string;
+    paymentStatus:     string;
+    requiresPayment?:  boolean;
+    creditUsed?:       number;
+    amountPaid?:       number | string | null;
+    checkedInAt:       string | null;
+    seenAt:            string | null;
+    tablesProvisional: boolean;
+    qrToken:           string;
+    table:             { number: number; section: { name: string } } | null;
+    user:              { name: string; email: string; phone: string };
 }
