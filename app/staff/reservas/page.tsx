@@ -4,9 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStaffSession } from "@/lib/staff-session-client";
 import {
-  C, StaffHeader, Spinner, EmptyState, Badge, Modal, btn, fld,
+  C, Spinner, EmptyState, Badge, Modal, btn, fld,
   useToasts, ToastHost, useStaffLogout, usePoll,
 } from "@/components/staff/ui";
+import { StaffShell } from "@/components/staff/StaffShell";
+import { Icon } from "@/components/staff/icons";
 import { apiFetch } from "@/components/staff/types";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { NewReservationModal } from "@/components/reservation/NewReservationModal";
@@ -47,10 +49,6 @@ const NEXT_STATUSES: Record<string, { label: string; value: string }[]> = {
 };
 const NO_ACTIONS = ["CANCELLED", "NO_SHOW", "COMPLETED"]; // sin editar / mover mesa
 const SECTIONS = ["Todas", "Terraza", "Planta Alta", "Salón", "Privado"];
-
-const OCCASION_EMOJI: Record<string, string> = {
-  "Cumpleaños": "🎂", "Aniversario": "🥂", "Cena de negocios": "💼", "Pedida de mano": "💍", "Otro": "✨",
-};
 
 const MX_TZ = "America/Mexico_City";
 function fmtTime(iso: string): string {
@@ -156,35 +154,29 @@ export default function ReservasPage() {
     else push(r.error ?? "No se pudo cambiar el estado", "error");
   };
 
-  if (loading || !staff || !allowed) return <div style={page.root}><Spinner /></div>;
+  if (loading || !staff || !allowed) return <div style={{ minHeight: "100vh", background: C.bg, display: "grid", placeItems: "center" }}><Spinner /></div>;
 
   const hasFilters = section !== "Todas" || !!date || !!search;
 
   return (
-    <div style={page.root}>
-      <StaffHeader
-        title="Reservas"
-        role={staff.role}
-        userName={staff.fullName}
-        onLogout={logout}
-        onBack={() => router.push("/staff/operacion")}
-        right={
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <button style={{ ...btn.primary, padding: "10px 14px", minHeight: 40, fontSize: "0.8rem" }} onClick={() => setShowNew(true)}>+ Nueva reserva</button>
-            <button style={btn.ghost} onClick={load}>↻</button>
+    <>
+      <StaffShell active="reservas" onRefresh={load} onLogout={logout} userName={staff.fullName} role={staff.role} maxWidth={1200}>
+        <div style={rv.head}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
+            <h1 style={rv.h1}>Reservas</h1>
+            {reservations && <span style={rv.sub}>{reservations.length} {reservations.length === 1 ? "reserva" : "reservas"}</span>}
           </div>
-        }
-      />
+          <button style={rv.new} onClick={() => setShowNew(true)}><Icon name="plus" size={18} />Nueva reserva</button>
+        </div>
 
-      <main style={page.main}>
         {/* ── Filtros ── */}
-        <div style={page.filters}>
+        <div style={rv.filters}>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {SECTIONS.map((s) => (
               <button key={s} onClick={() => setSection(s)} style={{ ...chip, ...(section === s ? chipOn : {}) }}>{s}</button>
             ))}
           </div>
-          <div style={page.filterRow}>
+          <div style={rv.filterRow}>
             <DatePicker value={date} onChange={setDate} placeholder="Todas las fechas (hoy en adelante)" style={{ flex: "1 1 220px" }} />
             <div style={{ display: "flex", gap: 8, flex: "1 1 220px" }}>
               <input
@@ -198,7 +190,7 @@ export default function ReservasPage() {
             </div>
             {hasFilters && (
               <button style={{ ...btn.ghost, color: C.faint }} onClick={() => { setSection("Todas"); setDate(""); setSearch(""); }}>
-                ✕ Limpiar
+                Limpiar filtros
               </button>
             )}
           </div>
@@ -207,11 +199,11 @@ export default function ReservasPage() {
         {/* ── Lista ── */}
         {reservations === null ? <Spinner /> :
         reservations.length === 0 ? <EmptyState text="No hay reservas con esos filtros." /> : (
-          <div style={page.grid}>
+          <div style={rv.grid}>
             {reservations.map((r) => {
               const locked = NO_ACTIONS.includes(r.status);
               return (
-                <div key={r.id} style={page.card}>
+                <div key={r.id} style={rv.card}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
                     <span style={{ color: C.cream, fontWeight: 800 }}>{fmtDateShort(r.date)} · {fmtTime(r.date)}</span>
                     <Badge text={RES_STATUS_LABEL[r.status] ?? r.status} color={RES_STATUS_COLOR[r.status] ?? C.dim} />
@@ -226,8 +218,9 @@ export default function ReservasPage() {
                   </div>
 
                   {r.occasion && (
-                    <div style={{ color: C.gold, fontSize: "0.78rem", marginTop: 6 }}>
-                      {OCCASION_EMOJI[r.occasion] ?? "✨"} {r.occasion}
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, color: C.gold, fontSize: "0.78rem", marginTop: 6 }}>
+                      <span style={{ width: 6, height: 6, borderRadius: 999, background: C.gold, display: "inline-block", flexShrink: 0 }} />
+                      {r.occasion}
                     </div>
                   )}
                   {r.notes && (
@@ -236,7 +229,7 @@ export default function ReservasPage() {
                     </button>
                   )}
 
-                  <div style={page.cardActions}>
+                  <div style={rv.cardActions}>
                     {!locked && <button style={miniEdit} onClick={() => setEditTarget(r)}>Editar</button>}
                     {!locked && <button style={miniMove} onClick={() => setMoveTarget(r)}>Cambiar mesa</button>}
                     {(NEXT_STATUSES[r.status] ?? []).map((a) => (
@@ -250,7 +243,7 @@ export default function ReservasPage() {
             })}
           </div>
         )}
-      </main>
+      </StaffShell>
 
       {/* ── Modales ── */}
       {showNew && (
@@ -282,7 +275,7 @@ export default function ReservasPage() {
       </Modal>
 
       <ToastHost toasts={toasts} onClose={dismiss} />
-    </div>
+    </>
   );
 }
 
@@ -300,9 +293,11 @@ const miniEdit: React.CSSProperties = { ...miniOutline, borderColor: C.gold, col
 const miniMove: React.CSSProperties = { ...miniOutline, borderColor: C.blue, color: C.blue };
 const miniStatus: React.CSSProperties = { ...miniOutline, borderColor: C.gold, color: C.gold, fontWeight: 700 };
 
-const page: Record<string, React.CSSProperties> = {
-  root: { minHeight: "100vh", background: C.bg },
-  main: { padding: "16px 18px", maxWidth: 1200, margin: "0 auto" },
+const rv: Record<string, React.CSSProperties> = {
+  head: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", margin: "8px 0 16px" },
+  h1: { margin: 0, fontSize: "1.15rem", fontWeight: 800, color: C.cream, letterSpacing: "0.01em" },
+  sub: { fontSize: "0.8rem", color: C.faint },
+  new: { ...btn.primary, minHeight: 44, display: "inline-flex", alignItems: "center", gap: 8 },
   filters: { display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 },
   filterRow: { display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-start" },
   grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 },

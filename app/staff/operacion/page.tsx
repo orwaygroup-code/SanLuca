@@ -4,21 +4,26 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStaffSession } from "@/lib/staff-session-client";
 import {
-  C, StaffHeader, Spinner, EmptyState, Badge, Modal, btn, fld, formatMXN,
+  C, Spinner, EmptyState, Badge, Modal, btn, fld, formatMXN,
   STATUS_LABEL, STATUS_COLOR, useToasts, ToastHost, useStaffLogout, usePoll,
 } from "@/components/staff/ui";
 import { apiFetch, comandaLabel, type TableStatus, type ReservationToday, type Comanda, type CashSession, type CutSnapshot, type PayResult } from "@/components/staff/types";
 import { TurnoBar, OpenTurnoModal, CloseCashSessionModal, CajaMonitor, PayModal } from "@/components/staff/caja";
+import { StaffShell } from "@/components/staff/StaffShell";
+import { type OperTab } from "@/components/staff/StaffRail";
+import { Icon, type IconName } from "@/components/staff/icons";
 import { Tour, type TourStep } from "@/components/staff/Tour";
 import { TipsPanel } from "@/components/staff/TipsPanel";
+
+const AWAIT = STATUS_COLOR.AWAITING_PAYMENT; // #e0b054 — tinte "requiere caja"
 
 /** Tutorial guiado de la vista Caja / Operación. */
 const OPERACION_TOUR: TourStep[] = [
   { title: "Tu vista de Caja y Hostess", body: "Desde aquí sientas reservas, ves las cuentas activas, cobras y haces el corte del turno." },
   { target: "turno", title: "Abre el cajón primero", body: "Antes de cobrar, abre el turno con el fondo inicial. Aquí mismo cierras la caja y haces el corte (arqueo + diferencia).", task: "Si no hay turno, toca «Abrir cajón»." },
-  { target: "tabs", title: "Cinco pestañas", body: "«Reservas» para sentar, «Mesas» para las cuentas activas, «Para llevar» para cuentas sin mesa, «Monitor» para la venta del turno, y «Propinas» para el reparto de puntos." },
-  { target: "monitor", title: "Monitor del turno (corte X)", body: "Cuánto llevas cobrado por método (efectivo/tarjeta/transferencia), propinas y el efectivo esperado en el cajón — sin cerrar nada.", task: "Toca «Monitor» para verlo." },
-  { title: "A cobrar", body: "En «Mesas», toca «Cobrar» en una cuenta para registrar el pago (mixto/parcial/propina/cambio). Reabre este tutorial con «?» cuando quieras." },
+  { target: "tabs", title: "El riel de la izquierda", body: "Desde el riel cambias de vista: «Mesas» (cuentas activas y por cobrar), «Llegadas» (sentar las reservas de hoy) y «Llevar» (cuentas sin mesa). Abajo: «Reservas» e «Historial» para gestión, y «Monitor»/«Propinas» del turno." },
+  { target: "monitor", title: "Monitor del turno (corte X)", body: "Cuánto llevas cobrado por método (efectivo/tarjeta/transferencia), propinas y el efectivo esperado en el cajón — sin cerrar nada.", task: "Toca «Monitor» en el riel." },
+  { title: "A cobrar", body: "En «Mesas», lo que necesita tu caja sale hasta arriba: toca «Cobrar» para registrar el pago (mixto/parcial/propina/cambio). Reabre este tutorial con «Ayuda» cuando quieras." },
 ];
 
 const MX_TZ = "America/Mexico_City";
@@ -26,14 +31,18 @@ function hhmm(iso: string): string {
   return new Intl.DateTimeFormat("es-MX", { timeZone: MX_TZ, hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(iso));
 }
 
-/** Vista Operación (Perla) — sentar reservas, mapa de mesas, cerrar/cobrar comandas. */
+const TITLE_FOR: Record<OperTab, string> = {
+  mesas: "Mesas", llegadas: "Llegadas de hoy", llevar: "Para llevar", monitor: "Monitor del turno", propinas: "Propinas",
+};
+
+/** Vista Operación (Perla) — sentar reservas, cuentas de mesa/llevar, cobrar y corte de caja. */
 export default function OperacionPage() {
   const router = useRouter();
   const { staff, loading } = useStaffSession();
   const logout = useStaffLogout();
   const { toasts, push, dismiss } = useToasts();
 
-  const [tab, setTab] = useState<"reservas" | "mesas" | "llevar" | "monitor" | "propinas">("reservas");
+  const [tab, setTab] = useState<OperTab>("mesas");
   const [reservations, setReservations] = useState<ReservationToday[] | null>(null);
   const [tables, setTables] = useState<TableStatus[] | null>(null);
   const [seatRes, setSeatRes] = useState<ReservationToday | null>(null);
@@ -97,135 +106,177 @@ export default function OperacionPage() {
     else push(r.error ?? "No se pudo imprimir", "error");
   };
 
-  if (loading || !staff || !allowed) return <div style={page.root}><Spinner /></div>;
+  if (loading || !staff || !allowed) return <div style={{ minHeight: "100vh", background: C.bg, display: "grid", placeItems: "center" }}><Spinner /></div>;
 
+  const occupied = (tables ?? []).filter((t) => t.comanda);
   const freeTables = (tables ?? []).filter((t) => t.state === "FREE");
+  const llegadasPending = (reservations ?? []).filter((r) => !r.comanda);
+
+  const subFor = (): string => {
+    if (tab === "mesas") return occupied.length ? `${occupied.length} cuenta${occupied.length === 1 ? "" : "s"} activa${occupied.length === 1 ? "" : "s"}` : "sin cuentas activas";
+    if (tab === "llegadas") return `${llegadasPending.length} por sentar`;
+    if (tab === "llevar") return takeout ? `${takeout.length} cuenta${takeout.length === 1 ? "" : "s"}` : "";
+    return "";
+  };
 
   return (
-    <div style={page.root}>
-      <StaffHeader
-        title="Operación"
-        role={staff.role}
-        userName={staff.fullName}
+    <>
+      <StaffShell
+        active={tab}
+        counts={{ llegadas: llegadasPending.length, llevar: (takeout ?? []).length }}
+        onTab={setTab}
+        onRefresh={load}
+        onHelp={() => setTourOpen(true)}
         onLogout={logout}
-        right={
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <button style={navBtn} onClick={() => router.push("/staff/reservas")}>Reservas</button>
-            <button style={navBtn} onClick={() => router.push("/staff/historial")}>Historial</button>
-            <button data-tour="help" onClick={() => setTourOpen(true)} title="Tutorial" aria-label="Abrir tutorial"
-              style={{ width: 40, height: 40, borderRadius: 999, border: `1px solid ${C.border}`, background: "transparent", color: C.gold, fontWeight: 800, fontSize: "1.05rem", cursor: "pointer" }}>?</button>
-            <button style={btn.ghost} onClick={load}>↻</button>
+        userName={staff.fullName}
+        role={staff.role}
+        topBar={<div data-tour="turno"><TurnoBar session={session} cut={cut} onOpenTurno={() => setOpenTurno(true)} onCloseTurno={() => setCloseTurno(true)} /></div>}
+      >
+        <div style={sh.kicker}>
+            <h1 style={sh.h1}>{TITLE_FOR[tab]}</h1>
+            {subFor() && <span style={sh.sub}>{subFor()}</span>}
           </div>
-        }
-      />
 
-      <div data-tour="turno"><TurnoBar session={session} cut={cut} onOpenTurno={() => setOpenTurno(true)} onCloseTurno={() => setCloseTurno(true)} /></div>
-
-      <div style={page.tabs} data-tour="tabs">
-        <button style={{ ...page.tab, ...(tab === "reservas" ? page.tabOn : {}) }} onClick={() => setTab("reservas")}>Reservas de hoy</button>
-        <button style={{ ...page.tab, ...(tab === "mesas" ? page.tabOn : {}) }} onClick={() => setTab("mesas")}>Mesas</button>
-        <button style={{ ...page.tab, ...(tab === "llevar" ? page.tabOn : {}) }} onClick={() => setTab("llevar")}>Para llevar</button>
-        <button data-tour="monitor" style={{ ...page.tab, ...(tab === "monitor" ? page.tabOn : {}) }} onClick={() => { setTab("monitor"); loadSession(); }}>Monitor</button>
-        <button style={{ ...page.tab, ...(tab === "propinas" ? page.tabOn : {}) }} onClick={() => { setTab("propinas"); loadSession(); }}>Propinas</button>
-      </div>
-
-      <main style={page.main}>
-        {tab === "reservas" ? (
-          reservations === null ? <Spinner /> :
-          reservations.length === 0 ? <EmptyState text="No hay reservas para hoy." /> : (
-            <div style={page.list}>
-              {reservations.map((r) => (
-                <div key={r.id} style={page.resRow}>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ color: C.cream, fontWeight: 700 }}>{hhmm(r.date)} · {r.guestName}</div>
-                    <div style={{ color: C.dim, fontSize: "0.8rem", marginTop: 2 }}>
-                      {r.guests} pers{r.table ? ` · Mesa ${r.table.number} (${r.table.section.name})` : r.sectionPreference ? ` · pref. ${r.sectionPreference}` : ""}
-                    </div>
-                  </div>
-                  {r.comanda ? (
-                    <button style={btn.ghost} onClick={() => router.push(`/staff/comandas/${r.comanda!.id}`)}>
-                      Ver {r.comanda.folio}
-                    </button>
-                  ) : (
-                    <button style={btn.primary} onClick={() => setSeatRes(r)}>Sentar</button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )
-        ) : tab === "mesas" ? (
-          tables === null ? <Spinner /> : (
-            tables!.length === 0 ? <EmptyState text="Sin mesas activas." /> : (
-            <div style={page.grid}>
-              {tables!.map((t) => (
-                <div key={t.id} style={{ ...page.tableCard, borderColor: t.state === "FREE" ? C.line : (STATUS_COLOR[t.state] ?? C.line) }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ color: C.cream, fontWeight: 800 }}>Mesa {t.number}</span>
-                    <Badge text={STATUS_LABEL[t.state] ?? t.state} color={STATUS_COLOR[t.state] ?? C.dim} />
-                  </div>
-                  <div style={{ color: C.faint, fontSize: "0.74rem", marginTop: 4 }}>{t.section} · cap. {t.capacity}</div>
-                  {t.comanda && (
+          {tab === "mesas" ? (
+            tables === null ? <Spinner /> : (() => {
+              const needCaja = occupied.filter((t) => t.comanda!.billPrinted || t.comanda!.status === "AWAITING_PAYMENT");
+              const inService = occupied.filter((t) => !(t.comanda!.billPrinted || t.comanda!.status === "AWAITING_PAYMENT"));
+              if (occupied.length === 0 && freeTables.length === 0) return <EmptyState text="Sin mesas configuradas." />;
+              return (
+                <div style={sh.stack}>
+                  {needCaja.length > 0 && (
                     <>
-                      <div style={{ color: C.cream, fontSize: "0.82rem", marginTop: 8 }}>
-                        {t.comanda.folio} · {formatMXN(t.comanda.total)}
-                      </div>
-                      {t.comanda.waiter && <div style={{ color: C.faint, fontSize: "0.72rem" }}>{t.comanda.waiter.fullName}</div>}
-                      <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
-                        <button style={{ ...btn.ghost, padding: "7px 12px", fontSize: "0.78rem" }} onClick={() => router.push(`/staff/comandas/${t.comanda!.id}`)}>Ver</button>
-                        {t.comanda.billPrinted ? (
-                          <button style={{ ...btn.primary, padding: "7px 12px", fontSize: "0.78rem" }} onClick={() => setPayTarget(t.comanda!.id)}>Cobrar</button>
-                        ) : t.comanda.status === "AWAITING_PAYMENT" ? (
-                          <button style={{ ...btn.primary, padding: "7px 12px", fontSize: "0.78rem" }} onClick={() => doPrintBill(t.comanda!.id)} disabled={printing === t.comanda!.id}>
-                            {printing === t.comanda!.id ? "Imprimiendo…" : "🧾 Imprimir ticket"}
-                          </button>
-                        ) : (
-                          <span style={{ color: C.faint, fontSize: "0.72rem" }}>En servicio</span>
-                        )}
-                      </div>
+                      <SectionLabel tone="gold">Requiere tu caja · {needCaja.length}</SectionLabel>
+                      {needCaja.map((t) => {
+                        const c = t.comanda!;
+                        const pay = c.billPrinted;
+                        return (
+                          <ActionRow
+                            key={t.id}
+                            lead={<LeadNum n={t.number} sub="MESA" />}
+                            who={`Mesa ${t.number}`}
+                            badge={{ text: pay ? "Cuenta impresa" : "Pidió cuenta", color: AWAIT }}
+                            meta={`${t.section}${c.waiter ? " · " + c.waiter.fullName : ""} · ${c.folio}`}
+                            amount={formatMXN(c.total)}
+                            tone={pay ? "pay" : "act"}
+                            action={pay
+                              ? <button style={rowBtn.pay} onClick={() => setPayTarget(c.id)}><Icon name="card" size={18} />Cobrar</button>
+                              : <button style={{ ...rowBtn.print, opacity: printing === c.id ? 0.6 : 1 }} onClick={() => doPrintBill(c.id)} disabled={printing === c.id}><Icon name="printer" size={18} />{printing === c.id ? "Imprimiendo…" : "Imprimir"}</button>}
+                          />
+                        );
+                      })}
+                    </>
+                  )}
+                  {inService.length > 0 && (
+                    <>
+                      <SectionLabel>En servicio · sin acción</SectionLabel>
+                      {inService.map((t) => {
+                        const c = t.comanda!;
+                        return (
+                          <ActionRow
+                            key={t.id}
+                            lead={<LeadNum n={t.number} sub="MESA" />}
+                            who={`Mesa ${t.number}`}
+                            badge={{ text: STATUS_LABEL[c.status] ?? c.status, color: STATUS_COLOR[c.status] ?? C.dim }}
+                            meta={`${t.section}${c.waiter ? " · " + c.waiter.fullName : ""}`}
+                            amount={formatMXN(c.total)}
+                            amountDim
+                            tone="passive"
+                            action={<button style={rowBtn.ver} onClick={() => router.push(`/staff/comandas/${c.id}`)}>Ver<Icon name="chevron" size={16} /></button>}
+                          />
+                        );
+                      })}
+                    </>
+                  )}
+                  {freeTables.length > 0 && (
+                    <>
+                      <SectionLabel>Libres</SectionLabel>
+                      <FreeStrip tables={freeTables} />
                     </>
                   )}
                 </div>
-              ))}
-            </div>
-            )
-          )
-        ) : tab === "llevar" ? (
-          <div>
-            <button style={{ ...btn.primary, marginBottom: 14 }} onClick={() => setNewAccount(true)}>+ Nueva cuenta (para llevar / sin mesa)</button>
-            {takeout === null ? <Spinner /> : takeout.length === 0 ? (
-              <EmptyState text="Sin cuentas para llevar. Crea una con «+ Nueva cuenta»." />
-            ) : (
-              <div style={page.grid}>
-                {takeout.map((c) => (
-                  <div key={c.id} style={{ ...page.tableCard, borderColor: STATUS_COLOR[c.status] ?? C.line }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                      <span style={{ color: C.cream, fontWeight: 800, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{comandaLabel(c)}</span>
-                      <Badge text={STATUS_LABEL[c.status] ?? c.status} color={STATUS_COLOR[c.status] ?? C.dim} />
-                    </div>
-                    <div style={{ color: C.cream, fontSize: "0.82rem", marginTop: 8 }}>{c.folio} · {formatMXN(Number(c.total))}</div>
-                    <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
-                      <button style={{ ...btn.ghost, padding: "7px 12px", fontSize: "0.78rem" }} onClick={() => router.push(`/staff/comandas/${c.id}`)}>Ver</button>
-                      {(c.prints ?? []).some((p) => p.type === "CUSTOMER_FINAL") ? (
-                        <button style={{ ...btn.primary, padding: "7px 12px", fontSize: "0.78rem" }} onClick={() => setPayTarget(c.id)}>Cobrar</button>
-                      ) : c.status === "AWAITING_PAYMENT" ? (
-                        <button style={{ ...btn.primary, padding: "7px 12px", fontSize: "0.78rem" }} onClick={() => doPrintBill(c.id)} disabled={printing === c.id}>
-                          {printing === c.id ? "Imprimiendo…" : "🧾 Imprimir ticket"}
-                        </button>
-                      ) : (
-                        <span style={{ color: C.faint, fontSize: "0.72rem" }}>En captura</span>
-                      )}
-                    </div>
-                  </div>
+              );
+            })()
+          ) : tab === "llegadas" ? (
+            reservations === null ? <Spinner /> :
+            reservations.length === 0 ? <EmptyState text="No hay reservas para hoy." /> : (
+              <div style={sh.stack}>
+                {reservations.map((r) => (
+                  <ActionRow
+                    key={r.id}
+                    lead={<LeadNum n={r.guests} sub="PERS" />}
+                    who={`${hhmm(r.date)} · ${r.guestName}`}
+                    badge={r.comanda ? { text: "Sentada", color: STATUS_COLOR.IN_SERVICE } : undefined}
+                    meta={r.table ? `Mesa ${r.table.number} · ${r.table.section.name}` : r.sectionPreference ? `Pref. ${r.sectionPreference}` : "Sin mesa asignada"}
+                    tone="plain"
+                    action={r.comanda
+                      ? <button style={rowBtn.ver} onClick={() => router.push(`/staff/comandas/${r.comanda!.id}`)}>Ver<Icon name="chevron" size={16} /></button>
+                      : <button style={rowBtn.seat} onClick={() => setSeatRes(r)}><Icon name="arrive" size={18} />Sentar</button>}
+                  />
                 ))}
               </div>
-            )}
-          </div>
-        ) : tab === "monitor" ? (
-          <CajaMonitor session={session} cut={cut} />
-        ) : (
-          <TipsPanel onToast={push} />
-        )}
-      </main>
+            )
+          ) : tab === "llevar" ? (
+            <div>
+              <button style={{ ...rowBtn.seat, marginBottom: 14 }} onClick={() => setNewAccount(true)}><Icon name="plus" size={18} />Nueva cuenta (para llevar / sin mesa)</button>
+              {takeout === null ? <Spinner /> : takeout.length === 0 ? (
+                <EmptyState text="Sin cuentas para llevar. Crea una con «Nueva cuenta»." />
+              ) : (() => {
+                const isNeed = (c: Comanda) => (c.prints ?? []).some((p) => p.type === "CUSTOMER_FINAL") || c.status === "AWAITING_PAYMENT";
+                const need = takeout.filter(isNeed);
+                const rest = takeout.filter((c) => !isNeed(c));
+                return (
+                  <div style={sh.stack}>
+                    {need.length > 0 && (
+                      <>
+                        <SectionLabel tone="gold">Requiere tu caja · {need.length}</SectionLabel>
+                        {need.map((c) => {
+                          const printed = (c.prints ?? []).some((p) => p.type === "CUSTOMER_FINAL");
+                          return (
+                            <ActionRow
+                              key={c.id}
+                              lead={<LeadIcon name="bag" sub="LLEVAR" />}
+                              who={comandaLabel(c)}
+                              badge={{ text: printed ? "Cuenta impresa" : "Pidió cuenta", color: AWAIT }}
+                              meta={c.folio}
+                              amount={formatMXN(Number(c.total))}
+                              tone={printed ? "pay" : "act"}
+                              action={printed
+                                ? <button style={rowBtn.pay} onClick={() => setPayTarget(c.id)}><Icon name="card" size={18} />Cobrar</button>
+                                : <button style={{ ...rowBtn.print, opacity: printing === c.id ? 0.6 : 1 }} onClick={() => doPrintBill(c.id)} disabled={printing === c.id}><Icon name="printer" size={18} />{printing === c.id ? "Imprimiendo…" : "Imprimir"}</button>}
+                            />
+                          );
+                        })}
+                      </>
+                    )}
+                    {rest.length > 0 && (
+                      <>
+                        <SectionLabel>En captura</SectionLabel>
+                        {rest.map((c) => (
+                          <ActionRow
+                            key={c.id}
+                            lead={<LeadIcon name="bag" sub="LLEVAR" />}
+                            who={comandaLabel(c)}
+                            badge={{ text: STATUS_LABEL[c.status] ?? c.status, color: STATUS_COLOR[c.status] ?? C.dim }}
+                            meta={c.folio}
+                            amount={formatMXN(Number(c.total))}
+                            amountDim
+                            tone="passive"
+                            action={<button style={rowBtn.ver} onClick={() => router.push(`/staff/comandas/${c.id}`)}>Ver<Icon name="chevron" size={16} /></button>}
+                          />
+                        ))}
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          ) : tab === "monitor" ? (
+            <CajaMonitor session={session} cut={cut} />
+          ) : (
+            <TipsPanel onToast={push} />
+          )}
+      </StaffShell>
 
       <SeatModal
         res={seatRes}
@@ -280,10 +331,60 @@ export default function OperacionPage() {
       <Tour steps={OPERACION_TOUR} open={tourOpen} onClose={closeTour} />
 
       <ToastHost toasts={toasts} onClose={dismiss} />
+    </>
+  );
+}
+
+// ─────────────────────────────────────────────── piezas de la bandeja ──
+
+function SectionLabel({ children, tone }: { children: React.ReactNode; tone?: "gold" }) {
+  return (
+    <div style={sh.sectionRow}>
+      <span style={{ ...sh.sectionTx, color: tone === "gold" ? "#c9964a" : C.faint }}>{children}</span>
+      <span style={sh.sectionLine} />
     </div>
   );
 }
 
+function LeadNum({ n, sub }: { n: number | string; sub: string }) {
+  return (<><b style={row.leadNum}>{n}</b><span style={row.leadSub}>{sub}</span></>);
+}
+function LeadIcon({ name, sub }: { name: IconName; sub: string }) {
+  return (<><Icon name={name} size={24} style={{ color: C.cream }} /><span style={row.leadSub}>{sub}</span></>);
+}
+
+function ActionRow({ lead, who, badge, meta, amount, amountDim, tone = "plain", action }: {
+  lead: React.ReactNode; who: string; badge?: { text: string; color: string };
+  meta?: string; amount?: string; amountDim?: boolean; tone?: "pay" | "act" | "passive" | "plain"; action?: React.ReactNode;
+}) {
+  return (
+    <div style={{ ...row.root, ...(tone === "pay" ? row.pay : tone === "act" ? row.act : {}) }}>
+      <div style={row.lead}>{lead}</div>
+      <div style={row.info}>
+        <div style={row.l1}>
+          <span style={{ ...row.who, ...(tone === "passive" ? { color: C.dim } : {}) }}>{who}</span>
+          {badge && <Badge text={badge.text} color={badge.color} />}
+        </div>
+        {meta && <div style={row.meta}>{meta}</div>}
+      </div>
+      {amount && <div style={{ ...row.amt, ...(amountDim ? { color: C.dim } : {}) }}>{amount}</div>}
+      {action}
+    </div>
+  );
+}
+
+function FreeStrip({ tables }: { tables: TableStatus[] }) {
+  return (
+    <div style={sh.free}>
+      {tables.map((t) => (
+        <span key={t.id} style={sh.fchip} title={`${t.section} · cap. ${t.capacity}`}>{t.number}</span>
+      ))}
+      <span style={{ marginLeft: 8 }}>{tables.length} mesa{tables.length === 1 ? "" : "s"} libre{tables.length === 1 ? "" : "s"}</span>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────── Modal: sentar reserva ──
 function SeatModal({ res, freeTables, onClose, onSeated, onError }: {
   res: ReservationToday | null; freeTables: TableStatus[];
   onClose: () => void; onSeated: (comandaId: number) => void; onError: (m: string) => void;
@@ -372,7 +473,7 @@ function SeatModal({ res, freeTables, onClose, onSeated, onError }: {
   );
 }
 
-// ─────────────────────────────────── Modal: cuenta sin mesa (para llevar) ──
+// ─────────────────────────────────────────────── Modal: cuenta sin mesa ──
 function NuevaCuentaModal({ open, waiterId, onClose, onCreated, onError }: {
   open: boolean; waiterId: number;
   onClose: () => void; onCreated: (id: number) => void; onError: (m: string) => void;
@@ -415,11 +516,6 @@ const stepper: React.CSSProperties = {
   background: "transparent", color: C.cream, fontSize: "1.3rem", cursor: "pointer",
 };
 
-const navBtn: React.CSSProperties = {
-  padding: "9px 14px", minHeight: 40, borderRadius: 10, border: `1px solid ${C.line}`,
-  background: "transparent", color: C.dim, fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit",
-};
-
 const nc: Record<string, React.CSSProperties> = {
   chips: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 },
   chip: {
@@ -434,14 +530,41 @@ const nc: Record<string, React.CSSProperties> = {
   chipOn: { background: C.gold, color: "#16201f", borderColor: C.gold },
 };
 
-const page: Record<string, React.CSSProperties> = {
-  root: { minHeight: "100vh", background: C.bg },
-  tabs: { display: "flex", gap: 6, padding: "12px 18px 0", maxWidth: 1200, margin: "0 auto", width: "100%", boxSizing: "border-box" },
-  tab: { flex: 1, padding: "11px 0", borderRadius: 10, border: `1px solid ${C.line}`, background: "transparent", color: C.dim, fontWeight: 700, fontSize: "0.84rem", cursor: "pointer", fontFamily: "inherit" },
-  tabOn: { background: C.panel, color: C.cream, borderColor: C.border },
-  main: { padding: "16px 18px", maxWidth: 1200, margin: "0 auto" },
-  list: { display: "flex", flexDirection: "column", gap: 10 },
-  resRow: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px" },
-  grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 },
-  tableCard: { background: C.panel, border: "1px solid", borderRadius: 12, padding: "14px 16px" },
+// ─── botones de fila (acción única y grande por cuenta) ──────────────────────
+const rowBtn: Record<string, React.CSSProperties> = {
+  pay: { ...btn.primary, minHeight: 48, minWidth: 132, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, flexShrink: 0 },
+  seat: { ...btn.primary, minHeight: 48, minWidth: 110, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, flexShrink: 0 },
+  ver: { ...btn.ghost, minHeight: 48, minWidth: 92, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, flexShrink: 0 },
+  print: {
+    minHeight: 48, minWidth: 132, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, flexShrink: 0,
+    padding: "0 18px", borderRadius: 12, border: `1px solid ${AWAIT}`, background: `color-mix(in srgb, ${AWAIT} 16%, transparent)`,
+    color: AWAIT, fontWeight: 800, fontSize: "0.88rem", cursor: "pointer", fontFamily: "inherit",
+  },
+};
+
+// ─── shell (riel + contenido) y filas ────────────────────────────────────────
+const sh: Record<string, React.CSSProperties> = {
+  kicker: { display: "flex", alignItems: "baseline", gap: 12, margin: "8px 0 4px" },
+  h1: { margin: 0, fontSize: "1.15rem", fontWeight: 800, color: C.cream, letterSpacing: "0.01em" },
+  sub: { fontSize: "0.8rem", color: C.faint },
+  stack: { display: "flex", flexDirection: "column", gap: 9 },
+  sectionRow: { display: "flex", alignItems: "center", gap: 12, margin: "22px 0 10px" },
+  sectionTx: { fontSize: "0.62rem", letterSpacing: "0.16em", textTransform: "uppercase", fontWeight: 800, whiteSpace: "nowrap" },
+  sectionLine: { flex: 1, height: 1, background: C.line },
+  free: { display: "flex", flexWrap: "wrap", gap: 9, alignItems: "center", padding: "13px 16px", border: "1px dashed rgba(255,255,255,0.16)", borderRadius: 14, color: C.faint, fontSize: "0.8rem" },
+  fchip: { minWidth: 46, minHeight: 46, borderRadius: 11, border: `1px solid ${C.line}`, background: C.panel, color: C.cream, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" },
+};
+
+const row: Record<string, React.CSSProperties> = {
+  root: { display: "flex", alignItems: "center", gap: 16, padding: "13px 16px", border: "1px solid", borderColor: C.line, borderRadius: 14, background: C.panel },
+  pay: { background: `color-mix(in srgb, ${C.gold} 11%, ${C.panel})`, borderColor: `color-mix(in srgb, ${C.gold} 42%, ${C.line})` },
+  act: { background: `color-mix(in srgb, ${AWAIT} 10%, ${C.panel})`, borderColor: `color-mix(in srgb, ${AWAIT} 40%, ${C.line})` },
+  lead: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minWidth: 66, height: 54, borderRadius: 12, background: C.panel2, border: `1px solid ${C.line}`, color: C.cream, flexShrink: 0 },
+  leadNum: { fontSize: "1.3rem", fontWeight: 900, lineHeight: 1 },
+  leadSub: { fontSize: "0.55rem", color: C.faint, letterSpacing: "0.07em", marginTop: 3 },
+  info: { flex: 1, minWidth: 0 },
+  l1: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },
+  who: { fontWeight: 800, fontSize: "1rem", color: C.cream },
+  meta: { color: C.faint, fontSize: "0.78rem", marginTop: 4 },
+  amt: { fontSize: "1.14rem", fontWeight: 900, whiteSpace: "nowrap", color: C.cream },
 };

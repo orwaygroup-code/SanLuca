@@ -4,9 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStaffSession } from "@/lib/staff-session-client";
 import {
-  C, StaffHeader, Spinner, EmptyState, Badge, ConfirmModal, btn, fld,
+  C, Spinner, EmptyState, Badge, ConfirmModal, btn, fld,
   useToasts, ToastHost, useStaffLogout, usePoll,
 } from "@/components/staff/ui";
+import { StaffShell } from "@/components/staff/StaffShell";
 import { apiFetch } from "@/components/staff/types";
 import type { Reservation } from "@/components/reservation/types";
 
@@ -80,20 +81,18 @@ export default function HistorialPage() {
     else push(r.error ?? "No se pudo eliminar", "error");
   };
 
-  if (loading || !staff || !allowed) return <div style={page.root}><Spinner /></div>;
+  if (loading || !staff || !allowed) return <div style={{ minHeight: "100vh", background: C.bg, display: "grid", placeItems: "center" }}><Spinner /></div>;
 
   return (
-    <div style={page.root}>
-      <StaffHeader
-        title="Historial"
-        role={staff.role}
-        userName={staff.fullName}
-        onLogout={logout}
-        onBack={() => router.push("/staff/operacion")}
-        right={<button style={btn.ghost} onClick={load}>↻</button>}
-      />
+    <>
+      <StaffShell active="historial" onRefresh={load} onLogout={logout} userName={staff.fullName} role={staff.role} maxWidth={1000}>
+        <div style={hi.head}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
+            <h1 style={hi.h1}>Historial</h1>
+            {reservations && <span style={hi.sub}>{reservations.length} {reservations.length === 1 ? "reserva" : "reservas"}</span>}
+          </div>
+        </div>
 
-      <main style={page.main}>
         <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
           <input
             style={{ ...fld.input, flex: 1 }}
@@ -107,9 +106,9 @@ export default function HistorialPage() {
 
         {reservations === null ? <Spinner /> :
         reservations.length === 0 ? <EmptyState text="No hay reservas en el historial." /> : (
-          <div style={page.list}>
+          <div style={hi.list}>
             {reservations.map((r) => (
-              <div key={r.id} style={page.row}>
+              <div key={r.id} style={hi.row}>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                     <span style={{ color: C.cream, fontWeight: 700 }}>{r.guestName}</span>
@@ -129,7 +128,7 @@ export default function HistorialPage() {
             ))}
           </div>
         )}
-      </main>
+      </StaffShell>
 
       <ConfirmModal
         open={!!delTarget}
@@ -143,7 +142,7 @@ export default function HistorialPage() {
       />
 
       <ToastHost toasts={toasts} onClose={dismiss} />
-    </div>
+    </>
   );
 }
 
@@ -152,9 +151,10 @@ const miniOutline: React.CSSProperties = {
   color: C.dim, fontSize: "0.76rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", flexShrink: 0,
 };
 
-const page: Record<string, React.CSSProperties> = {
-  root: { minHeight: "100vh", background: C.bg },
-  main: { padding: "16px 18px", maxWidth: 1000, margin: "0 auto" },
+const hi: Record<string, React.CSSProperties> = {
+  head: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", margin: "8px 0 16px" },
+  h1: { margin: 0, fontSize: "1.15rem", fontWeight: 800, color: C.cream, letterSpacing: "0.01em" },
+  sub: { fontSize: "0.8rem", color: C.faint },
   list: { display: "flex", flexDirection: "column", gap: 10 },
   row: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px" },
 };

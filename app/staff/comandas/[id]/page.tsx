@@ -10,11 +10,14 @@ import {
 import { apiFetch, type Comanda, type CItem, type PayResult, type CashSession, type CutSnapshot } from "@/components/staff/types";
 import { SplitBillModal } from "@/components/staff/SplitBillModal";
 import { PayModal, DiscountModal, MergeModal, TransferItemModal } from "@/components/staff/caja";
+import { Icon } from "@/components/staff/icons";
 import { MenuSelector } from "@/components/staff/MenuSelector";
 import { Tour, type TourStep } from "@/components/staff/Tour";
 import { buildTotalLines } from "@/lib/displayTotals";
 import { buildSplitsPayload, effectiveTaxRate, divisionMoney, unitsSubtotal } from "@/lib/splitBill";
 
+
+const AWAIT = STATUS_COLOR.AWAITING_PAYMENT; // #e0b054 — tinte "requiere caja"
 
 const ITEM_STATUS_LABEL: Record<string, string> = {
   PENDING: "Por enviar", SENT: "En cocina", READY: "Listo", SERVED: "Servido", CANCELLED: "Cancelado",
@@ -432,7 +435,7 @@ export default function ComandaDetailPage() {
           )}
           {editable && liveItems.length > 0 && !currentCourseHasItems && (
             <span style={{ flexBasis: "100%", color: C.amber, fontSize: "0.78rem", display: "flex", alignItems: "center", gap: 6 }}>
-              ⚠ El {courseLabel(currentCourse)} está vacío — agrégale un platillo antes de abrir otro tiempo.
+              <Icon name="alert" size={15} /> El {courseLabel(currentCourse)} está vacío — agrégale un platillo antes de abrir otro tiempo.
             </span>
           )}
           {editable && pendingCount > 0 && (
@@ -447,45 +450,58 @@ export default function ComandaDetailPage() {
           {/* Cuenta ya pedida y el que la ve NO es caja (mesero): candado informativo. */}
           {!editable && !isCashier && (
             <span style={{ flexBasis: "100%", color: C.faint, fontSize: "0.82rem", display: "flex", alignItems: "center", gap: 6 }}>
-              🔒 Cuenta enviada a caja — ya no se puede modificar.
+              <Icon name="lock" size={15} /> Cuenta enviada a caja — ya no se puede modificar.
             </span>
           )}
         </section>
 
         {/* Acciones de CAJA (OPERATION/CAPTAIN/MANAGER). Las sensibles piden PIN. */}
         {isCashier && (cajaActive || isPaid) && (
-          <section data-tour="caja" style={{ ...page.actions, marginTop: 12, borderTop: `1px solid ${C.line}`, paddingTop: 14 }}>
-            {/* Cuenta pedida, sin imprimir: Perla imprime el ticket (o lo divide antes). */}
+          <section data-tour="caja" style={caja.wrap}>
+            <div style={caja.label}>Caja</div>
+
             {awaitingBill && !alreadyPrinted && (
-              <span style={{ flexBasis: "100%", color: C.amber, fontWeight: 800, fontSize: "0.92rem", display: "flex", alignItems: "center", gap: 6 }}>
-                🧾 Requiere impresión de ticket
-              </span>
+              <div style={caja.callout}>
+                <Icon name="printer" size={18} />
+                <span>Requiere impresión del ticket antes de cobrar.</span>
+              </div>
             )}
-            {awaitingBill && !alreadyPrinted && (
-              <button style={btn.primary} onClick={() => doPrint()} disabled={busy || liveItems.length === 0}>Imprimir ticket</button>
+            {isPaid && !cajaActive && (
+              <div style={{ ...caja.callout, color: C.green, borderColor: `color-mix(in srgb, ${C.green} 45%, transparent)`, background: `color-mix(in srgb, ${C.green} 12%, transparent)` }}>
+                Cuenta saldada.
+              </div>
             )}
-            {awaitingBill && !alreadyPrinted && splittable && totalLiveUnits > 1 && (
-              <button style={btn.ghost} onClick={() => setSplitOpen(true)} disabled={busy || matrixItemsWithQty.length === 0}>
-                {splits.length === 0 ? "Dividir cuenta" : "Dividir otra cuenta"}
-              </button>
-            )}
-            {/* Ya impreso: cobrar (y reimpresión supervisada). */}
-            {cajaActive && alreadyPrinted && (
-              <button style={btn.primary} onClick={() => setPayOpen(true)} disabled={busy}>
-                Cobrar{amountPaid > 0 ? ` · restan ${formatMXN(remaining)}` : ""}
-              </button>
-            )}
-            {cajaActive && alreadyPrinted && isSupervisor && (
-              <button style={btn.ghost} onClick={() => setReprint(true)} disabled={busy}>Reimprimir (autorizado)</button>
-            )}
+
+            {/* Acción principal de ahora: imprimir o cobrar */}
             {cajaActive && (
-              <button style={btn.ghost} onClick={() => setDiscountTarget({})} disabled={busy || liveItems.length === 0}>Descuento a la cuenta</button>
+              <div style={caja.primaryRow}>
+                {awaitingBill && !alreadyPrinted && (
+                  <button style={caja.primary} onClick={() => doPrint()} disabled={busy || liveItems.length === 0}><Icon name="printer" size={18} />Imprimir ticket</button>
+                )}
+                {awaitingBill && !alreadyPrinted && splittable && totalLiveUnits > 1 && (
+                  <button style={caja.secondary} onClick={() => setSplitOpen(true)} disabled={busy || matrixItemsWithQty.length === 0}>
+                    {splits.length === 0 ? "Dividir cuenta" : "Dividir otra cuenta"}
+                  </button>
+                )}
+                {alreadyPrinted && (
+                  <button style={caja.primary} onClick={() => setPayOpen(true)} disabled={busy}><Icon name="card" size={18} />Cobrar{amountPaid > 0 ? ` · restan ${formatMXN(remaining)}` : ""}</button>
+                )}
+                {alreadyPrinted && isSupervisor && (
+                  <button style={caja.secondary} onClick={() => setReprint(true)} disabled={busy}><Icon name="printer" size={16} />Reimprimir</button>
+                )}
+              </div>
             )}
+
+            {/* Acciones menos frecuentes (supervisadas con PIN cuando aplica) */}
             {cajaActive && (
-              <button style={btn.ghost} onClick={() => setMergeOpen(true)} disabled={busy}>Juntar cuentas</button>
-            )}
-            {cajaActive && (
-              <button style={btn.ghost} onClick={() => setTransferOpen(true)} disabled={busy || liveItems.length === 0}>Traspasar producto</button>
+              <>
+                <div style={caja.subLabel}>Más acciones</div>
+                <div style={caja.moreRow}>
+                  <button style={caja.more} onClick={() => setDiscountTarget({})} disabled={busy || liveItems.length === 0}>Descuento a la cuenta</button>
+                  <button style={caja.more} onClick={() => setMergeOpen(true)} disabled={busy}>Juntar cuentas</button>
+                  <button style={caja.more} onClick={() => setTransferOpen(true)} disabled={busy || liveItems.length === 0}>Traspasar producto</button>
+                </div>
+              </>
             )}
           </section>
         )}
@@ -645,4 +661,22 @@ const page: Record<string, React.CSSProperties> = {
   splitHeadDivision: { background: "rgba(186,132,60,0.08)", borderTop: `1px solid ${C.border}` },
   splitEmpty: { padding: "14px 18px", color: C.faint, fontSize: "0.82rem", borderBottom: `1px solid ${C.line}` },
   splitRemove: { padding: "4px 10px", borderRadius: 7, border: `1px solid ${C.red}`, background: "transparent", color: C.red, fontSize: "0.7rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
+};
+
+// Acciones de CAJA con jerarquía: callout de estado → acción principal grande
+// (imprimir / cobrar) → «Más acciones» discretas (descuento / juntar / traspasar).
+const caja: Record<string, React.CSSProperties> = {
+  wrap: { marginTop: 12, borderTop: `1px solid ${C.line}`, paddingTop: 16 },
+  label: { color: C.faint, fontSize: "0.62rem", letterSpacing: "0.16em", textTransform: "uppercase", fontWeight: 800, marginBottom: 12 },
+  callout: {
+    display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 12,
+    border: `1px solid color-mix(in srgb, ${AWAIT} 45%, transparent)`, background: `color-mix(in srgb, ${AWAIT} 12%, transparent)`,
+    color: AWAIT, fontSize: "0.9rem", fontWeight: 700, marginBottom: 12,
+  },
+  primaryRow: { display: "flex", flexWrap: "wrap", gap: 10 },
+  primary: { ...btn.primary, minHeight: 50, minWidth: 160, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: "0.92rem" },
+  secondary: { ...btn.ghost, minHeight: 50, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 },
+  subLabel: { color: C.faint, fontSize: "0.6rem", letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 700, margin: "16px 0 8px" },
+  moreRow: { display: "flex", flexWrap: "wrap", gap: 8 },
+  more: { padding: "9px 14px", minHeight: 40, borderRadius: 9, border: `1px solid ${C.line}`, background: "transparent", color: C.dim, fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit" },
 };
