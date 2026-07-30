@@ -28,7 +28,9 @@ export function CrmShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (session.loading) return;
     if (session.user?.role !== "ADMIN") {
-      router.replace("/login?mode=login&redirect=/crm");
+      // Al login por PIN (no el correo): /staff/me re-emite la sesión de admin y
+      // reenvía aquí. Evita el callejón sin salida y el loop de redirects.
+      router.replace("/staff/login?next=/crm");
       return;
     }
     setAuthorized(true);
