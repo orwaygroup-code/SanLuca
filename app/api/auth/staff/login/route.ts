@@ -57,21 +57,25 @@ export async function POST(request: NextRequest) {
       role: staff.role as StaffRole,
       tenantId: staff.tenantId,
     });
-    const res = NextResponse.json<ApiResponse>({
-      success: true,
-      data: { id: staff.id, username: staff.username, fullName: staff.fullName, role: staff.role },
-    });
-    res.headers.set("Set-Cookie", staffSessionCookieString(token));
 
     // Puente de identidad: si este Staff está ligado a un User ADMIN/HOSTES
-    // (hoy solo Ricardo, vía User.staffId), emite TAMBIÉN la cookie sl_session
-    // para que /admin y /crm funcionen con el mismo login por PIN. Se agrega
-    // como segunda cabecera Set-Cookie (append) para conservar ambas cookies.
+    // (hoy Ricardo y Francesca, vía User.staffId), emite TAMBIÉN la cookie
+    // sl_session para que /admin y /crm funcionen con el mismo PIN. `hasAdmin`
+    // le dice al login que redirija directo al panel (sin pasar por capitán);
+    // solo se marca cuando SÍ se generó la sesión de admin, para no mandar a
+    // /admin a un MANAGER sin sesión (eso haría un loop de redirects).
     const linkedUser = await prisma.user.findFirst({
       where: { staffId: staff.id },
       select: { id: true, role: true },
     });
-    if (linkedUser && (linkedUser.role === "ADMIN" || linkedUser.role === "HOSTES")) {
+    const hasAdmin = !!linkedUser && (linkedUser.role === "ADMIN" || linkedUser.role === "HOSTES");
+
+    const res = NextResponse.json<ApiResponse>({
+      success: true,
+      data: { id: staff.id, username: staff.username, fullName: staff.fullName, role: staff.role, hasAdmin },
+    });
+    res.headers.set("Set-Cookie", staffSessionCookieString(token));
+    if (hasAdmin && linkedUser) {
       const userToken = signSession({ sub: linkedUser.id, role: linkedUser.role as Role });
       res.headers.append("Set-Cookie", sessionCookieString(userToken));
     }

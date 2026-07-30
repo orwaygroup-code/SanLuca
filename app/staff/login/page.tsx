@@ -55,7 +55,8 @@ function StaffLoginInner() {
         return;
       }
       const next = params.get("next");
-      const home = next || ROLE_HOME[data.data.role] || "/staff/login";
+      // Admin ligado (Ricardo/Francesca) → directo al panel; el resto por rol.
+      const home = next || (data.data.hasAdmin ? "/admin" : ROLE_HOME[data.data.role]) || "/staff/login";
       router.replace(home);
     } catch {
       setError("Error de red. Intenta de nuevo.");

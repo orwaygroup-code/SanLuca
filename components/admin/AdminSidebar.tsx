@@ -25,14 +25,15 @@ interface AdminSidebarProps {
 
 type IconName =
   | "chart-bar" | "clipboard-text" | "map-2" | "calendar" | "history"
-  | "star" | "users" | "settings" | "message-circle" | "external" | "logout";
+  | "star" | "users" | "settings" | "message-circle" | "external" | "logout" | "grid";
 
 interface NavLink { href: string; label: string; icon: IconName; external?: boolean }
 
 const GROUPS: { title: string; items: NavLink[] }[] = [
   { title: "Operación", items: [
     { href: "/admin/dashboard", label: "Dashboard", icon: "chart-bar" },
-    { href: "/admin/comandas", label: "Comandas", icon: "clipboard-text" },
+    { href: "/staff/capitan", label: "Piso en vivo", icon: "grid" },
+    { href: "/admin/comandas", label: "Auditoría", icon: "clipboard-text" },
     { href: "/admin/mapa", label: "Mapa de mesas", icon: "map-2" },
   ]},
   { title: "Reservas", items: [
@@ -94,6 +95,8 @@ function Icon({ name }: { name: IconName }) {
       return (<svg {...common} width={13} height={13}><path d="M14 5h5v5" /><path d="M19 5l-7 7" /><path d="M18 13v4a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4" /></svg>);
     case "logout":
       return (<svg {...common}><path d="M9 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h3" /><path d="M16 16l4-4-4-4" /><line x1="20" y1="12" x2="9" y2="12" /></svg>);
+    case "grid":
+      return (<svg {...common}><rect x="4" y="4" width="7" height="7" rx="1.5" /><rect x="13" y="4" width="7" height="7" rx="1.5" /><rect x="4" y="13" width="7" height="7" rx="1.5" /><rect x="13" y="13" width="7" height="7" rx="1.5" /></svg>);
   }
 }
 
