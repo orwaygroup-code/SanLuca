@@ -19,7 +19,7 @@ type Clase = "COCINA" | "BARRA";
 interface CartaRef { id: string; name: string; turno: Turno; clase: Clase }
 interface DishRow {
   id: string; name: string; description: string | null; price: number;
-  imageUrl: string | null; available: boolean; isExtra: boolean;
+  imageUrl: string | null; available: boolean; active: boolean; isExtra: boolean;
   position: number | null; prepArea: Clase | null;
   categoryId: string; category: { id: string; name: string; cartaId: string | null; carta: CartaRef | null } | null;
   createdAt: string;
@@ -51,7 +51,7 @@ export function DishCrud({ isExtra }: { isExtra: boolean }) {
   const [query, setQuery] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<DishRow | null>(null);
-  const [delTarget, setDelTarget] = useState<DishRow | null>(null);
+  const [showDisabled, setShowDisabled] = useState(false);
 
   useEffect(() => {
     if (session.loading) return;
@@ -69,11 +69,12 @@ export function DishCrud({ isExtra }: { isExtra: boolean }) {
     params.set("isExtra", String(isExtra));
     if (cartaFilter) params.set("cartaId", cartaFilter);
     if (availFilter) params.set("available", availFilter);
+    if (showDisabled) params.set("includeDisabled", "true");
     if (query.trim()) params.set("q", query.trim());
     const d = await getJson(`/api/admin/menu?${params}`);
     if (d?.success) setRows(d.data as DishRow[]);
     setLoading(false);
-  }, [isExtra, cartaFilter, availFilter, query]);
+  }, [isExtra, cartaFilter, availFilter, showDisabled, query]);
 
   useEffect(() => { if (session.user?.role === "ADMIN") loadCartas(); }, [session.user, loadCartas]);
   useEffect(() => { if (session.user?.role === "ADMIN") fetchList(); }, [session.user, fetchList]);
@@ -88,11 +89,15 @@ export function DishCrud({ isExtra }: { isExtra: boolean }) {
     await fetchList();
   };
 
-  const doDelete = async (row: DishRow) => {
-    const r = await fetch(`/api/admin/menu/${row.id}`, { method: "DELETE", credentials: "same-origin" });
+  // Deshabilitar/Habilitar (reemplaza al borrado): retira el platillo de todos
+  // lados pero CONSERVA el registro para los históricos de venta. Reversible.
+  const toggleActive = async (row: DishRow) => {
+    const r = await fetch(`/api/admin/menu/${row.id}`, {
+      method: "PATCH", credentials: "same-origin", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ active: !row.active }),
+    });
     const d = await r.json().catch(() => null);
-    setDelTarget(null);
-    if (!d?.success) { alert(d?.error ?? "No se pudo eliminar"); return; }
+    if (!d?.success) { alert(d?.error ?? "Error"); return; }
     await fetchList();
   };
 
@@ -119,10 +124,19 @@ export function DishCrud({ isExtra }: { isExtra: boolean }) {
         </p>
       )}
 
+      {!isExtra && (
+        <p style={S.hint}>
+          Los platillos <b>no se eliminan</b>. «Oculto» los quita del menú temporalmente (agotado); <b>«Deshabilitar»</b> los retira por completo pero conserva su historial de ventas.
+        </p>
+      )}
+
       <div style={S.filters}>
         <GoldSelect value={cartaFilter} onChange={setCartaFilter} options={cartaFilterOptions} placeholder="Carta" style={{ minWidth: 200 }} />
         <GoldSelect value={availFilter} onChange={(v) => setAvailFilter(v as "" | "true" | "false")} options={AVAIL_FILTER} placeholder="Visibilidad" style={{ minWidth: 180 }} />
         <input style={S.search} placeholder="Buscar platillo…" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && fetchList()} />
+        <label style={{ display: "flex", alignItems: "center", gap: 7, color: "rgba(245,241,232,0.72)", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
+          <input type="checkbox" checked={showDisabled} onChange={(e) => setShowDisabled(e.target.checked)} /> Ver deshabilitados
+        </label>
       </div>
 
       {loading ? <p style={S.empty}>Cargando…</p> : rows.length === 0 ? <p style={S.empty}>Sin {isExtra ? "extras" : "platillos"}. Toca «+» para agregar.</p> : (
@@ -131,7 +145,7 @@ export function DishCrud({ isExtra }: { isExtra: boolean }) {
             <thead><tr>{["", "Nombre", "Turno · Carta · Categoría", "Precio", "En menú", "Acciones"].map((h, i) => <th key={i} style={S.th}>{h}</th>)}</tr></thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.id} style={{ opacity: row.available ? 1 : 0.6 }}>
+                <tr key={row.id} style={{ opacity: !row.active ? 0.42 : row.available ? 1 : 0.62 }}>
                   <td style={S.td}><Thumb url={row.imageUrl} name={row.name} /></td>
                   <td style={S.td}>
                     <div style={{ color: "#f5f1e8", fontWeight: 600 }}>{row.name}</div>
@@ -141,11 +155,17 @@ export function DishCrud({ isExtra }: { isExtra: boolean }) {
                     {row.category?.carta ? `${TURNO_LABEL[row.category.carta.turno]} · ${row.category.carta.name} · ` : ""}{row.category?.name ?? "—"}
                   </td>
                   <td style={{ ...S.td, color: "#f5f1e8", fontWeight: 700, whiteSpace: "nowrap" }}>{money(row.price)}</td>
-                  <td style={S.td}><Switch on={row.available} onClick={() => toggleAvailable(row)} labelOn="Mostrar" labelOff="Oculto" /></td>
+                  <td style={S.td}>
+                    {row.active
+                      ? <Switch on={row.available} onClick={() => toggleAvailable(row)} labelOn="Mostrar" labelOff="Oculto" />
+                      : <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "#e8766b", border: "1px solid rgba(232,118,107,0.5)", borderRadius: 999, padding: "3px 10px", whiteSpace: "nowrap" }}>Deshabilitado</span>}
+                  </td>
                   <td style={S.td}>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       <button style={S.miniBtn} onClick={() => setEditTarget(row)}>Editar</button>
-                      <button style={{ ...S.miniBtn, borderColor: "rgba(224,85,85,0.5)", color: "#e8766b" }} onClick={() => setDelTarget(row)}>Eliminar</button>
+                      {row.active
+                        ? <button style={{ ...S.miniBtn, borderColor: "rgba(245,241,232,0.25)", color: "rgba(245,241,232,0.72)" }} onClick={() => toggleActive(row)}>Deshabilitar</button>
+                        : <button style={S.miniBtn} onClick={() => toggleActive(row)}>Habilitar</button>}
                     </div>
                   </td>
                 </tr>
@@ -157,19 +177,6 @@ export function DishCrud({ isExtra }: { isExtra: boolean }) {
 
       {createOpen && <DishFormModal mode="create" isExtra={isExtra} onClose={() => setCreateOpen(false)} onSaved={() => { setCreateOpen(false); loadCartas(); fetchList(); }} />}
       {editTarget && <DishFormModal mode="edit" isExtra={isExtra} row={editTarget} onClose={() => setEditTarget(null)} onSaved={() => { setEditTarget(null); loadCartas(); fetchList(); }} />}
-      {delTarget && (
-        <Overlay onClose={() => setDelTarget(null)}>
-          <p style={S.kicker}>Eliminar</p>
-          <p style={{ color: "#f5f1e8", margin: "6px 0 0", fontWeight: 700 }}>{delTarget.name}</p>
-          <p style={{ color: "rgba(245,241,232,0.72)", fontSize: "0.85rem", margin: "10px 0 0", lineHeight: 1.5 }}>
-            Se elimina definitivamente. Si el platillo ya se usó en comandas o reservas no se podrá borrar — en ese caso ocúltalo del menú.
-          </p>
-          <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-            <button style={S.ghostBtn} onClick={() => setDelTarget(null)}>Cancelar</button>
-            <button style={{ ...S.primaryBtn, flex: 1, background: "#c0392b", color: "#fff" }} onClick={() => doDelete(delTarget)}>Eliminar</button>
-          </div>
-        </Overlay>
-      )}
     </div>
   );
 }

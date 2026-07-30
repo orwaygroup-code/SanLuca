@@ -162,7 +162,8 @@ model Dish {
   description      String?
   price            Float
   imageUrl         String?
-  available        Boolean           @default(true) // "Mostrar en menú" público
+  available        Boolean           @default(true) // "Mostrar en menú" público (agotado/oculto). Distinto de `active`.
+  active           Boolean           @default(true) // false = DESHABILITADO/retirado: no se muestra ni se puede pedir en ningún lado, pero el registro NUNCA se borra (históricos de venta intactos). Reemplaza al borrado.
   isExtra          Boolean           @default(false) // extra/especial (paquete de Ricardo); oculto del menú, lo piden meseros
   position         Int?
   categoryId       String

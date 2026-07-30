@@ -12,12 +12,12 @@ import type { ApiResponse } from "@/types";
 
 const DISH_SELECT = {
   id: true, name: true, description: true, price: true, imageUrl: true,
-  available: true, isExtra: true, position: true, prepArea: true, categoryId: true,
+  available: true, active: true, isExtra: true, position: true, prepArea: true, categoryId: true,
   category: { select: { id: true, name: true, cartaId: true, carta: { select: { id: true, name: true, turno: true, clase: true } } } },
   createdAt: true,
 } as const;
 
-/** GET /api/admin/menu?isExtra=&q=&categoryId=&available= — lista. ADMIN. */
+/** GET /api/admin/menu?isExtra=&q=&categoryId=&available=&includeDisabled= — lista. ADMIN. */
 export async function GET(request: NextRequest) {
   const a = await requireAdminSession(request);
   if (!a) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
@@ -28,9 +28,12 @@ export async function GET(request: NextRequest) {
   const categoryId = searchParams.get("categoryId");
   const cartaId = searchParams.get("cartaId");
   const available = searchParams.get("available");
+  // Por defecto SOLO platillos habilitados; los deshabilitados solo se ven si se pide explícito.
+  const includeDisabled = searchParams.get("includeDisabled") === "true";
 
   const dishes = await prisma.dish.findMany({
     where: {
+      ...(includeDisabled ? {} : { active: true }),
       ...(isExtra === "true" ? { isExtra: true } : isExtra === "false" ? { isExtra: false } : {}),
       ...(categoryId ? { categoryId } : {}),
       ...(cartaId ? { category: { cartaId } } : {}),

@@ -16,7 +16,7 @@ export async function getMenuCategories() {
       position: true,
       createdAt: true,
       dishes: {
-        where: { available: true },
+        where: { available: true, active: true },
         orderBy: { position: "asc" },
       },
     },
@@ -40,7 +40,7 @@ export async function getStaffMenuCategories() {
       createdAt: true,
       carta: { select: { id: true, name: true, turno: true, clase: true, position: true } },
       dishes: {
-        where: { OR: [{ available: true }, { isExtra: true }] },
+        where: { active: true, OR: [{ available: true }, { isExtra: true }] },
         orderBy: { position: "asc" },
       },
     },
@@ -52,7 +52,7 @@ export async function getMenuCategoryById(id: string) {
     where: { id },
     include: {
       dishes: {
-        where: { available: true },
+        where: { available: true, active: true },
         orderBy: { position: "asc" },
       },
     },
@@ -74,7 +74,7 @@ export async function getMenuCategoryByName(name: string) {
       position: true,
       createdAt: true,
       dishes: {
-        where: { available: true },
+        where: { available: true, active: true },
         orderBy: { position: "asc" },
       },
     },
@@ -100,7 +100,7 @@ const FEATURED_DISH_NAMES = [
 
 export async function getFeaturedDishes() {
   return prisma.dish.findMany({
-    where: { available: true, name: { in: FEATURED_DISH_NAMES } },
+    where: { available: true, active: true, name: { in: FEATURED_DISH_NAMES } },
     include: { category: { select: { name: true } } },
   });
 }
@@ -119,6 +119,7 @@ export async function getTopDishesBySection(section: "comida" | "brunch", limit 
   return prisma.dish.findMany({
     where: {
       available: true,
+      active: true,
       category: { name: { in: categoryNames } },
     },
     orderBy: { price: "desc" },

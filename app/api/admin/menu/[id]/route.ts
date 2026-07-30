@@ -6,7 +6,7 @@ import type { ApiResponse } from "@/types";
 
 const DISH_SELECT = {
   id: true, name: true, description: true, price: true, imageUrl: true,
-  available: true, isExtra: true, position: true, prepArea: true, categoryId: true,
+  available: true, active: true, isExtra: true, position: true, prepArea: true, categoryId: true,
   category: { select: { id: true, name: true, cartaId: true, carta: { select: { id: true, name: true, turno: true, clase: true } } } },
   createdAt: true,
 } as const;
@@ -42,6 +42,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       ...(d.categoryId !== undefined ? { categoryId: d.categoryId } : {}),
       ...(d.prepArea !== undefined ? { prepArea: d.prepArea ?? null } : {}),
       ...(d.available !== undefined ? { available: d.available } : {}),
+      ...(d.active !== undefined ? { active: d.active } : {}),
       ...(d.isExtra !== undefined ? { isExtra: d.isExtra } : {}),
       ...(d.position !== undefined ? { position: d.position ?? null } : {}),
     },
@@ -50,25 +51,6 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   return NextResponse.json<ApiResponse>({ success: true, data: updated });
 }
 
-/** DELETE /api/admin/menu/:id — elimina si no está en uso; si no, sugiere ocultar. ADMIN. */
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
-  const a = await requireAdminSession(request);
-  if (!a) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
-
-  const exists = await prisma.dish.findUnique({ where: { id: params.id }, select: { id: true } });
-  if (!exists) return NextResponse.json<ApiResponse>({ success: false, error: "Platillo no encontrado" }, { status: 404 });
-
-  const [inComandas, inReservas] = await Promise.all([
-    prisma.comandaItem.count({ where: { dishId: params.id } }),
-    prisma.reservationItem.count({ where: { dishId: params.id } }),
-  ]);
-  if (inComandas > 0 || inReservas > 0) {
-    return NextResponse.json<ApiResponse>(
-      { success: false, error: "No se puede eliminar: hay comandas o reservas que lo usan. Ocúltalo del menú en su lugar." },
-      { status: 409 },
-    );
-  }
-
-  await prisma.dish.delete({ where: { id: params.id } });
-  return NextResponse.json<ApiResponse>({ success: true, data: { id: params.id } });
-}
+// Sin DELETE a propósito: los platillos NO se borran (romperían los históricos de
+// venta). Para retirar uno, se DESHABILITA (PATCH { active:false }) — el registro
+// se conserva y deja de mostrarse/pedirse en todos lados.

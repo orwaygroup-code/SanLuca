@@ -113,6 +113,7 @@ export const dishCreateSchema = z.object({
   categoryId: z.string().min(1, "Elige una categoría"),
   prepArea: prepAreaRule.nullish(),
   available: z.boolean().optional(),
+  active: z.boolean().optional(),
   isExtra: z.boolean().optional(),
   position: z.number().int().nullish(),
 });
