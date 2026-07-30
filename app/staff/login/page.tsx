@@ -27,13 +27,26 @@ function StaffLoginInner() {
   const [loading, setLoading] = useState(false);
   const pinRef = useRef<HTMLInputElement>(null);
 
+  // Navegación post-login. /admin y /crm viven en el realm `sl_session`, cuyo
+  // contexto (SessionProvider) SOLO se hidrata al montar la app y NO se refresca
+  // en navegaciones de cliente. Tras el PIN, la cookie sl_session recién se puso;
+  // un router.replace dejaría al panel sin verla → rebota al login → el login ve
+  // sesión de staff y reenvía al panel → loop de redirects (parpadeo blanco).
+  // Solución: a esas rutas vamos con navegación DURA (recarga → lee la sesión
+  // fresca). Las rutas /staff/* usan useStaffSession (hook por-componente que se
+  // re-hidrata al montar) → router.replace basta.
+  const goHome = useCallback((dest: string) => {
+    if (dest.startsWith("/admin") || dest.startsWith("/crm")) window.location.assign(dest);
+    else router.replace(dest);
+  }, [router]);
+
   // Ya con sesión (ej. al abrir el PWA anclado en /staff/login): enruta por rol
   // sin pedir PIN de nuevo. Respeta `next` si viene de un guard de página.
   useEffect(() => {
     if (sessionLoading || !staff) return;
     const home = params.get("next") || ROLE_HOME[staff.role] || "/staff/comandas";
-    router.replace(home);
-  }, [sessionLoading, staff, params, router]);
+    goHome(home);
+  }, [sessionLoading, staff, params, goHome]);
 
   const submit = useCallback(async () => {
     if (loading) return;
@@ -57,13 +70,13 @@ function StaffLoginInner() {
       const next = params.get("next");
       // Admin ligado (Ricardo/Francesca) → directo al panel; el resto por rol.
       const home = next || (data.data.hasAdmin ? "/admin" : ROLE_HOME[data.data.role]) || "/staff/login";
-      router.replace(home);
+      goHome(home);
     } catch {
       setError("Error de red. Intenta de nuevo.");
     } finally {
       setLoading(false);
     }
-  }, [loading, pin, username, params, router]);
+  }, [loading, pin, username, params, goHome]);
 
   return (
     <div style={styles.page}>
