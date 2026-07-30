@@ -3,11 +3,13 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
+import { C } from "@/components/staff/ui";
 
 /**
  * Sidebar lateral unificado del panel admin (realm sl_session ADMIN/HOSTES).
- * Lo provee `app/admin/layout.tsx` a TODAS las páginas /admin/*. Reemplaza al
- * antiguo AdminNav horizontal. Solo links a páginas que YA existen + "Ir al CRM".
+ * Lo provee `app/admin/layout.tsx` a TODAS las páginas /admin/*. Comparte el
+ * lenguaje visual del realm /staff (paleta `C`, marca SL, activo con relleno
+ * dorado) para que Ricardo tenga una sola identidad al entrar por PIN.
  *
  * Active state: la coincidencia de ruta MÁS LARGA gana (estar en
  * /admin/dashboard NO activa Reservas "/admin"). Hover y active vía estado
@@ -20,11 +22,6 @@ interface AdminSidebarProps {
   /** Cierra el drawer en mobile al navegar (opcional; solo lo pasa el layout móvil). */
   onNavigate?: () => void;
 }
-
-const GOLD = "#ba843c";
-const CREAM = "#f5f1e8";
-const DIM = "rgba(245,241,232,0.55)";
-const FAINT = "rgba(245,241,232,0.32)";
 
 type IconName =
   | "chart-bar" | "clipboard-text" | "map-2" | "calendar" | "history"
@@ -102,8 +99,10 @@ function Icon({ name }: { name: IconName }) {
 
 function NavItem({ link, active, onNavigate }: { link: NavLink; active: boolean; onNavigate?: () => void }) {
   const [hover, setHover] = useState(false);
-  const bg = active ? "rgba(186,132,60,0.16)" : hover ? "rgba(186,132,60,0.08)" : "transparent";
-  const color = active ? GOLD : hover ? CREAM : DIM;
+  // Activo = relleno dorado con tinta oscura (como el riel de /staff); sin franja
+  // lateral (el estándar de diseño prohíbe el border-left > 1px como estructura).
+  const bg = active ? C.gold : hover ? "rgba(255,255,255,0.05)" : "transparent";
+  const color = active ? "#16201f" : hover ? C.cream : C.dim;
   return (
     <Link
       href={link.href}
@@ -113,11 +112,10 @@ function NavItem({ link, active, onNavigate }: { link: NavLink; active: boolean;
       onMouseLeave={() => setHover(false)}
       style={{
         display: "flex", alignItems: "center", gap: 11,
-        padding: "9px 14px 9px 13px",
-        borderLeft: `3px solid ${active ? GOLD : "transparent"}`,
+        minHeight: 44, padding: "9px 13px",
         background: bg, color,
-        textDecoration: "none", fontSize: "0.82rem", fontWeight: active ? 700 : 600,
-        letterSpacing: "0.01em", borderRadius: "0 8px 8px 0",
+        textDecoration: "none", fontSize: "0.82rem", fontWeight: active ? 800 : 600,
+        letterSpacing: "0.01em", borderRadius: 10,
         transition: "background 0.15s, color 0.15s",
       }}
     >
@@ -134,23 +132,28 @@ export function AdminSidebar({ userName, onLogout, onNavigate }: AdminSidebarPro
     <aside
       style={{
         height: "100vh", display: "flex", flexDirection: "column",
-        background: "#131c1b", borderRight: "1px solid rgba(255,255,255,0.08)", width: "100%",
+        background: "#111817", borderRight: `1px solid ${C.line}`, width: "100%",
       }}
     >
-      {/* Header fijo arriba */}
-      <div style={{ flexShrink: 0, padding: "20px 16px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-        <div style={{ fontSize: "0.72rem", letterSpacing: "0.26em", color: GOLD, fontWeight: 800 }}>SAN LUCA · ADMIN</div>
-        {userName && <div style={{ marginTop: 6, fontSize: "0.8rem", color: DIM, fontWeight: 600 }}>Hola, {userName}</div>}
+      {/* Header fijo arriba: marca SL + usuario (identidad unificada con /staff) */}
+      <div style={{ flexShrink: 0, padding: "18px 16px 16px", borderBottom: `1px solid ${C.line}` }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+          <div style={{ width: 38, height: 38, borderRadius: 10, background: C.gold, color: "#16201f", display: "grid", placeItems: "center", fontWeight: 900, letterSpacing: "0.02em" }}>SL</div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: "0.62rem", letterSpacing: "0.22em", color: C.gold, fontWeight: 800 }}>PANEL · ADMIN</div>
+            {userName && <div style={{ fontSize: "0.78rem", color: C.dim, fontWeight: 600, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{userName}</div>}
+          </div>
+        </div>
       </div>
 
       {/* Grupos (scroll independiente) */}
-      <nav style={{ flex: 1, overflowY: "auto", padding: "14px 8px 14px 0", display: "flex", flexDirection: "column", gap: 16 }}>
+      <nav style={{ flex: 1, overflowY: "auto", padding: "14px 10px", display: "flex", flexDirection: "column", gap: 16 }}>
         {GROUPS.map((g) => (
           <div key={g.title}>
-            <div style={{ padding: "0 14px 6px 16px", fontSize: "0.62rem", letterSpacing: "0.16em", textTransform: "uppercase", color: FAINT, fontWeight: 700 }}>
+            <div style={{ padding: "0 6px 6px", fontSize: "0.62rem", letterSpacing: "0.16em", textTransform: "uppercase", color: C.faint, fontWeight: 700 }}>
               {g.title}
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
               {g.items.map((link) => (
                 <NavItem key={link.href} link={link} active={isActive(pathname, link.href)} onNavigate={onNavigate} />
               ))}
@@ -160,13 +163,13 @@ export function AdminSidebar({ userName, onLogout, onNavigate }: AdminSidebarPro
       </nav>
 
       {/* Footer fijo abajo */}
-      <div style={{ flexShrink: 0, padding: "12px 14px 16px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+      <div style={{ flexShrink: 0, padding: "12px 14px 16px", borderTop: `1px solid ${C.line}` }}>
         <button
           onClick={onLogout}
           style={{
             width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-            padding: "10px 12px", background: "transparent", border: "1px solid rgba(255,255,255,0.15)",
-            borderRadius: 9, color: DIM, fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit",
+            minHeight: 44, padding: "10px 12px", background: "transparent", border: "1px solid rgba(255,255,255,0.15)",
+            borderRadius: 10, color: C.dim, fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit",
           }}
         >
           <Icon name="logout" /> Cerrar sesión

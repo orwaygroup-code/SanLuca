@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useSession } from "@/lib/session-client";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { C } from "@/components/staff/ui";
 
 /**
  * Shell (client) de TODAS las páginas /admin/*: sidebar unificado + guard de
@@ -15,6 +16,7 @@ import { AdminSidebar } from "@/components/admin/AdminSidebar";
  */
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname() ?? "/admin";
   const session = useSession();
   const [isMobile, setIsMobile] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -31,22 +33,29 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   // Al volver a desktop, cerrar el drawer.
   useEffect(() => { if (!isMobile) setDrawerOpen(false); }, [isMobile]);
 
-  // Guard de rol: solo ADMIN/HOSTES (realm sl_session).
+  // Guard de rol: solo ADMIN/HOSTES (realm sl_session). Sin sesión → login por
+  // PIN de /staff (el admin ahora se entra por ahí, no por el correo del landing).
   useEffect(() => {
     if (session.loading) return;
     if (!session.user || !["ADMIN", "HOSTES"].includes(session.user.role)) {
-      router.push("/login?mode=login");
+      router.replace(`/staff/login?next=${encodeURIComponent(pathname)}`);
     }
-  }, [session.loading, session.user, router]);
+  }, [session.loading, session.user, router, pathname]);
 
   if (session.loading || !session.user) return null;
 
-  const logout = async () => { await session.logout(); router.push("/login?mode=login"); };
+  // Cierra AMBAS sesiones: sl_session (email/puente) y sl_staff (PIN), y manda al
+  // login por PIN.
+  const logout = async () => {
+    await session.logout().catch(() => {});
+    await fetch("/api/auth/staff/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
+    router.replace("/staff/login");
+  };
 
   // ── Desktop: grid sidebar + main ──
   if (!isMobile) {
     return (
-      <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", height: "100vh", background: "#0e1817" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", height: "100vh", background: C.bg }}>
         <AdminSidebar userName={session.user.name} onLogout={logout} />
         <main style={{ height: "100vh", overflowY: "auto" }}>{children}</main>
       </div>
@@ -55,14 +64,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   // ── Mobile: top bar + drawer ──
   return (
-    <div style={{ minHeight: "100vh", background: "#0e1817", display: "flex", flexDirection: "column" }}>
+    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column" }}>
       <div
         style={{
           position: "sticky", top: 0, zIndex: 40, display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "10px 16px", background: "#131c1b", borderBottom: "1px solid rgba(255,255,255,0.08)",
+          padding: "10px 16px", background: C.panel, borderBottom: `1px solid ${C.line}`,
         }}
       >
-        <span style={{ fontSize: "0.7rem", letterSpacing: "0.24em", color: "#ba843c", fontWeight: 800 }}>SAN LUCA · ADMIN</span>
+        <span style={{ fontSize: "0.7rem", letterSpacing: "0.24em", color: C.gold, fontWeight: 800 }}>SAN LUCA · ADMIN</span>
         <button
           onClick={() => setDrawerOpen(true)}
           aria-label="Abrir menú"
