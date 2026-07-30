@@ -15,7 +15,7 @@ import { hashPin, isValidPin } from "../../lib/staff-auth";
  */
 
 const EMAIL = process.env.FRANCESCA_EMAIL || "franccesca.hostes@sanluca.mx";
-const USERNAME = (process.env.FRANCESCA_USERNAME || "francesca").toLowerCase();
+const USERNAME = (process.env.FRANCESCA_USERNAME || "fra").toLowerCase();
 const PIN = process.env.FRANCESCA_PIN || "5678";
 
 async function main() {
