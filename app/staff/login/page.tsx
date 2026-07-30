@@ -44,8 +44,23 @@ function StaffLoginInner() {
   // sin pedir PIN de nuevo. Respeta `next` si viene de un guard de página.
   useEffect(() => {
     if (sessionLoading || !staff) return;
-    const home = params.get("next") || ROLE_HOME[staff.role] || "/staff/comandas";
-    goHome(home);
+    const next = params.get("next");
+    const roleHome = ROLE_HOME[staff.role] || "/staff/comandas";
+    // Si el destino es el panel (/admin o /crm) SOLO lo honramos si de verdad hay
+    // sesión de admin (sl_session). Un staff sin acceso de admin (Perla, meseros)
+    // en un dispositivo que apunta a /admin, en vez de loopear, va a su vista
+    // normal. Rompe el ciclo AdminShell↔/staff/login para no-admins.
+    if (next && (next.startsWith("/admin") || next.startsWith("/crm"))) {
+      fetch("/api/auth/me", { credentials: "same-origin" })
+        .then((r) => r.json())
+        .catch(() => null)
+        .then((d) => {
+          const isAdmin = d?.authenticated && (d.user?.role === "ADMIN" || d.user?.role === "HOSTES");
+          goHome(isAdmin ? next : roleHome);
+        });
+      return;
+    }
+    goHome(next || roleHome);
   }, [sessionLoading, staff, params, goHome]);
 
   const submit = useCallback(async () => {
