@@ -62,6 +62,15 @@ export function CrmShell({ children }: { children: React.ReactNode }) {
           <span style={brandSan}>SAN</span>
           <span style={brandLuca}>LUCA</span>
         </div>
+        <Link
+          href="/admin"
+          style={{
+            display: "block", padding: "8px 0", marginBottom: 16, fontSize: "0.8rem", fontWeight: 700,
+            letterSpacing: "0.04em", textTransform: "uppercase", color: "rgba(245,241,232,0.55)", textDecoration: "none",
+          }}
+        >
+          ← Panel
+        </Link>
         <nav style={nav}>
           {NAV.map((l) => (
             <NavLink key={l.href} href={l.href} active={pathname === l.href} label={l.label} />

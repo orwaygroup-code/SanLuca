@@ -25,14 +25,14 @@ interface AdminSidebarProps {
 
 type IconName =
   | "chart-bar" | "clipboard-text" | "map-2" | "calendar" | "history"
-  | "star" | "users" | "settings" | "message-circle" | "external" | "logout" | "grid";
+  | "star" | "users" | "settings" | "message-circle" | "external" | "logout" | "grid" | "chevron";
 
 interface NavLink { href: string; label: string; icon: IconName; external?: boolean }
 
 const GROUPS: { title: string; items: NavLink[] }[] = [
   { title: "Operación", items: [
     { href: "/admin/dashboard", label: "Dashboard", icon: "chart-bar" },
-    { href: "/staff/capitan", label: "Piso en vivo", icon: "grid" },
+    { href: "/admin/piso", label: "Piso en vivo", icon: "grid" },
     { href: "/admin/comandas", label: "Auditoría", icon: "clipboard-text" },
     { href: "/admin/mapa", label: "Mapa de mesas", icon: "map-2" },
   ]},
@@ -47,9 +47,20 @@ const GROUPS: { title: string; items: NavLink[] }[] = [
     { href: "/admin/extras", label: "Extras", icon: "star" },
     { href: "/admin/settings", label: "Ajustes", icon: "settings" },
   ]},
-  { title: "CRM", items: [
-    { href: "/crm", label: "Ir al CRM", icon: "message-circle", external: true },
-  ]},
+];
+
+// CRM = sección desplegable (submenú en el MISMO menú, mismo tab; ya no abre
+// pestaña nueva). Sus páginas viven en /crm (con su propio shell + enlace de
+// regreso "Panel").
+const CRM_LINKS: NavLink[] = [
+  { href: "/crm", label: "Inicio", icon: "chart-bar" },
+  { href: "/crm/whatsapp", label: "Inbox", icon: "message-circle" },
+  { href: "/crm/tags", label: "Tags", icon: "star" },
+  { href: "/crm/marketing", label: "Marketing", icon: "chart-bar" },
+  { href: "/crm/usuarios", label: "Usuarios", icon: "users" },
+  { href: "/crm/arco", label: "ARCO", icon: "clipboard-text" },
+  { href: "/crm/kpi", label: "KPI's", icon: "chart-bar" },
+  { href: "/crm/configuracion", label: "Configuración", icon: "settings" },
 ];
 
 // Solo rutas internas (el CRM externo nunca debe ganar el active state en /admin/*).
@@ -97,6 +108,8 @@ function Icon({ name }: { name: IconName }) {
       return (<svg {...common}><path d="M9 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h3" /><path d="M16 16l4-4-4-4" /><line x1="20" y1="12" x2="9" y2="12" /></svg>);
     case "grid":
       return (<svg {...common}><rect x="4" y="4" width="7" height="7" rx="1.5" /><rect x="13" y="4" width="7" height="7" rx="1.5" /><rect x="4" y="13" width="7" height="7" rx="1.5" /><rect x="13" y="13" width="7" height="7" rx="1.5" /></svg>);
+    case "chevron":
+      return (<svg {...common} width={15} height={15}><polyline points="6 9 12 15 18 9" /></svg>);
   }
 }
 
@@ -131,6 +144,7 @@ function NavItem({ link, active, onNavigate }: { link: NavLink; active: boolean;
 
 export function AdminSidebar({ userName, onLogout, onNavigate }: AdminSidebarProps) {
   const pathname = usePathname() ?? "";
+  const [crmOpen, setCrmOpen] = useState(pathname.startsWith("/crm"));
   return (
     <aside
       style={{
@@ -163,6 +177,32 @@ export function AdminSidebar({ userName, onLogout, onNavigate }: AdminSidebarPro
             </div>
           </div>
         ))}
+
+        {/* CRM — grupo desplegable: mismo menú, mismo tab (ya no abre pestaña nueva) */}
+        <div>
+          <button
+            type="button"
+            onClick={() => setCrmOpen((v) => !v)}
+            aria-expanded={crmOpen}
+            style={{
+              display: "flex", alignItems: "center", gap: 11, width: "100%",
+              minHeight: 44, padding: "9px 13px", borderRadius: 10, border: "none",
+              background: "transparent", color: crmOpen ? C.cream : C.dim, cursor: "pointer",
+              fontFamily: "inherit", fontSize: "0.82rem", fontWeight: 700, letterSpacing: "0.01em",
+            }}
+          >
+            <span style={{ display: "flex", flexShrink: 0 }}><Icon name="message-circle" /></span>
+            <span style={{ flex: 1, textAlign: "left" }}>CRM</span>
+            <span style={{ display: "flex", transform: crmOpen ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}><Icon name="chevron" /></span>
+          </button>
+          {crmOpen && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 2 }}>
+              {CRM_LINKS.map((link) => (
+                <NavItem key={link.href} link={link} active={pathname === link.href} onNavigate={onNavigate} />
+              ))}
+            </div>
+          )}
+        </div>
       </nav>
 
       {/* Footer fijo abajo */}
