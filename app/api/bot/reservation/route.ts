@@ -72,7 +72,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { titular, celular, personas, zona, fecha, hora, notes } = body;
+    const { titular, celular, personas, zona, fecha, hora, notes, canal } = body;
+    // canal: "whatsapp" | "instagram" | "messenger" (lo manda n8n). Ausente = whatsapp (compat).
+    const channel = String(canal || "whatsapp").toLowerCase();
 
     console.log('[BOT_RESERVATION] body recibido:', JSON.stringify(body));
     console.log('[BOT_RESERVATION] zona raw:', zona, '| tipo:', typeof zona);
@@ -147,10 +149,11 @@ export async function POST(request: NextRequest) {
         console.error("[AUTO_TAG] reEval Inactivo failed (bot reservation):", e),
     );
 
-    // Auto-confirmación: si hay mesa, se envía el QR directo al chat del cliente
-    // (misma llamada que el panel al pasar a CONFIRMED). Fire-and-forget: un
-    // fallo de WhatsApp NO debe tumbar la creación de la reserva.
-    if (outcome) {
+    // Auto-confirmación: si hay mesa, se envía el QR. Solo por WhatsApp cuando el
+    // canal es WhatsApp — en Instagram/Messenger el QR lo manda n8n de vuelta al
+    // MISMO chat (paridad de canal), así que aquí NO se envía por WhatsApp para no
+    // duplicar. Fire-and-forget: un fallo de envío NO tumba la creación.
+    if (outcome && channel === "whatsapp") {
         sendReservationQR({
             phone:             reservation.guestPhone,
             guestName:         reservation.guestName,
@@ -161,6 +164,11 @@ export async function POST(request: NextRequest) {
         }).catch((e) => console.error("[WhatsApp QR bot auto-confirm]", e));
     }
 
+    // QR listo para que n8n lo reenvíe al chat de IG/Messenger (paridad de canal).
+    const appUrl     = process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "";
+    const checkinUrl = outcome ? `${appUrl}/checkin/${reservation.qrToken}` : null;
+    const qrImageUrl = checkinUrl ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(checkinUrl)}` : null;
+
     return NextResponse.json({
         success: true,
         data: {
@@ -168,6 +176,8 @@ export async function POST(request: NextRequest) {
             autoConfirmed:    !!outcome,
             provisional:      outcome?.provisional ?? false,
             qrToken:          reservation.qrToken,
+            checkinUrl,
+            qrImageUrl,
             date:             reservation.date,
             sectionRequested: zonaNormalizada,
             tableInfo:        !outcome
