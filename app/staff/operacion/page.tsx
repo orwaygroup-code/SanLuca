@@ -58,6 +58,7 @@ export default function OperacionPage() {
   const [takeout, setTakeout] = useState<Comanda[] | null>(null); // cuentas sin mesa (para llevar)
   const [newAccount, setNewAccount] = useState(false);
   const [printing, setPrinting] = useState<number | null>(null); // comanda cuyo ticket se está imprimiendo
+  const [sending, setSending] = useState<number | null>(null); // pedido que se está enviando a cocina
 
   const allowed = staff && ["OPERATION", "CAPTAIN", "MANAGER"].includes(staff.role);
 
@@ -104,6 +105,18 @@ export default function OperacionPage() {
     setPrinting(null);
     if (r.ok) { push("Ticket enviado a impresión", "success"); load(); }
     else push(r.error ?? "No se pudo imprimir", "error");
+  };
+
+  // Perla manda a cocina/barra un pedido para llevar (bot) → imprime el ticket de
+  // cocina con «Para llevar · …» como etiqueta y pasa la comanda a IN_SERVICE.
+  const doSendKitchen = async (comandaId: number) => {
+    setSending(comandaId);
+    const r = await apiFetch<Comanda>(`/api/comandas/${comandaId}/send-to-kitchen`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: "{}",
+    });
+    setSending(null);
+    if (r.ok) { push("Pedido enviado a cocina", "success"); load(); }
+    else push(r.error ?? "No se pudo enviar a cocina", "error");
   };
 
   if (loading || !staff || !allowed) return <div style={{ minHeight: "100vh", background: C.bg, display: "grid", placeItems: "center" }}><Spinner /></div>;
@@ -223,25 +236,33 @@ export default function OperacionPage() {
                 <EmptyState text="Sin cuentas para llevar. Crea una con «Nueva cuenta»." />
               ) : (() => {
                 const isBot = (c: Comanda) => (c.channel ?? "STAFF").startsWith("BOT_");
-                const botT = takeout.filter(isBot);
+                const needsKitchen = (c: Comanda) => (c.items ?? []).some((i) => i.status === "PENDING"); // aún sin mandar a cocina
+                // Pedidos del bot: los que faltan enviar a cocina van primero (lo urgente arriba).
+                const botT = takeout.filter(isBot).sort((a, b) => Number(needsKitchen(b)) - Number(needsKitchen(a)));
                 const staffT = takeout.filter((c) => !isBot(c));
-                // Una fila de cuenta sin mesa, con la acción según lo que necesita la caja.
+                // Una fila de cuenta sin mesa, con la acción según en qué punto va del flujo.
                 const takeoutRow = (c: Comanda) => {
+                  const toKitchen = needsKitchen(c);
                   const printed = (c.prints ?? []).some((p) => p.type === "CUSTOMER_FINAL");
                   const needs = printed || c.status === "AWAITING_PAYMENT";
+                  const badge = toKitchen
+                    ? { text: isBot(c) ? "Nueva" : "Por enviar", color: C.green }
+                    : needs
+                    ? { text: printed ? "Cuenta impresa" : "Pidió cuenta", color: AWAIT }
+                    : { text: STATUS_LABEL[c.status] ?? c.status, color: STATUS_COLOR[c.status] ?? C.dim };
                   return (
                     <ActionRow
                       key={c.id}
                       lead={<LeadIcon name="bag" sub={isBot(c) ? "BOT" : "LLEVAR"} />}
                       who={comandaLabel(c)}
-                      badge={needs
-                        ? { text: printed ? "Cuenta impresa" : "Pidió cuenta", color: AWAIT }
-                        : { text: STATUS_LABEL[c.status] ?? c.status, color: STATUS_COLOR[c.status] ?? C.dim }}
+                      badge={badge}
                       meta={c.folio}
                       amount={formatMXN(Number(c.total))}
-                      amountDim={!needs}
-                      tone={printed ? "pay" : needs ? "act" : "passive"}
-                      action={printed
+                      amountDim={!needs && !toKitchen}
+                      tone={toKitchen ? "fresh" : printed ? "pay" : needs ? "act" : "passive"}
+                      action={toKitchen
+                        ? <button style={{ ...rowBtn.kitchen, opacity: sending === c.id ? 0.6 : 1 }} onClick={() => doSendKitchen(c.id)} disabled={sending === c.id}><Icon name="plate" size={18} />{sending === c.id ? "Enviando…" : "Enviar a cocina"}</button>
+                        : printed
                         ? <button style={rowBtn.pay} onClick={() => setPayTarget(c.id)}><Icon name="card" size={18} />Cobrar</button>
                         : needs
                         ? <button style={{ ...rowBtn.print, opacity: printing === c.id ? 0.6 : 1 }} onClick={() => doPrintBill(c.id)} disabled={printing === c.id}><Icon name="printer" size={18} />{printing === c.id ? "Imprimiendo…" : "Imprimir"}</button>
@@ -347,10 +368,10 @@ function LeadIcon({ name, sub }: { name: IconName; sub: string }) {
 
 function ActionRow({ lead, who, badge, meta, amount, amountDim, tone = "plain", action }: {
   lead: React.ReactNode; who: string; badge?: { text: string; color: string };
-  meta?: string; amount?: string; amountDim?: boolean; tone?: "pay" | "act" | "passive" | "plain"; action?: React.ReactNode;
+  meta?: string; amount?: string; amountDim?: boolean; tone?: "pay" | "act" | "fresh" | "passive" | "plain"; action?: React.ReactNode;
 }) {
   return (
-    <div style={{ ...row.root, ...(tone === "pay" ? row.pay : tone === "act" ? row.act : {}) }}>
+    <div style={{ ...row.root, ...(tone === "pay" ? row.pay : tone === "act" ? row.act : tone === "fresh" ? row.fresh : {}) }}>
       <div style={row.lead}>{lead}</div>
       <div style={row.info}>
         <div style={row.l1}>
@@ -532,6 +553,11 @@ const rowBtn: Record<string, React.CSSProperties> = {
     padding: "0 18px", borderRadius: 12, border: `1px solid ${AWAIT}`, background: `color-mix(in srgb, ${AWAIT} 16%, transparent)`,
     color: AWAIT, fontWeight: 800, fontSize: "0.88rem", cursor: "pointer", fontFamily: "inherit",
   },
+  kitchen: {
+    minHeight: 48, minWidth: 156, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, flexShrink: 0,
+    padding: "0 18px", borderRadius: 12, border: "none", background: C.green, color: "#0f1a15",
+    fontWeight: 800, fontSize: "0.88rem", cursor: "pointer", fontFamily: "inherit",
+  },
 };
 
 // ─── shell (riel + contenido) y filas ────────────────────────────────────────
@@ -551,6 +577,7 @@ const row: Record<string, React.CSSProperties> = {
   root: { display: "flex", alignItems: "center", gap: 16, padding: "13px 16px", border: "1px solid", borderColor: C.line, borderRadius: 14, background: C.panel },
   pay: { background: `color-mix(in srgb, ${C.gold} 11%, ${C.panel})`, borderColor: `color-mix(in srgb, ${C.gold} 42%, ${C.line})` },
   act: { background: `color-mix(in srgb, ${AWAIT} 10%, ${C.panel})`, borderColor: `color-mix(in srgb, ${AWAIT} 40%, ${C.line})` },
+  fresh: { background: `color-mix(in srgb, ${C.green} 13%, ${C.panel})`, borderColor: `color-mix(in srgb, ${C.green} 46%, ${C.line})` },
   lead: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minWidth: 66, height: 54, borderRadius: 12, background: C.panel2, border: `1px solid ${C.line}`, color: C.cream, flexShrink: 0 },
   leadNum: { fontSize: "1.3rem", fontWeight: 900, lineHeight: 1 },
   leadSub: { fontSize: "0.55rem", color: C.faint, letterSpacing: "0.07em", marginTop: 3 },
