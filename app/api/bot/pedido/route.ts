@@ -30,17 +30,32 @@ interface Producto {
 
 type DishRow = { id: string; name: string; price: unknown; prepArea: "BARRA" | "COCINA" | null };
 
-// Normaliza un nombre para comparar: minúsculas, sin acentos, sin paréntesis
-// (ej. "(Vino tinto)"), sin puntuación, espacios colapsados. Así "Montepulciano
-// d'Abruzzo DOC (Vino tinto)" y "montepulciano dabruzzo doc" matchean.
-function normName(s: string): string {
-  return String(s)
-    .toLowerCase()
-    .normalize("NFD").replace(/[̀-ͯ]/g, "")
-    .replace(/\([^)]*\)/g, " ")
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+// Convierte un nombre en un CONJUNTO de palabras para comparar: minúsculas, sin
+// acentos, y todo lo no alfanumérico (paréntesis, apóstrofos, puntuación) pasa a
+// separador — PERO se conserva el contenido del paréntesis como palabra. Así el menú
+// que usa "Frutti di Mare (Pizza)" vs "(Pasta)" para distinguir sí se puede separar:
+// "Pizza Frutti di Mare" -> {pizza,frutti,di,mare} == "Frutti di Mare (Pizza)".
+function toTokenSet(s: string): Set<string> {
+  return new Set(
+    String(s)
+      .toLowerCase()
+      .normalize("NFD").replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean),
+  );
+}
+function setEq(a: Set<string>, b: Set<string>): boolean {
+  if (a.size !== b.size) return false;
+  for (const x of a) if (!b.has(x)) return false;
+  return true;
+}
+// ¿`small` está contenido en `big`? (todas sus palabras están en el otro)
+function subsetOf(small: Set<string>, big: Set<string>): boolean {
+  if (small.size === 0) return false;
+  for (const x of small) if (!big.has(x)) return false;
+  return true;
 }
 
 export async function POST(request: NextRequest) {
@@ -84,32 +99,37 @@ export async function POST(request: NextRequest) {
   // ¿Algún producto no se resolvió por id? Cargamos el catálogo activo UNA vez para el
   // fallback por nombre (no lo traemos si todos venían con id válido).
   const needName = (productos as Producto[]).some((p) => !(p?.id && dishById.has(String(p.id))));
-  let nameIndex: { norm: string; d: DishRow }[] = [];
+  let nameIndex: { set: Set<string>; d: DishRow }[] = [];
   if (needName) {
     const all = await prisma.dish.findMany({
       where: { active: true, prepArea: { not: null } },
       select: { id: true, name: true, price: true, prepArea: true },
     });
-    nameIndex = all.map((d) => ({ norm: normName(d.name), d: d as DishRow }));
+    nameIndex = all.map((d) => ({ set: toTokenSet(d.name), d: d as DishRow }));
   }
 
   const resolveDish = (p: Producto): DishRow | undefined => {
     if (p?.id && dishById.has(String(p.id))) return dishById.get(String(p.id));
     const raw = p?.nombre ?? p?.nombre_platillo;
     if (!raw || nameIndex.length === 0) return undefined;
-    const q = normName(String(raw));
-    if (!q) return undefined;
-    let cands = nameIndex.filter((x) => x.norm === q);                                              // 1) exacto
-    if (cands.length === 0) cands = nameIndex.filter((x) => x.norm.includes(q) || q.includes(x.norm)); // 2) contiene
-    if (cands.length === 1) return cands[0].d;
-    if (cands.length > 1) {                                                                          // 3) desempata por precio
-      const price = Number(p?.precio_unitario ?? p?.precio);
-      if (Number.isFinite(price)) {
+    const q = toTokenSet(String(raw));
+    if (q.size === 0) return undefined;
+    const price = Number(p?.precio_unitario ?? p?.precio);
+    const hasPrice = Number.isFinite(price);
+    // De una lista de candidatos: si es 1, ese; si son varios, desempata por precio.
+    const pick = (cands: typeof nameIndex): DishRow | undefined => {
+      if (cands.length === 1) return cands[0].d;
+      if (cands.length > 1 && hasPrice) {
         const byPrice = cands.filter((x) => Math.abs(Number(x.d.price) - price) < 0.01);
         if (byPrice.length === 1) return byPrice[0].d;
       }
-    }
-    return undefined; // sin match o ambiguo → Perla lo revisa
+      return undefined; // ambiguo → Perla lo revisa
+    };
+    // 1) mismo conjunto de palabras (ej. "Pizza Frutti di Mare" == "Frutti di Mare (Pizza)")
+    const exact = pick(nameIndex.filter((x) => setEq(x.set, q)));
+    if (exact) return exact;
+    // 2) el nombre del menú está contenido en el del bot, o viceversa (ej. "Caprese" ⊆ "Ensalada Caprese")
+    return pick(nameIndex.filter((x) => subsetOf(x.set, q) || subsetOf(q, x.set)));
   };
 
   const items: { dishId: string; name: string; price: number; prepArea: "BARRA" | "COCINA"; qty: number; kitchenNotes: string | null; line: number }[] = [];
