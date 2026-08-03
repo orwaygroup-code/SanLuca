@@ -125,6 +125,8 @@ export async function POST(request: NextRequest) {
     });
   }
 
+  console.log(`[BOT_PEDIDO] resultado: matched=${items.length} (${items.map((i) => i.name).join(", ")}) | sinMatch=${JSON.stringify(sinMatch)}`);
+
   if (items.length === 0) {
     return NextResponse.json<ApiResponse>({ success: false, error: "Ninguno de los productos existe o está disponible" }, { status: 422 });
   }
