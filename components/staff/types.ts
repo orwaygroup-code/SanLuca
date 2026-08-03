@@ -58,6 +58,7 @@ export interface Comanda {
   closedAt: string | null;
   tableId: string | null;
   customName: string | null; // nombre de la cuenta cuando no hay mesa (para llevar / cuenta X)
+  channel?: string; // "STAFF" (Perla) | "BOT_WHATSAPP"|"BOT_INSTAGRAM"|"BOT_MESSENGER" (pedido del bot)
   waiterId: number;
   reservationId: string | null;
   items: CItem[];

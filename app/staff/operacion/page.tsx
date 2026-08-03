@@ -222,51 +222,43 @@ export default function OperacionPage() {
               {takeout === null ? <Spinner /> : takeout.length === 0 ? (
                 <EmptyState text="Sin cuentas para llevar. Crea una con «Nueva cuenta»." />
               ) : (() => {
-                const isNeed = (c: Comanda) => (c.prints ?? []).some((p) => p.type === "CUSTOMER_FINAL") || c.status === "AWAITING_PAYMENT";
-                const need = takeout.filter(isNeed);
-                const rest = takeout.filter((c) => !isNeed(c));
+                const isBot = (c: Comanda) => (c.channel ?? "STAFF").startsWith("BOT_");
+                const botT = takeout.filter(isBot);
+                const staffT = takeout.filter((c) => !isBot(c));
+                // Una fila de cuenta sin mesa, con la acción según lo que necesita la caja.
+                const takeoutRow = (c: Comanda) => {
+                  const printed = (c.prints ?? []).some((p) => p.type === "CUSTOMER_FINAL");
+                  const needs = printed || c.status === "AWAITING_PAYMENT";
+                  return (
+                    <ActionRow
+                      key={c.id}
+                      lead={<LeadIcon name="bag" sub={isBot(c) ? "BOT" : "LLEVAR"} />}
+                      who={comandaLabel(c)}
+                      badge={needs
+                        ? { text: printed ? "Cuenta impresa" : "Pidió cuenta", color: AWAIT }
+                        : { text: STATUS_LABEL[c.status] ?? c.status, color: STATUS_COLOR[c.status] ?? C.dim }}
+                      meta={c.folio}
+                      amount={formatMXN(Number(c.total))}
+                      amountDim={!needs}
+                      tone={printed ? "pay" : needs ? "act" : "passive"}
+                      action={printed
+                        ? <button style={rowBtn.pay} onClick={() => setPayTarget(c.id)}><Icon name="card" size={18} />Cobrar</button>
+                        : needs
+                        ? <button style={{ ...rowBtn.print, opacity: printing === c.id ? 0.6 : 1 }} onClick={() => doPrintBill(c.id)} disabled={printing === c.id}><Icon name="printer" size={18} />{printing === c.id ? "Imprimiendo…" : "Imprimir"}</button>
+                        : <button style={rowBtn.ver} onClick={() => router.push(`/staff/comandas/${c.id}`)}>Ver<Icon name="chevron" size={16} /></button>}
+                    />
+                  );
+                };
                 return (
                   <div style={sh.stack}>
-                    {need.length > 0 && (
+                    {botT.length > 0 && (
                       <>
-                        <SectionLabel tone="gold">Requiere tu caja · {need.length}</SectionLabel>
-                        {need.map((c) => {
-                          const printed = (c.prints ?? []).some((p) => p.type === "CUSTOMER_FINAL");
-                          return (
-                            <ActionRow
-                              key={c.id}
-                              lead={<LeadIcon name="bag" sub="LLEVAR" />}
-                              who={comandaLabel(c)}
-                              badge={{ text: printed ? "Cuenta impresa" : "Pidió cuenta", color: AWAIT }}
-                              meta={c.folio}
-                              amount={formatMXN(Number(c.total))}
-                              tone={printed ? "pay" : "act"}
-                              action={printed
-                                ? <button style={rowBtn.pay} onClick={() => setPayTarget(c.id)}><Icon name="card" size={18} />Cobrar</button>
-                                : <button style={{ ...rowBtn.print, opacity: printing === c.id ? 0.6 : 1 }} onClick={() => doPrintBill(c.id)} disabled={printing === c.id}><Icon name="printer" size={18} />{printing === c.id ? "Imprimiendo…" : "Imprimir"}</button>}
-                            />
-                          );
-                        })}
+                        <SectionLabel tone="gold">Pedidos del bot · {botT.length}</SectionLabel>
+                        {botT.map(takeoutRow)}
                       </>
                     )}
-                    {rest.length > 0 && (
-                      <>
-                        <SectionLabel>En captura</SectionLabel>
-                        {rest.map((c) => (
-                          <ActionRow
-                            key={c.id}
-                            lead={<LeadIcon name="bag" sub="LLEVAR" />}
-                            who={comandaLabel(c)}
-                            badge={{ text: STATUS_LABEL[c.status] ?? c.status, color: STATUS_COLOR[c.status] ?? C.dim }}
-                            meta={c.folio}
-                            amount={formatMXN(Number(c.total))}
-                            amountDim
-                            tone="passive"
-                            action={<button style={rowBtn.ver} onClick={() => router.push(`/staff/comandas/${c.id}`)}>Ver<Icon name="chevron" size={16} /></button>}
-                          />
-                        ))}
-                      </>
-                    )}
+                    <SectionLabel>Cuentas sin mesa (caja){staffT.length ? ` · ${staffT.length}` : ""}</SectionLabel>
+                    {staffT.length > 0 ? staffT.map(takeoutRow) : <EmptyState text="Sin cuentas creadas por caja." />}
                   </div>
                 );
               })()}
