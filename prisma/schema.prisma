@@ -650,6 +650,10 @@ model Comanda {
   // Nombre de la cuenta cuando NO hay mesa (para llevar / cuenta X): "Para llevar - Juan"
   customName String?
 
+  // Origen de la comanda: STAFF (Perla la abrió) o BOT_WHATSAPP/BOT_INSTAGRAM/
+  // BOT_MESSENGER (pedido para llevar creado por el bot). Separa los 2 bloques en "Llevar".
+  channel String @default("STAFF")
+
   reservationId String?      @unique
   reservation   Reservation? @relation(fields: [reservationId], references: [id])
 
