@@ -23,7 +23,25 @@ const CHANNEL_BY_PLATFORM: Record<string, string> = {
   messenger: "BOT_MESSENGER",
 };
 
-interface Producto { id?: string; cantidad?: number; quantity?: number; notas?: string }
+interface Producto {
+  id?: string; cantidad?: number; quantity?: number; notas?: string;
+  nombre?: string; nombre_platillo?: string; precio_unitario?: number; precio?: number;
+}
+
+type DishRow = { id: string; name: string; price: unknown; prepArea: "BARRA" | "COCINA" | null };
+
+// Normaliza un nombre para comparar: minúsculas, sin acentos, sin paréntesis
+// (ej. "(Vino tinto)"), sin puntuación, espacios colapsados. Así "Montepulciano
+// d'Abruzzo DOC (Vino tinto)" y "montepulciano dabruzzo doc" matchean.
+function normName(s: string): string {
+  return String(s)
+    .toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 export async function POST(request: NextRequest) {
   const botKey = request.headers.get("x-bot-key");
@@ -53,20 +71,53 @@ export async function POST(request: NextRequest) {
   });
   if (!owner) return NextResponse.json<ApiResponse>({ success: false, error: "No hay caja/operación activa para asignar el pedido" }, { status: 500 });
 
-  // Match de productos por id de platillo (fuente de verdad = BD). Solo platillos
-  // ACTIVOS y con área de preparación. Los que no matcheen se anotan para que Perla los revise.
+  // Match de productos: 1º por id de platillo; si el bot NO mandó id (arma el pedido
+  // por la rama sin menú inyectado), 2º por NOMBRE normalizado contra el catálogo
+  // activo. Solo platillos ACTIVOS y con área de preparación. Lo que no matchee o sea
+  // ambiguo se anota para que Perla lo revise (mejor anotar que adivinar mal).
   const ids = [...new Set((productos as Producto[]).map((p) => String(p?.id ?? "")).filter(Boolean))];
-  const dishes = ids.length
+  const byIdList = ids.length
     ? await prisma.dish.findMany({ where: { id: { in: ids }, active: true }, select: { id: true, name: true, price: true, prepArea: true } })
     : [];
-  const dishById = new Map(dishes.map((d) => [d.id, d]));
+  const dishById = new Map(byIdList.map((d) => [d.id, d as DishRow]));
+
+  // ¿Algún producto no se resolvió por id? Cargamos el catálogo activo UNA vez para el
+  // fallback por nombre (no lo traemos si todos venían con id válido).
+  const needName = (productos as Producto[]).some((p) => !(p?.id && dishById.has(String(p.id))));
+  let nameIndex: { norm: string; d: DishRow }[] = [];
+  if (needName) {
+    const all = await prisma.dish.findMany({
+      where: { active: true, prepArea: { not: null } },
+      select: { id: true, name: true, price: true, prepArea: true },
+    });
+    nameIndex = all.map((d) => ({ norm: normName(d.name), d: d as DishRow }));
+  }
+
+  const resolveDish = (p: Producto): DishRow | undefined => {
+    if (p?.id && dishById.has(String(p.id))) return dishById.get(String(p.id));
+    const raw = p?.nombre ?? p?.nombre_platillo;
+    if (!raw || nameIndex.length === 0) return undefined;
+    const q = normName(String(raw));
+    if (!q) return undefined;
+    let cands = nameIndex.filter((x) => x.norm === q);                                              // 1) exacto
+    if (cands.length === 0) cands = nameIndex.filter((x) => x.norm.includes(q) || q.includes(x.norm)); // 2) contiene
+    if (cands.length === 1) return cands[0].d;
+    if (cands.length > 1) {                                                                          // 3) desempata por precio
+      const price = Number(p?.precio_unitario ?? p?.precio);
+      if (Number.isFinite(price)) {
+        const byPrice = cands.filter((x) => Math.abs(Number(x.d.price) - price) < 0.01);
+        if (byPrice.length === 1) return byPrice[0].d;
+      }
+    }
+    return undefined; // sin match o ambiguo → Perla lo revisa
+  };
 
   const items: { dishId: string; name: string; price: number; prepArea: "BARRA" | "COCINA"; qty: number; kitchenNotes: string | null; line: number }[] = [];
   const sinMatch: string[] = [];
   for (const p of productos as Producto[]) {
-    const d = p?.id ? dishById.get(String(p.id)) : undefined;
+    const d = resolveDish(p);
     const qty = Math.min(999, Math.round((Number(p?.cantidad ?? p?.quantity ?? 1) || 1) * 100) / 100);
-    if (!d || !d.prepArea) { sinMatch.push(`${p?.id ?? "?"}${p?.notas ? " (" + p.notas + ")" : ""}`); continue; }
+    if (!d || !d.prepArea) { sinMatch.push(`${p?.nombre ?? p?.id ?? "?"}${p?.notas ? " (" + p.notas + ")" : ""}`); continue; }
     items.push({
       dishId: d.id, name: d.name, price: Number(d.price), prepArea: d.prepArea, qty,
       kitchenNotes: typeof p?.notas === "string" && p.notas.trim() ? p.notas.trim() : null,
