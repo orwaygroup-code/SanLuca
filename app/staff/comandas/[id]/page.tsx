@@ -356,6 +356,9 @@ export default function ComandaDetailPage() {
           <div>
             <div style={{ color: C.cream, fontSize: "1.2rem", fontWeight: 800 }}>{c.table ? `Mesa ${c.table.number} · ${c.table.section.name}` : (c.customName || "Cuenta sin mesa")}</div>
             <div style={{ color: C.dim, fontSize: "0.84rem", marginTop: 2 }}>{c.guestsActual} comensales · mesero {c.waiter.fullName}</div>
+            {c.pickupNote && (
+              <div style={{ color: C.gold, fontSize: "0.92rem", fontWeight: 700, marginTop: 4 }}>🕐 Recoge: {c.pickupNote}</div>
+            )}
           </div>
         </div>
 

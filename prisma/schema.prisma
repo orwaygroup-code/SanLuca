@@ -654,6 +654,10 @@ model Comanda {
   // BOT_MESSENGER (pedido para llevar creado por el bot). Separa los 2 bloques en "Llevar".
   channel String @default("STAFF")
 
+  // Cuándo pasa el cliente por el pedido para llevar (texto legible, ej. "4 ago · 2:00 PM").
+  // Lo llena el bot con la fecha/hora que dio el cliente. Solo aplica a pedidos del bot.
+  pickupNote String?
+
   reservationId String?      @unique
   reservation   Reservation? @relation(fields: [reservationId], references: [id])
 

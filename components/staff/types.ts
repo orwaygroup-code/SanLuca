@@ -59,6 +59,7 @@ export interface Comanda {
   tableId: string | null;
   customName: string | null; // nombre de la cuenta cuando no hay mesa (para llevar / cuenta X)
   channel?: string; // "STAFF" (Perla) | "BOT_WHATSAPP"|"BOT_INSTAGRAM"|"BOT_MESSENGER" (pedido del bot)
+  pickupNote?: string | null; // cuándo pasa el cliente por el pedido del bot (ej. "4 ago · 2:00 PM")
   waiterId: number;
   reservationId: string | null;
   items: CItem[];

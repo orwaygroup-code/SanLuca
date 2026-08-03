@@ -243,7 +243,7 @@ export default function OperacionPage() {
                       lead={<LeadIcon name="bag" sub={isBot(c) ? "BOT" : "LLEVAR"} />}
                       who={comandaLabel(c)}
                       badge={badge}
-                      meta={c.folio}
+                      meta={c.pickupNote ? `${c.folio} · 🕐 Recoge ${c.pickupNote}` : c.folio}
                       amount={formatMXN(Number(c.total))}
                       amountDim={!needs && !toKitchen}
                       tone={toKitchen ? "fresh" : printed ? "pay" : needs ? "act" : "passive"}

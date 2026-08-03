@@ -23,6 +23,25 @@ const CHANNEL_BY_PLATFORM: Record<string, string> = {
   messenger: "BOT_MESSENGER",
 };
 
+// Arma un texto legible de recolección desde la fecha/hora que dio el cliente al bot,
+// SIN parsear a Date (evita bugs de zona horaria): "04/08/2026"+"14:00" -> "4 ago · 2:00 PM".
+const MESES_MX = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+function formatPickup(fecha?: unknown, hora?: unknown): string | null {
+  const parts: string[] = [];
+  const fm = String(fecha ?? "").match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+  if (fm) parts.push(`${Number(fm[1])} ${MESES_MX[Number(fm[2]) - 1] ?? fm[2]}`);
+  else if (fecha && String(fecha).trim()) parts.push(String(fecha).trim());
+  const hm = String(hora ?? "").match(/(\d{1,2}):(\d{2})/);
+  if (hm) {
+    const h = Number(hm[1]);
+    const ampm = h >= 12 ? "PM" : "AM";
+    const h12 = ((h + 11) % 12) + 1;
+    parts.push(`${h12}:${hm[2]} ${ampm}`);
+  } else if (hora && String(hora).trim()) parts.push(String(hora).trim());
+  const out = parts.join(" · ");
+  return out.length ? out : null;
+}
+
 interface Producto {
   id?: string; cantidad?: number; quantity?: number; notas?: string;
   nombre?: string; nombre_platillo?: string; precio_unitario?: number; precio?: number;
@@ -160,6 +179,8 @@ export async function POST(request: NextRequest) {
     sinMatch.length ? `⚠ Sin match (revisar): ${sinMatch.join(", ")}` : null,
   ].filter(Boolean);
 
+  const pickupNote = formatPickup(fecha, hora); // "4 ago · 2:00 PM" — para mostrarle a Perla.
+
   const shift = getShiftWindow(new Date()).name;
   const year = mxYear();
   let seq = (await prisma.comanda.count({ where: { tenantId: TENANT, folio: { startsWith: `COM-${year}-` } } })) + 1;
@@ -173,6 +194,7 @@ export async function POST(request: NextRequest) {
           tableId: null,
           customName: `Para llevar · ${name}`.slice(0, 80),
           channel,
+          pickupNote,
           guestsActual: 1,
           waiterId: owner.id,
           openedById: owner.id,
