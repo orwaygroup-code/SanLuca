@@ -58,7 +58,6 @@ export default function OperacionPage() {
   const [takeout, setTakeout] = useState<Comanda[] | null>(null); // cuentas sin mesa (para llevar)
   const [newAccount, setNewAccount] = useState(false);
   const [printing, setPrinting] = useState<number | null>(null); // comanda cuyo ticket se está imprimiendo
-  const [sending, setSending] = useState<number | null>(null); // pedido que se está enviando a cocina
 
   const allowed = staff && ["OPERATION", "CAPTAIN", "MANAGER"].includes(staff.role);
 
@@ -105,18 +104,6 @@ export default function OperacionPage() {
     setPrinting(null);
     if (r.ok) { push("Ticket enviado a impresión", "success"); load(); }
     else push(r.error ?? "No se pudo imprimir", "error");
-  };
-
-  // Perla manda a cocina/barra un pedido para llevar (bot) → imprime el ticket de
-  // cocina con «Para llevar · …» como etiqueta y pasa la comanda a IN_SERVICE.
-  const doSendKitchen = async (comandaId: number) => {
-    setSending(comandaId);
-    const r = await apiFetch<Comanda>(`/api/comandas/${comandaId}/send-to-kitchen`, {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: "{}",
-    });
-    setSending(null);
-    if (r.ok) { push("Pedido enviado a cocina", "success"); load(); }
-    else push(r.error ?? "No se pudo enviar a cocina", "error");
   };
 
   if (loading || !staff || !allowed) return <div style={{ minHeight: "100vh", background: C.bg, display: "grid", placeItems: "center" }}><Spinner /></div>;
@@ -261,7 +248,7 @@ export default function OperacionPage() {
                       amountDim={!needs && !toKitchen}
                       tone={toKitchen ? "fresh" : printed ? "pay" : needs ? "act" : "passive"}
                       action={toKitchen
-                        ? <button style={{ ...rowBtn.kitchen, opacity: sending === c.id ? 0.6 : 1 }} onClick={() => doSendKitchen(c.id)} disabled={sending === c.id}><Icon name="plate" size={18} />{sending === c.id ? "Enviando…" : "Enviar a cocina"}</button>
+                        ? <button style={rowBtn.kitchen} onClick={() => router.push(`/staff/comandas/${c.id}`)}>Ver pedido<Icon name="chevron" size={16} /></button>
                         : printed
                         ? <button style={rowBtn.pay} onClick={() => setPayTarget(c.id)}><Icon name="card" size={18} />Cobrar</button>
                         : needs
