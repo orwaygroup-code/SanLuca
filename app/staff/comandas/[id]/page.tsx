@@ -231,6 +231,15 @@ export default function ComandaDetailPage() {
     else push(r.error ?? "No se pudo cancelar", "error");
   };
 
+  // Quitar un platillo AÚN sin enviar (PENDING) desde el panel del selector, sin confirmación.
+  const removePendingItem = async (itemId: number) => {
+    setBusy(true);
+    const r = await apiFetch<Comanda>(`/api/comandas/${id}/items/${itemId}`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: "{}" });
+    setBusy(false);
+    if (r.ok) setComanda(r.data!);
+    else push(r.error ?? "No se pudo quitar", "error");
+  };
+
   // Vaciar borrador: borra TODOS los platillos aún no enviados (status PENDING).
   const clearDraft = async () => {
     setClearAsk(false);
@@ -532,6 +541,8 @@ export default function ComandaDetailPage() {
           const ok = await post(`/api/comandas/${id}/items`, { dishId, quantity, modifiers, kitchenNotes, course: currentCourse }, "Platillo agregado");
           return ok;
         }}
+        pendingItems={liveItems.filter((i) => i.status === "PENDING")}
+        onRemove={removePendingItem}
         busy={busy}
       />
 

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { C, btn, fld, formatMXN, Spinner, EmptyState } from "./ui";
-import { apiFetch } from "./types";
+import { apiFetch, type CItem } from "./types";
 
 /**
  * Selector de platillos a PANTALLA COMPLETA (comandero). Reemplaza el modal.
@@ -29,11 +29,13 @@ const cleanSection = (name: string) => name.replace(/\s*\(brunch\)\s*/i, "").tri
 const fmtQty = (q: number) => String(Math.round(q * 100) / 100); // 0.5, 1.5, 2 — sin ruido de float
 const clampQty = (v: number) => Math.round(Math.max(0.1, Math.min(99, v)) * 10) / 10; // paso 0.1, [0.1, 99]
 
-export function MenuSelector({ open, onClose, onAdd, busy }: {
+export function MenuSelector({ open, onClose, onAdd, busy, pendingItems = [], onRemove }: {
   open: boolean;
   onClose: () => void;
   onAdd: (dishId: string, quantity: number, modifiers: string | null, kitchenNotes: string | null) => Promise<boolean>;
   busy: boolean;
+  pendingItems?: CItem[]; // platillos agregados AÚN sin enviar a cocina (para el panel lateral)
+  onRemove?: (itemId: number) => void | Promise<void>;
 }) {
   const [cats, setCats] = useState<Cat[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +50,8 @@ export function MenuSelector({ open, onClose, onAdd, busy }: {
   const [added, setAdded] = useState(0);
   const [flash, setFlash] = useState<string | null>(null);
   const [imgFailed, setImgFailed] = useState<Set<string>>(new Set());
+  const [wide, setWide] = useState(true); // ≥900px = panel de pedido fijo a la derecha (tablet horizontal)
+  const [panelOpen, setPanelOpen] = useState(false); // en angosto, el panel se abre como overlay
 
   const loadMenu = useCallback(() => {
     setError(null);
@@ -59,8 +63,16 @@ export function MenuSelector({ open, onClose, onAdd, busy }: {
 
   useEffect(() => {
     if (open && !cats) loadMenu();
-    if (!open) { setSelected(null); setQuery(""); setSection(""); setAdded(0); }
+    if (!open) { setSelected(null); setQuery(""); setSection(""); setAdded(0); setPanelOpen(false); }
   }, [open, cats, loadMenu]);
+
+  // Ancho de pantalla → panel fijo (tablet horizontal) vs overlay (angosto).
+  useEffect(() => {
+    const onResize = () => setWide(window.innerWidth >= 900);
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   // Cerrar con Escape (teclado / accesibilidad).
   useEffect(() => {
@@ -143,7 +155,8 @@ export function MenuSelector({ open, onClose, onAdd, busy }: {
           </div>
         ) : <Spinner label="Cargando menú…" />
       ) : (
-        <>
+        <div style={s.body}>
+          <div style={s.leftCol}>
           {/* Buscador */}
           <div style={s.searchWrap}>
             <input
@@ -234,7 +247,10 @@ export function MenuSelector({ open, onClose, onAdd, busy }: {
               );
             })}
           </div>
-        </>
+          </div>
+          {/* Panel de pedido fijo a la derecha (tablet horizontal) */}
+          {wide && <OrderPanel items={pendingItems} onRemove={onRemove} busy={busy} />}
+        </div>
       )}
 
       {/* Confirmación efímera */}
@@ -296,12 +312,104 @@ export function MenuSelector({ open, onClose, onAdd, busy }: {
           </div>
         </>
       )}
+
+      {/* Angosto: botón flotante "Ver pedido" + panel como overlay */}
+      {!wide && !selected && pendingItems.length > 0 && !panelOpen && (
+        <button style={s.fab} onClick={() => setPanelOpen(true)} aria-label="Ver pedido nuevo">
+          Ver pedido · {pendingItems.length}
+        </button>
+      )}
+      {!wide && panelOpen && (
+        <>
+          <div style={s.panelScrim} onClick={() => setPanelOpen(false)} />
+          <div style={s.panelOverlay}>
+            <OrderPanel items={pendingItems} onRemove={onRemove} busy={busy} onClose={() => setPanelOpen(false)} />
+          </div>
+        </>
+      )}
     </div>
+  );
+}
+
+// Panel del pedido NUEVO (platillos agregados aún sin enviar a cocina), agrupado por
+// tiempo. Fijo a la derecha en tablet; overlay en pantalla angosta.
+function OrderPanel({ items, onRemove, busy, onClose }: {
+  items: CItem[];
+  onRemove?: (itemId: number) => void | Promise<void>;
+  busy: boolean;
+  onClose?: () => void;
+}) {
+  const total = items.reduce((acc, i) => acc + Number(i.lineTotal), 0);
+  const byCourse = new Map<number, CItem[]>();
+  for (const it of items) { const c = Number(it.course) || 1; (byCourse.get(c) ?? byCourse.set(c, []).get(c)!).push(it); }
+  const courses = [...byCourse.keys()].sort((a, b) => a - b);
+  return (
+    <aside style={s.panel} aria-label="Pedido nuevo por enviar a cocina">
+      <div style={s.panelHead}>
+        <span style={s.panelTitle}>Nuevo pedido</span>
+        <span style={s.panelCount}>{items.length}</span>
+        {onClose && <button style={s.panelClose} onClick={onClose} aria-label="Cerrar">×</button>}
+      </div>
+      <div style={s.panelBody}>
+        {items.length === 0 ? (
+          <div style={s.panelEmpty}>Aún no agregas nada.<br />Toca un platillo para empezar.</div>
+        ) : courses.map((c) => (
+          <div key={c} style={{ marginBottom: 12 }}>
+            <div style={s.panelCourse}>{c}º tiempo</div>
+            {byCourse.get(c)!.map((it) => (
+              <div key={it.id} style={s.panelRow}>
+                <span style={s.panelQty}>{fmtQty(Number(it.quantity))}×</span>
+                <span style={s.panelName}>
+                  {it.dishNameSnapshot}
+                  {it.kitchenNotes ? <span style={s.panelNote}> · {it.kitchenNotes}</span> : null}
+                </span>
+                <span style={s.panelPrice}>{formatMXN(Number(it.lineTotal))}</span>
+                {onRemove && <button style={s.panelDel} onClick={() => onRemove(it.id)} disabled={busy} aria-label={`Quitar ${it.dishNameSnapshot}`}>×</button>}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+      <div style={s.panelFoot}>
+        <span style={{ color: C.dim, fontSize: "0.82rem", fontWeight: 700 }}>Total nuevo</span>
+        <span style={s.panelTotal}>{formatMXN(total)}</span>
+      </div>
+    </aside>
   );
 }
 
 const s: Record<string, React.CSSProperties> = {
   root: { position: "fixed", inset: 0, zIndex: 90, background: C.bg, display: "flex", flexDirection: "column" },
+
+  // Layout con panel lateral
+  body: { flex: 1, display: "flex", minHeight: 0, overflow: "hidden" },
+  leftCol: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column" },
+
+  // Panel de pedido (derecha en tablet / overlay en angosto)
+  panel: { width: 328, height: "100%", flexShrink: 0, borderLeft: `1px solid ${C.border}`, background: C.panel, display: "flex", flexDirection: "column" },
+  panelHead: { display: "flex", alignItems: "center", gap: 10, padding: "14px 16px", borderBottom: `1px solid ${C.line}` },
+  panelTitle: { color: C.cream, fontWeight: 800, fontSize: "0.95rem" },
+  panelCount: { minWidth: 24, height: 24, padding: "0 7px", borderRadius: 999, background: C.gold, color: "#16201f", fontWeight: 800, fontSize: "0.78rem", display: "inline-flex", alignItems: "center", justifyContent: "center" },
+  panelClose: { marginLeft: "auto", width: 36, height: 36, borderRadius: 9, border: "none", background: "transparent", color: C.dim, fontSize: "1.4rem", cursor: "pointer", lineHeight: 1 },
+  panelBody: { flex: 1, overflowY: "auto", padding: "12px 14px" },
+  panelEmpty: { color: C.faint, fontSize: "0.82rem", textAlign: "center", padding: "32px 12px", lineHeight: 1.6 },
+  panelCourse: { color: C.gold, fontSize: "0.68rem", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", margin: "2px 0 6px" },
+  panelRow: { display: "flex", alignItems: "baseline", gap: 8, padding: "6px 0", borderBottom: `1px solid ${C.line}` },
+  panelQty: { color: C.gold, fontWeight: 800, fontSize: "0.86rem", flexShrink: 0, fontVariantNumeric: "tabular-nums" },
+  panelName: { color: C.cream, fontSize: "0.86rem", lineHeight: 1.3, flex: 1, minWidth: 0 },
+  panelNote: { color: C.faint, fontSize: "0.76rem" },
+  panelPrice: { color: C.dim, fontSize: "0.82rem", fontVariantNumeric: "tabular-nums", flexShrink: 0 },
+  panelDel: { flexShrink: 0, width: 28, height: 28, borderRadius: 8, border: "none", background: "transparent", color: C.red, fontSize: "1.1rem", cursor: "pointer", lineHeight: 1 },
+  panelFoot: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px", borderTop: `1px solid ${C.border}`, background: C.panel2 },
+  panelTotal: { color: C.cream, fontWeight: 800, fontSize: "1.05rem", fontVariantNumeric: "tabular-nums" },
+
+  fab: {
+    position: "fixed", bottom: 20, right: 16, zIndex: 94, minHeight: 48, padding: "0 20px", borderRadius: 999,
+    border: "none", background: C.gold, color: "#16201f", fontWeight: 800, fontSize: "0.9rem", cursor: "pointer",
+    boxShadow: "0 12px 32px rgba(0,0,0,0.5)", fontFamily: "inherit",
+  },
+  panelScrim: { position: "fixed", inset: 0, zIndex: 96, background: "rgba(0,0,0,0.55)" },
+  panelOverlay: { position: "fixed", top: 0, right: 0, bottom: 0, zIndex: 97, width: "min(360px, 88vw)" },
   head: {
     display: "grid", gridTemplateColumns: "44px 1fr auto", alignItems: "center", gap: 12,
     padding: "12px 16px", background: C.panel, borderBottom: `1px solid ${C.border}`, position: "sticky", top: 0,
