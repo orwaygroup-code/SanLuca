@@ -106,6 +106,8 @@ model Staff {
   cashSessionsOpened    CashSession[]         @relation("CashSessionOpener")
   cashSessionsClosed    CashSession[]         @relation("CashSessionCloser")
   cashMovements         CashMovement[]        @relation("CashMovementAuthor")
+  waiterCredits         WaiterCredit[]        @relation("WaiterCreditDebtor")
+  waiterCreditsAuthed   WaiterCredit[]        @relation("WaiterCreditAuthorizer")
   paymentsReceived      ComandaPayment[]      @relation("PaymentReceiver")
   discountsAuthorized   ComandaDiscount[]     @relation("DiscountAuthorizer")
   itemTransfers         ComandaItemTransfer[] @relation("ItemTransferAuthor")
@@ -623,6 +625,7 @@ enum PaymentMethod {
   CARD_DEBIT // tarjeta débito
   CARD_CREDIT // tarjeta crédito
   TRANSFER // transferencia / SPEI
+  WAITER_CREDIT // cuenta a crédito de un mesero (se descuenta de su nómina)
   // Futuro: MEAL_VOUCHER, GIFT_CARD, COURTESY (append-only, sin romper data)
 }
 
@@ -703,6 +706,7 @@ model Comanda {
   payments      ComandaPayment[]
   discounts     ComandaDiscount[]
   reopens       ComandaReopen[]
+  waiterCredits WaiterCredit[]
 
   openedAt           DateTime  @default(now())
   closedAt           DateTime?
@@ -883,6 +887,29 @@ model CashMovement {
   createdAt     DateTime    @default(now())
 
   @@index([tenantId, cashSessionId])
+}
+
+// Cuenta a CRÉDITO de un mesero: pagó una cuenta a crédito y se le descuenta de la
+// nómina más adelante. La autoriza Perla + el PIN del mesero deudor. Es una cuenta por
+// cobrar (no toca el efectivo del cajón; se salda marcándola PAID al descontar nómina).
+model WaiterCredit {
+  id             Int       @id @default(autoincrement())
+  tenantId       Int       @default(1)
+  waiterId       Int // mesero deudor
+  waiter         Staff     @relation("WaiterCreditDebtor", fields: [waiterId], references: [id])
+  comandaId      Int?
+  comanda        Comanda?  @relation(fields: [comandaId], references: [id], onDelete: SetNull)
+  cashSessionId  Int?
+  amount         Decimal   @db.Decimal(10, 2)
+  status         String    @default("OUTSTANDING") // OUTSTANDING | PAID
+  authorizedById Int // quién lo autorizó (caja/Perla)
+  authorizedBy   Staff     @relation("WaiterCreditAuthorizer", fields: [authorizedById], references: [id])
+  note           String?
+  createdAt      DateTime  @default(now())
+  paidAt         DateTime?
+
+  @@index([tenantId, waiterId, status])
+  @@index([tenantId, status])
 }
 
 model ComandaPayment {

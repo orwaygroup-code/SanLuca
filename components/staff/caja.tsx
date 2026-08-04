@@ -33,6 +33,7 @@ export const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
   CARD_DEBIT: "Tarjeta débito",
   CARD_CREDIT: "Tarjeta crédito",
   TRANSFER: "Transferencia",
+  WAITER_CREDIT: "Crédito mesero",
 };
 const METHOD_OPTIONS = (Object.keys(PAYMENT_METHOD_LABEL) as PaymentMethod[]).map((m) => ({
   value: m,
@@ -331,10 +332,14 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
   const [lines, setLines] = useState<DraftLine[]>([newLine()]);
   const [busy, setBusy] = useState(false);
   const [loadErr, setLoadErr] = useState<string | null>(null);
+  const [waiters, setWaiters] = useState<{ id: number; fullName: string; role: string }[]>([]);
+  const [creditWaiterId, setCreditWaiterId] = useState("");
+  const [creditPin, setCreditPin] = useState("");
 
   useEffect(() => {
     if (!open || comandaId == null) { setComanda(null); setLoadErr(null); return; }
-    setComanda(null); setLoadErr(null);
+    setComanda(null); setLoadErr(null); setCreditWaiterId(""); setCreditPin("");
+    apiFetch<{ id: number; fullName: string; role: string }[]>("/api/comandas/waiters").then((r) => { if (r.ok) setWaiters(r.data ?? []); });
     apiFetch<Comanda>(`/api/comandas/${comandaId}`).then((r) => {
       if (r.ok) {
         const c = r.data!;
@@ -355,7 +360,9 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
   const sumChange = round2(calc.reduce((s, c) => s + c.change, 0));
   const newRemaining = round2(remaining - coveredNow);
   const settledPreview = newRemaining <= 0.01;
-  const canSubmit = !!comanda && coveredNow > 0 && !busy;
+  const hasCredit = calc.some((c) => c.method === "WAITER_CREDIT" && c.billPortion > 0);
+  const creditReady = !hasCredit || (Number(creditWaiterId) > 0 && /^\d{4}$/.test(creditPin));
+  const canSubmit = !!comanda && coveredNow > 0 && creditReady && !busy;
 
   const setLine = (i: number, patch: Partial<DraftLine>) => setLines((ls) => ls.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
   const addLine = () => setLines((ls) => [...ls, newLine(newRemaining > 0 ? newRemaining.toFixed(2) : "")]);
@@ -377,7 +384,8 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
         reference: c.reference.trim() || null,
       }));
     const r = await apiFetch<PayResult>(`/api/comandas/${comanda.id}/pay`, {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ payments }),
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ payments, ...(hasCredit ? { creditWaiterId: Number(creditWaiterId), creditWaiterPin: creditPin } : {}) }),
     });
     setBusy(false);
     if (r.ok) onPaid(r.data!);
@@ -442,6 +450,21 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
           <button style={{ ...btn.ghost, marginTop: 12, width: "100%", opacity: settledPreview ? 0.5 : 1 }} onClick={addLine} disabled={busy || settledPreview}>
             + Agregar otro método{newRemaining > 0 ? ` · falta ${formatMXN(newRemaining)}` : ""}
           </button>
+
+          {hasCredit && (
+            <div style={{ border: `1px solid ${C.gold}`, borderRadius: 12, padding: "12px 14px", marginTop: 12, background: "color-mix(in srgb, #ba843c 8%, transparent)" }}>
+              <div style={{ color: C.gold, fontWeight: 800, fontSize: "0.82rem", marginBottom: 8 }}>Crédito de mesero · lo autoriza el mesero deudor con su PIN</div>
+              <label style={fld.label}>Mesero al que se le carga</label>
+              <GoldSelect
+                value={creditWaiterId}
+                onChange={setCreditWaiterId}
+                options={[{ value: "", label: "Elige mesero…" }, ...waiters.map((w) => ({ value: String(w.id), label: w.fullName }))]}
+              />
+              <label style={{ ...fld.label, marginTop: 10 }}>PIN del mesero</label>
+              <PinInput value={creditPin} onChange={setCreditPin} />
+              <div style={{ color: C.faint, fontSize: "0.74rem", marginTop: 6 }}>Se le descuenta de su nómina. Queda como cuenta por cobrar.</div>
+            </div>
+          )}
 
           <div style={{ background: C.panel2, border: `1px solid ${C.line}`, borderRadius: 12, padding: "12px 14px", marginTop: 12 }}>
             <div style={{ ...kv, color: C.cream, fontWeight: 700 }}><span>Cubierto ahora</span><span>{formatMXN(coveredNow)}</span></div>

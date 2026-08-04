@@ -11,6 +11,7 @@ import {
 } from "@/lib/comanda";
 import { round2 } from "@/lib/comandaTotals";
 import { getOpenSession, computePaymentOutcome, PAY_EPS } from "@/lib/caja";
+import { verifyWaiterPin } from "@/lib/staff";
 import type { ApiResponse } from "@/types";
 
 function parseId(raw: string): number | null {
@@ -18,7 +19,7 @@ function parseId(raw: string): number | null {
   return Number.isInteger(n) && n > 0 ? n : null;
 }
 
-const METHODS = ["CASH", "CARD_DEBIT", "CARD_CREDIT", "TRANSFER"] as const;
+const METHODS = ["CASH", "CARD_DEBIT", "CARD_CREDIT", "TRANSFER", "WAITER_CREDIT"] as const;
 type Method = (typeof METHODS)[number];
 
 interface PayLine {
@@ -121,6 +122,23 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const newTipTotal = round2(Number(comanda.tipTotal) + outcome.sumTip);
   const settled = outcome.settled;
 
+  // Crédito de mesero: si hay una línea WAITER_CREDIT, la autoriza el PROPIO mesero
+  // deudor con su PIN (puede no ser quien atiende). Perla ya está autorizada (requireCashier).
+  const creditLines = lines.filter((l) => l.method === "WAITER_CREDIT");
+  let creditWaiterId: number | null = null;
+  if (creditLines.length > 0) {
+    creditWaiterId = Number(body?.creditWaiterId);
+    const pin = typeof body?.creditWaiterPin === "string" ? body.creditWaiterPin : "";
+    if (!Number.isInteger(creditWaiterId) || creditWaiterId <= 0) {
+      return NextResponse.json<ApiResponse>({ success: false, error: "Elige el mesero al que se le carga el crédito" }, { status: 400 });
+    }
+    const waiter = await prisma.staff.findFirst({ where: { id: creditWaiterId, tenantId: TENANT, active: true }, select: { id: true } });
+    if (!waiter) return NextResponse.json<ApiResponse>({ success: false, error: "Mesero no encontrado o inactivo" }, { status: 404 });
+    if (!(await verifyWaiterPin(creditWaiterId, pin))) {
+      return NextResponse.json<ApiResponse>({ success: false, error: "PIN del mesero incorrecto" }, { status: 403 });
+    }
+  }
+
   await prisma.$transaction(async (tx) => {
     await tx.comandaPayment.createMany({
       data: lines.map((l) => ({
@@ -137,6 +155,20 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         receivedById: a.staffId as number,
       })),
     });
+
+    // Registra la(s) cuenta(s) por cobrar del mesero (se salda al descontar nómina).
+    if (creditLines.length > 0 && creditWaiterId) {
+      await tx.waiterCredit.createMany({
+        data: creditLines.map((l) => ({
+          tenantId: TENANT,
+          waiterId: creditWaiterId as number,
+          comandaId: id,
+          cashSessionId: session.id,
+          amount: l.amount,
+          authorizedById: a.staffId as number,
+        })),
+      });
+    }
 
     await tx.comanda.update({
       where: { id },

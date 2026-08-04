@@ -10,7 +10,7 @@ import type { ApiResponse } from "@/types";
  * SOLO CAPTAIN/MANAGER (intervención supervisada).
  */
 export async function GET(request: NextRequest) {
-  const s = await requireStaffRole(request, ["CAPTAIN", "MANAGER"]);
+  const s = await requireStaffRole(request, ["OPERATION", "CAPTAIN", "MANAGER"]);
   if (!s) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
 
   const staff = await prisma.staff.findMany({

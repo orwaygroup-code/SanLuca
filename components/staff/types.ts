@@ -8,7 +8,7 @@ export type ComandaStatus =
   | "OPEN" | "IN_SERVICE" | "AWAITING_PAYMENT" | "PARTIALLY_PAID" | "PAID" | "MERGED" | "CANCELLED";
 export type ItemStatus = "PENDING" | "SENT" | "IN_PREP" | "READY" | "SERVED" | "DELIVERED" | "CANCELLED";
 export type PrepArea = "BARRA" | "COCINA";
-export type PaymentMethod = "CASH" | "CARD_DEBIT" | "CARD_CREDIT" | "TRANSFER";
+export type PaymentMethod = "CASH" | "CARD_DEBIT" | "CARD_CREDIT" | "TRANSFER" | "WAITER_CREDIT";
 
 export interface CItem {
   id: number;

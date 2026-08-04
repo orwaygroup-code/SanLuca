@@ -43,6 +43,7 @@ const GROUPS: { title: string; items: NavLink[] }[] = [
   ]},
   { title: "Administración", items: [
     { href: "/admin/employees", label: "Empleados", icon: "users" },
+    { href: "/admin/creditos", label: "Créditos meseros", icon: "clipboard-text" },
     { href: "/admin/menu", label: "Platillos", icon: "clipboard-text" },
     { href: "/admin/extras", label: "Extras", icon: "star" },
     { href: "/admin/settings", label: "Ajustes", icon: "settings" },

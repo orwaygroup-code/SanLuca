@@ -2,7 +2,7 @@
 // matemática que usa el PayModal: cuánto de lo que entrega el cliente cubre la
 // cuenta y qué pasa con el excedente.
 
-export type PayMethod = "CASH" | "CARD_DEBIT" | "CARD_CREDIT" | "TRANSFER";
+export type PayMethod = "CASH" | "CARD_DEBIT" | "CARD_CREDIT" | "TRANSFER" | "WAITER_CREDIT";
 
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
