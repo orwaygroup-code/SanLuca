@@ -185,6 +185,8 @@ export function CloseCashSessionModal({ open, session, cut, onClose, onClosed, o
         <div style={{ background: C.panel2, border: `1px solid ${C.line}`, borderRadius: 12, padding: "12px 14px", marginBottom: 12 }}>
           <div style={{ ...kv, color: C.dim }}><span>Fondo inicial</span><span>{formatMXN(cut.openingFloat)}</span></div>
           <div style={{ ...kv, color: C.dim }}><span>Efectivo cobrado</span><span>{formatMXN(cut.cashCollected)}</span></div>
+          {cut.cashIn > 0 && <div style={{ ...kv, color: C.green }}><span>+ Entradas de efectivo</span><span>{formatMXN(cut.cashIn)}</span></div>}
+          {cut.cashOut > 0 && <div style={{ ...kv, color: C.red }}><span>− Salidas de efectivo</span><span>{formatMXN(cut.cashOut)}</span></div>}
           <div style={{ ...kv, color: C.cream, fontWeight: 800, borderTop: `1px solid ${C.line}`, marginTop: 4, paddingTop: 6 }}>
             <span>Efectivo esperado</span><span>{formatMXN(cut.expectedCash)}</span>
           </div>

@@ -59,6 +59,7 @@ export default function OperacionPage() {
   const [newAccount, setNewAccount] = useState(false);
   const [printing, setPrinting] = useState<number | null>(null); // comanda cuyo ticket se está imprimiendo
   const [openingDrawer, setOpeningDrawer] = useState(false);
+  const [moveOpen, setMoveOpen] = useState(false); // modal de entrada/salida de efectivo
 
   const allowed = staff && ["OPERATION", "CAPTAIN", "MANAGER"].includes(staff.role);
 
@@ -145,12 +146,19 @@ export default function OperacionPage() {
         <div style={sh.kicker}>
             <h1 style={sh.h1}>{TITLE_FOR[tab]}</h1>
             {subFor() && <span style={sh.sub}>{subFor()}</span>}
-            <button
-              style={{ ...btn.ghost, marginLeft: "auto", minHeight: 38, display: "inline-flex", alignItems: "center", gap: 6, fontSize: "0.8rem", opacity: openingDrawer ? 0.6 : 1 }}
-              onClick={doOpenDrawer}
-              disabled={openingDrawer}
-              title="Abrir el cajón de dinero"
-            ><Icon name="coins" size={16} />Abrir cajón</button>
+            <div style={{ marginLeft: "auto", display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button
+                style={{ ...btn.ghost, minHeight: 38, display: "inline-flex", alignItems: "center", gap: 6, fontSize: "0.8rem" }}
+                onClick={() => setMoveOpen(true)}
+                title="Registrar entrada o salida de efectivo del cajón"
+              ><Icon name="coins" size={16} />Entrada / Salida</button>
+              <button
+                style={{ ...btn.ghost, minHeight: 38, display: "inline-flex", alignItems: "center", gap: 6, fontSize: "0.8rem", opacity: openingDrawer ? 0.6 : 1 }}
+                onClick={doOpenDrawer}
+                disabled={openingDrawer}
+                title="Abrir el cajón de dinero"
+              ><Icon name="lock" size={16} />Abrir cajón</button>
+            </div>
           </div>
 
           {tab === "mesas" ? (
@@ -307,6 +315,13 @@ export default function OperacionPage() {
         waiterId={staff.id}
         onClose={() => setNewAccount(false)}
         onCreated={(id) => { setNewAccount(false); router.push(`/staff/comandas/${id}`); }}
+        onError={(m) => push(m, "error")}
+      />
+
+      <CashMovementModal
+        open={moveOpen}
+        onClose={() => setMoveOpen(false)}
+        onDone={() => { setMoveOpen(false); push("Movimiento registrado", "success"); loadSession(); }}
         onError={(m) => push(m, "error")}
       />
 
@@ -521,6 +536,60 @@ function NuevaCuentaModal({ open, waiterId, onClose, onCreated, onError }: {
         <button style={btn.ghost} onClick={onClose} disabled={busy}>Cancelar</button>
         <button style={{ ...btn.primary, opacity: !name.trim() || busy ? 0.5 : 1 }} onClick={submit} disabled={!name.trim() || busy}>
           {busy ? "Creando…" : "Crear cuenta"}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+// Entrada / salida de efectivo del cajón (no es venta): afecta el efectivo esperado del corte.
+function CashMovementModal({ open, onClose, onDone, onError }: {
+  open: boolean; onClose: () => void; onDone: () => void; onError: (m: string) => void;
+}) {
+  const [direction, setDirection] = useState<"IN" | "OUT">("OUT");
+  const [amount, setAmount] = useState("");
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { if (open) { setDirection("OUT"); setAmount(""); setReason(""); setBusy(false); } }, [open]);
+
+  const amt = Number(amount);
+  const valid = Number.isFinite(amt) && amt > 0 && reason.trim().length > 0;
+
+  const submit = async () => {
+    if (!valid || busy) return;
+    setBusy(true);
+    const r = await apiFetch("/api/caja/movements", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ direction, amount: amt, reason: reason.trim() }),
+    });
+    setBusy(false);
+    if (r.ok) onDone();
+    else onError(r.error ?? "No se pudo registrar el movimiento");
+  };
+
+  return (
+    <Modal open={open} title="Entrada / salida de efectivo" onClose={onClose}>
+      <p style={{ margin: "0 0 4px", color: C.dim, fontSize: "0.86rem", lineHeight: 1.5 }}>
+        Dinero que ENTRA o SALE del cajón (no es una venta). Ajusta el efectivo esperado del corte y abre el cajón.
+      </p>
+      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+        {([["OUT", "Salida (retiro)"], ["IN", "Entrada (depósito)"]] as const).map(([val, lbl]) => (
+          <button
+            key={val}
+            onClick={() => setDirection(val)}
+            aria-pressed={direction === val}
+            style={{ flex: 1, minHeight: 46, borderRadius: 10, border: `1px solid ${direction === val ? C.gold : C.line}`, background: direction === val ? "color-mix(in srgb, #ba843c 16%, transparent)" : "transparent", color: direction === val ? C.gold : C.dim, fontWeight: 800, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" }}
+          >{lbl}</button>
+        ))}
+      </div>
+      <label style={{ ...fld.label, marginTop: 14 }}>Monto</label>
+      <input style={fld.input} value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder="0.00" autoFocus />
+      <label style={{ ...fld.label, marginTop: 12 }}>Motivo</label>
+      <input style={fld.input} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={direction === "OUT" ? "ej. pago a proveedor, compra insumos" : "ej. fondo adicional, depósito"} />
+      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 22 }}>
+        <button style={btn.ghost} onClick={onClose} disabled={busy}>Cancelar</button>
+        <button style={{ ...btn.primary, opacity: !valid || busy ? 0.5 : 1 }} onClick={submit} disabled={!valid || busy}>
+          {busy ? "Registrando…" : "Registrar"}
         </button>
       </div>
     </Modal>

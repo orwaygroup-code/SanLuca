@@ -54,7 +54,9 @@ export interface CutSnapshot {
   totalCollected: number; // Σ amount de todos los métodos (no voided)
   totalTips: number;
   cashCollected: number; // solo CASH.amount
-  expectedCash: number; // openingFloat + cashCollected
+  cashIn: number; // Σ entradas de efectivo (depósitos al cajón)
+  cashOut: number; // Σ salidas de efectivo (retiros del cajón)
+  expectedCash: number; // openingFloat + cashCollected + cashIn - cashOut
   paymentsCount: number;
   comandasSettled: number; // comandas PAID ligadas a la sesión
   generatedAt: string; // ISO
@@ -107,15 +109,21 @@ export function computePaymentOutcome(
 export function summarizeCut(
   openingFloat: number,
   byMethod: CutMethodRow[],
-): { totalCollected: number; totalTips: number; cashCollected: number; expectedCash: number; paymentsCount: number } {
+  cashIn = 0,
+  cashOut = 0,
+): { totalCollected: number; totalTips: number; cashCollected: number; cashIn: number; cashOut: number; expectedCash: number; paymentsCount: number } {
   const totalCollected = round2(byMethod.reduce((s, r) => s + r.amount, 0));
   const totalTips = round2(byMethod.reduce((s, r) => s + r.tip, 0));
   const cashCollected = byMethod.find((r) => r.method === "CASH")?.amount ?? 0;
+  const cin = round2(cashIn);
+  const cout = round2(cashOut);
   return {
     totalCollected,
     totalTips,
     cashCollected,
-    expectedCash: round2(round2(openingFloat) + cashCollected),
+    cashIn: cin,
+    cashOut: cout,
+    expectedCash: round2(round2(openingFloat) + cashCollected + cin - cout),
     paymentsCount: byMethod.reduce((s, r) => s + r.count, 0),
   };
 }
@@ -133,7 +141,7 @@ export async function buildCut(cashSessionId: number, db: Db = prisma): Promise<
   });
   if (!session) throw new Error(`CashSession ${cashSessionId} no encontrada`);
 
-  const [grouped, comandasSettled] = await Promise.all([
+  const [grouped, comandasSettled, moves] = await Promise.all([
     db.comandaPayment.groupBy({
       by: ["method"],
       where: { tenantId: TENANT, cashSessionId, voided: false },
@@ -141,7 +149,14 @@ export async function buildCut(cashSessionId: number, db: Db = prisma): Promise<
       _count: { _all: true },
     }),
     db.comanda.count({ where: { tenantId: TENANT, cashSessionId, status: "PAID" } }),
+    db.cashMovement.groupBy({
+      by: ["direction"],
+      where: { tenantId: TENANT, cashSessionId },
+      _sum: { amount: true },
+    }),
   ]);
+  const cashIn = round2(Number(moves.find((m) => m.direction === "IN")?._sum.amount ?? 0));
+  const cashOut = round2(Number(moves.find((m) => m.direction === "OUT")?._sum.amount ?? 0));
 
   const byId = new Map(grouped.map((g) => [g.method, g]));
   const byMethod: CutMethodRow[] = METHODS.map((method) => {
@@ -155,7 +170,7 @@ export async function buildCut(cashSessionId: number, db: Db = prisma): Promise<
   });
 
   const openingFloat = round2(Number(session.openingFloat));
-  const s = summarizeCut(openingFloat, byMethod);
+  const s = summarizeCut(openingFloat, byMethod, cashIn, cashOut);
 
   return {
     sessionId: session.id,
@@ -166,6 +181,8 @@ export async function buildCut(cashSessionId: number, db: Db = prisma): Promise<
     totalCollected: s.totalCollected,
     totalTips: s.totalTips,
     cashCollected: s.cashCollected,
+    cashIn: s.cashIn,
+    cashOut: s.cashOut,
     expectedCash: s.expectedCash,
     paymentsCount: s.paymentsCount,
     comandasSettled,

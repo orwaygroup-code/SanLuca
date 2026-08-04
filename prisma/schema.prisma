@@ -105,6 +105,7 @@ model Staff {
   // Caja / POS (Fase Caja)
   cashSessionsOpened    CashSession[]         @relation("CashSessionOpener")
   cashSessionsClosed    CashSession[]         @relation("CashSessionCloser")
+  cashMovements         CashMovement[]        @relation("CashMovementAuthor")
   paymentsReceived      ComandaPayment[]      @relation("PaymentReceiver")
   discountsAuthorized   ComandaDiscount[]     @relation("DiscountAuthorizer")
   itemTransfers         ComandaItemTransfer[] @relation("ItemTransferAuthor")
@@ -857,10 +858,29 @@ model CashSession {
   comandas             Comanda[]
   tipSettlement        TipSettlement?
   waiterTipSettlements WaiterTipSettlement[] @relation("CashSessionWaiterTips")
+  movements            CashMovement[]
 
   @@index([tenantId, status])
   @@index([tenantId, openedAt])
   @@index([tenantId, shift])
+}
+
+// Entradas/salidas de efectivo del cajón durante un turno (depósito de fondo, pago a
+// proveedor, retiro, etc.). NO son ventas: afectan el efectivo esperado del corte
+// (esperado = fondo + efectivo cobrado + entradas − salidas), no las ventas.
+model CashMovement {
+  id            Int         @id @default(autoincrement())
+  tenantId      Int         @default(1)
+  cashSessionId Int
+  cashSession   CashSession @relation(fields: [cashSessionId], references: [id], onDelete: Cascade)
+  direction     String // "IN" (entrada/depósito) | "OUT" (salida/retiro)
+  amount        Decimal     @db.Decimal(10, 2)
+  reason        String
+  createdById   Int
+  createdBy     Staff       @relation("CashMovementAuthor", fields: [createdById], references: [id])
+  createdAt     DateTime    @default(now())
+
+  @@index([tenantId, cashSessionId])
 }
 
 model ComandaPayment {

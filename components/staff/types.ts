@@ -87,6 +87,8 @@ export interface CutSnapshot {
   totalCollected: number;
   totalTips: number;
   cashCollected: number;
+  cashIn: number;
+  cashOut: number;
   expectedCash: number;
   paymentsCount: number;
   comandasSettled: number;
