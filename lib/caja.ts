@@ -59,6 +59,12 @@ export interface CutSnapshot {
   expectedCash: number; // openingFloat + cashCollected + cashIn - cashOut
   paymentsCount: number;
   comandasSettled: number; // comandas PAID ligadas a la sesión
+  comensales: number; // Σ guestsActual de las comandas PAID
+  ventaNeta: number; // Σ subtotal (sin impuestos) de las comandas PAID
+  impuestos: number; // Σ taxAmount
+  descuentos: number; // Σ discountTotal
+  folioFrom: string | null; // folio inicial del turno
+  folioTo: string | null; // folio final
   generatedAt: string; // ISO
 }
 
@@ -141,7 +147,7 @@ export async function buildCut(cashSessionId: number, db: Db = prisma): Promise<
   });
   if (!session) throw new Error(`CashSession ${cashSessionId} no encontrada`);
 
-  const [grouped, comandasSettled, moves] = await Promise.all([
+  const [grouped, comandasSettled, moves, agg] = await Promise.all([
     db.comandaPayment.groupBy({
       by: ["method"],
       where: { tenantId: TENANT, cashSessionId, voided: false },
@@ -153,6 +159,12 @@ export async function buildCut(cashSessionId: number, db: Db = prisma): Promise<
       by: ["direction"],
       where: { tenantId: TENANT, cashSessionId },
       _sum: { amount: true },
+    }),
+    db.comanda.aggregate({
+      where: { tenantId: TENANT, cashSessionId, status: "PAID" },
+      _sum: { guestsActual: true, subtotal: true, taxAmount: true, discountTotal: true },
+      _min: { folio: true },
+      _max: { folio: true },
     }),
   ]);
   const cashIn = round2(Number(moves.find((m) => m.direction === "IN")?._sum.amount ?? 0));
@@ -186,6 +198,12 @@ export async function buildCut(cashSessionId: number, db: Db = prisma): Promise<
     expectedCash: s.expectedCash,
     paymentsCount: s.paymentsCount,
     comandasSettled,
+    comensales: Number(agg._sum.guestsActual ?? 0),
+    ventaNeta: round2(Number(agg._sum.subtotal ?? 0)),
+    impuestos: round2(Number(agg._sum.taxAmount ?? 0)),
+    descuentos: round2(Number(agg._sum.discountTotal ?? 0)),
+    folioFrom: agg._min.folio ?? null,
+    folioTo: agg._max.folio ?? null,
     generatedAt: new Date().toISOString(),
   };
 }

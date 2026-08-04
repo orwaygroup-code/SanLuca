@@ -105,6 +105,91 @@ function renderCustomer(p, w) {
   return o;
 }
 
+const METHOD_LABEL = { CASH: "Efectivo", CARD_DEBIT: "Tarjeta debito", CARD_CREDIT: "Tarjeta credito", TRANSFER: "Transferencia" };
+
+// Envuelve un texto largo a `w` columnas (para la direccion del encabezado).
+function wrap(s, w) {
+  const words = ascii(s).split(/\s+/);
+  const lines = [];
+  let cur = "";
+  for (const word of words) {
+    if ((cur + " " + word).trim().length > w) { if (cur) lines.push(cur); cur = word; }
+    else cur = (cur ? cur + " " : "") + word;
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+
+// Ticket de CORTE de caja (Z-report), estilo SoftRestaurant.
+function renderCorte(p, w) {
+  const fp = p.formasPago || [];
+  const amt = (m) => Number((fp.find((x) => x.method === m) || {}).amount || 0);
+  const efectivoVentas = amt("CASH");
+  const tarjetaVentas = amt("CARD_DEBIT") + amt("CARD_CREDIT");
+  const entradas = Number(p.entradas || 0), salidas = Number(p.salidas || 0);
+  const efectivoFinal = Number(p.fondoInicial) + efectivoVentas + entradas - salidas;
+  const saldoFinal = efectivoFinal + tarjetaVentas;
+  const d = p.declaracion || {};
+  const f = p.fiscal || {};
+
+  let o = INIT;
+  o += BOLD_ON + center(f.nombre || "SAN LUCA", w) + BOLD_OFF + "\n";
+  if (f.titular) o += center(f.titular, w) + "\n";
+  if (f.rfc) o += center("RFC: " + f.rfc, w) + "\n";
+  for (const ln of wrap(f.direccion || "", w)) o += center(ln, w) + "\n";
+  o += rule(w) + "\n";
+  o += BOLD_ON + center("CORTE DE CAJA Z", w) + BOLD_OFF + "\n";
+  o += center("Folio " + ascii(p.folio) + "   Est: " + ascii(p.estacion || ""), w) + "\n";
+  o += "Del: " + fmtTime(p.abierto) + "\n";
+  o += "Al:  " + fmtTime(p.cerrado) + "\n";
+  o += "Cajero: " + ascii(p.cajero || "-") + "\n";
+  o += rule(w) + "\n";
+
+  o += BOLD_ON + center("CAJA", w) + BOLD_OFF + "\n";
+  o += row("+ Fondo inicial", money(p.fondoInicial), w) + "\n";
+  o += row("+ Efectivo (ventas)", money(efectivoVentas), w) + "\n";
+  o += row("+ Tarjeta", money(tarjetaVentas), w) + "\n";
+  if (entradas > 0) o += row("+ Entradas efectivo", money(entradas), w) + "\n";
+  if (salidas > 0) o += row("- Salidas efectivo", money(salidas), w) + "\n";
+  o += BOLD_ON + row("= Saldo final", money(saldoFinal), w) + BOLD_OFF + "\n";
+  o += row("  Efectivo final", money(efectivoFinal), w) + "\n";
+  o += rule(w) + "\n";
+
+  o += BOLD_ON + center("FORMA DE PAGO (VENTAS)", w) + BOLD_OFF + "\n";
+  for (const m of fp) { if (Number(m.amount) !== 0) o += row(METHOD_LABEL[m.method] || m.method, money(m.amount), w) + "\n"; }
+  o += BOLD_ON + row("Total ventas", money(p.totalVentas), w) + BOLD_OFF + "\n";
+  if (Number(p.propinas) > 0) {
+    o += "\n" + center("PROPINAS", w) + "\n";
+    for (const m of fp) { if (Number(m.tip) > 0) o += row(METHOD_LABEL[m.method] || m.method, money(m.tip), w) + "\n"; }
+    o += row("Total propinas", money(p.propinas), w) + "\n";
+  }
+  o += rule(w) + "\n";
+
+  o += BOLD_ON + center("VENTAS", w) + BOLD_OFF + "\n";
+  o += row("Venta neta", money(p.ventaNeta), w) + "\n";
+  o += row("Impuestos (IVA)", money(p.impuestos), w) + "\n";
+  o += row("Descuentos", money(p.descuentos), w) + "\n";
+  o += row("Cuentas", String(p.cuentas), w) + "\n";
+  o += row("Comensales", String(p.comensales), w) + "\n";
+  if (p.folioFrom) o += row("Folio inicial", ascii(p.folioFrom), w) + "\n";
+  if (p.folioTo) o += row("Folio final", ascii(p.folioTo), w) + "\n";
+  o += rule(w) + "\n";
+
+  o += BOLD_ON + center("DECLARACION DE CAJERO", w) + BOLD_OFF + "\n";
+  o += row("Efectivo declarado", money(d.countedCash || 0), w) + "\n";
+  o += row("Efectivo esperado", money(d.expectedCash || 0), w) + "\n";
+  o += BOLD_ON + row(Number(d.cashDifference) >= 0 ? "Sobrante efectivo" : "Faltante efectivo", money(Math.abs(Number(d.cashDifference || 0))), w) + BOLD_OFF + "\n";
+  if (d.countedCard != null) {
+    o += row("Tarjeta declarada", money(d.countedCard), w) + "\n";
+    o += row("Tarjeta esperada", money(d.cardExpected || 0), w) + "\n";
+    o += BOLD_ON + row(Number(d.cardDifference) >= 0 ? "Sobrante tarjeta" : "Faltante tarjeta", money(Math.abs(Number(d.cardDifference || 0))), w) + BOLD_OFF + "\n";
+  }
+  o += rule(w) + "\n\n";
+  o += center("_____________________", w) + "\n";
+  o += center("Gerente", w) + CUT;
+  return o;
+}
+
 // ─── Envío a impresora: TCP (raw 9100) o compartida de Windows (USB) ──
 function sendToTcp(pr, data) {
   return new Promise((resolve, reject) => {
@@ -208,6 +293,8 @@ async function poll() {
           // kind "drawer" = solo abrir el cajón (sin papel). El resto imprime ticket.
           const data = p && p.kind === "drawer"
             ? drawerKick(pr.drawerPin)
+            : p && p.kind === "corte"
+            ? renderCorte(p, w)
             : (p && p.kind === "kitchen" ? renderKitchen(p, w) : renderCustomer(p, w));
           await sendToPrinter(pr, data);
         }

@@ -159,20 +159,26 @@ export function CloseCashSessionModal({ open, session, cut, onClose, onClosed, o
   onClose: () => void; onClosed: (r: { session: CashSession; cut: CutSnapshot; difference: number }) => void; onError: (m: string) => void;
 }) {
   const [countedCash, setCountedCash] = useState("");
+  const [countedCard, setCountedCard] = useState("");
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => { if (open) { setCountedCash(""); setNotes(""); } }, [open]);
+  useEffect(() => { if (open) { setCountedCash(""); setCountedCard(""); setNotes(""); } }, [open]);
 
   const expected = cut?.expectedCash ?? 0;
   const difference = countedCash.trim() ? round2(num(countedCash) - expected) : null;
+  const cardExpected = round2(
+    (cut?.byMethod.find((m) => m.method === "CARD_DEBIT")?.amount ?? 0) +
+    (cut?.byMethod.find((m) => m.method === "CARD_CREDIT")?.amount ?? 0),
+  );
+  const cardDiff = countedCard.trim() ? round2(num(countedCard) - cardExpected) : null;
 
   const submit = async () => {
     if (!session) return;
     setBusy(true);
     const r = await apiFetch<{ session: CashSession; cut: CutSnapshot; difference: number }>(
       `/api/caja/sessions/${session.id}/close`,
-      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ countedCash: num(countedCash), notes: notes.trim() || null }) },
+      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ countedCash: num(countedCash), countedCard: countedCard.trim() ? num(countedCard) : null, notes: notes.trim() || null }) },
     );
     setBusy(false);
     if (r.ok) onClosed(r.data!);
@@ -202,8 +208,20 @@ export function CloseCashSessionModal({ open, session, cut, onClose, onClosed, o
           ...kv, marginTop: 10, fontWeight: 800,
           color: Math.abs(difference) < 0.01 ? C.green : difference > 0 ? C.blue : C.red,
         }}>
-          <span>{Math.abs(difference) < 0.01 ? "Cuadra" : difference > 0 ? "Sobra" : "Falta"}</span>
+          <span>{Math.abs(difference) < 0.01 ? "Efectivo cuadra" : difference > 0 ? "Efectivo: sobra" : "Efectivo: falta"}</span>
           <span>{formatMXN(Math.abs(difference))}</span>
+        </div>
+      )}
+      <Field label={`Declaración: tarjeta según terminales (esperado ${formatMXN(cardExpected)})`}>
+        <MoneyInput value={countedCard} onChange={setCountedCard} placeholder="0.00" />
+      </Field>
+      {cardDiff !== null && (
+        <div style={{
+          ...kv, marginTop: 10, fontWeight: 800,
+          color: Math.abs(cardDiff) < 0.01 ? C.green : cardDiff > 0 ? C.blue : C.red,
+        }}>
+          <span>{Math.abs(cardDiff) < 0.01 ? "Tarjeta cuadra" : cardDiff > 0 ? "Tarjeta: sobra" : "Tarjeta: falta"}</span>
+          <span>{formatMXN(Math.abs(cardDiff))}</span>
         </div>
       )}
       <Field label="Notas del corte (opcional)">

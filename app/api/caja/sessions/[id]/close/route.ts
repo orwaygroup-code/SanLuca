@@ -13,6 +13,14 @@ function parseId(raw: string): number | null {
   return Number.isInteger(n) && n > 0 ? n : null;
 }
 
+// Datos fiscales del encabezado del ticket de corte (los mismos del ticket de cliente).
+const FISCAL = {
+  nombre: "SAN LUCA",
+  titular: "Ricardo Pajaro Camacho",
+  rfc: "PACR860106526",
+  direccion: "Paseo de las Maravillas 303, El Llano, Jesus Maria, Aguascalientes, Mexico CP 20983",
+};
+
 /**
  * POST /api/caja/sessions/:id/close — cierra el turno (corte Z). requireCashier.
  * Body: { countedCash: number, notes? }
@@ -33,6 +41,11 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const countedCash = Number(body?.countedCash);
   if (!Number.isFinite(countedCash) || countedCash < 0) {
     return NextResponse.json<ApiResponse>({ success: false, error: "Arqueo de efectivo inválido" }, { status: 400 });
+  }
+  // Declaración de TARJETA (según terminales): manual, opcional. No afecta el cajón.
+  const countedCard = body?.countedCard != null && body?.countedCard !== "" ? Number(body.countedCard) : null;
+  if (countedCard != null && (!Number.isFinite(countedCard) || countedCard < 0)) {
+    return NextResponse.json<ApiResponse>({ success: false, error: "Declaración de tarjeta inválida" }, { status: 400 });
   }
   const notes = typeof body?.notes === "string" ? body.notes : null;
 
@@ -96,6 +109,25 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const cut = await buildCut(id);
   const difference = round2(countedCash - cut.expectedCash);
 
+  // Tarjeta esperada (según el sistema) = débito + crédito. Se compara con lo que
+  // declara el cajero (según terminales) para el sobrante/faltante de tarjeta. La
+  // tarjeta NO toca el cajón físico; la transferencia queda automática.
+  const cardExpected = round2(
+    (cut.byMethod.find((m) => m.method === "CARD_DEBIT")?.amount ?? 0) +
+    (cut.byMethod.find((m) => m.method === "CARD_CREDIT")?.amount ?? 0),
+  );
+  const cardDifference = countedCard != null ? round2(countedCard - cardExpected) : null;
+
+  const declaracion = {
+    countedCash: round2(countedCash),
+    expectedCash: cut.expectedCash,
+    cashDifference: difference,
+    countedCard: countedCard != null ? round2(countedCard) : null,
+    cardExpected,
+    cardDifference,
+  };
+  const snapshot = { ...cut, declaracion };
+
   const updated = await prisma.cashSession.update({
     where: { id },
     data: {
@@ -103,16 +135,53 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       closedById: a.staffId,
       closedAt: new Date(),
       countedCash,
+      countedCard,
       expectedCash: cut.expectedCash,
       difference,
-      cutSnapshot: cut as unknown as Prisma.InputJsonValue,
+      cutSnapshot: snapshot as unknown as Prisma.InputJsonValue,
       ...(notes ? { notes } : {}),
     },
     include: CASH_SESSION_INCLUDE,
   });
 
-  // Corte de caja: abre el cajón para contar el efectivo (sin comanda). Fire-and-forget.
+  // Ticket de corte (Z-report) → impresora de CAJA. Fire-and-forget (no tumba el cierre).
+  const cortePayload = {
+    kind: "corte",
+    fiscal: FISCAL,
+    estacion: "CAJASL",
+    folio: updated.folio,
+    turno: updated.shift,
+    abierto: updated.openedAt,
+    cerrado: updated.closedAt,
+    cajero: updated.closedBy?.fullName ?? updated.openedBy?.fullName ?? "—",
+    fondoInicial: snapshot.openingFloat,
+    efectivoVentas: snapshot.cashCollected,
+    entradas: snapshot.cashIn,
+    salidas: snapshot.cashOut,
+    formasPago: snapshot.byMethod,
+    totalVentas: snapshot.totalCollected,
+    propinas: snapshot.totalTips,
+    cuentas: snapshot.comandasSettled,
+    comensales: snapshot.comensales,
+    ventaNeta: snapshot.ventaNeta,
+    impuestos: snapshot.impuestos,
+    descuentos: snapshot.descuentos,
+    folioFrom: snapshot.folioFrom,
+    folioTo: snapshot.folioTo,
+    declaracion,
+  };
+  try {
+    await prisma.comandaPrint.create({
+      data: {
+        tenantId: TENANT, comandaId: null, type: "CORTE", target: "CAJA",
+        executedById: a.staffId, status: "PENDING",
+        payload: cortePayload as unknown as Prisma.InputJsonValue,
+      },
+    });
+  } catch (e) { console.error("[CORTE] no se pudo encolar el ticket:", e); }
+
+  // Abre el cajón para contar el efectivo. Fire-and-forget.
   await enqueueDrawerKick({ staffId: a.staffId as number, comandaId: null });
 
-  return NextResponse.json<ApiResponse>({ success: true, data: { session: updated, cut, difference } });
+  return NextResponse.json<ApiResponse>({ success: true, data: { session: updated, cut: snapshot, difference } });
 }

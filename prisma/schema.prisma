@@ -608,6 +608,7 @@ enum PrintType {
   CUSTOMER_FINAL // ticket de cliente al pedir cuenta
   CUSTOMER_REPRINT // reimpresión autorizada por capitán
   DRAWER_KICK // no imprime papel: abre el cajón de dinero (pulso ESC/POS a CAJA)
+  CORTE // ticket de corte de caja (Z-report) a la impresora de CAJA
 }
 
 enum PrintTarget {
@@ -841,8 +842,9 @@ model CashSession {
 
   openingFloat Decimal  @db.Decimal(10, 2) // fondo inicial
   expectedCash Decimal? @db.Decimal(10, 2) // efectivo esperado (al cerrar)
-  countedCash  Decimal? @db.Decimal(10, 2) // arqueo físico
-  difference   Decimal? @db.Decimal(10, 2) // counted - expected (sobra/falta)
+  countedCash  Decimal? @db.Decimal(10, 2) // arqueo físico de EFECTIVO
+  countedCard  Decimal? @db.Decimal(10, 2) // declaración de TARJETA (según terminales)
+  difference   Decimal? @db.Decimal(10, 2) // counted - expected (sobra/falta) de efectivo
   cutSnapshot  Json? // corte inmutable (breakdown por método)
 
   openedById Int
