@@ -12,6 +12,34 @@ type Db = typeof prisma | Prisma.TransactionClient;
 
 export const TENANT = 1;
 
+/**
+ * Encola un pulso de apertura de cajón para el PrintBridge de CAJA. No imprime
+ * papel: crea un ComandaPrint DRAWER_KICK con payload {kind:"drawer"} que el
+ * bridge convierte en el comando ESC/POS que abre el cajón. `comandaId` es
+ * opcional (corte / botón manual no traen comanda). Fire-and-forget: si algo
+ * falla, se loguea y NO tumba la acción principal (cobro, corte, etc.).
+ */
+export async function enqueueDrawerKick(
+  args: { staffId: number; comandaId?: number | null },
+  db: Db = prisma,
+): Promise<void> {
+  try {
+    await db.comandaPrint.create({
+      data: {
+        tenantId: TENANT,
+        comandaId: args.comandaId ?? null,
+        type: "DRAWER_KICK",
+        target: "CAJA",
+        executedById: args.staffId,
+        status: "PENDING",
+        payload: { kind: "drawer" },
+      },
+    });
+  } catch (e) {
+    console.error("[DRAWER] no se pudo encolar apertura de cajón:", e);
+  }
+}
+
 /** Estados de comanda considerados "activos" (en el piso). Incluye
  *  PARTIALLY_PAID: sigue ocupando la mesa mientras se cobra por partes. */
 export const ACTIVE_STATUSES = ["OPEN", "IN_SERVICE", "AWAITING_PAYMENT", "PARTIALLY_PAID"] as const;

@@ -606,6 +606,7 @@ enum PrintType {
   KITCHEN_BAR // ticket a barra/cocina al "Enviar"
   CUSTOMER_FINAL // ticket de cliente al pedir cuenta
   CUSTOMER_REPRINT // reimpresión autorizada por capitán
+  DRAWER_KICK // no imprime papel: abre el cajón de dinero (pulso ESC/POS a CAJA)
 }
 
 enum PrintTarget {
@@ -763,8 +764,10 @@ model ComandaPrint {
   id       Int @id @default(autoincrement())
   tenantId Int @default(1)
 
-  comandaId Int
-  comanda   Comanda @relation(fields: [comandaId], references: [id], onDelete: Cascade)
+  // Opcional: los pulsos de cajón (DRAWER_KICK) por corte o botón manual no van
+  // atados a una comanda. Los tickets normales sí la traen.
+  comandaId Int?
+  comanda   Comanda? @relation(fields: [comandaId], references: [id], onDelete: Cascade)
 
   type   PrintType
   target PrintTarget

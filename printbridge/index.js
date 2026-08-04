@@ -150,6 +150,14 @@ function sendToPrinter(pr, data) {
   return pr.type === "share" ? sendToShare(pr, data) : sendToTcp(pr, data);
 }
 
+// Pulso ESC/POS para ABRIR EL CAJÓN de dinero conectado al puerto RJ11 de la
+// impresora. `ESC p m t1 t2`: m=0 dispara el pin 2, m=1 el pin 5 (depende del cajón).
+// t1/t2 = duración del pulso. Se manda como string latin1 (bytes crudos 1B 70 m 19 FA).
+function drawerKick(pin) {
+  const m = Number(pin) === 5 ? 1 : 0; // default pin 2 (lo más común)
+  return String.fromCharCode(0x1B, 0x70, m, 0x19, 0xFA);
+}
+
 // Descripción legible de un destino (para el log de arranque). Soporta USB
 // (compartida de Windows), TCP de red, y destinos con varias impresoras.
 function descOne(pr) {
@@ -177,7 +185,9 @@ async function poll() {
     res = await fetch(apiBaseUrl + "/api/print-jobs/pending", { headers: { "x-print-key": bridgeKey } });
   } catch (e) { console.error("no conecta al sistema:", e.message); return; }
   if (!res.ok) { console.error("pending HTTP", res.status); return; }
-  const { jobs } = await res.json();
+  let jobs;
+  try { ({ jobs } = await res.json()); }
+  catch (e) { console.error("respuesta no-JSON del sistema (se ignora):", e.message); return; }
 
   for (const job of jobs || []) {
     const p = job.payload;
@@ -195,7 +205,10 @@ async function poll() {
       try {
         for (const pr of list) {
           const w = pr.width || 48;
-          const data = p && p.kind === "kitchen" ? renderKitchen(p, w) : renderCustomer(p, w);
+          // kind "drawer" = solo abrir el cajón (sin papel). El resto imprime ticket.
+          const data = p && p.kind === "drawer"
+            ? drawerKick(pr.drawerPin)
+            : (p && p.kind === "kitchen" ? renderKitchen(p, w) : renderCustomer(p, w));
           await sendToPrinter(pr, data);
         }
         sent = true;
@@ -212,4 +225,16 @@ console.log("  API:", apiBaseUrl, "| poll cada", pollIntervalMs, "ms");
 console.log("  Impresoras:", Object.entries(printers).map(([k, v]) => k + "=" + descTarget(v)).join("  "));
 console.log("  Esperando tickets... (Ctrl+C para salir)\n");
 
-(async function loop() { for (;;) { await poll(); await sleep(pollIntervalMs); } })();
+// Guardas: NINGÚN error transitorio (red, respuesta rara, impresora) debe matar el
+// proceso. Se loguea y se sigue. (El start-printbridge.bat además lo revive si aun así
+// llegara a morir.)
+process.on("unhandledRejection", (e) => console.error("unhandledRejection (se ignora):", (e && e.message) || e));
+process.on("uncaughtException", (e) => console.error("uncaughtException (se ignora):", (e && e.message) || e));
+
+(async function loop() {
+  for (;;) {
+    try { await poll(); }
+    catch (e) { console.error("error en el ciclo (se continúa):", (e && e.message) || e); }
+    await sleep(pollIntervalMs);
+  }
+})();

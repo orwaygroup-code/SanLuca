@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { resolveActor, isSupervisor } from "@/lib/dualAuth";
 import { buildSplits, type SplitInput } from "@/lib/comandaRules";
 import { validateSplits } from "@/lib/splitBill";
-import { TENANT, COMANDA_INCLUDE } from "@/lib/comanda";
+import { TENANT, COMANDA_INCLUDE, enqueueDrawerKick } from "@/lib/comanda";
 import type { ApiResponse } from "@/types";
 
 function parseId(raw: string): number | null {
@@ -146,6 +146,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       },
     });
   }
+
+  // Al imprimir la cuenta se abre el cajón (elegido por el usuario). Fire-and-forget.
+  await enqueueDrawerKick({ staffId: actor.staffId as number, comandaId: id });
 
   const updated = await prisma.comanda.findFirst({ where: { id, tenantId: TENANT }, include: COMANDA_INCLUDE });
   return NextResponse.json<ApiResponse>({ success: true, data: updated });

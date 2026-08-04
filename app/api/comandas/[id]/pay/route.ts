@@ -7,6 +7,7 @@ import {
   COMANDA_INCLUDE,
   settleComanda,
   completeLinkedReservation,
+  enqueueDrawerKick,
 } from "@/lib/comanda";
 import { round2 } from "@/lib/comandaTotals";
 import { getOpenSession, computePaymentOutcome, PAY_EPS } from "@/lib/caja";
@@ -150,6 +151,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   });
 
   if (settled) await completeLinkedReservation(id);
+
+  // Abre el cajón cuando el cobro incluyó EFECTIVO (para dar cambio). Con tarjeta
+  // o transferencia no se abre. Fire-and-forget: no estorba si el bridge está caído.
+  if (lines.some((l) => l.method === "CASH")) await enqueueDrawerKick({ staffId: a.staffId as number, comandaId: id });
 
   const updated = await prisma.comanda.findFirst({ where: { id, tenantId: TENANT }, include: COMANDA_INCLUDE });
   return NextResponse.json<ApiResponse>({

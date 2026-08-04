@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireCashier } from "@/lib/dualAuth";
-import { TENANT, ACTIVE_STATUSES } from "@/lib/comanda";
+import { TENANT, ACTIVE_STATUSES, enqueueDrawerKick } from "@/lib/comanda";
 import { round2 } from "@/lib/comandaTotals";
 import { buildCut, CASH_SESSION_INCLUDE } from "@/lib/caja";
 import { loadWaiterBase } from "@/lib/tips";
@@ -110,6 +110,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     },
     include: CASH_SESSION_INCLUDE,
   });
+
+  // Corte de caja: abre el cajón para contar el efectivo (sin comanda). Fire-and-forget.
+  await enqueueDrawerKick({ staffId: a.staffId as number, comandaId: null });
 
   return NextResponse.json<ApiResponse>({ success: true, data: { session: updated, cut, difference } });
 }

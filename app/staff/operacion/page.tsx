@@ -58,6 +58,7 @@ export default function OperacionPage() {
   const [takeout, setTakeout] = useState<Comanda[] | null>(null); // cuentas sin mesa (para llevar)
   const [newAccount, setNewAccount] = useState(false);
   const [printing, setPrinting] = useState<number | null>(null); // comanda cuyo ticket se está imprimiendo
+  const [openingDrawer, setOpeningDrawer] = useState(false);
 
   const allowed = staff && ["OPERATION", "CAPTAIN", "MANAGER"].includes(staff.role);
 
@@ -106,6 +107,15 @@ export default function OperacionPage() {
     else push(r.error ?? "No se pudo imprimir", "error");
   };
 
+  // Abre el cajón de dinero a mano (para dar cambio, etc.).
+  const doOpenDrawer = async () => {
+    setOpeningDrawer(true);
+    const r = await apiFetch("/api/caja/drawer", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    setOpeningDrawer(false);
+    if (r.ok) push("Cajón abierto", "success");
+    else push(r.error ?? "No se pudo abrir el cajón", "error");
+  };
+
   if (loading || !staff || !allowed) return <div style={{ minHeight: "100vh", background: C.bg, display: "grid", placeItems: "center" }}><Spinner /></div>;
 
   const occupied = (tables ?? []).filter((t) => t.comanda);
@@ -135,6 +145,12 @@ export default function OperacionPage() {
         <div style={sh.kicker}>
             <h1 style={sh.h1}>{TITLE_FOR[tab]}</h1>
             {subFor() && <span style={sh.sub}>{subFor()}</span>}
+            <button
+              style={{ ...btn.ghost, marginLeft: "auto", minHeight: 38, display: "inline-flex", alignItems: "center", gap: 6, fontSize: "0.8rem", opacity: openingDrawer ? 0.6 : 1 }}
+              onClick={doOpenDrawer}
+              disabled={openingDrawer}
+              title="Abrir el cajón de dinero"
+            ><Icon name="coins" size={16} />Abrir cajón</button>
           </div>
 
           {tab === "mesas" ? (
