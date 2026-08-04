@@ -43,6 +43,7 @@ export function MenuSelector({ open, onClose, onAdd, busy }: {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<FlatDish | null>(null);
   const [qty, setQty] = useState(1);
+  const [qtyStr, setQtyStr] = useState(""); // buffer mientras se teclea la cantidad ("" = usar qty)
   const [comment, setComment] = useState("");
   const [added, setAdded] = useState(0);
   const [flash, setFlash] = useState<string | null>(null);
@@ -102,13 +103,18 @@ export function MenuSelector({ open, onClose, onAdd, busy }: {
     return allDishes.filter((d) => d.turno === turno && d.cartaId === carta && (section === "" || d.catId === section));
   }, [allDishes, searching, query, turno, carta, section]);
 
-  const pick = (d: FlatDish) => { setSelected(d); setQty(1); setComment(""); };
+  const pick = (d: FlatDish) => { setSelected(d); setQty(1); setQtyStr(""); setComment(""); };
+  const setQtyQuick = (v: number) => { setQty(v); setQtyStr(""); }; // botón rápido o ± → limpia el buffer del teclado
+  const commitQtyStr = () => { const n = parseFloat(qtyStr.replace(",", ".")); if (Number.isFinite(n)) setQty(clampQty(n)); setQtyStr(""); };
+  // Cantidad efectiva: si hay algo tecleado sin confirmar, se usa eso; si no, qty.
+  const effQty = () => { const n = parseFloat(qtyStr.replace(",", ".")); return qtyStr !== "" && Number.isFinite(n) ? clampQty(n) : qty; };
   const confirmAdd = async () => {
     if (!selected) return;
-    const label = `${fmtQty(qty)}× ${selected.name}`;
-    const ok = await onAdd(selected.id, qty, null, comment.trim() || null);
+    const q = effQty();
+    const label = `${fmtQty(q)}× ${selected.name}`;
+    const ok = await onAdd(selected.id, q, null, comment.trim() || null);
     if (ok) {
-      setAdded((n) => n + qty);
+      setAdded((n) => n + q);
       setFlash(label);
       setSelected(null);
       window.setTimeout(() => setFlash((f) => (f === label ? null : f)), 1800);
@@ -251,15 +257,25 @@ export function MenuSelector({ open, onClose, onAdd, busy }: {
             <label style={{ ...fld.label, marginTop: 18 }}>Cantidad</label>
             <div style={s.quickRow}>
               {([["½", 0.5], ["1", 1], ["1½", 1.5], ["2", 2], ["3", 3]] as const).map(([lbl, v]) => (
-                <button key={lbl} onClick={() => setQty(v)} aria-pressed={qty === v} style={{ ...s.quick, ...(qty === v ? s.quickOn : {}) }}>{lbl}</button>
+                <button key={lbl} onClick={() => setQtyQuick(v)} aria-pressed={qtyStr === "" && qty === v} style={{ ...s.quick, ...(qtyStr === "" && qty === v ? s.quickOn : {}) }}>{lbl}</button>
               ))}
             </div>
             <div style={s.qtyRow}>
-              <button style={s.qtyBtn} onClick={() => setQty((q) => clampQty(q - 0.1))} aria-label="Menos 0.1">−</button>
-              <span style={s.qtyVal}>{fmtQty(qty)}</span>
-              <button style={s.qtyBtn} onClick={() => setQty((q) => clampQty(q + 0.1))} aria-label="Más 0.1">+</button>
+              <button style={s.qtyBtn} onClick={() => setQtyQuick(clampQty(qty - 0.1))} aria-label="Menos 0.1">−</button>
+              {/* Cantidad EDITABLE: se puede teclear la cantidad exacta (además de los botones). */}
+              <input
+                style={s.qtyInput}
+                value={qtyStr === "" ? fmtQty(qty) : qtyStr}
+                onChange={(e) => setQtyStr(e.target.value)}
+                onFocus={(e) => e.currentTarget.select()}
+                onBlur={commitQtyStr}
+                onKeyDown={(e) => { if (e.key === "Enter") { commitQtyStr(); e.currentTarget.blur(); } }}
+                inputMode="decimal"
+                aria-label="Cantidad (escribe la cantidad exacta)"
+              />
+              <button style={s.qtyBtn} onClick={() => setQtyQuick(clampQty(qty + 0.1))} aria-label="Más 0.1">+</button>
             </div>
-            <div style={s.qtyHint}>Pasos de 0.1 · media orden = ½ (0.5). Se cobra proporcional: {fmtQty(qty)} × precio.</div>
+            <div style={s.qtyHint}>Toca los botones o <b>escribe la cantidad</b> · media orden = ½ (0.5). Se cobra proporcional: {fmtQty(qty)} × precio.</div>
 
             <label style={{ ...fld.label, marginTop: 16 }}>Comentario a cocina (opcional)</label>
             <input
@@ -275,7 +291,7 @@ export function MenuSelector({ open, onClose, onAdd, busy }: {
               onClick={confirmAdd}
               disabled={busy}
             >
-              {busy ? "Agregando…" : `Agregar ${fmtQty(qty)} · ${formatMXN(Math.round(selected.price * qty * 100) / 100)}`}
+              {busy ? "Agregando…" : `Agregar ${fmtQty(effQty())} · ${formatMXN(Math.round(selected.price * effQty() * 100) / 100)}`}
             </button>
           </div>
         </>
@@ -377,4 +393,9 @@ const s: Record<string, React.CSSProperties> = {
     color: C.cream, fontSize: "1.6rem", cursor: "pointer", lineHeight: 1,
   },
   qtyVal: { color: C.cream, fontWeight: 800, fontSize: "1.9rem", minWidth: 56, textAlign: "center", fontVariantNumeric: "tabular-nums" },
+  qtyInput: {
+    width: 104, height: 56, textAlign: "center", color: C.cream, fontWeight: 800, fontSize: "1.9rem",
+    fontVariantNumeric: "tabular-nums", background: C.panel2, border: `1px solid ${C.border}`,
+    borderRadius: 12, fontFamily: "inherit", padding: "0 4px",
+  },
 };

@@ -209,7 +209,13 @@ export default function ComandaDetailPage() {
     if (authorizationReason) body.authorizationReason = authorizationReason;
     return post(`/api/comandas/${id}/print`, body, "Ticket impreso");
   };
-  const requestBill = async () => { setAskBill(false); await post(`/api/comandas/${id}/send-to-cashier`, undefined, "Cuenta solicitada"); };
+  // Mesero imprime el ticket y BLOQUEA la comanda: imprime el ticket del cliente y la
+  // pasa a «Por cobrar» (AWAITING_PAYMENT) → ni mesero ni caja agregan/modifican.
+  const printAndLock = async () => {
+    setAskBill(false);
+    const okPrint = await doPrint();
+    if (okPrint) await post(`/api/comandas/${id}/send-to-cashier`, undefined, "Ticket impreso · enviada a caja");
+  };
 
   const confirmCancelItem = async (reason?: string) => {
     if (!cancelItem) return;
@@ -256,7 +262,6 @@ export default function ComandaDetailPage() {
   const canCancel = (it: CItem) => it.status === "PENDING" || isSupervisor;
   const totalLines = buildTotalLines(c, taxEnabled);
   // El tiempo actual debe tener al menos un platillo antes de abrir otro (evita tiempos vacíos).
-  const currentCourseHasItems = liveItems.some((i) => Number(i.course) === currentCourse);
 
   // Caja: OPERATION/CAPTAIN/MANAGER operan la cuenta; WAITER solo captura.
   const isCashier = staff?.role === "OPERATION" || staff?.role === "CAPTAIN" || staff?.role === "MANAGER";
@@ -425,21 +430,16 @@ export default function ComandaDetailPage() {
         {/* Acciones */}
         <section style={page.actions}>
           {editable && (
-            <button data-tour="add" style={btn.ghost} onClick={() => setMenuOpen(true)} disabled={busy}>+ Agregar platillos ({courseLabel(currentCourse)})</button>
+            <div data-tour="course" style={{ display: "flex", alignItems: "center", gap: 10, flexBasis: "100%", flexWrap: "wrap", padding: "2px 0 4px" }}>
+              <span style={{ color: C.dim, fontSize: "0.85rem", fontWeight: 800 }}>Tiempo</span>
+              <button style={courseStepBtn} onClick={() => setCurrentCourse((c) => Math.max(1, c - 1))} disabled={busy || currentCourse <= 1} aria-label="Bajar tiempo">−</button>
+              <span style={{ color: C.gold, fontWeight: 900, fontSize: "1.55rem", minWidth: 30, textAlign: "center", fontVariantNumeric: "tabular-nums" }} aria-live="polite">{currentCourse}</span>
+              <button style={courseStepBtn} onClick={() => setCurrentCourse((c) => Math.min(4, c + 1))} disabled={busy || currentCourse >= 4} aria-label="Subir tiempo">＋</button>
+              <span style={{ color: C.faint, fontSize: "0.75rem", flex: 1, minWidth: 150 }}>Lo que agregues va al {courseLabel(currentCourse)}. Súbelo o bájalo (1–4) según el orden en que pidan.</span>
+            </div>
           )}
           {editable && (
-            <button
-              data-tour="course"
-              style={btn.ghost}
-              onClick={() => setCurrentCourse((prev) => prev + 1)}
-              disabled={busy || !currentCourseHasItems}
-              title={!currentCourseHasItems ? "Agrega al menos un platillo a este tiempo antes de abrir otro" : undefined}
-            >＋ Nuevo tiempo</button>
-          )}
-          {editable && liveItems.length > 0 && !currentCourseHasItems && (
-            <span style={{ flexBasis: "100%", color: C.amber, fontSize: "0.78rem", display: "flex", alignItems: "center", gap: 6 }}>
-              <Icon name="alert" size={15} /> El {courseLabel(currentCourse)} está vacío — agrégale un platillo antes de abrir otro tiempo.
-            </span>
+            <button data-tour="add" style={btn.ghost} onClick={() => setMenuOpen(true)} disabled={busy}>+ Agregar platillos ({courseLabel(currentCourse)})</button>
           )}
           {editable && pendingCount > 0 && (
             <button data-tour="send" style={btn.primary} onClick={sendToKitchen} disabled={busy}>Enviar a cocina ({pendingCount})</button>
@@ -448,7 +448,7 @@ export default function ComandaDetailPage() {
             <button data-tour="clear" style={btn.ghost} onClick={() => setClearAsk(true)} disabled={busy}>Vaciar ({pendingCount})</button>
           )}
           {editable && (
-            <button style={btn.ghost} onClick={() => setAskBill(true)} disabled={busy || liveItems.length === 0}>Pedir cuenta</button>
+            <button style={{ ...btn.ghost, display: "inline-flex", alignItems: "center", gap: 7 }} onClick={() => setAskBill(true)} disabled={busy || liveItems.length === 0}><Icon name="printer" size={17} />Imprimir</button>
           )}
           {/* Cuenta ya pedida y el que la ve NO es caja (mesero): candado informativo. */}
           {!editable && !isCashier && (
@@ -563,11 +563,11 @@ export default function ComandaDetailPage() {
 
       <ConfirmModal
         open={askBill}
-        title="Pedir la cuenta"
-        message="La comanda pasará a «Por cobrar». Ya no podrás agregar platillos. ¿Continuar?"
-        confirmLabel="Pedir cuenta"
+        title="Imprimir ticket"
+        message="Se imprimirá el ticket y la comanda quedará BLOQUEADA: ni tú ni la caja podrán agregar o modificar platillos. ¿Seguro que quieres imprimir?"
+        confirmLabel="Sí, imprimir"
         busy={busy}
-        onConfirm={requestBill}
+        onConfirm={printAndLock}
         onCancel={() => setAskBill(false)}
       />
 
@@ -648,6 +648,11 @@ export default function ComandaDetailPage() {
   );
 }
 
+
+const courseStepBtn: React.CSSProperties = {
+  width: 46, height: 46, borderRadius: 12, border: `1px solid ${C.border}`, background: "transparent",
+  color: C.cream, fontSize: "1.5rem", cursor: "pointer", lineHeight: 1, fontFamily: "inherit", flexShrink: 0,
+};
 
 const page: Record<string, React.CSSProperties> = {
   root: { minHeight: "100vh", background: C.bg },
