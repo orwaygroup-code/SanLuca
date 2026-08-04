@@ -16,6 +16,7 @@ import { LayoutWrapper } from "@/components/LayoutWrapper";
 import { LanguageProvider } from "@/lib/i18n";
 import { SessionProvider } from "@/lib/session-client";
 import { PwaRegister } from "@/components/PwaRegister";
+import { SplashScreen } from "@/components/SplashScreen";
 import { InstallButton } from "@/components/InstallButton";
 
 export const metadata: Metadata = {
@@ -61,6 +62,7 @@ export default function RootLayout({
         />
       </head>
       <body>
+        <SplashScreen />
         <PwaRegister />
         <InstallButton />
         <SessionProvider>
