@@ -4,6 +4,8 @@ import { resolveActor, isSupervisor } from "@/lib/dualAuth";
 import { buildSplits, type SplitInput } from "@/lib/comandaRules";
 import { validateSplits } from "@/lib/splitBill";
 import { TENANT, COMANDA_INCLUDE, enqueueDrawerKick } from "@/lib/comanda";
+import { FISCAL, FACTURA_URL } from "@/lib/fiscal";
+import { numeroALetras } from "@/lib/numeroLetras";
 import type { ApiResponse } from "@/types";
 
 function parseId(raw: string): number | null {
@@ -32,9 +34,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const comanda = await prisma.comanda.findFirst({
     where: { id, tenantId: TENANT },
     select: {
-      id: true, waiterId: true, folio: true,
+      id: true, waiterId: true, folio: true, guestsActual: true, openedAt: true,
       subtotal: true, taxAmount: true, total: true,
       customName: true,
+      waiter: { select: { fullName: true } },
       table: { select: { number: true, section: { select: { name: true } } } },
       items: {
         where: { status: { not: "CANCELLED" } },
@@ -121,8 +124,12 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
             ticketsPrinted: 1,
             status: "PENDING",
             payload: {
-              kind: "customer", folio: comanda.folio, table: tableLabel, time: nowIso,
+              kind: "customer", fiscal: FISCAL, folio: comanda.folio, table: tableLabel,
+              waiter: comanda.waiter?.fullName ?? "", guests: comanda.guestsActual, orden: comanda.id,
+              opened: comanda.openedAt.toISOString(), time: nowIso,
               reprint: isReprint, ticketNumber: t.ticketNumber, items: lines, total: t.total,
+              importeLetra: numeroALetras(t.total),
+              factura: { url: FACTURA_URL, folio: comanda.folio },
             },
           },
         });
@@ -139,9 +146,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         ticketsPrinted: 1,
         status: "PENDING",
         payload: {
-          kind: "customer", folio: comanda.folio, table: tableLabel, time: nowIso,
+          kind: "customer", fiscal: FISCAL, folio: comanda.folio, table: tableLabel,
+          waiter: comanda.waiter?.fullName ?? "", guests: comanda.guestsActual, orden: comanda.id,
+          opened: comanda.openedAt.toISOString(), time: nowIso,
           reprint: isReprint, ticketNumber: null, items: lines,
           subtotal: Number(comanda.subtotal), tax: Number(comanda.taxAmount), total: Number(comanda.total),
+          importeLetra: numeroALetras(Number(comanda.total)),
+          factura: { url: FACTURA_URL, folio: comanda.folio },
         },
       },
     });

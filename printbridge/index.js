@@ -84,23 +84,50 @@ function renderKitchen(p, w) {
 }
 
 function renderCustomer(p, w) {
+  const f = p.fiscal || {};
   let o = INIT;
-  o += BOLD_ON + BIG_ON + center("SAN LUCA", Math.floor(w / 2)) + BIG_OFF + BOLD_OFF + "\n";
-  o += center("Ristorante", w) + "\n";
-  if (p.reprint) o += center("** REIMPRESION **", w) + "\n";
-  o += center(p.table, w) + "\n";
-  o += center(p.folio + (p.ticketNumber ? " - Ticket " + p.ticketNumber : ""), w) + "\n";
-  o += center(fmtTime(p.time), w) + "\n";
+  // Encabezado fiscal — el nombre en grande (dato importante).
+  o += BOLD_ON + BIG_ON + center(f.nombre || "SAN LUCA", Math.floor(w / 2)) + BIG_OFF + BOLD_OFF + "\n";
+  if (f.titular) o += center(f.titular, w) + "\n";
+  if (f.rfc) o += center("RFC: " + f.rfc, w) + "\n";
+  for (const ln of wrap(f.direccion || "", w)) o += center(ln, w) + "\n";
+  if (f.tel) o += center("Tel: " + f.tel, w) + "\n";
   o += rule(w) + "\n";
-  for (const it of p.items) {
-    o += qfmt(it.qty) + " x " + ascii(it.name) + "\n";
-    o += row("   " + money(it.unit) + " c/u", money(it.total), w) + "\n";
-  }
+  if (p.reprint) o += BOLD_ON + center("** REIMPRESION **", w) + BOLD_OFF + "\n";
+
+  // Mesa en GRANDE (dato importante), mesero, personas, folio, fechas.
+  o += BOLD_ON + BIG_ON + center(ascii(p.table), Math.floor(w / 2)) + BIG_OFF + BOLD_OFF + "\n";
+  if (p.waiter) o += "Mesero: " + ascii(p.waiter) + "\n";
+  o += row("Personas: " + (p.guests == null ? 1 : p.guests), "Orden: " + (p.orden == null ? "" : p.orden), w) + "\n";
+  o += BOLD_ON + center("FOLIO " + ascii(p.folio) + (p.ticketNumber ? "  Ticket " + p.ticketNumber : ""), w) + BOLD_OFF + "\n";
+  if (p.opened) o += "Abrio:   " + fmtTime(p.opened) + "\n";
+  o += "Imprime: " + fmtTime(p.time) + "\n";
   o += rule(w) + "\n";
-  if (p.subtotal != null) o += row("Subtotal", money(p.subtotal), w) + "\n";
-  if (p.tax != null && Number(p.tax) > 0) o += row("IVA", money(p.tax), w) + "\n";
+
+  // Renglones: cantidad + descripcion + importe.
+  o += row("CANT DESCRIPCION", "IMPORTE", w) + "\n";
+  for (const it of p.items) o += row(qfmt(it.qty) + " " + ascii(it.name), money(it.total), w) + "\n";
+  o += rule(w) + "\n";
+
+  // TOTAL en grande (dato importante).
   o += BOLD_ON + BIG_ON + row("TOTAL", money(p.total), Math.floor(w / 2)) + BIG_OFF + BOLD_OFF + "\n";
   o += rule(w) + "\n";
+  if (p.importeLetra) { for (const ln of wrap("SON: " + p.importeLetra, w)) o += ln + "\n"; o += "\n"; }
+  if (p.subtotal != null) o += row("Subtotal", money(p.subtotal), w) + "\n";
+  if (p.tax != null && Number(p.tax) > 0) o += row("IVA", money(p.tax), w) + "\n";
+  o += "\n";
+  o += center("ESTE NO ES UN COMPROBANTE FISCAL", w) + "\n";
+  o += center("PROPINA NO INCLUIDA", w) + "\n";
+  o += rule(w) + "\n";
+
+  // Facturacion (autofactura por folio; QR pendiente de la integracion #10).
+  if (p.factura) {
+    o += center("Si requiere factura, ingresa a:", w) + "\n";
+    o += BOLD_ON + center(ascii(p.factura.url), w) + BOLD_OFF + "\n";
+    o += center("con tu folio: " + ascii(p.factura.folio), w) + "\n";
+    o += center("Vigencia: ultimo dia del mes", w) + "\n";
+    o += rule(w) + "\n";
+  }
   o += center("Gracias por su visita", w) + CUT;
   return o;
 }
