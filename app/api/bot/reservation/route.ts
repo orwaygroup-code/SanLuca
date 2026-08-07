@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolveBotAssignment } from "@/lib/autoAssignTable";
 import { reEvalUserRule } from "@/lib/tagRules";
-import { sendReservationQR } from "@/lib/whatsapp";
+import { sendReservationQR, buildReservationCaption } from "@/lib/whatsapp";
 
 // ── Normaliza teléfono a 10 dígitos ───────────────────────────────────
 function normalizePhone(raw: string): string {
@@ -184,6 +184,18 @@ export async function POST(request: NextRequest) {
     const checkinUrl = outcome ? `${appUrl}/checkin/${reservation.qrToken}` : null;
     // QR servido desde NUESTRO dominio (PNG) — Meta/Instagram no puede bajar imágenes de hosts externos como api.qrserver.com.
     const qrImageUrl = checkinUrl ? `${appUrl}/api/checkin/${reservation.qrToken}/qr.png` : null;
+    // Texto de la reserva para que n8n lo mande DEBAJO del QR en IG/Messenger (paridad con WhatsApp,
+    // que sí lleva caption). Plano (sin *negritas*) porque IG/Messenger no las renderiza.
+    const qrCaption  = checkinUrl
+        ? buildReservationCaption({
+            guestName:         reservation.guestName,
+            date:              new Date(reservation.date),
+            guests:            reservation.guests,
+            sectionPreference: reservation.sectionPreference,
+            checkinUrl,
+            markdown:          false,
+        })
+        : null;
 
     return NextResponse.json({
         success: true,
@@ -194,6 +206,7 @@ export async function POST(request: NextRequest) {
             qrToken:          reservation.qrToken,
             checkinUrl,
             qrImageUrl,
+            qrCaption,
             date:             reservation.date,
             sectionRequested: zonaFinal,
             tableInfo:        !outcome

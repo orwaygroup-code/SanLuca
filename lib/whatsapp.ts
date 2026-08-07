@@ -8,6 +8,36 @@ function formatPhone(raw: string): string {
     return digits;
 }
 
+// Texto de la reserva (mismo en WhatsApp e IG/Messenger para paridad).
+// markdown=true -> *negritas* estilo WhatsApp; en IG/Messenger no se renderizan, se manda plano.
+export function buildReservationCaption(params: {
+    guestName: string;
+    date: Date;
+    guests: number;
+    sectionPreference?: string | null;
+    checkinUrl: string;
+    markdown?: boolean;
+}): string {
+    const dateStr = params.date.toLocaleDateString("es-MX", {
+        weekday: "long",
+        year:    "numeric",
+        month:   "long",
+        day:     "numeric",
+        hour:    "2-digit",
+        minute:  "2-digit",
+    });
+    const section = params.sectionPreference ? `\n📍 ${params.sectionPreference}` : "";
+    const brand   = params.markdown ? "*San Luca*" : "San Luca";
+    return (
+        `¡Hola ${params.guestName}! 🍽️\n\n` +
+        `Tu reserva en ${brand} ha sido registrada.\n\n` +
+        `📅 ${dateStr}\n` +
+        `👥 ${params.guests} ${params.guests === 1 ? "persona" : "personas"}${section}\n\n` +
+        `Guarda este QR y preséntalo al llegar para tu check-in.\n` +
+        `También puedes acceder aquí: ${params.checkinUrl}`
+    );
+}
+
 export async function sendReservationQR(params: {
     phone: string;
     guestName: string;
@@ -25,24 +55,14 @@ export async function sendReservationQR(params: {
     // QR servido desde NUESTRO dominio (PNG) — más confiable que hosts externos para Meta.
     const qrImageUrl  = `${appUrl}/api/checkin/${params.qrToken}/qr.png`;
 
-    const dateStr = params.date.toLocaleDateString("es-MX", {
-        weekday: "long",
-        year:    "numeric",
-        month:   "long",
-        day:     "numeric",
-        hour:    "2-digit",
-        minute:  "2-digit",
+    const caption = buildReservationCaption({
+        guestName:         params.guestName,
+        date:              params.date,
+        guests:            params.guests,
+        sectionPreference: params.sectionPreference,
+        checkinUrl,
+        markdown:          true,
     });
-
-    const section = params.sectionPreference ? `\n📍 ${params.sectionPreference}` : "";
-
-    const caption =
-        `¡Hola ${params.guestName}! 🍽️\n\n` +
-        `Tu reserva en *San Luca* ha sido registrada.\n\n` +
-        `📅 ${dateStr}\n` +
-        `👥 ${params.guests} ${params.guests === 1 ? "persona" : "personas"}${section}\n\n` +
-        `Guarda este QR y preséntalo al llegar para tu check-in.\n` +
-        `También puedes acceder aquí: ${checkinUrl}`;
 
     const res = await fetch(
         `https://graph.facebook.com/${GRAPH_VERSION}/${phoneNumberId}/messages`,
