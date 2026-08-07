@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { resolveActor, isSupervisor } from "@/lib/dualAuth";
 import { buildSplits, type SplitInput } from "@/lib/comandaRules";
 import { validateSplits } from "@/lib/splitBill";
-import { TENANT, COMANDA_INCLUDE, enqueueDrawerKick } from "@/lib/comanda";
+import { TENANT, COMANDA_INCLUDE } from "@/lib/comanda";
 import { FISCAL, FACTURA_URL } from "@/lib/fiscal";
 import { numeroALetras } from "@/lib/numeroLetras";
 import type { ApiResponse } from "@/types";
@@ -158,9 +158,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     });
   }
 
-  // Al imprimir la cuenta se abre el cajón (elegido por el usuario). Fire-and-forget.
-  await enqueueDrawerKick({ staffId: actor.staffId as number, comandaId: id });
-
+  // El cajón NO se abre al imprimir la cuenta: solo al COBRAR efectivo (ver pay/route.ts),
+  // en corte, en movimientos de dinero y con el botón manual de caja.
   const updated = await prisma.comanda.findFirst({ where: { id, tenantId: TENANT }, include: COMANDA_INCLUDE });
   return NextResponse.json<ApiResponse>({ success: true, data: updated });
 }

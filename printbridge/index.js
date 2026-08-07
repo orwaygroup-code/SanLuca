@@ -217,6 +217,48 @@ function renderCorte(p, w) {
   return o;
 }
 
+// Ticket de LIQUIDACION DE PROPINA de un mesero (punto 7%). Refleja el desglose de
+// la vista Caja: venta, reserva (tarjeta+transfer), punto, y cuanto se paga/cobra.
+function renderTips(p, w) {
+  const f = p.fiscal || {};
+  const pct = qfmt(p.pointPercent);
+  let o = INIT;
+  o += BOLD_ON + center(f.nombre || "SAN LUCA", w) + BOLD_OFF + "\n";
+  o += rule(w) + "\n";
+  o += BOLD_ON + center("LIQUIDACION DE PROPINA", w) + BOLD_OFF + "\n";
+  if (p.resettled) o += BOLD_ON + center("** RE-LIQUIDACION **", w) + BOLD_OFF + "\n";
+  o += center("Turno " + ascii(p.folio || ""), w) + "\n";
+  o += rule(w) + "\n";
+
+  o += BOLD_ON + BIG_ON + center(ascii(p.waiter), Math.floor(w / 2)) + BIG_OFF + BOLD_OFF + "\n";
+  if (p.settledBy) o += "Liquida: " + ascii(p.settledBy) + "\n";
+  o += "Fecha:   " + fmtTime(p.time) + "\n";
+  o += rule(w) + "\n";
+
+  o += row("Venta del turno", money(p.salesTotal), w) + "\n";
+  o += row("Reserva (tarj+transf)", money(p.reserve), w) + "\n";
+  o += row("Punto (" + pct + "% de venta)", "- " + money(p.deduction), w) + "\n";
+  o += rule(w) + "\n";
+
+  if (p.direction === "PAY") {
+    o += BOLD_ON + BIG_ON + row("SE LE PAGA", money(p.amount), Math.floor(w / 2)) + BIG_OFF + BOLD_OFF + "\n";
+    o += center("Caja entrega al mesero en efectivo", w) + "\n";
+    o += center("(su reserva supero el " + pct + "%)", w) + "\n";
+  } else if (p.direction === "COLLECT") {
+    o += BOLD_ON + BIG_ON + row("MESERO PAGA", money(p.amount), Math.floor(w / 2)) + BIG_OFF + BOLD_OFF + "\n";
+    o += center("Completa el " + pct + "% en efectivo a caja", w) + "\n";
+    if (p.cashReceived != null) o += row("Efectivo recibido", money(p.cashReceived), w) + "\n";
+    o += row("Cambio", money(p.changeGiven || 0), w) + "\n";
+  } else {
+    o += BOLD_ON + center("QUEDA A MANO (sin movimiento)", w) + BOLD_OFF + "\n";
+    o += center("Su reserva es igual al " + pct + "%", w) + "\n";
+  }
+  o += rule(w) + "\n\n";
+  o += center("_____________________", w) + "\n";
+  o += center("Firma del mesero", w) + CUT;
+  return o;
+}
+
 // ─── Envío a impresora: TCP (raw 9100) o compartida de Windows (USB) ──
 function sendToTcp(pr, data) {
   return new Promise((resolve, reject) => {
@@ -322,6 +364,8 @@ async function poll() {
             ? drawerKick(pr.drawerPin)
             : p && p.kind === "corte"
             ? renderCorte(p, w)
+            : p && p.kind === "tips"
+            ? renderTips(p, w)
             : (p && p.kind === "kitchen" ? renderKitchen(p, w) : renderCustomer(p, w));
           await sendToPrinter(pr, data);
         }

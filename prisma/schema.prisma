@@ -611,6 +611,7 @@ enum PrintType {
   CUSTOMER_REPRINT // reimpresión autorizada por capitán
   DRAWER_KICK // no imprime papel: abre el cajón de dinero (pulso ESC/POS a CAJA)
   CORTE // ticket de corte de caja (Z-report) a la impresora de CAJA
+  TIP_SETTLEMENT // ticket de liquidación de propina de un mesero (7%) a CAJA
 }
 
 enum PrintTarget {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireCashier } from "@/lib/dualAuth";
 import { TENANT, ACTIVE_STATUSES } from "@/lib/comanda";
+import { FISCAL } from "@/lib/fiscal";
 import { round2 } from "@/lib/comandaTotals";
 import { getOpenSession } from "@/lib/caja";
 import { loadWaiterBase, normalizePolicy, computeWaiterSettlement } from "@/lib/tips";
@@ -106,6 +107,41 @@ export async function POST(request: NextRequest) {
         return tx.waiterTipSettlement.create({ data: settlementData, include });
       })
     : await prisma.waiterTipSettlement.create({ data: settlementData, include });
+
+  // Ticket de liquidación (a CAJA). Fire-and-forget: si falla el encolado, la
+  // liquidación YA quedó guardada — no se tumba por un problema de impresión.
+  try {
+    await prisma.comandaPrint.create({
+      data: {
+        tenantId: TENANT,
+        comandaId: null,
+        type: "TIP_SETTLEMENT",
+        target: "CAJA",
+        executedById: a.staffId,
+        status: "PENDING",
+        payload: {
+          kind: "tips",
+          fiscal: FISCAL,
+          folio: session.folio,
+          waiter: created.waiter?.fullName ?? "",
+          settledBy: created.settledBy?.fullName ?? "",
+          time: new Date().toISOString(),
+          resettled: !!existing,
+          pointPercent: policy.pointPercent,
+          salesTotal: calc.salesTotal,
+          reserve: calc.reserve,
+          deduction: calc.deduction,
+          net: calc.net,
+          direction: calc.direction,
+          amount: calc.amount,
+          cashReceived,
+          changeGiven,
+        },
+      },
+    });
+  } catch (e) {
+    console.error("[TIPS] no se pudo encolar el ticket de liquidación:", e);
+  }
 
   return NextResponse.json<ApiResponse>({ success: true, data: { settlement: created, changeGiven, resettled: !!existing } });
 }

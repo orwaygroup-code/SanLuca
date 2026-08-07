@@ -133,7 +133,7 @@ export function OpenTurnoModal({ open, onClose, onOpened, onError }: {
   };
 
   return (
-    <Modal open={open} title="Abrir cajón (turno)" onClose={onClose}>
+    <Modal open={open} title="Iniciar turno" onClose={onClose}>
       <p style={{ margin: "0 0 4px", color: C.dim, fontSize: "0.86rem", lineHeight: 1.5 }}>
         Cuenta el efectivo con el que arranca la caja (fondo inicial). Solo puede haber un turno abierto a la vez.
       </p>
@@ -146,7 +146,7 @@ export function OpenTurnoModal({ open, onClose, onOpened, onError }: {
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 22 }}>
         <button style={btn.ghost} onClick={onClose} disabled={busy}>Cancelar</button>
         <button style={{ ...btn.primary, opacity: busy ? 0.6 : 1 }} onClick={submit} disabled={busy}>
-          {busy ? "Abriendo…" : "Abrir turno"}
+          {busy ? "Iniciando…" : "Iniciar turno"}
         </button>
       </div>
     </Modal>
@@ -251,7 +251,7 @@ export function TurnoBar({ session, cut, onOpenTurno, onCloseTurno }: {
             <Badge text="Cajón cerrado" color={C.faint} />
             <span style={{ color: C.dim, fontSize: "0.82rem" }}>Abre el turno para poder cobrar.</span>
           </div>
-          <button style={btn.primary} onClick={onOpenTurno}>Abrir cajón</button>
+          <button style={btn.primary} onClick={onOpenTurno}>Iniciar turno</button>
         </>
       ) : (
         <>
