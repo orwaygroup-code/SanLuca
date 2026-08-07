@@ -22,7 +22,8 @@ export async function sendReservationQR(params: {
 
     const appUrl      = process.env.APP_URL ?? "http://localhost:3000";
     const checkinUrl  = `${appUrl}/checkin/${params.qrToken}`;
-    const qrImageUrl  = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(checkinUrl)}`;
+    // QR servido desde NUESTRO dominio (PNG) — más confiable que hosts externos para Meta.
+    const qrImageUrl  = `${appUrl}/api/checkin/${params.qrToken}/qr.png`;
 
     const dateStr = params.date.toLocaleDateString("es-MX", {
         weekday: "long",

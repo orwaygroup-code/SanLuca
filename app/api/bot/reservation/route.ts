@@ -182,7 +182,8 @@ export async function POST(request: NextRequest) {
     // QR listo para que n8n lo reenvíe al chat de IG/Messenger (paridad de canal).
     const appUrl     = process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "";
     const checkinUrl = outcome ? `${appUrl}/checkin/${reservation.qrToken}` : null;
-    const qrImageUrl = checkinUrl ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(checkinUrl)}` : null;
+    // QR servido desde NUESTRO dominio (PNG) — Meta/Instagram no puede bajar imágenes de hosts externos como api.qrserver.com.
+    const qrImageUrl = checkinUrl ? `${appUrl}/api/checkin/${reservation.qrToken}/qr.png` : null;
 
     return NextResponse.json({
         success: true,
