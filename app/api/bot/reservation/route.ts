@@ -62,7 +62,20 @@ function normalizeZona(raw: string | null | undefined): string | null {
     if (cleaned.includes("salon") || cleaned.includes("adentro") || cleaned.includes("interior")) return "Salón";
     if (cleaned.includes("privado")) return "Privado";
 
+    // "Sin preferencia" / "cualquiera" / "indistinto" → null: NO es una zona literal,
+    // se auto-asigna por hora en el handler (antes esto caía como zona inexistente → sin cupo).
+    if (cleaned.includes("preferencia") || cleaned.includes("cualquier") || cleaned.includes("indistint")
+        || cleaned.includes("la que sea") || cleaned.includes("donde sea") || cleaned === "no") return null;
+
     return raw.trim();
+}
+
+// Sin preferencia → auto-asigna por hora: de día (8:00–16:59) Terraza (afuera);
+// de las 17:00 en adelante, Salón (adentro).
+function autoZonaPorHora(hora: string | null | undefined): string {
+    const m = String(hora ?? "").match(/(\d{1,2}):/);
+    const h = m ? Number(m[1]) : 20;
+    return h >= 8 && h < 17 ? "Terraza" : "Salón";
 }
 
 export async function POST(request: NextRequest) {
@@ -95,7 +108,9 @@ export async function POST(request: NextRequest) {
     const phone = normalizePhone(String(celular));
 
     const zonaNormalizada = normalizeZona(zona);
-    console.log('[BOT_RESERVATION] zona normalizada:', zonaNormalizada);
+    // Si el cliente no dio preferencia, se auto-asigna la zona por la hora (Terraza de día, Salón de tarde/noche).
+    const zonaFinal = zonaNormalizada ?? autoZonaPorHora(hora);
+    console.log('[BOT_RESERVATION] zona normalizada:', zonaNormalizada, '| zona final:', zonaFinal);
 
     let user = await prisma.user.findFirst({ where: { phone } });
     if (!user) {
@@ -114,7 +129,7 @@ export async function POST(request: NextRequest) {
         });
     }
 
-    const outcome = await resolveBotAssignment(reservationDate, guestCount, zonaNormalizada);
+    const outcome = await resolveBotAssignment(reservationDate, guestCount, zonaFinal);
     console.log('[BOT_RESERVATION] asignación:', outcome);
     const [t1, t2, t3, t4] = outcome?.tableIds ?? [];
 
@@ -124,7 +139,7 @@ export async function POST(request: NextRequest) {
             guestName:         titular,
             guestPhone:        phone,
             guests:            guestCount,
-            sectionPreference: outcome?.sectionName ?? zonaNormalizada ?? null,
+            sectionPreference: outcome?.sectionName ?? zonaFinal ?? null,
             date:              reservationDate,
             // Confirma por disponibilidad: si hay cupo (1 mesa o mesas apartadas)
             // nace CONFIRMED y se manda el QR. Si son mesas apartadas, la hostess
@@ -179,9 +194,9 @@ export async function POST(request: NextRequest) {
             checkinUrl,
             qrImageUrl,
             date:             reservation.date,
-            sectionRequested: zonaNormalizada,
+            sectionRequested: zonaFinal,
             tableInfo:        !outcome
-                ? `Sin cupo disponible (zona: ${zonaNormalizada ?? "cualquiera"}) - requiere asignacion manual`
+                ? `Sin cupo disponible (zona: ${zonaFinal ?? "cualquiera"}) - requiere asignacion manual`
                 : outcome.provisional
                     ? `Cupo apartado en ${outcome.sectionName} (${outcome.tableIds.length} mesas) - la hostess finaliza la combinacion`
                     : `Mesa #${reservation.table?.number ?? "?"} en ${reservation.table?.section.name ?? outcome.sectionName}`,
