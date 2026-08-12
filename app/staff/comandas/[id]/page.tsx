@@ -88,6 +88,12 @@ export default function ComandaDetailPage() {
     staff?.role === "OPERATION" ? "/staff/operacion"
     : staff?.role === "CAPTAIN" ? "/staff/capitan"
     : "/staff/comandas";
+  // Volver: regresa a la página de origen (ej. /admin/piso, conservando su menú
+  // lateral) si hay historial; si se entró por link directo, cae al home del realm.
+  const goBack = useCallback(() => {
+    if (typeof window !== "undefined" && window.history.length > 1) router.back();
+    else router.push(backHref);
+  }, [router, backHref]);
 
   const refresh = useCallback(async () => {
     const r = await apiFetch<Comanda>(`/api/comandas/${id}`);
@@ -218,13 +224,13 @@ export default function ComandaDetailPage() {
     if (okPrint) await post(`/api/comandas/${id}/send-to-cashier`, undefined, "Ticket impreso · enviada a caja");
   };
 
-  const confirmCancelItem = async (reason?: string) => {
+  const confirmCancelItem = async (reason?: string, pin?: string) => {
     if (!cancelItem) return;
     setBusy(true);
     const r = await apiFetch<Comanda>(`/api/comandas/${id}/items/${cancelItem.id}`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(reason ? { reason } : {}),
+      body: JSON.stringify({ ...(reason ? { reason } : {}), ...(pin ? { authPin: pin } : {}) }),
     });
     setBusy(false);
     setCancelItem(null);
@@ -262,7 +268,7 @@ export default function ComandaDetailPage() {
   if (notFound) {
     return (
       <div style={page.root}>
-        <StaffHeader title="Comanda" role={staff?.role} userName={staff?.fullName} onLogout={logout} onBack={() => router.push(backHref)} />
+        <StaffHeader title="Comanda" role={staff?.role} userName={staff?.fullName} onLogout={logout} onBack={goBack} />
         <main style={page.main}><EmptyState text="Comanda no encontrada o no es tuya." /></main>
       </div>
     );
@@ -358,7 +364,7 @@ export default function ComandaDetailPage() {
         role={staff?.role}
         userName={staff?.fullName}
         onLogout={logout}
-        onBack={() => router.push(backHref)}
+        onBack={goBack}
         right={
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <button
@@ -584,8 +590,9 @@ export default function ComandaDetailPage() {
           label="Motivo de la cancelación (auditoría)"
           confirmLabel="Cancelar platillo"
           danger
+          requirePin
           busy={busy}
-          onConfirm={(reason) => confirmCancelItem(reason)}
+          onConfirm={(reason, pin) => confirmCancelItem(reason, pin)}
           onCancel={() => setCancelItem(null)}
         />
       )}

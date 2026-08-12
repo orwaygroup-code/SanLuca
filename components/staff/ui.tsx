@@ -189,13 +189,18 @@ export function ConfirmModal({ open, title, message, confirmLabel = "Confirmar",
   );
 }
 
-export function ReasonModal({ open, title, label = "Motivo", confirmLabel = "Confirmar", danger, busy, onConfirm, onCancel }: {
+export function ReasonModal({ open, title, label = "Motivo", confirmLabel = "Confirmar", danger, busy, requirePin, pinLabel = "PIN de supervisor (Capitán/Manager)", onConfirm, onCancel }: {
   open: boolean; title: string; label?: string; confirmLabel?: string;
-  danger?: boolean; busy?: boolean; onConfirm: (reason: string) => void; onCancel: () => void;
+  danger?: boolean; busy?: boolean; requirePin?: boolean; pinLabel?: string;
+  onConfirm: (reason: string, pin: string) => void; onCancel: () => void;
 }) {
   const [reason, setReason] = useState("");
+  const [pin, setPin] = useState("");
+  const reset = () => { setReason(""); setPin(""); };
+  const pinOk = !requirePin || /^\d{4}$/.test(pin);
+  const canConfirm = !!reason.trim() && pinOk && !busy;
   return (
-    <Modal open={open} title={title} onClose={() => { setReason(""); onCancel(); }}>
+    <Modal open={open} title={title} onClose={() => { reset(); onCancel(); }}>
       <label style={fld.label}>{label}</label>
       <textarea
         style={{ ...fld.input, minHeight: 72, resize: "vertical" }}
@@ -204,12 +209,24 @@ export function ReasonModal({ open, title, label = "Motivo", confirmLabel = "Con
         placeholder="Escribe el motivo (queda en la auditoría)…"
         autoFocus
       />
+      {requirePin && (
+        <>
+          <label style={{ ...fld.label, marginTop: 14 }}>{pinLabel}</label>
+          <input
+            style={{ ...fld.input, letterSpacing: "0.4em", textAlign: "center", fontSize: "1.15rem" }}
+            value={pin}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+            inputMode="numeric"
+            placeholder="••••"
+          />
+        </>
+      )}
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 16 }}>
-        <button style={btn.ghost} onClick={() => { setReason(""); onCancel(); }} disabled={busy}>Cancelar</button>
+        <button style={btn.ghost} onClick={() => { reset(); onCancel(); }} disabled={busy}>Cancelar</button>
         <button
-          style={{ ...(danger ? btn.danger : btn.primary), opacity: !reason.trim() || busy ? 0.5 : 1 }}
-          onClick={() => onConfirm(reason.trim())}
-          disabled={!reason.trim() || busy}
+          style={{ ...(danger ? btn.danger : btn.primary), opacity: canConfirm ? 1 : 0.5 }}
+          onClick={() => onConfirm(reason.trim(), pin)}
+          disabled={!canConfirm}
         >
           {busy ? "…" : confirmLabel}
         </button>

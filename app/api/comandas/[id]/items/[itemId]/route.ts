@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolveActor, isSupervisor } from "@/lib/dualAuth";
+import { verifySupervisorPin } from "@/lib/staff";
 import { TENANT, COMANDA_INCLUDE, recalcComandaTotals } from "@/lib/comanda";
 import type { ApiResponse } from "@/types";
 
@@ -45,16 +46,26 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   const body = await request.json().catch(() => ({}));
   const reason: string | undefined = typeof body?.reason === "string" ? body.reason.trim() : undefined;
 
-  // Cancelar un item ya enviado exige motivo (auditoría).
-  if (item.status !== "PENDING" && !reason) {
-    return NextResponse.json<ApiResponse>({ success: false, error: "Motivo (reason) obligatorio para cancelar un item enviado" }, { status: 400 });
+  // Cancelar un producto YA enviado exige motivo + PIN de supervisor (Capitán/Manager).
+  // Quien queda como responsable en la auditoría es el DUEÑO del PIN, no la sesión.
+  let cancelledById = actor.staffId;
+  if (item.status !== "PENDING") {
+    if (!reason) {
+      return NextResponse.json<ApiResponse>({ success: false, error: "Motivo (reason) obligatorio para cancelar un producto enviado" }, { status: 400 });
+    }
+    const authPin = typeof body?.authPin === "string" ? body.authPin : "";
+    const authorizedById = await verifySupervisorPin(authPin, { tenantId: TENANT });
+    if (!authorizedById) {
+      return NextResponse.json<ApiResponse>({ success: false, error: "PIN de supervisor inválido (Capitán/Manager)" }, { status: 403 });
+    }
+    cancelledById = authorizedById;
   }
 
   await prisma.comandaItem.update({
     where: { id: itemId },
     data: {
       status: "CANCELLED",
-      cancelledById: actor.staffId,
+      cancelledById,
       cancelledReason: reason ?? null,
       cancelledAt: new Date(),
     },
