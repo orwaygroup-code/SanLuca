@@ -13,6 +13,25 @@ function parseId(raw: string): number | null {
   return Number.isInteger(n) && n > 0 ? n : null;
 }
 
+type TicketLine = { qty: number; name: string; unit: number; total: number };
+// Junta renglones idénticos (mismo platillo y precio) en el TICKET DE CLIENTE: suma la
+// cantidad y el importe. Las comandas de cocina NO usan esto — ahí cada platillo va
+// suelto porque puede llevar indicaciones/separación distintas.
+function mergeLines(lines: TicketLine[]): TicketLine[] {
+  const map = new Map<string, TicketLine>();
+  for (const l of lines) {
+    const key = `${l.name}@@${l.unit}`;
+    const ex = map.get(key);
+    if (ex) {
+      ex.qty = Math.round((ex.qty + l.qty) * 100) / 100;
+      ex.total = Math.round((ex.total + l.total) * 100) / 100;
+    } else {
+      map.set(key, { ...l });
+    }
+  }
+  return [...map.values()];
+}
+
 /**
  * POST /api/comandas/:id/print — imprime ticket(s) de cliente (target CAJA).
  * Regla 1-print: la primera la hace el WAITER (de su comanda); una vez impreso
@@ -113,10 +132,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     // Un ComandaPrint por cada grupo de la división.
     await prisma.$transaction(
       splitTickets.map((t) => {
-        const lines = t.units.map((u) => {
+        const lines = mergeLines(t.units.map((u) => {
           const info = itemInfo.get(u.itemId)!;
           return { qty: u.quantity, name: info.name, unit: info.unit, total: +(info.unit * u.quantity).toFixed(2) };
-        });
+        }));
         return prisma.comandaPrint.create({
           data: {
             ...common,
@@ -136,9 +155,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       }),
     );
   } else {
-    const lines = comanda.items.map((i) => ({
+    const lines = mergeLines(comanda.items.map((i) => ({
       qty: Number(i.quantity), name: i.dishNameSnapshot, unit: Number(i.unitPriceSnapshot), total: Number(i.lineTotal),
-    }));
+    })));
     await prisma.comandaPrint.create({
       data: {
         ...common,

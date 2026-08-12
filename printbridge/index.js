@@ -106,7 +106,19 @@ function renderCustomer(p, w) {
 
   // Renglones: cantidad + descripcion + importe.
   o += row("CANT DESCRIPCION", "IMPORTE", w) + "\n";
-  for (const it of p.items) o += row(qfmt(it.qty) + " " + ascii(it.name), money(it.total), w) + "\n";
+  for (const it of p.items) {
+    const left = qfmt(it.qty) + " " + ascii(it.name);
+    const right = money(it.total);
+    if (left.length + 1 + right.length <= w) {
+      o += row(left, right, w) + "\n"; // cabe en un renglón
+    } else {
+      // Nombre largo: se envuelve; el precio va con la última línea si cabe, si no aparte.
+      const parts = wrap(left, w);
+      for (let i = 0; i < parts.length - 1; i++) o += parts[i] + "\n";
+      const last = parts[parts.length - 1];
+      o += (last.length + 1 + right.length <= w) ? row(last, right, w) + "\n" : last + "\n" + row("", right, w) + "\n";
+    }
+  }
   o += rule(w) + "\n";
 
   // TOTAL en grande (dato importante).
