@@ -697,6 +697,11 @@ model Comanda {
   discountTotal Decimal      @default(0) @db.Decimal(10, 2) // descuento a la cuenta (caché)
   reopenCount   Int          @default(0)
 
+  // Esta venta NO cuenta para el "punto" (7%) del mesero: se excluye de la base al
+  // liquidar propinas. Se decide al cobrar, con PIN de supervisor (auditoría de quién).
+  excludeTipPoint      Boolean @default(false)
+  tipPointExcludedById Int? // Staff (supervisor) que autorizó la exclusión
+
   notes String? @db.Text
   shift String? // "brunch" | "cena"
 

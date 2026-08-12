@@ -119,6 +119,7 @@ export async function loadWaiterBase(cashSessionId: number, db: Db = prisma): Pr
     select: {
       waiterId: true,
       total: true,
+      excludeTipPoint: true,
       waiter: { select: { fullName: true } },
       payments: { where: { voided: false }, select: { tip: true, method: true } },
     },
@@ -127,7 +128,9 @@ export async function loadWaiterBase(cashSessionId: number, db: Db = prisma): Pr
   const map = new Map<number, WaiterBase>();
   for (const c of comandas) {
     const cur = map.get(c.waiterId) ?? { waiterId: c.waiterId, fullName: c.waiter.fullName, salesTotal: 0, tipsRegistered: 0, reserveDigital: 0 };
-    cur.salesTotal = round2(cur.salesTotal + Number(c.total));
+    // Ventas marcadas "no contar punto" se excluyen de la base del 7% (pero sus
+    // propinas registradas sí cuentan: el mesero igual recibe/entrega lo que dejaron).
+    cur.salesTotal = round2(cur.salesTotal + (c.excludeTipPoint ? 0 : Number(c.total)));
     cur.tipsRegistered = round2(cur.tipsRegistered + c.payments.reduce((s, p) => s + Number(p.tip), 0));
     cur.reserveDigital = round2(cur.reserveDigital + c.payments.reduce((s, p) => s + (digital.has(p.method) ? Number(p.tip) : 0), 0));
     map.set(c.waiterId, cur);

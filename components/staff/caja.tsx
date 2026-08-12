@@ -335,10 +335,12 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
   const [waiters, setWaiters] = useState<{ id: number; fullName: string; role: string }[]>([]);
   const [creditWaiterId, setCreditWaiterId] = useState("");
   const [creditPin, setCreditPin] = useState("");
+  const [excludeTip, setExcludeTip] = useState(false);
+  const [excludeTipPin, setExcludeTipPin] = useState("");
 
   useEffect(() => {
     if (!open || comandaId == null) { setComanda(null); setLoadErr(null); return; }
-    setComanda(null); setLoadErr(null); setCreditWaiterId(""); setCreditPin("");
+    setComanda(null); setLoadErr(null); setCreditWaiterId(""); setCreditPin(""); setExcludeTip(false); setExcludeTipPin("");
     apiFetch<{ id: number; fullName: string; role: string }[]>("/api/comandas/waiters").then((r) => { if (r.ok) setWaiters(r.data ?? []); });
     apiFetch<Comanda>(`/api/comandas/${comandaId}`).then((r) => {
       if (r.ok) {
@@ -362,7 +364,8 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
   const settledPreview = newRemaining <= 0.01;
   const hasCredit = calc.some((c) => c.method === "WAITER_CREDIT" && c.billPortion > 0);
   const creditReady = !hasCredit || (Number(creditWaiterId) > 0 && /^\d{4}$/.test(creditPin));
-  const canSubmit = !!comanda && coveredNow > 0 && creditReady && !busy;
+  const tipReady = !excludeTip || /^\d{4}$/.test(excludeTipPin);
+  const canSubmit = !!comanda && coveredNow > 0 && creditReady && tipReady && !busy;
 
   const setLine = (i: number, patch: Partial<DraftLine>) => setLines((ls) => ls.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
   const addLine = () => setLines((ls) => [...ls, newLine(newRemaining > 0 ? newRemaining.toFixed(2) : "")]);
@@ -385,7 +388,7 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
       }));
     const r = await apiFetch<PayResult>(`/api/comandas/${comanda.id}/pay`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ payments, ...(hasCredit ? { creditWaiterId: Number(creditWaiterId), creditWaiterPin: creditPin } : {}) }),
+      body: JSON.stringify({ payments, ...(hasCredit ? { creditWaiterId: Number(creditWaiterId), creditWaiterPin: creditPin } : {}), ...(excludeTip ? { excludeTipPoint: true, tipPin: excludeTipPin } : {}) }),
     });
     setBusy(false);
     if (r.ok) onPaid(r.data!);
@@ -465,6 +468,21 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
               <div style={{ color: C.faint, fontSize: "0.74rem", marginTop: 6 }}>Se le descuenta de su nómina. Queda como cuenta por cobrar.</div>
             </div>
           )}
+
+          <div style={{ border: `1px solid ${C.line}`, borderRadius: 12, padding: "12px 14px", marginTop: 12 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, color: C.cream, fontSize: "0.86rem", cursor: "pointer" }}>
+              <input type="checkbox" checked={excludeTip} onChange={(e) => setExcludeTip(e.target.checked)} />
+              No contar el punto (7%) al mesero
+            </label>
+            {excludeTip && (
+              <div style={{ marginTop: 8 }}>
+                <div style={{ color: C.faint, fontSize: "0.74rem", marginBottom: 8 }}>
+                  Esta venta NO se sumará a la base del 7% del mesero. Autoriza con PIN de supervisor (queda registrado quién lo hizo).
+                </div>
+                <SupervisorPin value={excludeTipPin} onChange={setExcludeTipPin} />
+              </div>
+            )}
+          </div>
 
           <div style={{ background: C.panel2, border: `1px solid ${C.line}`, borderRadius: 12, padding: "12px 14px", marginTop: 12 }}>
             <div style={{ ...kv, color: C.cream, fontWeight: 700 }}><span>Cubierto ahora</span><span>{formatMXN(coveredNow)}</span></div>

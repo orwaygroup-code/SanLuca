@@ -11,7 +11,7 @@ import {
 } from "@/lib/comanda";
 import { round2 } from "@/lib/comandaTotals";
 import { getOpenSession, computePaymentOutcome, PAY_EPS } from "@/lib/caja";
-import { verifyWaiterPin } from "@/lib/staff";
+import { verifyWaiterPin, verifySupervisorPin } from "@/lib/staff";
 import type { ApiResponse } from "@/types";
 
 function parseId(raw: string): number | null {
@@ -139,6 +139,18 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     }
   }
 
+  // Opción "no contar el punto (7%)" para esta venta: la autoriza un supervisor con su
+  // PIN (queda registrado quién). Excluye la venta de la base del 7% del mesero.
+  const wantExcludeTip = body?.excludeTipPoint === true;
+  let tipPointExcludedById: number | null = null;
+  if (wantExcludeTip) {
+    const tipPin = typeof body?.tipPin === "string" ? body.tipPin : "";
+    tipPointExcludedById = await verifySupervisorPin(tipPin, { tenantId: TENANT });
+    if (!tipPointExcludedById) {
+      return NextResponse.json<ApiResponse>({ success: false, error: "PIN de supervisor inválido para excluir el punto" }, { status: 403 });
+    }
+  }
+
   await prisma.$transaction(async (tx) => {
     await tx.comandaPayment.createMany({
       data: lines.map((l) => ({
@@ -175,6 +187,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       data: {
         amountPaid: newAmountPaid,
         tipTotal: newTipTotal,
+        ...(wantExcludeTip ? { excludeTipPoint: true, tipPointExcludedById } : {}),
         ...(settled ? {} : { status: "PARTIALLY_PAID", cashSessionId: session.id }),
       },
     });
