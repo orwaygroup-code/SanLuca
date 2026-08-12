@@ -10,6 +10,8 @@ const MX_TZ = "America/Mexico_City";
 function mxYear(): number {
   return Number(new Intl.DateTimeFormat("en-US", { timeZone: MX_TZ, year: "numeric" }).format(new Date()));
 }
+// YYYY-MM-DD en zona MX (Aguascalientes = CST fijo, sin horario de verano).
+const mxToday = () => new Intl.DateTimeFormat("en-CA", { timeZone: MX_TZ }).format(new Date());
 
 /**
  * POST /api/comandas — abre una comanda. Cualquier staff (WAITER+).
@@ -109,16 +111,25 @@ export async function POST(request: NextRequest) {
 
 /**
  * GET /api/comandas — comandas activas. WAITER ve solo las suyas; OPERATION+ todas.
+ * `?includePaidToday=1` (solo OPERATION+): agrega las PAID cerradas HOY (para el
+ * piso en vivo, sección "ya pagadas"). No aplica a WAITER.
  */
 export async function GET(request: NextRequest) {
   const s = await getStaffSession(request);
   if (!s) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 401 });
 
   const onlyMine = s.role === "WAITER";
+  const includePaidToday = new URL(request.url).searchParams.get("includePaidToday") === "1" && !onlyMine;
+  const todayStart = new Date(`${mxToday()}T00:00:00.000-06:00`);
+
+  const statusWhere = includePaidToday
+    ? { OR: [{ status: { in: [...ACTIVE_STATUSES] } }, { status: "PAID" as const, closedAt: { gte: todayStart } }] }
+    : { status: { in: [...ACTIVE_STATUSES] } };
+
   const comandas = await prisma.comanda.findMany({
     where: {
       tenantId: TENANT,
-      status: { in: [...ACTIVE_STATUSES] },
+      ...statusWhere,
       ...(onlyMine ? { waiterId: s.staffId } : {}),
     },
     include: COMANDA_INCLUDE,

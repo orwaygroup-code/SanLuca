@@ -9,8 +9,16 @@ import {
 } from "@/components/staff/ui";
 import { apiFetch, type Comanda, type TableStatus } from "@/components/staff/types";
 import { GoldSelect } from "@/components/ui/GoldSelect";
+import { ReopenModal } from "@/components/staff/caja";
 
 interface WaiterOpt { id: number; fullName: string; role: string }
+
+// Separación del piso por estado. "Ya pagadas" solo trae las del día (API).
+const GROUPS: { key: string; title: string; statuses: string[]; color: string }[] = [
+  { key: "service", title: "En servicio", statuses: ["OPEN", "IN_SERVICE"], color: C.blue },
+  { key: "billing", title: "Por cobrar", statuses: ["AWAITING_PAYMENT", "PARTIALLY_PAID"], color: C.amber },
+  { key: "paid", title: "Ya pagadas · hoy", statuses: ["PAID"], color: C.green },
+];
 
 /**
  * Tablero de supervisión del piso: todas las comandas ACTIVAS + acciones (mover
@@ -32,12 +40,13 @@ export function CapitanBoard() {
   const [moveTarget, setMoveTarget] = useState<Comanda | null>(null);
   const [waiterTarget, setWaiterTarget] = useState<Comanda | null>(null);
   const [cancelTarget, setCancelTarget] = useState<Comanda | null>(null);
+  const [reopenTarget, setReopenTarget] = useState<Comanda | null>(null);
 
   const allowed = !!staff && (staff.role === "CAPTAIN" || staff.role === "MANAGER");
 
   const load = useCallback(async () => {
     const [cs, ts, ws] = await Promise.all([
-      apiFetch<Comanda[]>("/api/comandas"),
+      apiFetch<Comanda[]>("/api/comandas?includePaidToday=1"),
       apiFetch<TableStatus[]>("/api/comandas/tables-status"),
       apiFetch<WaiterOpt[]>("/api/comandas/waiters"),
     ]);
@@ -65,38 +74,62 @@ export function CapitanBoard() {
       <div style={board.head}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
           <h1 style={board.h1}>Piso en vivo</h1>
-          {comandas && <span style={board.sub}>{comandas.length} activa{comandas.length === 1 ? "" : "s"}</span>}
+          {comandas && (() => { const a = comandas.filter((c) => c.status !== "PAID").length; return <span style={board.sub}>{a} activa{a === 1 ? "" : "s"}</span>; })()}
         </div>
         <button data-tour="refrescar" style={{ ...btn.ghost, minHeight: 40 }} onClick={load}>↻ Actualizar</button>
       </div>
 
       {comandas === null ? <Spinner /> :
-      comandas.length === 0 ? <EmptyState text="No hay comandas activas en el piso." /> : (
-        <div style={board.grid} data-tour="grid">
-          {comandas.map((c, idx) => {
-            const live = c.items.filter((i) => i.status !== "CANCELLED");
-            return (
-              <div key={c.id} style={board.card}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ color: C.gold, fontWeight: 800, fontSize: "0.78rem" }}>{c.folio}</span>
-                  <Badge text={STATUS_LABEL[c.status] ?? c.status} color={STATUS_COLOR[c.status] ?? C.dim} />
-                </div>
-                <div style={{ color: C.cream, fontSize: "1.05rem", fontWeight: 700, marginTop: 8 }}>
-                  {c.table ? `Mesa ${c.table.number} · ${c.table.section.name}` : (c.customName || "Cuenta sin mesa")}
-                </div>
-                <div style={{ color: C.dim, fontSize: "0.8rem", marginTop: 2 }}>
-                  {c.waiter.fullName} · {c.guestsActual} pers · {live.length} items
-                </div>
-                <div style={{ color: C.cream, fontSize: "1.05rem", fontWeight: 800, margin: "8px 0 12px" }}>{formatMXN(Number(c.total))}</div>
-                <div style={board.cardActions} data-tour={idx === 0 ? "acciones" : undefined}>
-                  <button style={mini} onClick={() => router.push(`/staff/comandas/${c.id}`)}>Ver</button>
-                  <button style={mini} onClick={() => setMoveTarget(c)}>Mover mesa</button>
-                  <button style={mini} onClick={() => setWaiterTarget(c)}>Cambiar mesero</button>
-                  <button style={{ ...mini, color: C.red, borderColor: C.red }} onClick={() => setCancelTarget(c)}>Cancelar</button>
-                </div>
-              </div>
-            );
-          })}
+      comandas.length === 0 ? <EmptyState text="No hay comandas en el piso." /> : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }} data-tour="grid">
+          {(() => {
+            const firstGroup = GROUPS.find((g) => comandas.some((c) => g.statuses.includes(c.status)));
+            return GROUPS.map((g) => {
+              const list = comandas.filter((c) => g.statuses.includes(c.status));
+              if (list.length === 0) return null;
+              const paid = g.key === "paid";
+              return (
+                <section key={g.key}>
+                  <div style={board.groupHead}>
+                    <span style={{ ...board.groupTitle, color: g.color }}>{g.title}</span>
+                    <span style={board.groupCount}>{list.length}</span>
+                  </div>
+                  <div style={board.grid}>
+                    {list.map((c, idx) => {
+                      const live = c.items.filter((i) => i.status !== "CANCELLED");
+                      return (
+                        <div key={c.id} style={board.card}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ color: C.gold, fontWeight: 800, fontSize: "0.78rem" }}>{c.folio}</span>
+                            <Badge text={STATUS_LABEL[c.status] ?? c.status} color={STATUS_COLOR[c.status] ?? C.dim} />
+                          </div>
+                          <div style={{ color: C.cream, fontSize: "1.05rem", fontWeight: 700, marginTop: 8 }}>
+                            {c.table ? `Mesa ${c.table.number} · ${c.table.section.name}` : (c.customName || "Cuenta sin mesa")}
+                          </div>
+                          <div style={{ color: C.dim, fontSize: "0.8rem", marginTop: 2 }}>
+                            {c.waiter.fullName} · {c.guestsActual} pers · {live.length} items
+                          </div>
+                          <div style={{ color: C.cream, fontSize: "1.05rem", fontWeight: 800, margin: "8px 0 12px" }}>{formatMXN(Number(c.total))}</div>
+                          <div style={board.cardActions} data-tour={g.key === firstGroup?.key && idx === 0 ? "acciones" : undefined}>
+                            <button style={mini} onClick={() => router.push(`/staff/comandas/${c.id}`)}>Ver</button>
+                            {paid ? (
+                              <button style={{ ...mini, color: C.gold, borderColor: C.gold }} onClick={() => setReopenTarget(c)}>Reabrir cuenta</button>
+                            ) : (
+                              <>
+                                <button style={mini} onClick={() => setMoveTarget(c)}>Mover mesa</button>
+                                <button style={mini} onClick={() => setWaiterTarget(c)}>Cambiar mesero</button>
+                                <button style={{ ...mini, color: C.red, borderColor: C.red }} onClick={() => setCancelTarget(c)}>Cancelar</button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              );
+            });
+          })()}
         </div>
       )}
 
@@ -134,6 +167,15 @@ export function CapitanBoard() {
         busy={busy}
         onConfirm={(reason) => cancelTarget && act(`/api/comandas/${cancelTarget.id}/cancel`, { cancellationReason: reason }, "Comanda cancelada", () => setCancelTarget(null))}
         onCancel={() => setCancelTarget(null)}
+      />
+
+      {/* Reabrir cuenta pagada (del día). Supervisor: PIN + motivo. */}
+      <ReopenModal
+        open={!!reopenTarget}
+        comanda={reopenTarget}
+        onClose={() => setReopenTarget(null)}
+        onDone={() => { setReopenTarget(null); push("Cuenta reabierta", "success"); load(); }}
+        onError={(m) => push(m, "error")}
       />
 
       <ToastHost toasts={toasts} onClose={dismiss} />
@@ -185,4 +227,7 @@ const board: Record<string, React.CSSProperties> = {
   grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: 14 },
   card: { background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, padding: "16px 16px 18px" },
   cardActions: { display: "flex", flexWrap: "wrap", gap: 7 },
+  groupHead: { display: "flex", alignItems: "center", gap: 10, margin: "0 0 12px" },
+  groupTitle: { fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase" },
+  groupCount: { fontSize: "0.72rem", fontWeight: 700, color: C.faint, background: C.panel, borderRadius: 999, padding: "1px 9px", border: `1px solid ${C.line}` },
 };
