@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/session-client";
 import { formatMXN } from "@/lib/displayTotals";
 
-interface AuditEvent { kind: "PRINT" | "REPRINT" | "TABLE_CHANGE" | "WAITER_CHANGE" | "ITEM_CANCEL"; at: string; actor: string; detail: string; reason: string | null }
+type AuditKind =
+  | "PRINT" | "REPRINT" | "TABLE_CHANGE" | "WAITER_CHANGE" | "ITEM_CANCEL"
+  | "PAYMENT" | "PAYMENT_VOID" | "DISCOUNT" | "MERGE" | "TRANSFER" | "REOPEN";
+interface AuditEvent { kind: AuditKind; at: string; actor: string; detail: string; reason: string | null }
 interface AuditComanda {
   id: number; folio: string; status: string; total: number; table: string; waiter: string; guests: number;
   openedAt: string; closedAt: string | null;
@@ -23,7 +26,14 @@ const EVENT_META: Record<string, { label: string; color: string }> = {
   TABLE_CHANGE: { label: "Cambio de mesa", color: "#b07cd6" },
   WAITER_CHANGE: { label: "Cambio de mesero", color: "#b07cd6" },
   ITEM_CANCEL: { label: "Item cancelado", color: "#d9534f" },
+  PAYMENT: { label: "Cobro", color: "#3f9d6f" },
+  PAYMENT_VOID: { label: "Pago anulado", color: "#d9534f" },
+  DISCOUNT: { label: "Descuento", color: "#d8a13a" },
+  MERGE: { label: "Cuentas juntadas", color: "#b07cd6" },
+  TRANSFER: { label: "Traspaso", color: "#4a82c4" },
+  REOPEN: { label: "Reapertura", color: "#e0794a" },
 };
+const eventMeta = (kind: string) => EVENT_META[kind] ?? { label: kind, color: "rgba(245,241,232,0.6)" };
 
 function fmt(iso: string): string {
   return new Date(iso).toLocaleString("es-MX", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Mexico_City" });
@@ -106,7 +116,7 @@ export default function AdminComandasAuditPage() {
                 {c.events.length > 0 && (
                   <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
                     {c.events.map((e, i) => {
-                      const m = EVENT_META[e.kind];
+                      const m = eventMeta(e.kind);
                       return (
                         <div key={i} style={S.event}>
                           <span style={{ ...S.eventTag, color: m.color, borderColor: m.color }}>{m.label}</span>
