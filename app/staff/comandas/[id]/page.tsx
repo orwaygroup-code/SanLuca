@@ -9,7 +9,7 @@ import {
 } from "@/components/staff/ui";
 import { apiFetch, type Comanda, type CItem, type PayResult, type CashSession, type CutSnapshot } from "@/components/staff/types";
 import { SplitBillModal } from "@/components/staff/SplitBillModal";
-import { PayModal, DiscountModal, MergeModal, TransferItemModal } from "@/components/staff/caja";
+import { PayModal, DiscountModal, MergeModal, TransferItemModal, ReopenModal } from "@/components/staff/caja";
 import { Icon } from "@/components/staff/icons";
 import { MenuSelector } from "@/components/staff/MenuSelector";
 import { Tour, type TourStep } from "@/components/staff/Tour";
@@ -60,6 +60,7 @@ export default function ComandaDetailPage() {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [cancelItem, setCancelItem] = useState<CItem | null>(null);
+  const [reopenOpen, setReopenOpen] = useState(false);
   const [askBill, setAskBill] = useState(false);
   const [reprint, setReprint] = useState(false);
   const [clearAsk, setClearAsk] = useState(false);
@@ -268,7 +269,14 @@ export default function ComandaDetailPage() {
   }
 
   const c = comanda!;
-  const canCancel = (it: CItem) => it.status === "PENDING" || isSupervisor;
+  // Cancelar producto: el supervisor (Capitán/Manager) puede quitar CUALQUIER producto
+  // mientras la cuenta siga viva (incluye "por cobrar" y parcial); el mesero dueño solo
+  // productos aún no enviados (PENDING) y antes de que la cuenta pase a caja.
+  const canCancel = (it: CItem) => {
+    if (!["OPEN", "IN_SERVICE", "AWAITING_PAYMENT", "PARTIALLY_PAID"].includes(c.status)) return false;
+    if (isSupervisor) return true;
+    return editable && it.status === "PENDING";
+  };
   const totalLines = buildTotalLines(c, taxEnabled);
   // El tiempo actual debe tener al menos un platillo antes de abrir otro (evita tiempos vacíos).
 
@@ -313,7 +321,7 @@ export default function ComandaDetailPage() {
         {isCashier && cajaActive && (
           <button style={page.discBtn} title="Descuento a este producto" onClick={() => setDiscountTarget({ itemId: it.id, itemName: it.dishNameSnapshot })}>%</button>
         )}
-        {editable && canCancel(it) && (
+        {canCancel(it) && (
           <button style={page.cancelX} title="Cancelar item" onClick={() => setCancelItem(it)}>×</button>
         )}
       </div>
@@ -479,9 +487,19 @@ export default function ComandaDetailPage() {
               </div>
             )}
             {isPaid && !cajaActive && (
-              <div style={{ ...caja.callout, color: C.green, borderColor: `color-mix(in srgb, ${C.green} 45%, transparent)`, background: `color-mix(in srgb, ${C.green} 12%, transparent)` }}>
-                Cuenta saldada.
-              </div>
+              <>
+                <div style={{ ...caja.callout, color: C.green, borderColor: `color-mix(in srgb, ${C.green} 45%, transparent)`, background: `color-mix(in srgb, ${C.green} 12%, transparent)` }}>
+                  Cuenta saldada.
+                </div>
+                {isSupervisor && (
+                  <>
+                    <div style={caja.subLabel}>Más acciones</div>
+                    <div style={caja.moreRow}>
+                      <button style={caja.more} onClick={() => setReopenOpen(true)} disabled={busy}>Reabrir cuenta</button>
+                    </div>
+                  </>
+                )}
+              </>
             )}
 
             {/* Acción principal de ahora: imprimir o cobrar */}
@@ -571,6 +589,15 @@ export default function ComandaDetailPage() {
           onCancel={() => setCancelItem(null)}
         />
       )}
+
+      {/* Reabrir cuenta saldada (supervisor: Capitán/Manager, con PIN + motivo) */}
+      <ReopenModal
+        open={reopenOpen}
+        comanda={c}
+        onClose={() => setReopenOpen(false)}
+        onDone={(updated) => { setReopenOpen(false); setComanda(updated); push("Cuenta reabierta", "success"); }}
+        onError={(m) => push(m, "error")}
+      />
 
       <ConfirmModal
         open={askBill}
