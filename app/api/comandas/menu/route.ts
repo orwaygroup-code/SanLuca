@@ -4,10 +4,10 @@ import { getStaffMenuCategories } from "@/lib/db";
 import type { ApiResponse } from "@/types";
 
 /**
- * GET /api/comandas/menu — menú para el comandero (staff). Incluye los platillos
- * del menú (available) MÁS los extras/especiales (isExtra) que están ocultos del
- * menú público. Un platillo agotado (available=false, no extra) queda fuera.
- * Misma forma que /api/menu. Cualquier rol de staff.
+ * GET /api/comandas/menu — menú para el comandero (staff). Muestra TODOS los
+ * productos activos, incluidos los ocultos del menú público (available=false) y los
+ * extras/especiales (isExtra): "ocultar del menú" es solo para el sitio público, el
+ * mesero debe poder ordenar cualquier producto. Misma forma que /api/menu.
  */
 export async function GET(request: NextRequest) {
   const s = await requireStaffRole(request, ["WAITER", "OPERATION", "CAPTAIN", "MANAGER"]);

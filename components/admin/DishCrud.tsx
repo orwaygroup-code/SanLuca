@@ -105,7 +105,7 @@ export function DishCrud({ isExtra }: { isExtra: boolean }) {
     return <div style={S.page}><p style={S.empty}>Verificando acceso…</p></div>;
   }
 
-  const title = isExtra ? "EXTRAS" : "PLATILLOS";
+  const title = isExtra ? "EXTRAS" : "PRODUCTOS";
   const cartaFilterOptions: SelectOption[] = [
     { value: "", label: "Todas las cartas" },
     ...cartas.map((c) => ({ value: c.id, label: `${TURNO_LABEL[c.turno]} · ${c.name}` })),
@@ -115,7 +115,7 @@ export function DishCrud({ isExtra }: { isExtra: boolean }) {
     <div style={S.page}>
       <div style={S.header}>
         <h1 style={S.h1}><span style={{ color: "#ba843c" }}>{title}</span></h1>
-        <button style={S.primaryBtn} onClick={() => setCreateOpen(true)}>+ {isExtra ? "Nuevo extra" : "Nuevo platillo"}</button>
+        <button style={S.primaryBtn} onClick={() => setCreateOpen(true)}>+ {isExtra ? "Nuevo extra" : "Nuevo producto"}</button>
       </div>
 
       {isExtra && (
@@ -126,20 +126,20 @@ export function DishCrud({ isExtra }: { isExtra: boolean }) {
 
       {!isExtra && (
         <p style={S.hint}>
-          Los platillos <b>no se eliminan</b>. «Oculto» los quita del menú temporalmente (agotado); <b>«Deshabilitar»</b> los retira por completo pero conserva su historial de ventas.
+          Los productos <b>no se eliminan</b>. «Oculto» los quita del <b>menú público</b> (el mesero los sigue viendo en la comandera); <b>«Deshabilitar»</b> los retira por completo pero conserva su historial de ventas.
         </p>
       )}
 
       <div style={S.filters}>
         <GoldSelect value={cartaFilter} onChange={setCartaFilter} options={cartaFilterOptions} placeholder="Carta" style={{ minWidth: 200 }} />
         <GoldSelect value={availFilter} onChange={(v) => setAvailFilter(v as "" | "true" | "false")} options={AVAIL_FILTER} placeholder="Visibilidad" style={{ minWidth: 180 }} />
-        <input style={S.search} placeholder="Buscar platillo…" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && fetchList()} />
+        <input style={S.search} placeholder="Buscar producto…" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && fetchList()} />
         <label style={{ display: "flex", alignItems: "center", gap: 7, color: "rgba(245,241,232,0.72)", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
           <input type="checkbox" checked={showDisabled} onChange={(e) => setShowDisabled(e.target.checked)} /> Ver deshabilitados
         </label>
       </div>
 
-      {loading ? <p style={S.empty}>Cargando…</p> : rows.length === 0 ? <p style={S.empty}>Sin {isExtra ? "extras" : "platillos"}. Toca «+» para agregar.</p> : (
+      {loading ? <p style={S.empty}>Cargando…</p> : rows.length === 0 ? <p style={S.empty}>Sin {isExtra ? "extras" : "productos"}. Toca «+» para agregar.</p> : (
         <div style={{ overflowX: "auto" }}>
           <table style={S.table}>
             <thead><tr>{["", "Nombre", "Turno · Carta · Categoría", "Precio", "En menú", "Acciones"].map((h, i) => <th key={i} style={S.th}>{h}</th>)}</tr></thead>
@@ -286,7 +286,7 @@ function DishFormModal({ mode, isExtra, row, onClose, onSaved }: {
 
   return (
     <Overlay onClose={onClose}>
-      <p style={S.kicker}>{mode === "create" ? (isExtra ? "Nuevo extra" : "Nuevo platillo") : "Editar"}</p>
+      <p style={S.kicker}>{mode === "create" ? (isExtra ? "Nuevo extra" : "Nuevo producto") : "Editar"}</p>
       <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 16 }}>
         {/* Cascada: Turno → Área → Carta → Categoría */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -325,7 +325,7 @@ function DishFormModal({ mode, isExtra, row, onClose, onSaved }: {
         <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "2px 0" }} />
 
         <div>
-          <label style={S.label}>Nombre del platillo</label>
+          <label style={S.label}>Nombre del producto</label>
           <input style={S.input} value={name} onChange={(e) => setName(e.target.value)} placeholder="ej. Risotto de trufa" />
         </div>
         <div>

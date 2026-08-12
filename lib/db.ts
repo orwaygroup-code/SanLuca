@@ -40,7 +40,10 @@ export async function getStaffMenuCategories() {
       createdAt: true,
       carta: { select: { id: true, name: true, turno: true, clase: true, position: true } },
       dishes: {
-        where: { active: true, OR: [{ available: true }, { isExtra: true }] },
+        // La comandera muestra TODOS los productos activos. "Ocultar del menú"
+        // (available=false) es solo para el menú público — NO saca el producto de
+        // la comandera; el mesero debe poder ordenarlo igual.
+        where: { active: true },
         orderBy: { position: "asc" },
       },
     },
