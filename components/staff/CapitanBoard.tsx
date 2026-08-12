@@ -121,7 +121,9 @@ export function CapitanBoard() {
                           <div style={board.cardActions} data-tour={g.key === firstGroup?.key && idx === 0 ? "acciones" : undefined}>
                             <button style={mini} onClick={() => router.push(detailHref(c.id))}>Ver</button>
                             {paid ? (
-                              <button style={{ ...mini, color: C.gold, borderColor: C.gold }} onClick={() => setReopenTarget(c)}>Reabrir cuenta</button>
+                              staff?.role === "MANAGER"
+                                ? <button style={{ ...mini, color: C.gold, borderColor: C.gold }} onClick={() => setReopenTarget(c)}>Reabrir cuenta</button>
+                                : <span style={{ color: C.faint, fontSize: "0.72rem" }}>Sellada</span>
                             ) : (
                               <>
                                 <button style={mini} onClick={() => setMoveTarget(c)}>Mover mesa</button>

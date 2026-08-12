@@ -73,12 +73,13 @@ export async function resolvePin(
  */
 export async function verifySupervisorPin(
   pin: string,
-  opts: { tenantId?: number } = {},
+  opts: { tenantId?: number; roles?: ("CAPTAIN" | "MANAGER")[] } = {},
 ): Promise<number | null> {
   if (!/^\d{4}$/.test(pin)) return null;
   const tenantId = opts.tenantId ?? DEFAULT_TENANT;
+  const roles = opts.roles ?? ["CAPTAIN", "MANAGER"];
   const supers = await prisma.staff.findMany({
-    where: { tenantId, active: true, role: { in: ["CAPTAIN", "MANAGER"] } },
+    where: { tenantId, active: true, role: { in: roles } },
     select: { id: true, pinHash: true },
   });
   for (const s of supers) {

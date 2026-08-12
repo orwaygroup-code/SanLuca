@@ -61,6 +61,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   const [menuOpen, setMenuOpen] = useState(false);
   const [cancelItem, setCancelItem] = useState<CItem | null>(null);
   const [reopenOpen, setReopenOpen] = useState(false);
+  const [closeZeroAsk, setCloseZeroAsk] = useState(false);
   const [askBill, setAskBill] = useState(false);
   const [reprint, setReprint] = useState(false);
   const [clearAsk, setClearAsk] = useState(false);
@@ -81,6 +82,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   const [splitOpen, setSplitOpen] = useState(false);
 
   const isSupervisor = staff?.role === "CAPTAIN" || staff?.role === "MANAGER";
+  const isManager = staff?.role === "MANAGER"; // "administrador": único que reabre cuentas selladas
 
   // back del detalle respeta el realm del staff: OPERATION vuelve a su mapa,
   // CAPTAIN a su panel; WAITER (y default) a la lista de comandas.
@@ -245,6 +247,16 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
     setBusy(false);
     if (r.ok) setComanda(r.data!);
     else push(r.error ?? "No se pudo quitar", "error");
+  };
+
+  // Cerrar ("matar") una cuenta en $0 sin cobro, dejando huella. Settlea la comanda.
+  const doCloseZero = async () => {
+    setBusy(true);
+    const r = await apiFetch<{ comanda: Comanda }>(`/api/comandas/${id}/close-zero`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    setBusy(false);
+    setCloseZeroAsk(false);
+    if (r.ok) { setComanda(r.data!.comanda); push("Cuenta cerrada en $0", "success"); }
+    else push(r.error ?? "No se pudo cerrar en $0", "error");
   };
 
   // Vaciar borrador: borra TODOS los platillos aún no enviados (status PENDING).
@@ -505,15 +517,19 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
             {isPaid && !cajaActive && (
               <>
                 <div style={{ ...caja.callout, color: C.green, borderColor: `color-mix(in srgb, ${C.green} 45%, transparent)`, background: `color-mix(in srgb, ${C.green} 12%, transparent)` }}>
-                  Cuenta saldada.
+                  Cuenta saldada y sellada — solo lectura.
                 </div>
-                {isSupervisor && (
+                {isManager ? (
                   <>
                     <div style={caja.subLabel}>Más acciones</div>
                     <div style={caja.moreRow}>
                       <button style={caja.more} onClick={() => setReopenOpen(true)} disabled={busy}>Reabrir cuenta</button>
                     </div>
                   </>
+                ) : (
+                  <div style={{ color: C.faint, fontSize: "0.78rem", marginTop: 6 }}>
+                    Una vez cobrada no se agrega, quita ni modifica nada. La reapertura la autoriza un administrador (Manager).
+                  </div>
                 )}
               </>
             )}
@@ -535,6 +551,14 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
                 {alreadyPrinted && isSupervisor && (
                   <button style={caja.secondary} onClick={() => setReprint(true)} disabled={busy}><Icon name="printer" size={16} />Reimprimir</button>
                 )}
+              </div>
+            )}
+
+            {/* Cuenta en $0 (cortesía / mesa sin consumo): se puede "matar" sin cobro,
+                dejando huella. No requiere imprimir ni cobrar. */}
+            {cajaActive && Number(c.total) === 0 && (
+              <div style={caja.primaryRow}>
+                <button style={caja.primary} onClick={() => setCloseZeroAsk(true)} disabled={busy}>Cerrar en $0 (sin cobro)</button>
               </div>
             )}
 
@@ -614,6 +638,16 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
         onClose={() => setReopenOpen(false)}
         onDone={(updated) => { setReopenOpen(false); setComanda(updated); push("Cuenta reabierta", "success"); }}
         onError={(m) => push(m, "error")}
+      />
+
+      <ConfirmModal
+        open={closeZeroAsk}
+        title="Cerrar cuenta en $0"
+        message="Se cerrará esta cuenta SIN cobro (total $0). Queda registrada como cerrada sin monto y ya no se podrá modificar. ¿Continuar?"
+        confirmLabel="Cerrar en $0"
+        busy={busy}
+        onConfirm={doCloseZero}
+        onCancel={() => setCloseZeroAsk(false)}
       />
 
       <ConfirmModal

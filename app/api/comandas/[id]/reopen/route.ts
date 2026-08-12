@@ -32,9 +32,11 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const voidPayments = body?.voidPayments === true;
   if (!reason) return NextResponse.json<ApiResponse>({ success: false, error: "El motivo es obligatorio" }, { status: 400 });
 
-  const authorizedById = await verifySupervisorPin(authPin, { tenantId: TENANT });
+  // Reabrir una cuenta ya cobrada solo lo autoriza un ADMINISTRADOR (Manager). Perla
+  // (Operación) y el Capitán NO pueden reabrir: la cuenta pagada queda sellada para ellos.
+  const authorizedById = await verifySupervisorPin(authPin, { tenantId: TENANT, roles: ["MANAGER"] });
   if (!authorizedById) {
-    return NextResponse.json<ApiResponse>({ success: false, error: "PIN de supervisor inválido (Capitán/Manager)" }, { status: 403 });
+    return NextResponse.json<ApiResponse>({ success: false, error: "PIN de administrador (Manager) inválido" }, { status: 403 });
   }
 
   const comanda = await prisma.comanda.findFirst({
