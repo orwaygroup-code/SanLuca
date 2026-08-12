@@ -83,8 +83,9 @@ function StaffLoginInner() {
         return;
       }
       const next = params.get("next");
-      // Admin ligado (Ricardo/Francesca) → directo al panel; el resto por rol.
-      const home = next || (data.data.hasAdmin ? "/admin" : ROLE_HOME[data.data.role]) || "/staff/login";
+      // Admin ligado (Ricardo/Francesca/Paul) → entra al DASHBOARD (no a reservas);
+      // el resto por rol.
+      const home = next || (data.data.hasAdmin ? "/admin/dashboard" : ROLE_HOME[data.data.role]) || "/staff/login";
       goHome(home);
     } catch {
       setError("Error de red. Intenta de nuevo.");

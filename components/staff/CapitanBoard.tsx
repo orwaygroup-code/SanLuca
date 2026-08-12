@@ -11,6 +11,7 @@ import { apiFetch, type Comanda, type TableStatus } from "@/components/staff/typ
 import { GoldSelect } from "@/components/ui/GoldSelect";
 import { ReopenModal } from "@/components/staff/caja";
 import { ModeSwitch } from "@/components/staff/ModeSwitch";
+import { LiveStats } from "@/components/staff/LiveStats";
 
 interface WaiterOpt { id: number; fullName: string; role: string }
 
@@ -46,6 +47,7 @@ export function CapitanBoard() {
   const [waiterTarget, setWaiterTarget] = useState<Comanda | null>(null);
   const [cancelTarget, setCancelTarget] = useState<Comanda | null>(null);
   const [reopenTarget, setReopenTarget] = useState<Comanda | null>(null);
+  const [showStats, setShowStats] = useState(true);
 
   const allowed = !!staff && (staff.role === "CAPTAIN" || staff.role === "MANAGER");
 
@@ -83,9 +85,12 @@ export function CapitanBoard() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <ModeSwitch role={staff?.role} />
+          <button style={{ ...btn.ghost, minHeight: 40 }} onClick={() => setShowStats((v) => !v)}>{showStats ? "Ocultar ventas" : "Ventas en vivo"}</button>
           <button data-tour="refrescar" style={{ ...btn.ghost, minHeight: 40 }} onClick={load}>↻ Actualizar</button>
         </div>
       </div>
+
+      {showStats && comandas && <LiveStats comandas={comandas} />}
 
       {comandas === null ? <Spinner /> :
       comandas.length === 0 ? <EmptyState text="No hay comandas en el piso." /> : (
