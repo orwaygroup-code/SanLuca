@@ -118,8 +118,12 @@ export async function GET(request: NextRequest) {
   const s = await getStaffSession(request);
   if (!s) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 401 });
 
+  const url = new URL(request.url);
   const onlyMine = s.role === "WAITER";
-  const includePaidToday = new URL(request.url).searchParams.get("includePaidToday") === "1" && !onlyMine;
+  // ?mine=1 → un supervisor (Capitán/Manager) ve SOLO sus comandas (modo mesero de la
+  // vista con switch). El WAITER siempre queda forzado a lo suyo.
+  const mine = onlyMine || url.searchParams.get("mine") === "1";
+  const includePaidToday = url.searchParams.get("includePaidToday") === "1" && !mine;
   const todayStart = new Date(`${mxToday()}T00:00:00.000-06:00`);
 
   const statusWhere = includePaidToday
@@ -130,7 +134,7 @@ export async function GET(request: NextRequest) {
     where: {
       tenantId: TENANT,
       ...statusWhere,
-      ...(onlyMine ? { waiterId: s.staffId } : {}),
+      ...(mine ? { waiterId: s.staffId } : {}),
     },
     include: COMANDA_INCLUDE,
     orderBy: { openedAt: "asc" },

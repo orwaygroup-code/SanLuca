@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStaffSession } from "@/lib/staff-session-client";
+import { ModeSwitch } from "@/components/staff/ModeSwitch";
 import {
   C, StaffHeader, Spinner, EmptyState, Badge, Modal, btn, fld, formatMXN,
   STATUS_LABEL, STATUS_COLOR, useToasts, ToastHost, useStaffLogout, usePoll,
@@ -34,7 +35,9 @@ export default function MeseroComandasPage() {
   const autoTourDone = useRef(false);
 
   const load = useCallback(async () => {
-    const r = await apiFetch<Comanda[]>("/api/comandas");
+    // mine=1: si es Capitán/Manager en "modo mesero", ve SOLO sus comandas (el WAITER
+    // ya queda forzado a lo suyo en el server; el param no le afecta).
+    const r = await apiFetch<Comanda[]>("/api/comandas?mine=1");
     if (r.ok) setComandas(r.data!);
     else { setComandas([]); push(r.error ?? "No se pudo cargar", "error"); }
   }, [push]);
@@ -66,6 +69,7 @@ export default function MeseroComandasPage() {
         onLogout={logout}
         right={
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <ModeSwitch role={staff.role} />
             <button onClick={() => setTourOpen(true)} title="Tutorial" aria-label="Abrir tutorial"
               style={{ width: 40, height: 40, borderRadius: 999, border: `1px solid ${C.border}`, background: "transparent", color: C.gold, fontWeight: 800, fontSize: "1.05rem", cursor: "pointer" }}>?</button>
             <button data-tour="nueva" style={btn.primary} onClick={() => setOpenModal(true)}>+ Comanda</button>

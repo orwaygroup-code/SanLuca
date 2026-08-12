@@ -10,6 +10,7 @@ import {
 import { apiFetch, type Comanda, type TableStatus } from "@/components/staff/types";
 import { GoldSelect } from "@/components/ui/GoldSelect";
 import { ReopenModal } from "@/components/staff/caja";
+import { ModeSwitch } from "@/components/staff/ModeSwitch";
 
 interface WaiterOpt { id: number; fullName: string; role: string }
 
@@ -80,7 +81,10 @@ export function CapitanBoard() {
           <h1 style={board.h1}>Piso en vivo</h1>
           {comandas && (() => { const a = comandas.filter((c) => c.status !== "PAID").length; return <span style={board.sub}>{a} activa{a === 1 ? "" : "s"}</span>; })()}
         </div>
-        <button data-tour="refrescar" style={{ ...btn.ghost, minHeight: 40 }} onClick={load}>↻ Actualizar</button>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <ModeSwitch role={staff?.role} />
+          <button data-tour="refrescar" style={{ ...btn.ghost, minHeight: 40 }} onClick={load}>↻ Actualizar</button>
+        </div>
       </div>
 
       {comandas === null ? <Spinner /> :
