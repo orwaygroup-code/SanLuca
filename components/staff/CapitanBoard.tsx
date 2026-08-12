@@ -83,7 +83,7 @@ export function CapitanBoard() {
           <h1 style={board.h1}>Piso en vivo</h1>
           {comandas && (() => { const a = comandas.filter((c) => c.status !== "PAID").length; return <span style={board.sub}>{a} activa{a === 1 ? "" : "s"}</span>; })()}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
           <ModeSwitch role={staff?.role} />
           <button style={{ ...btn.ghost, minHeight: 40 }} onClick={() => setShowStats((v) => !v)}>{showStats ? "Ocultar ventas" : "Ventas en vivo"}</button>
           <button data-tour="refrescar" style={{ ...btn.ghost, minHeight: 40 }} onClick={load}>↻ Actualizar</button>

@@ -64,7 +64,7 @@ function Kpi({ label, value, accent, big }: { label: string; value: string; acce
   return (
     <div style={st.kpi}>
       <div style={st.kpiLabel}>{label}</div>
-      <div style={{ ...st.kpiValue, ...(big ? { fontSize: "1.5rem" } : {}), ...(accent ? { color: accent } : {}) }}>{value}</div>
+      <div style={{ ...st.kpiValue, ...(big ? { fontSize: "1.3rem" } : {}), ...(accent ? { color: accent } : {}) }}>{value}</div>
     </div>
   );
 }

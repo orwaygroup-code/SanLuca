@@ -97,7 +97,7 @@ export function StaffHeader(props: {
           <div style={hS.title}>{props.title}</div>
         </div>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "flex-end", marginLeft: "auto" }}>
         {props.right}
         {props.userName && (
           <div style={{ textAlign: "right", lineHeight: 1.2 }}>
@@ -353,6 +353,7 @@ export { formatMXN };
 const hS: Record<string, React.CSSProperties> = {
   bar: {
     display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+    rowGap: 8, flexWrap: "wrap", // móvil: el grupo derecho baja de línea en vez de encimarse
     padding: "12px 18px", background: C.panel, borderBottom: `1px solid ${C.border}`,
     position: "sticky", top: 0, zIndex: 30,
   },

@@ -746,12 +746,12 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
 // lateral): solo "Volver" + folio + estado, sin el StaffHeader de pantalla completa.
 function EmbedBar({ title, onBack, right }: { title: string; onBack: () => void; right?: React.ReactNode }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 18px", borderBottom: `1px solid ${C.border}`, background: C.panel }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, rowGap: 8, flexWrap: "wrap", padding: "12px 18px", borderBottom: `1px solid ${C.border}`, background: C.panel }}>
       <button
         onClick={onBack}
-        style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${C.border}`, background: "transparent", color: C.gold, fontWeight: 700, fontSize: "0.82rem", cursor: "pointer", fontFamily: "inherit" }}
+        style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${C.border}`, background: "transparent", color: C.gold, fontWeight: 700, fontSize: "0.82rem", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
       >← Volver al piso</button>
-      <span style={{ color: C.cream, fontWeight: 800, fontSize: "1rem" }}>{title}</span>
+      <span style={{ color: C.cream, fontWeight: 800, fontSize: "1rem", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title}</span>
       {right && <div style={{ marginLeft: "auto" }}>{right}</div>}
     </div>
   );
