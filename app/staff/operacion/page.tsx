@@ -206,7 +206,7 @@ export default function OperacionPage() {
                             amount={formatMXN(c.total)}
                             amountDim
                             tone="passive"
-                            action={<button style={rowBtn.ver} onClick={() => router.push(`/staff/comandas/${c.id}`)}>Ver<Icon name="chevron" size={16} /></button>}
+                            action={<button style={rowBtn.ver} onClick={() => router.push(`/staff/comandas/${c.id}?back=/staff/operacion`)}>Ver<Icon name="chevron" size={16} /></button>}
                           />
                         );
                       })}
@@ -234,7 +234,7 @@ export default function OperacionPage() {
                     meta={r.table ? `Mesa ${r.table.number} · ${r.table.section.name}` : r.sectionPreference ? `Pref. ${r.sectionPreference}` : "Sin mesa asignada"}
                     tone="plain"
                     action={r.comanda
-                      ? <button style={rowBtn.ver} onClick={() => router.push(`/staff/comandas/${r.comanda!.id}`)}>Ver<Icon name="chevron" size={16} /></button>
+                      ? <button style={rowBtn.ver} onClick={() => router.push(`/staff/comandas/${r.comanda!.id}?back=/staff/operacion`)}>Ver<Icon name="chevron" size={16} /></button>
                       : <button style={rowBtn.seat} onClick={() => setSeatRes(r)}><Icon name="arrive" size={18} />Sentar</button>}
                   />
                 ))}
@@ -272,12 +272,12 @@ export default function OperacionPage() {
                       amountDim={!needs && !toKitchen}
                       tone={toKitchen ? "fresh" : printed ? "pay" : needs ? "act" : "passive"}
                       action={toKitchen
-                        ? <button style={rowBtn.kitchen} onClick={() => router.push(`/staff/comandas/${c.id}`)}>Ver pedido<Icon name="chevron" size={16} /></button>
+                        ? <button style={rowBtn.kitchen} onClick={() => router.push(`/staff/comandas/${c.id}?back=/staff/operacion`)}>Ver pedido<Icon name="chevron" size={16} /></button>
                         : printed
                         ? <button style={rowBtn.pay} onClick={() => setPayTarget(c.id)}><Icon name="card" size={18} />Cobrar</button>
                         : needs
                         ? <button style={{ ...rowBtn.print, opacity: printing === c.id ? 0.6 : 1 }} onClick={() => doPrintBill(c.id)} disabled={printing === c.id}><Icon name="printer" size={18} />{printing === c.id ? "Imprimiendo…" : "Imprimir"}</button>
-                        : <button style={rowBtn.ver} onClick={() => router.push(`/staff/comandas/${c.id}`)}>Ver<Icon name="chevron" size={16} /></button>}
+                        : <button style={rowBtn.ver} onClick={() => router.push(`/staff/comandas/${c.id}?back=/staff/operacion`)}>Ver<Icon name="chevron" size={16} /></button>}
                     />
                   );
                 };
@@ -306,7 +306,7 @@ export default function OperacionPage() {
         res={seatRes}
         freeTables={freeTables}
         onClose={() => setSeatRes(null)}
-        onSeated={(id) => { setSeatRes(null); load(); router.push(`/staff/comandas/${id}`); }}
+        onSeated={(id) => { setSeatRes(null); load(); router.push(`/staff/comandas/${id}?back=/staff/operacion`); }}
         onError={(m) => push(m, "error")}
       />
 
@@ -314,7 +314,7 @@ export default function OperacionPage() {
         open={newAccount}
         waiterId={staff.id}
         onClose={() => setNewAccount(false)}
-        onCreated={(id) => { setNewAccount(false); router.push(`/staff/comandas/${id}`); }}
+        onCreated={(id) => { setNewAccount(false); router.push(`/staff/comandas/${id}?back=/staff/operacion`); }}
         onError={(m) => push(m, "error")}
       />
 

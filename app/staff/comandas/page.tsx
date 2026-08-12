@@ -85,7 +85,7 @@ export default function MeseroComandasPage() {
         ) : (
           <div style={page.grid}>
             {comandas.map((c) => (
-              <button key={c.id} style={page.card} onClick={() => router.push(`/staff/comandas/${c.id}`)}>
+              <button key={c.id} style={page.card} onClick={() => router.push(`/staff/comandas/${c.id}?back=/staff/comandas`)}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span style={{ color: C.gold, fontWeight: 800, fontSize: "0.78rem", letterSpacing: "0.05em" }}>{c.folio}</span>
                   <Badge text={STATUS_LABEL[c.status] ?? c.status} color={STATUS_COLOR[c.status] ?? C.dim} />
@@ -109,7 +109,7 @@ export default function MeseroComandasPage() {
         open={openModal}
         defaultWaiterId={staff.id}
         onClose={() => setOpenModal(false)}
-        onCreated={(id) => { setOpenModal(false); router.push(`/staff/comandas/${id}`); }}
+        onCreated={(id) => { setOpenModal(false); router.push(`/staff/comandas/${id}?back=/staff/comandas`); }}
         onError={(m) => push(m, "error")}
       />
       <Tour steps={MESERO_TOUR} open={tourOpen} onClose={closeTour} />

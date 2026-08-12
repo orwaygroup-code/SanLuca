@@ -24,11 +24,22 @@ export default function CapitanPage() {
   const autoTourDone = useRef(false);
 
   const allowed = staff && (staff.role === "CAPTAIN" || staff.role === "MANAGER");
+  // ¿Este MANAGER además tiene acceso al panel /admin (User ADMIN ligado)? Solo entonces
+  // se muestra "Panel": DAVID (#3) es MANAGER SIN puente admin y el botón lo atascaba.
+  const [hasAdmin, setHasAdmin] = useState(false);
 
   useEffect(() => {
     if (!loading && !staff) { router.replace("/staff/login?next=/staff/capitan"); return; }
     if (staff && !allowed) { router.replace("/staff/login"); return; }
   }, [loading, staff, allowed, router]);
+
+  useEffect(() => {
+    if (staff?.role !== "MANAGER") { setHasAdmin(false); return; }
+    fetch("/api/auth/me", { credentials: "same-origin" })
+      .then((r) => r.json())
+      .then((d) => setHasAdmin(!!(d?.authenticated && (d.user?.role === "ADMIN" || d.user?.role === "HOSTES"))))
+      .catch(() => setHasAdmin(false));
+  }, [staff?.role]);
 
   // Auto-abrir el tutorial la primera vez (una vez por dispositivo).
   useEffect(() => {
@@ -50,7 +61,7 @@ export default function CapitanPage() {
         onLogout={logout}
         right={
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {staff.role === "MANAGER" && (
+            {hasAdmin && (
               <button style={{ ...btn.ghost, minHeight: 40, padding: "0 14px", fontSize: "0.82rem" }} onClick={() => router.push("/admin")}>Panel</button>
             )}
             <button onClick={() => setTourOpen(true)} title="Tutorial" aria-label="Abrir tutorial"

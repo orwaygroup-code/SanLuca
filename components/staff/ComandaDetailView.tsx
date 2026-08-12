@@ -86,16 +86,21 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
 
   // back del detalle respeta el realm del staff: OPERATION vuelve a su mapa,
   // CAPTAIN a su panel; WAITER (y default) a la lista de comandas.
-  const backHref =
-    staff?.role === "OPERATION" ? "/staff/operacion"
-    : staff?.role === "CAPTAIN" ? "/staff/capitan"
-    : "/staff/comandas";
-  // Volver: regresa a la página de origen (ej. /admin/piso, conservando su menú
-  // lateral) si hay historial; si se entró por link directo, cae al home del realm.
-  const goBack = useCallback(() => {
-    if (typeof window !== "undefined" && window.history.length > 1) router.back();
-    else router.push(backHref);
-  }, [router, backHref]);
+  // Volver: usa ?back= (lo pone quien abre el detalle) para regresar EXACTO a esa vista
+  // — piso de manager, /admin/piso (con su menú lateral), lista de mesero u operación.
+  // Determinístico, sin depender de history.back(). Fallback: embebido → /admin/piso;
+  // si no, el home del rol.
+  const backHref = useMemo(() => {
+    if (typeof window !== "undefined") {
+      const b = new URLSearchParams(window.location.search).get("back");
+      if (b && /^\/(staff|admin)\/[A-Za-z0-9/_-]*$/.test(b)) return b;
+    }
+    if (embedded) return "/admin/piso";
+    return staff?.role === "OPERATION" ? "/staff/operacion"
+      : staff?.role === "CAPTAIN" ? "/staff/capitan"
+      : "/staff/comandas";
+  }, [embedded, staff?.role]);
+  const goBack = useCallback(() => router.push(backHref), [router, backHref]);
 
   const refresh = useCallback(async () => {
     const r = await apiFetch<Comanda>(`/api/comandas/${id}`);

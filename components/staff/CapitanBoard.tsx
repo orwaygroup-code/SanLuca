@@ -33,7 +33,7 @@ export function CapitanBoard() {
   // Dentro de /admin abrimos el detalle embebido (conserva el menú lateral);
   // en /staff/capitan, la vista staff de pantalla completa.
   const inAdmin = !!usePathname()?.startsWith("/admin");
-  const detailHref = (id: number) => (inAdmin ? `/admin/piso/${id}` : `/staff/comandas/${id}`);
+  const detailHref = (id: number) => (inAdmin ? `/admin/piso/${id}?back=/admin/piso` : `/staff/comandas/${id}?back=/staff/capitan`);
   const { staff, loading } = useStaffSession();
   const { toasts, push, dismiss } = useToasts();
 
