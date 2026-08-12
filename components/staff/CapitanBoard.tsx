@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useStaffSession } from "@/lib/staff-session-client";
 import {
   C, Spinner, EmptyState, Badge, Modal, ReasonModal, btn, fld, formatMXN,
@@ -29,6 +29,10 @@ const GROUPS: { key: string; title: string; statuses: string[]; color: string }[
  */
 export function CapitanBoard() {
   const router = useRouter();
+  // Dentro de /admin abrimos el detalle embebido (conserva el menú lateral);
+  // en /staff/capitan, la vista staff de pantalla completa.
+  const inAdmin = !!usePathname()?.startsWith("/admin");
+  const detailHref = (id: number) => (inAdmin ? `/admin/piso/${id}` : `/staff/comandas/${id}`);
   const { staff, loading } = useStaffSession();
   const { toasts, push, dismiss } = useToasts();
 
@@ -111,7 +115,7 @@ export function CapitanBoard() {
                           </div>
                           <div style={{ color: C.cream, fontSize: "1.05rem", fontWeight: 800, margin: "8px 0 12px" }}>{formatMXN(Number(c.total))}</div>
                           <div style={board.cardActions} data-tour={g.key === firstGroup?.key && idx === 0 ? "acciones" : undefined}>
-                            <button style={mini} onClick={() => router.push(`/staff/comandas/${c.id}`)}>Ver</button>
+                            <button style={mini} onClick={() => router.push(detailHref(c.id))}>Ver</button>
                             {paid ? (
                               <button style={{ ...mini, color: C.gold, borderColor: C.gold }} onClick={() => setReopenTarget(c)}>Reabrir cuenta</button>
                             ) : (
