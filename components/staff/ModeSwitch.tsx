@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { C } from "@/components/staff/ui";
 
@@ -8,34 +7,34 @@ import { C } from "@/components/staff/ui";
  * Switch Mesero/Manager — una sola cuenta, dos vistas. Solo para Capitán/Manager
  * (roles que además atienden mesas). "Mesero" = /staff/comandas (SUS propias mesas).
  * "Manager": si el usuario tiene acceso al panel (User ADMIN ligado) va a /admin/piso —
- * el piso DENTRO del panel, con su menú lateral; si no (ej. DAVID), a /staff/capitan.
- * Los meseros normales no lo ven (rol WAITER → null).
+ * el piso DENTRO del panel, con su menú lateral / hamburguesa en móvil; si no (ej.
+ * DAVID), a /staff/capitan. Los meseros normales no lo ven (rol WAITER → null).
+ *
+ * El destino de "Manager" se resuelve AL HACER CLIC (await), no en segundo plano: así
+ * en móvil (toque rápido) nunca cae al fallback antes de saber si eres admin.
  */
 export function ModeSwitch({ role }: { role?: string }) {
   const router = useRouter();
   const path = usePathname() ?? "";
-  const [hasAdmin, setHasAdmin] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    if (role !== "CAPTAIN" && role !== "MANAGER") return;
-    fetch("/api/auth/me", { credentials: "same-origin" })
-      .then((r) => r.json())
-      .then((d) => setHasAdmin(!!(d?.authenticated && (d.user?.role === "ADMIN" || d.user?.role === "HOSTES"))))
-      .catch(() => setHasAdmin(false));
-  }, [role]);
-
   if (role !== "CAPTAIN" && role !== "MANAGER") return null;
 
   const mesero = path.startsWith("/staff/comandas");
-  // Antes de que resuelva el fetch, si ya estamos en /admin asumimos admin (para no
-  // parpadear a /staff/capitan). "Manager" con sidebar = /admin/piso.
-  const isAdmin = hasAdmin ?? path.startsWith("/admin");
-  const managerHref = isAdmin ? "/admin/piso" : "/staff/capitan";
+
+  const goManager = async () => {
+    // Si ya estamos en /admin, el usuario es admin → piso con menú lateral, sin fetch.
+    if (path.startsWith("/admin")) { router.push("/admin/piso"); return; }
+    let admin = false;
+    try {
+      const d = await fetch("/api/auth/me", { credentials: "same-origin" }).then((r) => r.json());
+      admin = !!(d?.authenticated && (d.user?.role === "ADMIN" || d.user?.role === "HOSTES"));
+    } catch { /* sin acceso admin → piso staff */ }
+    router.push(admin ? "/admin/piso" : "/staff/capitan");
+  };
 
   return (
     <div style={sw.wrap} role="tablist" aria-label="Cambiar entre Mesero y Manager">
       <button role="tab" aria-selected={mesero} style={{ ...sw.btn, ...(mesero ? sw.on : {}) }} onClick={() => router.push("/staff/comandas")}>Mesero</button>
-      <button role="tab" aria-selected={!mesero} style={{ ...sw.btn, ...(!mesero ? sw.on : {}) }} onClick={() => router.push(managerHref)}>Manager</button>
+      <button role="tab" aria-selected={!mesero} style={{ ...sw.btn, ...(!mesero ? sw.on : {}) }} onClick={goManager}>Manager</button>
     </div>
   );
 }
