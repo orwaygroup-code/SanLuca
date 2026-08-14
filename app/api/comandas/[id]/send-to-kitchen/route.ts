@@ -26,18 +26,19 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const comanda = await prisma.comanda.findFirst({
     where: { id, tenantId: TENANT },
     select: {
-      id: true, waiterId: true, status: true, folio: true, guestsActual: true, channel: true,
+      id: true, waiterId: true, openedById: true, tableId: true, status: true, folio: true, guestsActual: true, channel: true,
       waiter: { select: { fullName: true } },
       customName: true,
       table:  { select: { number: true, section: { select: { name: true } } } },
     },
   });
   if (!comanda) return NextResponse.json<ApiResponse>({ success: false, error: "Comanda no encontrada" }, { status: 404 });
-  // Los pedidos del bot (para llevar) no tienen mesero dueño real: cualquier rol de
-  // caja (OPERATION/CAPTAIN/MANAGER) puede mandarlos a cocina, no solo el "dueño".
-  const isBotTakeout = (comanda.channel ?? "").startsWith("BOT_");
+  // Para llevar (sin mesa, manual o del bot) no tiene mesero dueño real (su mesero es el de
+  // sistema "Llevar"): cualquier rol de caja (OPERATION/CAPTAIN/MANAGER) puede operarla.
+  const isTakeout = comanda.tableId === null;
   const isCajaRole = s.role === "OPERATION" || s.role === "CAPTAIN" || s.role === "MANAGER";
-  if (!canModifyComanda(s.role, comanda.waiterId === s.staffId) && !(isBotTakeout && isCajaRole)) {
+  const isOwner = comanda.waiterId === s.staffId || comanda.openedById === s.staffId;
+  if (!canModifyComanda(s.role, isOwner) && !(isTakeout && isCajaRole)) {
     return NextResponse.json<ApiResponse>({ success: false, error: "No puedes modificar esta comanda" }, { status: 403 });
   }
 

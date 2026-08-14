@@ -25,7 +25,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
   const item = await prisma.comandaItem.findFirst({
     where: { id: itemId, comandaId: id, tenantId: TENANT },
-    include: { comanda: { select: { waiterId: true, status: true } } },
+    include: { comanda: { select: { waiterId: true, openedById: true, tableId: true, status: true } } },
   });
   if (!item) return NextResponse.json<ApiResponse>({ success: false, error: "Item no encontrado" }, { status: 404 });
   if (item.status === "CANCELLED") {
@@ -34,7 +34,12 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
   const supervisor = isSupervisor(actor);
   const isOwnerWaiter = actor.realm === "staff" && actor.role === "WAITER" && item.comanda.waiterId === actor.staffId;
-  const allowed = item.status === "PENDING" ? (supervisor || isOwnerWaiter) : supervisor;
+  // Para llevar (sin mesa): la maneja caja; quitar productos AÚN sin enviar lo puede hacer
+  // cualquier rol de caja (su mesero es el de sistema "Llevar"). También quien la abrió.
+  const isTakeoutCaja = item.comanda.tableId === null && actor.realm === "staff" &&
+    (actor.role === "OPERATION" || actor.role === "CAPTAIN" || actor.role === "MANAGER");
+  const isOpener = actor.realm === "staff" && item.comanda.openedById === actor.staffId;
+  const allowed = item.status === "PENDING" ? (supervisor || isOwnerWaiter || isOpener || isTakeoutCaja) : supervisor;
   if (!allowed) {
     const sentMsg = "Item ya enviado a cocina: solo Capitán/Manager/Admin puede cancelarlo";
     return NextResponse.json<ApiResponse>(

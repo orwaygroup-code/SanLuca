@@ -23,10 +23,14 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
   const comanda = await prisma.comanda.findFirst({
     where: { id, tenantId: TENANT },
-    select: { id: true, waiterId: true, status: true },
+    select: { id: true, waiterId: true, openedById: true, tableId: true, status: true },
   });
   if (!comanda) return NextResponse.json<ApiResponse>({ success: false, error: "Comanda no encontrada" }, { status: 404 });
-  if (!canModifyComanda(s.role, comanda.waiterId === s.staffId)) {
+  // Para llevar (sin mesa): la maneja caja → cualquier rol de caja puede operarla.
+  const isTakeout = comanda.tableId === null;
+  const isCajaRole = s.role === "OPERATION" || s.role === "CAPTAIN" || s.role === "MANAGER";
+  const isOwner = comanda.waiterId === s.staffId || comanda.openedById === s.staffId;
+  if (!canModifyComanda(s.role, isOwner) && !(isTakeout && isCajaRole)) {
     return NextResponse.json<ApiResponse>({ success: false, error: "No puedes modificar esta comanda" }, { status: 403 });
   }
   if (comanda.status !== "OPEN" && comanda.status !== "IN_SERVICE") {
