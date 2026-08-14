@@ -9,7 +9,7 @@ const DAY = 86_400_000;
 const mxToday = () => new Intl.DateTimeFormat("en-CA", { timeZone: MX_TZ }).format(new Date());
 
 type AuditKind =
-  | "PRINT" | "REPRINT" | "TABLE_CHANGE" | "WAITER_CHANGE" | "ITEM_CANCEL"
+  | "PRINT" | "REPRINT" | "TABLE_CHANGE" | "WAITER_CHANGE" | "ITEM_CANCEL" | "ITEM_REMOVE"
   | "PAYMENT" | "PAYMENT_VOID" | "DISCOUNT" | "MERGE" | "TRANSFER" | "REOPEN";
 interface AuditEvent { kind: AuditKind; at: string; actor: string; detail: string; reason: string | null }
 
@@ -105,7 +105,19 @@ export async function GET(request: NextRequest) {
       events.push({ kind: "WAITER_CHANGE", at: w.changedAt.toISOString(), actor: w.changedBy.fullName, detail: `${sName(w.fromWaiterId)} → ${sName(w.toWaiterId)}`, reason: w.reason });
     }
     for (const it of c.items) {
-      events.push({ kind: "ITEM_CANCEL", at: (it.cancelledAt ?? c.openedAt).toISOString(), actor: sName(it.cancelledById), detail: `Canceló ${it.quantity}× ${it.dishNameSnapshot}`, reason: it.cancelledReason });
+      // Un retiro ANTES de cocina (mesero quita su propio producto PENDING) no lleva
+      // motivo; una cancelación de producto YA enviado exige motivo (y la hace un
+      // supervisor). Distinguirlos para que "quitó" no se vea como "canceló".
+      const enviado = !!it.cancelledReason;
+      events.push({
+        kind: enviado ? "ITEM_CANCEL" : "ITEM_REMOVE",
+        at: (it.cancelledAt ?? c.openedAt).toISOString(),
+        actor: sName(it.cancelledById),
+        detail: enviado
+          ? `Canceló ${it.quantity}× ${it.dishNameSnapshot} (enviado a cocina)`
+          : `Quitó ${it.quantity}× ${it.dishNameSnapshot} (antes de cocina)`,
+        reason: it.cancelledReason,
+      });
     }
     for (const p of c.payments) {
       if (p.voided) {

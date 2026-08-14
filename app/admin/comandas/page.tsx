@@ -6,7 +6,7 @@ import { useSession } from "@/lib/session-client";
 import { formatMXN } from "@/lib/displayTotals";
 
 type AuditKind =
-  | "PRINT" | "REPRINT" | "TABLE_CHANGE" | "WAITER_CHANGE" | "ITEM_CANCEL"
+  | "PRINT" | "REPRINT" | "TABLE_CHANGE" | "WAITER_CHANGE" | "ITEM_CANCEL" | "ITEM_REMOVE"
   | "PAYMENT" | "PAYMENT_VOID" | "DISCOUNT" | "MERGE" | "TRANSFER" | "REOPEN";
 interface AuditEvent { kind: AuditKind; at: string; actor: string; detail: string; reason: string | null }
 interface AuditComanda {
@@ -26,6 +26,7 @@ const EVENT_META: Record<string, { label: string; color: string }> = {
   TABLE_CHANGE: { label: "Cambio de mesa", color: "#b07cd6" },
   WAITER_CHANGE: { label: "Cambio de mesero", color: "#b07cd6" },
   ITEM_CANCEL: { label: "Item cancelado", color: "#d9534f" },
+  ITEM_REMOVE: { label: "Producto quitado", color: "#d8a13a" },
   PAYMENT: { label: "Cobro", color: "#3f9d6f" },
   PAYMENT_VOID: { label: "Pago anulado", color: "#d9534f" },
   DISCOUNT: { label: "Descuento", color: "#d8a13a" },
