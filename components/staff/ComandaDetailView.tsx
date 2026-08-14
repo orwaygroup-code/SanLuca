@@ -62,6 +62,8 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   const [cancelItem, setCancelItem] = useState<CItem | null>(null);
   const [reopenOpen, setReopenOpen] = useState(false);
   const [closeZeroAsk, setCloseZeroAsk] = useState(false);
+  const [unlockAsk, setUnlockAsk] = useState(false);
+  const [askPrint, setAskPrint] = useState(false);
   const [askBill, setAskBill] = useState(false);
   const [reprint, setReprint] = useState(false);
   const [clearAsk, setClearAsk] = useState(false);
@@ -254,6 +256,19 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
     else push(r.error ?? "No se pudo quitar", "error");
   };
 
+  // Reabrir una cuenta "por cobrar" para volver a modificarla (→ IN_SERVICE). PIN supervisor.
+  const doUnlock = async (reason?: string, pin?: string) => {
+    setBusy(true);
+    const r = await apiFetch<Comanda>(`/api/comandas/${id}/unlock`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason, authPin: pin }),
+    });
+    setBusy(false);
+    setUnlockAsk(false);
+    if (r.ok) { setComanda(r.data!); push("Cuenta reabierta para modificar", "success"); }
+    else push(r.error ?? "No se pudo reabrir", "error");
+  };
+
   // Cerrar ("matar") una cuenta en $0 sin cobro, dejando huella. Settlea la comanda.
   const doCloseZero = async () => {
     setBusy(true);
@@ -294,13 +309,13 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   }
 
   const c = comanda!;
-  // Cancelar producto: el supervisor (Capitán/Manager) puede quitar CUALQUIER producto
-  // mientras la cuenta siga viva (incluye "por cobrar" y parcial); el mesero dueño solo
-  // productos aún no enviados (PENDING) y antes de que la cuenta pase a caja.
+  // Cancelar producto SOLO mientras la cuenta es editable (OPEN/IN_SERVICE). En "por cobrar"
+  // la cuenta está bloqueada: para modificar hay que "Reabrir cuenta" primero. El supervisor
+  // (Capitán/Manager) quita cualquier producto; el mesero dueño solo los PENDING.
   const canCancel = (it: CItem) => {
-    if (!["OPEN", "IN_SERVICE", "AWAITING_PAYMENT", "PARTIALLY_PAID"].includes(c.status)) return false;
+    if (!editable) return false;
     if (isSupervisor) return true;
-    return editable && it.status === "PENDING";
+    return it.status === "PENDING";
   };
   const totalLines = buildTotalLines(c, taxEnabled);
   // El tiempo actual debe tener al menos un platillo antes de abrir otro (evita tiempos vacíos).
@@ -310,6 +325,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   const cajaActive = ["OPEN", "IN_SERVICE", "AWAITING_PAYMENT", "PARTIALLY_PAID"].includes(c.status);
   const isPaid = c.status === "PAID";
   const awaitingBill = c.status === "AWAITING_PAYMENT"; // cuenta pedida, en espera de impresión/cobro en caja
+  const porCobrar = c.status === "AWAITING_PAYMENT" || c.status === "PARTIALLY_PAID"; // bloqueada: solo cobrar / reabrir
   const amountPaid = Number(c.amountPaid);
   const remaining = Math.max(0, Math.round((Number(c.total) - amountPaid) * 100) / 100);
 
@@ -543,7 +559,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
             {cajaActive && (
               <div style={caja.primaryRow}>
                 {awaitingBill && !alreadyPrinted && (
-                  <button style={caja.primary} onClick={() => doPrint()} disabled={busy || liveItems.length === 0}><Icon name="printer" size={18} />Imprimir ticket</button>
+                  <button style={caja.primary} onClick={() => setAskPrint(true)} disabled={busy || liveItems.length === 0}><Icon name="printer" size={18} />Imprimir ticket</button>
                 )}
                 {awaitingBill && !alreadyPrinted && splittable && totalLiveUnits > 1 && (
                   <button style={caja.secondary} onClick={() => setSplitOpen(true)} disabled={busy || matrixItemsWithQty.length === 0}>
@@ -556,6 +572,9 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
                 {alreadyPrinted && isSupervisor && (
                   <button style={caja.secondary} onClick={() => setReprint(true)} disabled={busy}><Icon name="printer" size={16} />Reimprimir</button>
                 )}
+                {porCobrar && (
+                  <button style={caja.secondary} onClick={() => setUnlockAsk(true)} disabled={busy}>Reabrir cuenta</button>
+                )}
               </div>
             )}
 
@@ -567,8 +586,9 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
               </div>
             )}
 
-            {/* Acciones menos frecuentes (supervisadas con PIN cuando aplica) */}
-            {cajaActive && (
+            {/* Acciones que MODIFICAN la cuenta: solo mientras es editable (OPEN/IN_SERVICE).
+                En "por cobrar" la cuenta está bloqueada — hay que "Reabrir cuenta" primero. */}
+            {editable && (
               <>
                 <div style={caja.subLabel}>Más acciones</div>
                 <div style={caja.moreRow}>
@@ -653,6 +673,29 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
         busy={busy}
         onConfirm={doCloseZero}
         onCancel={() => setCloseZeroAsk(false)}
+      />
+
+      {unlockAsk && (
+        <ReasonModal
+          open
+          title="Reabrir cuenta (por cobrar)"
+          label="Motivo de la reapertura (auditoría)"
+          confirmLabel="Reabrir para modificar"
+          requirePin
+          busy={busy}
+          onConfirm={(reason, pin) => doUnlock(reason, pin)}
+          onCancel={() => setUnlockAsk(false)}
+        />
+      )}
+
+      <ConfirmModal
+        open={askPrint}
+        title="Imprimir ticket"
+        message="¿Confirmar la impresión del ticket de la cuenta?"
+        confirmLabel="Confirmar"
+        busy={busy}
+        onConfirm={() => { setAskPrint(false); doPrint(); }}
+        onCancel={() => setAskPrint(false)}
       />
 
       <ConfirmModal
