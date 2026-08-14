@@ -13,9 +13,11 @@ interface Props {
   guests:    number;
   selection: TableSelection | null;
   onSelect:  (sel: TableSelection) => void;
+  // Modo "en vivo" (piso con comandas): si se pasa, se usa en lugar del blob de reserva.
+  renderTable?: (num: number, cx: number, cy: number, shape?: "round" | "sofa") => React.ReactNode;
 }
 
-export function SalonMap({ tables, pairs, triples, quads, guests, selection, onSelect }: Props) {
+export function SalonMap({ tables, pairs, triples, quads, guests, selection, onSelect, renderTable }: Props) {
   const byNumber = new Map(tables.map((t) => [t.number, t]));
   const pairIds   = new Set(pairs.flatMap((p) => [p.tableA.id, p.tableB.id]));
   const tripleIds = new Set(triples.flatMap((t) => [t.tableA.id, t.tableB.id, t.tableC.id]));
@@ -57,10 +59,11 @@ export function SalonMap({ tables, pairs, triples, quads, guests, selection, onS
     if (tableFitsGuests(t.capacity, guests)) onSelect({ tableId: t.id, tableNumber: t.number });
   }
 
-  const blob = (num: number, cx: number, cy: number) => {
+  const blob = (num: number, cx: number, cy: number, shape?: "round" | "sofa") => {
+    if (renderTable) return renderTable(num, cx, cy, shape);
     const t = byNumber.get(num);
     if (!t) return null;
-    return <BlobTable key={num} tableNum={t.number} capacity={t.capacity} cx={cx} cy={cy} state={getState(t)} onClick={() => handleClick(t)} />;
+    return <BlobTable key={num} tableNum={t.number} capacity={t.capacity} cx={cx} cy={cy} state={getState(t)} onClick={() => handleClick(t)} shape={shape} />;
   };
 
   return (

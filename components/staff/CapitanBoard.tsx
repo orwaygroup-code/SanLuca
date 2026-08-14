@@ -12,7 +12,7 @@ import { GoldSelect } from "@/components/ui/GoldSelect";
 import { ReopenModal } from "@/components/staff/caja";
 import { ModeSwitch } from "@/components/staff/ModeSwitch";
 import { LiveStats } from "@/components/staff/LiveStats";
-import { PisoMap } from "@/components/staff/PisoMap";
+import { FloorMap } from "@/components/staff/FloorMap";
 
 interface WaiterOpt { id: number; fullName: string; role: string }
 
@@ -100,7 +100,7 @@ export function CapitanBoard() {
       {showStats && comandas && <LiveStats comandas={comandas} />}
 
       {view === "map" ? (
-        <PisoMap tables={allTables} onOpen={(id) => router.push(detailHref(id))} />
+        <FloorMap tables={allTables} onOpen={(id) => router.push(detailHref(id))} />
       ) : comandas === null ? <Spinner /> :
       comandas.length === 0 ? <EmptyState text="No hay comandas en el piso." /> : (
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }} data-tour="grid">

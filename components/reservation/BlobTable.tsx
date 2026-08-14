@@ -13,6 +13,11 @@ interface BlobTableProps {
   state:     TableState;
   onClick?:  () => void;
   shape?:    "round" | "sofa"; // sofa = rectángulo para M1
+  // Modo "en vivo" (piso con comandas): override de color y texto secundario. No lo usa
+  // el flujo de reservas (queda igual). `sub` reemplaza "{capacity}p" (ej. total).
+  fill?:     Partial<{ table: string; chair: string; text: string; border: string }>;
+  sub?:      string;
+  forceClickable?: boolean;
 }
 
 // Dimensiones según capacidad
@@ -47,16 +52,18 @@ const stateColors: Record<TableState, { table: string; chair: string; text: stri
   disabled:  { table: "#1e2426", chair: "#1a2022", text: "rgba(255,255,255,0.1)", border: "none"                            },
 };
 
-export function BlobTable({ tableNum, capacity, cx, cy, state, onClick, shape = "round" }: BlobTableProps) {
+export function BlobTable({ tableNum, capacity, cx, cy, state, onClick, shape = "round", fill, sub, forceClickable }: BlobTableProps) {
   const { tw, th } = dims(capacity, shape);
-  const c = stateColors[state];
+  const c = { ...stateColors[state], ...(fill ?? {}) };
   const chairR  = shape === "sofa" ? 9 : Math.max(8, Math.round(tw * 0.18));
   const dist     = (Math.max(tw, th) / 2) + chairR + 3;
   const angles   = chairAngles(capacity, shape);
   const pad      = chairR * 2 + 4;
   const boxW     = tw + pad * 2;
   const boxH     = th + pad * 2;
-  const clickable = state === "available" || state === "pair" || state === "triple" || state === "quad" || state === "selected";
+  const clickable = forceClickable !== undefined
+    ? forceClickable
+    : (state === "available" || state === "pair" || state === "triple" || state === "quad" || state === "selected");
 
   return (
     <div
@@ -114,7 +121,7 @@ export function BlobTable({ tableNum, capacity, cx, cy, state, onClick, shape = 
         }}
       >
         <span>M{tableNum}</span>
-        <span style={{ fontSize: "0.48rem", opacity: 0.6 }}>{capacity}p</span>
+        <span style={{ fontSize: "0.48rem", opacity: 0.75 }}>{sub ?? `${capacity}p`}</span>
       </button>
 
       {/* Indicador de selección: brackets en las 4 esquinas */}
