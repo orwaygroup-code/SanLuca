@@ -14,7 +14,8 @@ export async function GET(request: NextRequest) {
   if (!s) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
 
   const staff = await prisma.staff.findMany({
-    where: { tenantId: TENANT, active: true, role: { in: ["WAITER", "CAPTAIN", "MANAGER"] } },
+    // "llevar" es un mesero de sistema (cuentas para llevar), no una persona → fuera del dropdown.
+    where: { tenantId: TENANT, active: true, role: { in: ["WAITER", "CAPTAIN", "MANAGER"] }, username: { not: "llevar" } },
     select: { id: true, fullName: true, role: true },
     orderBy: { fullName: "asc" },
   });

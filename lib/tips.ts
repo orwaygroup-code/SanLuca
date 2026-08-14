@@ -115,7 +115,8 @@ export function normalizePolicy(raw: unknown): TipPolicy {
  */
 export async function loadWaiterBase(cashSessionId: number, db: Db = prisma): Promise<WaiterBase[]> {
   const comandas = await db.comanda.findMany({
-    where: { tenantId: TENANT, cashSessionId, status: "PAID" },
+    // Excluye el mesero de sistema "Llevar": las cuentas para llevar NO generan punto (7%).
+    where: { tenantId: TENANT, cashSessionId, status: "PAID", waiter: { username: { not: "llevar" } } },
     select: {
       waiterId: true,
       total: true,

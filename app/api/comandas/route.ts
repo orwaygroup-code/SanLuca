@@ -68,13 +68,23 @@ export async function POST(request: NextRequest) {
 
   const shift = getShiftWindow(new Date()).name;
   const year = mxYear();
+
+  // Cuentas PARA LLEVAR (sin mesa): el "mesero" es el de sistema "Llevar" → ese 7% (punto)
+  // no es de nadie. El creador real (ej. Perla) queda en openedById para auditoría. Si el
+  // staff "llevar" no existe aún (seed no corrido), cae al creador para no romper.
+  let effectiveWaiterId = typeof waiterId === "number" ? waiterId : s.staffId;
+  if (!hasTable) {
+    const llevar = await prisma.staff.findUnique({ where: { username: "llevar" }, select: { id: true } });
+    effectiveWaiterId = llevar?.id ?? s.staffId;
+  }
+
   const baseData = {
     tenantId: TENANT,
     tableId: hasTable ? tableId : null,
     customName: hasTable ? null : name,
     reservationId: typeof reservationId === "string" ? reservationId : null,
     guestsActual: guestsN,
-    waiterId: typeof waiterId === "number" ? waiterId : s.staffId,
+    waiterId: effectiveWaiterId,
     openedById: s.staffId,
     shift,
     notes: typeof notes === "string" ? notes : null,
