@@ -12,6 +12,7 @@ import { GoldSelect } from "@/components/ui/GoldSelect";
 import { ReopenModal } from "@/components/staff/caja";
 import { ModeSwitch } from "@/components/staff/ModeSwitch";
 import { LiveStats } from "@/components/staff/LiveStats";
+import { PisoMap } from "@/components/staff/PisoMap";
 
 interface WaiterOpt { id: number; fullName: string; role: string }
 
@@ -40,6 +41,7 @@ export function CapitanBoard() {
 
   const [comandas, setComandas] = useState<Comanda[] | null>(null);
   const [freeTables, setFreeTables] = useState<TableStatus[]>([]);
+  const [allTables, setAllTables] = useState<TableStatus[]>([]); // todas las mesas (para el mapa)
   const [waiters, setWaiters] = useState<WaiterOpt[]>([]);
   const [busy, setBusy] = useState(false);
 
@@ -48,6 +50,7 @@ export function CapitanBoard() {
   const [cancelTarget, setCancelTarget] = useState<Comanda | null>(null);
   const [reopenTarget, setReopenTarget] = useState<Comanda | null>(null);
   const [showStats, setShowStats] = useState(true);
+  const [view, setView] = useState<"cards" | "map">("cards");
 
   const allowed = !!staff && (staff.role === "CAPTAIN" || staff.role === "MANAGER");
 
@@ -58,7 +61,7 @@ export function CapitanBoard() {
       apiFetch<WaiterOpt[]>("/api/comandas/waiters"),
     ]);
     if (cs.ok) setComandas(cs.data!); else { setComandas([]); push(cs.error ?? "Error comandas", "error"); }
-    if (ts.ok) setFreeTables(ts.data!.filter((t) => t.state === "FREE"));
+    if (ts.ok) { setFreeTables(ts.data!.filter((t) => t.state === "FREE")); setAllTables(ts.data!); }
     if (ws.ok) setWaiters(ws.data!);
   }, [push]);
 
@@ -85,6 +88,10 @@ export function CapitanBoard() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
           <ModeSwitch role={staff?.role} />
+          <div style={vw.wrap} role="tablist" aria-label="Vista del piso">
+            <button role="tab" aria-selected={view === "cards"} style={{ ...vw.btn, ...(view === "cards" ? vw.on : {}) }} onClick={() => setView("cards")}>Recuadros</button>
+            <button role="tab" aria-selected={view === "map"} style={{ ...vw.btn, ...(view === "map" ? vw.on : {}) }} onClick={() => setView("map")}>Mapa</button>
+          </div>
           <button style={{ ...btn.ghost, minHeight: 40 }} onClick={() => setShowStats((v) => !v)}>{showStats ? "Ocultar ventas" : "Ventas en vivo"}</button>
           <button data-tour="refrescar" style={{ ...btn.ghost, minHeight: 40 }} onClick={load}>↻ Actualizar</button>
         </div>
@@ -92,7 +99,9 @@ export function CapitanBoard() {
 
       {showStats && comandas && <LiveStats comandas={comandas} />}
 
-      {comandas === null ? <Spinner /> :
+      {view === "map" ? (
+        <PisoMap tables={allTables} onOpen={(id) => router.push(detailHref(id))} />
+      ) : comandas === null ? <Spinner /> :
       comandas.length === 0 ? <EmptyState text="No hay comandas en el piso." /> : (
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }} data-tour="grid">
           {(() => {
@@ -232,6 +241,12 @@ function PickModal({ open, title, label, options, emptyMsg, busy, onConfirm, onC
 const mini: React.CSSProperties = {
   padding: "7px 11px", borderRadius: 8, border: `1px solid ${C.line}`, background: "transparent",
   color: C.dim, fontSize: "0.76rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+};
+
+const vw: Record<string, React.CSSProperties> = {
+  wrap: { display: "inline-flex", gap: 3, padding: 3, background: "rgba(0,0,0,0.25)", border: `1px solid ${C.border}`, borderRadius: 999 },
+  btn: { padding: "7px 14px", borderRadius: 999, border: "none", background: "transparent", color: C.dim, fontWeight: 700, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" },
+  on: { background: C.gold, color: "#16201f" },
 };
 
 const board: Record<string, React.CSSProperties> = {
