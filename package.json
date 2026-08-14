@@ -17,6 +17,7 @@
     "db:seed:link-ricardo": "tsx prisma/seeds/link-ricardo.ts",
     "db:seed:link-francesca": "tsx prisma/seeds/link-francesca.ts",
     "db:seed:link-paul": "tsx prisma/seeds/link-paul.ts",
+    "db:seed:link-admin": "tsx prisma/seeds/link-admin.ts",
     "db:seed:chef": "tsx prisma/seeds/chef-specialties.ts",
     "db:seed:brunch-fix": "tsx prisma/seeds/brunch-corrections-2026-06-17.ts",
     "db:update-wine-images": "ts-node -e \"require('ts-node').register({module:'commonjs'})\" prisma/update-wine-images.ts",
