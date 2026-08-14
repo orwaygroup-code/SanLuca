@@ -105,6 +105,12 @@ export async function POST(request: NextRequest) {
   });
   if (!owner) return NextResponse.json<ApiResponse>({ success: false, error: "No hay caja/operación activa para asignar el pedido" }, { status: 500 });
 
+  // El "mesero" de una cuenta para llevar es el de sistema "Llevar" → no genera punto (7%)
+  // para nadie. Perla (owner) queda como quien la atiende (openedById/addedById). Si el
+  // staff "llevar" no existe aún (seed no corrido), cae a owner para no romper.
+  const llevar = await prisma.staff.findUnique({ where: { username: "llevar" }, select: { id: true } });
+  const llevarWaiterId = llevar?.id ?? owner.id;
+
   // Match de productos: 1º por id de platillo; si el bot NO mandó id (arma el pedido
   // por la rama sin menú inyectado), 2º por NOMBRE normalizado contra el catálogo
   // activo. Solo platillos ACTIVOS y con área de preparación. Lo que no matchee o sea
@@ -196,7 +202,7 @@ export async function POST(request: NextRequest) {
           channel,
           pickupNote,
           guestsActual: 1,
-          waiterId: owner.id,
+          waiterId: llevarWaiterId,
           openedById: owner.id,
           shift,
           notes: notesLines.join(" · ").slice(0, 500),
