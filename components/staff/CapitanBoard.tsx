@@ -35,7 +35,14 @@ export function CapitanBoard() {
   // Dentro de /admin abrimos el detalle embebido (conserva el menú lateral);
   // en /staff/capitan, la vista staff de pantalla completa.
   const inAdmin = !!usePathname()?.startsWith("/admin");
-  const detailHref = (id: number) => (inAdmin ? `/admin/piso/${id}?back=/admin/piso` : `/staff/comandas/${id}?back=/staff/capitan`);
+  // Al abrir una comanda, guarda en ?back= el ORIGEN completo (path del modo + estado:
+  // vista mapa/recuadros y área) para que "Volver" regrese exactamente a donde estabas.
+  const detailHref = (id: number) => {
+    const base = inAdmin ? "/admin/piso" : "/staff/capitan";
+    const back = `${base}?view=${view}${area ? `&area=${encodeURIComponent(area)}` : ""}`;
+    const target = inAdmin ? `/admin/piso/${id}` : `/staff/comandas/${id}`;
+    return `${target}?back=${encodeURIComponent(back)}`;
+  };
   const { staff, loading } = useStaffSession();
   const { toasts, push, dismiss } = useToasts();
 
@@ -52,12 +59,22 @@ export function CapitanBoard() {
   const [showStats, setShowStats] = useState(true);
   const [view, setView] = useState<"cards" | "map">("cards");
   const [showPaid, setShowPaid] = useState(false);
+  const [area, setArea] = useState<string | null>(null); // sección activa del mapa en móvil
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 767px)");
     const u = () => setIsMobile(mq.matches);
     u(); mq.addEventListener("change", u);
     return () => mq.removeEventListener("change", u);
+  }, []);
+  // Restaura el ESTADO (vista mapa/recuadros y área) desde la URL, para que "Volver" regrese
+  // exactamente a donde estabas (ver detailHref, que lo mete en ?back=).
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    if (p.get("view") === "map") setView("map");
+    else if (p.get("view") === "cards") setView("cards");
+    const a = p.get("area");
+    if (a) setArea(a);
   }, []);
   // En móvil + Mapa, el mapa ocupa toda la pantalla → ocultamos "Ventas en vivo".
   const mapFull = isMobile && view === "map";
@@ -110,7 +127,7 @@ export function CapitanBoard() {
       {showStats && comandas && !mapFull && <LiveStats comandas={comandas} />}
 
       {view === "map" ? (
-        <FloorMap tables={allTables} onOpen={(id) => router.push(detailHref(id))} />
+        <FloorMap tables={allTables} onOpen={(id) => router.push(detailHref(id))} area={area} onArea={setArea} />
       ) : comandas === null ? <Spinner /> :
       comandas.length === 0 ? <EmptyState text="No hay comandas en el piso." /> : (
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }} data-tour="grid">

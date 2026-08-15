@@ -95,7 +95,9 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   const backHref = useMemo(() => {
     if (typeof window !== "undefined") {
       const b = new URLSearchParams(window.location.search).get("back");
-      if (b && /^\/(staff|admin)\/[A-Za-z0-9/_-]*$/.test(b)) return b;
+      // Ruta interna (empieza en /staff/ o /admin/); puede llevar query con el estado
+      // (ej. ?view=map&area=Salón) para regresar exactamente a donde estabas.
+      if (b && /^\/(staff|admin)\//.test(b)) return b;
     }
     if (embedded) return "/admin/piso";
     return staff?.role === "OPERATION" ? "/staff/operacion"

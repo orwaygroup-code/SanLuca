@@ -27,9 +27,16 @@ const fillOf = (s: string) => FILL[s] ?? FILL.FREE;
 const GRAPHIC = ["Salón", "Terraza", "Planta Alta"];
 const EMPTY = { tables: [], pairs: [], triples: [], quads: [], guests: 0, selection: null, onSelect: () => {} };
 
-export function FloorMap({ tables, onOpen }: { tables: TableStatus[]; onOpen: (comandaId: number) => void }) {
+export function FloorMap({ tables, onOpen, area, onArea }: {
+  tables: TableStatus[];
+  onOpen: (comandaId: number) => void;
+  area?: string | null;         // sección activa en móvil (controlada por el board, para preservar estado)
+  onArea?: (section: string) => void;
+}) {
   const [isMobile, setIsMobile] = useState(false);
-  const [sel, setSel] = useState<string | null>(null);
+  const [selInner, setSelInner] = useState<string | null>(null);
+  const sel = area !== undefined ? area : selInner;
+  const setSel = (s: string) => (onArea ? onArea(s) : setSelInner(s));
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 767px)");
