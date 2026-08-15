@@ -52,6 +52,15 @@ export function CapitanBoard() {
   const [showStats, setShowStats] = useState(true);
   const [view, setView] = useState<"cards" | "map">("cards");
   const [showPaid, setShowPaid] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const u = () => setIsMobile(mq.matches);
+    u(); mq.addEventListener("change", u);
+    return () => mq.removeEventListener("change", u);
+  }, []);
+  // En móvil + Mapa, el mapa ocupa toda la pantalla → ocultamos "Ventas en vivo".
+  const mapFull = isMobile && view === "map";
 
   const allowed = !!staff && (staff.role === "CAPTAIN" || staff.role === "MANAGER");
 
@@ -93,12 +102,12 @@ export function CapitanBoard() {
             <button role="tab" aria-selected={view === "cards"} style={{ ...vw.btn, ...(view === "cards" ? vw.on : {}) }} onClick={() => setView("cards")}>Recuadros</button>
             <button role="tab" aria-selected={view === "map"} style={{ ...vw.btn, ...(view === "map" ? vw.on : {}) }} onClick={() => setView("map")}>Mapa</button>
           </div>
-          <button style={{ ...btn.ghost, minHeight: 40 }} onClick={() => setShowStats((v) => !v)}>{showStats ? "Ocultar ventas" : "Ventas en vivo"}</button>
+          {!mapFull && <button style={{ ...btn.ghost, minHeight: 40 }} onClick={() => setShowStats((v) => !v)}>{showStats ? "Ocultar ventas" : "Ventas en vivo"}</button>}
           <button data-tour="refrescar" style={{ ...btn.ghost, minHeight: 40 }} onClick={load}>↻ Actualizar</button>
         </div>
       </div>
 
-      {showStats && comandas && <LiveStats comandas={comandas} />}
+      {showStats && comandas && !mapFull && <LiveStats comandas={comandas} />}
 
       {view === "map" ? (
         <FloorMap tables={allTables} onOpen={(id) => router.push(detailHref(id))} />

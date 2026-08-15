@@ -87,17 +87,31 @@ export function FloorMap({ tables, onOpen }: { tables: TableStatus[]; onOpen: (c
     </div>
   );
 
-  // CELULAR: botones de área + una sección a la vez (se ve completa, sin scroll largo).
-  if (isMobile && sections.length > 1) {
+  // CELULAR: botones de área + UNA sección a la vez, ROTADA a vertical y acotada al alto
+  // de la pantalla, para que el plano (que es horizontal) se vea completo en el celular parado.
+  if (isMobile && sections.length >= 1) {
     const active = sel && sections.includes(sel) ? sel : sections[0];
+    const graphic = GRAPHIC.includes(active);
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <div style={fm.areas}>
-          {sections.map((s) => (
-            <button key={s} onClick={() => setSel(s)} style={{ ...fm.area, ...(s === active ? fm.areaOn : {}) }}>{s}</button>
-          ))}
-        </div>
-        {renderSection(active)}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {sections.length > 1 && (
+          <div style={fm.areas}>
+            {sections.map((s) => (
+              <button key={s} onClick={() => setSel(s)} style={{ ...fm.area, ...(s === active ? fm.areaOn : {}) }}>{s}</button>
+            ))}
+          </div>
+        )}
+        {graphic ? (
+          <div style={{ position: "relative", width: "100%", height: "72vh", overflow: "hidden" }}>
+            {/* La sección (landscape) se gira 90°; su ancho = alto del contenedor, así al
+                rotar llena el alto y se ve completa. Los rótulos quedan de lado (girar el ojo). */}
+            <div style={{ position: "absolute", top: "50%", left: "50%", width: "72vh", transform: "translate(-50%, -50%) rotate(90deg)" }}>
+              {renderSection(active)}
+            </div>
+          </div>
+        ) : (
+          renderSection(active)
+        )}
         {legend}
       </div>
     );
