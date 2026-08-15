@@ -51,6 +51,7 @@ export function CapitanBoard() {
   const [reopenTarget, setReopenTarget] = useState<Comanda | null>(null);
   const [showStats, setShowStats] = useState(true);
   const [view, setView] = useState<"cards" | "map">("cards");
+  const [showPaid, setShowPaid] = useState(false);
 
   const allowed = !!staff && (staff.role === "CAPTAIN" || staff.role === "MANAGER");
 
@@ -157,6 +158,38 @@ export function CapitanBoard() {
         </div>
       )}
 
+      {/* Ya pagadas de hoy: lista colapsable, SOLO LECTURA (sin botones), en renglones
+          horizontales que abarcan el ancho. Se archivan aquí, no en las tarjetas. */}
+      {comandas && (() => {
+        const paid = comandas.filter((c) => c.status === "PAID");
+        return (
+          <div style={{ marginTop: 24 }}>
+            <button onClick={() => setShowPaid((v) => !v)} style={pd.toggle} aria-expanded={showPaid}>
+              <span>Ya pagadas hoy · {paid.length}</span>
+              <span style={{ transition: "transform .2s", transform: showPaid ? "rotate(180deg)" : "none", fontSize: "0.9rem" }}>▾</span>
+            </button>
+            {showPaid && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
+                {paid.length === 0 ? (
+                  <div style={{ color: C.faint, fontSize: "0.84rem", padding: "10px 4px" }}>Ninguna cobrada hoy.</div>
+                ) : (
+                  [...paid].sort((a, b) => (a.closedAt && b.closedAt ? (a.closedAt < b.closedAt ? 1 : -1) : 0)).map((c) => (
+                    <div key={c.id} style={pd.row}>
+                      <span style={pd.folio}>{c.folio}</span>
+                      <span style={pd.place}>{c.table ? `Mesa ${c.table.number} · ${c.table.section.name}` : (c.customName || "Sin mesa")}</span>
+                      <span style={pd.meta}>{c.waiter?.fullName ?? "—"}</span>
+                      <span style={pd.metaSm}>{c.guestsActual} pers</span>
+                      <span style={pd.metaSm}>{c.closedAt ? new Date(c.closedAt).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }) : ""}</span>
+                      <span style={pd.total}>{formatMXN(Number(c.total))}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Mover mesa */}
       <PickModal
         open={!!moveTarget}
@@ -247,6 +280,16 @@ const vw: Record<string, React.CSSProperties> = {
   wrap: { display: "inline-flex", gap: 3, padding: 3, background: "rgba(0,0,0,0.25)", border: `1px solid ${C.border}`, borderRadius: 999 },
   btn: { padding: "7px 14px", borderRadius: 999, border: "none", background: "transparent", color: C.dim, fontWeight: 700, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" },
   on: { background: C.gold, color: "#16201f" },
+};
+
+const pd: Record<string, React.CSSProperties> = {
+  toggle: { display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: "12px 16px", borderRadius: 12, border: `1px solid ${C.border}`, background: C.panel, color: C.dim, fontWeight: 700, fontSize: "0.82rem", cursor: "pointer", fontFamily: "inherit" },
+  row: { display: "flex", alignItems: "center", gap: 14, rowGap: 4, flexWrap: "wrap", width: "100%", padding: "10px 16px", borderRadius: 10, border: `1px solid ${C.line}`, background: "rgba(255,255,255,0.02)", boxSizing: "border-box" },
+  folio: { color: C.gold, fontWeight: 800, fontSize: "0.76rem", minWidth: 100, flexShrink: 0 },
+  place: { color: C.cream, fontWeight: 600, fontSize: "0.88rem", flex: 1, minWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  meta: { color: C.dim, fontSize: "0.8rem", whiteSpace: "nowrap" },
+  metaSm: { color: C.faint, fontSize: "0.76rem", whiteSpace: "nowrap" },
+  total: { color: C.cream, fontWeight: 800, fontSize: "0.9rem", minWidth: 88, textAlign: "right", marginLeft: "auto" },
 };
 
 const board: Record<string, React.CSSProperties> = {
