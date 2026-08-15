@@ -16,11 +16,11 @@ import { FloorMap } from "@/components/staff/FloorMap";
 
 interface WaiterOpt { id: number; fullName: string; role: string }
 
-// Separación del piso por estado. "Ya pagadas" solo trae las del día (API).
+// Separación del piso por estado. Las cobradas NO se muestran como tarjetas (quedan
+// archivadas en el Historial); su total sí sigue contando en "Ventas en vivo".
 const GROUPS: { key: string; title: string; statuses: string[]; color: string }[] = [
   { key: "service", title: "En servicio", statuses: ["OPEN", "IN_SERVICE"], color: C.blue },
   { key: "billing", title: "Por cobrar", statuses: ["AWAITING_PAYMENT", "PARTIALLY_PAID"], color: C.amber },
-  { key: "paid", title: "Ya pagadas · hoy", statuses: ["PAID"], color: C.green },
 ];
 
 /**
