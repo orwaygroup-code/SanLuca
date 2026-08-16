@@ -26,6 +26,14 @@ export interface CItem {
   status: ItemStatus;
   addedAt: string;
   sentAt: string | null;
+  comments?: CItemComment[]; // bitácora append-only por producto
+}
+
+export interface CItemComment {
+  id: number;
+  text: string;
+  createdById: number | null;
+  createdAt: string;
 }
 
 export interface CPrint {

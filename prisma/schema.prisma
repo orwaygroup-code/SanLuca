@@ -97,6 +97,7 @@ model Staff {
   comandasOpened        Comanda[]             @relation("ComandaOpener")
   comandasClosed        Comanda[]             @relation("ComandaCloser")
   itemsAdded            ComandaItem[]
+  itemComments          ComandaItemComment[]
   printsExecuted        ComandaPrint[]        @relation("PrintExecutor")
   printsAuthorized      ComandaPrint[]        @relation("PrintAuthorizer")
   tableChangesAuthored  ComandaTableChange[]  @relation("TableChangeAuthor")
@@ -767,9 +768,31 @@ model ComandaItem {
   cancelledReason String?
   cancelledAt     DateTime?
 
+  // Comentarios append-only por producto: se AGREGAN, nunca se editan ni borran.
+  comments ComandaItemComment[]
+
   @@index([tenantId, comandaId, status])
   @@index([tenantId, status])
   @@index([tenantId, dishId]) // mix de producto (reporte de ventas)
+}
+
+// Comentario por producto (append-only). Cada "agregar comentario" crea un registro
+// nuevo; NO hay edición ni borrado (por diseño: solo se acumulan). El comentario a
+// cocina del alta vive en ComandaItem.kitchenNotes; esto es la bitácora posterior.
+model ComandaItemComment {
+  id       Int @id @default(autoincrement())
+  tenantId Int @default(1)
+
+  itemId Int
+  item   ComandaItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  text String @db.Text
+
+  createdById Int? // Staff que lo agregó (auditoría)
+  createdBy   Staff? @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, itemId])
 }
 
 model ComandaPrint {

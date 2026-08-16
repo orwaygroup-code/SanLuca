@@ -65,13 +65,13 @@ function renderKitchen(p, w) {
   o += center(p.folio + " - " + ascii(p.waiter), w) + "\n";
   o += center(fmtTime(p.time), w) + "\n";
   o += rule(w) + "\n";
-  // Separadores de tiempo: solo si la comanda mezcla varios cursos.
-  const firstCourse = p.items.length ? (p.items[0].course || 1) : 1;
-  const multiCourse = p.items.some((x) => (x.course || 1) !== firstCourse);
+  // Separador de tiempo SIEMPRE que cambie el curso (incluye el primero), aunque el
+  // ticket traiga un solo tiempo: el mesero envía a cocina por tandas, así cocina ve
+  // en cada ticket a qué tiempo pertenece.
   let lastCourse = null;
   for (const it of p.items) {
     const c = it.course || 1;
-    if (multiCourse && c !== lastCourse) {
+    if (c !== lastCourse) {
       o += "\n" + BOLD_ON + center("-- " + courseLabel(c) + " --", w) + BOLD_OFF + "\n";
       lastCourse = c;
     }

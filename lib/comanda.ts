@@ -46,7 +46,7 @@ export const ACTIVE_STATUSES = ["OPEN", "IN_SERVICE", "AWAITING_PAYMENT", "PARTI
 
 /** Include estándar para devolver una comanda con su detalle. */
 export const COMANDA_INCLUDE = {
-  items: { orderBy: { addedAt: "asc" } },
+  items: { orderBy: { addedAt: "asc" }, include: { comments: { orderBy: { createdAt: "asc" } } } },
   prints: { orderBy: { printedAt: "asc" } },
   table: { select: { id: true, number: true, section: { select: { name: true } } } },
   waiter: { select: { id: true, fullName: true, username: true, role: true } },

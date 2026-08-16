@@ -184,8 +184,9 @@ export function CapitanBoard() {
         </div>
       )}
 
-      {/* Ya pagadas de hoy: lista colapsable, SOLO LECTURA (sin botones), en renglones
-          horizontales que abarcan el ancho. Se archivan aquí, no en las tarjetas. */}
+      {/* Ya pagadas de hoy: lista colapsable en renglones horizontales que abarcan el ancho.
+          Se archivan aquí, no en las tarjetas. Único botón: "Ver más" → abre el detalle en
+          solo-lectura (no se puede modificar una cuenta ya cobrada). */}
       {comandas && (() => {
         const paid = comandas.filter((c) => c.status === "PAID");
         return (
@@ -207,6 +208,7 @@ export function CapitanBoard() {
                       <span style={pd.metaSm}>{c.guestsActual} pers</span>
                       <span style={pd.metaSm}>{c.closedAt ? new Date(c.closedAt).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }) : ""}</span>
                       <span style={pd.total}>{formatMXN(Number(c.total))}</span>
+                      <button style={pd.more} onClick={() => router.push(detailHref(c.id))}>Ver más</button>
                     </div>
                   ))
                 )}
@@ -316,6 +318,7 @@ const pd: Record<string, React.CSSProperties> = {
   meta: { color: C.dim, fontSize: "0.8rem", whiteSpace: "nowrap" },
   metaSm: { color: C.faint, fontSize: "0.76rem", whiteSpace: "nowrap" },
   total: { color: C.cream, fontWeight: 800, fontSize: "0.9rem", minWidth: 88, textAlign: "right", marginLeft: "auto" },
+  more: { padding: "6px 12px", borderRadius: 8, border: `1px solid ${C.border}`, background: "transparent", color: C.gold, fontWeight: 700, fontSize: "0.74rem", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap", flexShrink: 0 },
 };
 
 const board: Record<string, React.CSSProperties> = {
