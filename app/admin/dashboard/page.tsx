@@ -13,9 +13,14 @@ interface Report {
   kpis: { sales: number; taxCollected: number; tips: number; comandas: number; guests: number; avgTicket: number; activeNow: number };
   byShift: ShiftStat[];
   cortes: Corte[];
+  byMethod: { method: string; amount: number; tip: number; count: number }[];
   byHour: { hour: number; sales: number }[];
   topDishes: { name: string; qty: number; revenue: number }[];
 }
+
+const METHOD_LABEL: Record<string, string> = {
+  CASH: "Efectivo", CARD_DEBIT: "Débito", CARD_CREDIT: "Crédito", TRANSFER: "Transferencia", WAITER_CREDIT: "Crédito mesero",
+};
 
 const RANGES: { key: string; label: string }[] = [
   { key: "today", label: "Hoy" }, { key: "7d", label: "7 días" }, { key: "30d", label: "30 días" },
@@ -26,7 +31,7 @@ export default function AdminDashboardPage() {
   const router = useRouter();
   const session = useSession();
   const [range, setRange] = useState("today");
-  const [sessionId, setSessionId] = useState<number | null>(null); // corte seleccionado (turno por corte)
+  const [corte, setCorte] = useState<Corte | null>(null); // corte abierto en la ventana de detalle
   const [rep, setRep] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -37,12 +42,11 @@ export default function AdminDashboardPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const qs = sessionId != null ? `cashSessionId=${sessionId}` : `range=${range}`;
-    const r = await fetch(`/api/admin/reports?${qs}`, { credentials: "same-origin" });
+    const r = await fetch(`/api/admin/reports?range=${range}`, { credentials: "same-origin" });
     const d = await r.json().catch(() => null);
     if (d?.success) setRep(d.data as Report);
     setLoading(false);
-  }, [range, sessionId]);
+  }, [range]);
 
   useEffect(() => { if (session.user?.role === "ADMIN") load(); }, [session.user, load]);
 
@@ -51,7 +55,6 @@ export default function AdminDashboardPage() {
   }
 
   const k = rep?.kpis;
-  const activeCorte = sessionId != null ? rep?.cortes.find((c) => c.id === sessionId) ?? null : null;
 
   return (
     <div style={S.page}>
@@ -59,13 +62,10 @@ export default function AdminDashboardPage() {
         <div style={S.headRow}>
           <div>
             <h1 style={S.h1}>Dashboard de ventas</h1>
-            <div style={{ color: C.gold, fontSize: "0.84rem", marginTop: 2 }}>
-              {activeCorte ? `Corte ${activeCorte.folio}${activeCorte.status === "OPEN" ? " · abierto" : ""}` : "Comparación de turnos: Comida vs Brunch"}
-            </div>
+            <div style={{ color: C.gold, fontSize: "0.84rem", marginTop: 2 }}>Comparación de turnos: Comida vs Brunch</div>
           </div>
           <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-            {activeCorte && <button style={{ ...S.rangeBtn, ...S.rangeOn }} onClick={() => setSessionId(null)}>← Ver todo el día</button>}
-            {!activeCorte && RANGES.map((r) => (
+            {RANGES.map((r) => (
               <button key={r.key} onClick={() => setRange(r.key)} style={{ ...S.rangeBtn, ...(range === r.key ? S.rangeOn : {}) }}>{r.label}</button>
             ))}
           </div>
@@ -115,21 +115,18 @@ export default function AdminDashboardPage() {
             {rep.cortes.length > 0 && (
               <Panel title="Turnos por corte de caja (hoy)">
                 <div style={S.corteRow}>
-                  {rep.cortes.map((c) => {
-                    const on = sessionId === c.id;
-                    return (
-                      <button key={c.id} onClick={() => setSessionId(on ? null : c.id)} style={{ ...S.corte, ...(on ? S.corteOn : {}) }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                          <span style={{ color: C.gold, fontWeight: 800, fontSize: "0.78rem" }}>{c.folio}</span>
-                          <span style={{ color: c.status === "OPEN" ? C.green : C.faint, fontSize: "0.68rem", fontWeight: 700 }}>{c.status === "OPEN" ? "Abierto" : "Cerrado"}</span>
-                        </div>
-                        <div style={{ color: C.cream, fontWeight: 800, fontSize: "1.1rem", marginTop: 6 }}>{formatMXN(c.sales)}</div>
-                        <div style={{ color: C.dim, fontSize: "0.72rem", marginTop: 2 }}>{c.comandas} comandas · {hhmm(c.openedAt)}{c.closedAt ? `–${hhmm(c.closedAt)}` : ""}</div>
-                      </button>
-                    );
-                  })}
+                  {rep.cortes.map((c) => (
+                    <button key={c.id} onClick={() => setCorte(c)} style={S.corte}>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                        <span style={{ color: C.gold, fontWeight: 800, fontSize: "0.78rem" }}>{c.folio}</span>
+                        <span style={{ color: c.status === "OPEN" ? C.green : C.faint, fontSize: "0.68rem", fontWeight: 700 }}>{c.status === "OPEN" ? "Abierto" : "Cerrado"}</span>
+                      </div>
+                      <div style={{ color: C.cream, fontWeight: 800, fontSize: "1.1rem", marginTop: 6 }}>{formatMXN(c.sales)}</div>
+                      <div style={{ color: C.dim, fontSize: "0.72rem", marginTop: 2 }}>{c.comandas} comandas · {hhmm(c.openedAt)}{c.closedAt ? `–${hhmm(c.closedAt)}` : ""}</div>
+                    </button>
+                  ))}
                 </div>
-                <p style={{ color: C.faint, fontSize: "0.74rem", margin: "10px 2px 0" }}>Toca un corte para ver el dashboard enfocado solo en ese turno.</p>
+                <p style={{ color: C.faint, fontSize: "0.74rem", margin: "10px 2px 0" }}>Toca un corte para ver su detalle en una ventana.</p>
               </Panel>
             )}
 
@@ -155,7 +152,93 @@ export default function AdminDashboardPage() {
             </Panel>
           </>
         )}
+        {corte && <CorteModal corte={corte} onClose={() => setCorte(null)} />}
       </main>
+    </div>
+  );
+}
+
+/** Ventana pequeña con el detalle de un corte (turno): KPIs, métodos de pago y top platillos. */
+function CorteModal({ corte, onClose }: { corte: Corte; onClose: () => void }) {
+  const [rep, setRep] = useState<Report | null>(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    fetch(`/api/admin/reports?cashSessionId=${corte.id}`, { credentials: "same-origin" })
+      .then((r) => r.json()).then((d) => { if (alive && d?.success) setRep(d.data as Report); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [corte.id]);
+  const k = rep?.kpis;
+  return (
+    <div style={S.overlay} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={S.modal}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+          <div>
+            <div style={{ color: C.gold, fontWeight: 800, fontSize: "1.05rem" }}>Corte {corte.folio}</div>
+            <div style={{ color: C.dim, fontSize: "0.76rem", marginTop: 2 }}>
+              {corte.status === "OPEN" ? "Abierto" : "Cerrado"} · {hhmm(corte.openedAt)}{corte.closedAt ? `–${hhmm(corte.closedAt)}` : ""}
+            </div>
+          </div>
+          <button style={S.close} onClick={onClose} aria-label="Cerrar">✕</button>
+        </div>
+
+        {loading || !rep ? (
+          <div style={{ color: C.dim, padding: "26px 0", textAlign: "center" }}>Cargando…</div>
+        ) : (
+          <>
+            <div style={S.mkpis}>
+              <MiniKpi label="Ventas" value={formatMXN(k!.sales)} />
+              <MiniKpi label="Comandas" value={String(k!.comandas)} />
+              <MiniKpi label="Ticket prom." value={formatMXN(k!.avgTicket)} />
+              <MiniKpi label="Comensales" value={String(k!.guests)} />
+            </div>
+
+            {rep.byMethod.length > 0 && (
+              <div style={{ marginTop: 16 }}>
+                <div style={S.mhead}>Métodos de pago</div>
+                {rep.byMethod.map((m) => (
+                  <div key={m.method} style={S.mrow}>
+                    <span style={{ color: C.cream, flex: 1 }}>{METHOD_LABEL[m.method] ?? m.method}</span>
+                    <span style={{ color: C.faint, width: 34, textAlign: "right" }}>{m.count}</span>
+                    <span style={{ color: C.cream, fontWeight: 700, width: 96, textAlign: "right" }}>{formatMXN(m.amount)}</span>
+                  </div>
+                ))}
+                {k!.tips > 0 && (
+                  <div style={{ ...S.mrow, borderBottom: "none" }}>
+                    <span style={{ color: C.gold, flex: 1 }}>Propinas</span>
+                    <span style={{ width: 34 }} />
+                    <span style={{ color: C.gold, fontWeight: 700, width: 96, textAlign: "right" }}>{formatMXN(k!.tips)}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {rep.topDishes.length > 0 && (
+              <div style={{ marginTop: 16 }}>
+                <div style={S.mhead}>Top platillos</div>
+                {rep.topDishes.slice(0, 6).map((d, i) => (
+                  <div key={d.name} style={S.mrow}>
+                    <span style={{ color: C.dim, width: 18 }}>{i + 1}.</span>
+                    <span style={{ color: C.cream, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.name}</span>
+                    <span style={{ color: C.gold, fontWeight: 700, width: 44, textAlign: "right" }}>{d.qty}×</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MiniKpi({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={S.mkpi}>
+      <div style={{ color: C.faint, fontSize: "0.62rem", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700 }}>{label}</div>
+      <div style={{ color: C.cream, fontWeight: 800, fontSize: "1.05rem", marginTop: 3 }}>{value}</div>
     </div>
   );
 }
@@ -222,4 +305,11 @@ const S: Record<string, React.CSSProperties> = {
   panel: { background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden", marginBottom: 16 },
   panelHead: { padding: "12px 18px", borderBottom: `1px solid ${C.line}`, color: C.faint, fontSize: "0.66rem", letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 700 },
   dishRow: { display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: `1px solid ${C.line}`, fontSize: "0.86rem" },
+  overlay: { position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 },
+  modal: { background: C.panel, border: `1px solid ${C.border}`, borderRadius: 16, width: "100%", maxWidth: 420, maxHeight: "calc(100vh - 32px)", overflowY: "auto", padding: "20px 22px" },
+  close: { width: 34, height: 34, borderRadius: 8, border: `1px solid ${C.line}`, background: "transparent", color: C.dim, fontSize: "0.9rem", cursor: "pointer", flexShrink: 0, fontFamily: "inherit" },
+  mkpis: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 16 },
+  mkpi: { background: "rgba(255,255,255,0.03)", border: `1px solid ${C.line}`, borderRadius: 10, padding: "10px 12px" },
+  mhead: { color: C.faint, fontSize: "0.62rem", letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 700, marginBottom: 6 },
+  mrow: { display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: `1px solid ${C.line}`, fontSize: "0.84rem" },
 };
