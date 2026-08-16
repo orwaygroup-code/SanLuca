@@ -1,8 +1,8 @@
 "use client";
 
-import { DishCrud } from "@/components/admin/DishCrud";
+import { MenuEditor } from "@/components/admin/MenuEditor";
 
-/** Admin → Platillos: CRUD del menú (platillos normales, no extras). Solo ADMIN. */
+/** Admin → Menú: editor de tarjetas (Turno → Cartas → Categorías → Platillos). Solo ADMIN. */
 export default function MenuAdminPage() {
-  return <DishCrud isExtra={false} />;
+  return <MenuEditor />;
 }

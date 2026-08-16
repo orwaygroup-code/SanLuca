@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       ...(clase === "COCINA" || clase === "BARRA" ? { clase } : {}),
     },
     orderBy: [{ turno: "asc" }, { position: "asc" }, { name: "asc" }],
-    select: { id: true, name: true, turno: true, clase: true, position: true, _count: { select: { categories: true } } },
+    select: { id: true, name: true, turno: true, clase: true, position: true, isPrincipal: true, _count: { select: { categories: true } } },
   });
   return NextResponse.json<ApiResponse>({ success: true, data: cartas });
 }

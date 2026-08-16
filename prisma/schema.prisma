@@ -138,13 +138,14 @@ enum MenuTurno {
 // Ej: Comida→Clásica (COCINA), Comida→Vinos (BARRA), Brunch→Brunch (COCINA).
 // `clase` reusa PrepArea: COCINA = alimentos, BARRA = bebidas.
 model Carta {
-  id         String         @id @default(cuid())
-  name       String // "Clásica", "Autor", "Bebidas", "Postres", "Destilados", "Vinos", "Brunch"
-  turno      MenuTurno
-  clase      PrepArea // COCINA = alimentos, BARRA = bebidas
-  position   Int?
-  categories MenuCategory[]
-  createdAt  DateTime       @default(now())
+  id          String         @id @default(cuid())
+  name        String // "Clásica", "Autor", "Bebidas", "Postres", "Destilados", "Vinos", "Brunch"
+  turno       MenuTurno
+  clase       PrepArea // COCINA = alimentos, BARRA = bebidas
+  position    Int?
+  isPrincipal Boolean        @default(false) // carta "Principal" del turno (estrella en el editor)
+  categories  MenuCategory[]
+  createdAt   DateTime       @default(now())
 
   @@unique([turno, name])
 }
@@ -154,6 +155,7 @@ model MenuCategory {
   name      String
   position  Int?
   imageUrl  String?
+  visible   Boolean  @default(true) // mostrar en el menú público (ocultar sin borrar). El comandero la ve igual.
   cartaId   String? // FK a Carta (turno + clase). Null = sin clasificar aún.
   carta     Carta?   @relation(fields: [cartaId], references: [id])
   dishes    Dish[]

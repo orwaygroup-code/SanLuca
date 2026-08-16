@@ -182,14 +182,16 @@ export function DishCrud({ isExtra }: { isExtra: boolean }) {
 }
 
 // ─────────────────────────────────────────────────────── Form modal ──
-function DishFormModal({ mode, isExtra, row, onClose, onSaved }: {
-  mode: "create" | "edit"; isExtra: boolean; row?: DishRow; onClose: () => void; onSaved: () => void;
+export function DishFormModal({ mode, isExtra, row, preset, onClose, onSaved }: {
+  mode: "create" | "edit"; isExtra: boolean; row?: DishRow;
+  preset?: { turno?: string; clase?: string; cartaId?: string; categoryId?: string };
+  onClose: () => void; onSaved: () => void;
 }) {
   const c0 = row?.category?.carta ?? null;
-  const [turno, setTurno] = useState<string>(c0?.turno ?? "");
-  const [clase, setClase] = useState<string>(c0?.clase ?? "");
-  const [cartaId, setCartaId] = useState(c0?.id ?? "");
-  const [categoryId, setCategoryId] = useState(row?.categoryId ?? "");
+  const [turno, setTurno] = useState<string>(c0?.turno ?? preset?.turno ?? "");
+  const [clase, setClase] = useState<string>(c0?.clase ?? preset?.clase ?? "");
+  const [cartaId, setCartaId] = useState(c0?.id ?? preset?.cartaId ?? "");
+  const [categoryId, setCategoryId] = useState(row?.categoryId ?? preset?.categoryId ?? "");
   const [name, setName] = useState(row?.name ?? "");
   const [description, setDescription] = useState(row?.description ?? "");
   const [price, setPrice] = useState(row ? String(row.price) : "");

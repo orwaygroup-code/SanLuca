@@ -8,6 +8,7 @@ import { COMIDA_GROUPS, BRUNCH_GROUPS } from "@/config/Menustructure";
 
 export async function getMenuCategories() {
   return prisma.menuCategory.findMany({
+    where: { visible: true }, // categorías ocultas no salen en el menú público (el comandero sí las ve)
     orderBy: { position: "asc" },
     select: {
       id: true,

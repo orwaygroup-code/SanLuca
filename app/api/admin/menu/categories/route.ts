@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     where: { ...(cartaId ? { cartaId } : {}) },
     orderBy: [{ position: "asc" }, { name: "asc" }],
     select: {
-      id: true, name: true, position: true, cartaId: true,
+      id: true, name: true, position: true, visible: true, cartaId: true,
       carta: { select: { id: true, name: true, turno: true, clase: true } },
       _count: { select: { dishes: true } },
     },
