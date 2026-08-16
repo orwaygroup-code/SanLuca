@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolveActor, isSupervisor } from "@/lib/dualAuth";
 import { verifySupervisorPin } from "@/lib/staff";
+import { prepAreaToTarget } from "@/lib/comandaRules";
 import { TENANT, COMANDA_INCLUDE, recalcComandaTotals } from "@/lib/comanda";
 import type { ApiResponse } from "@/types";
 
@@ -25,7 +26,12 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
   const item = await prisma.comandaItem.findFirst({
     where: { id: itemId, comandaId: id, tenantId: TENANT },
-    include: { comanda: { select: { waiterId: true, openedById: true, tableId: true, status: true } } },
+    include: { comanda: { select: {
+      waiterId: true, openedById: true, tableId: true, status: true,
+      folio: true, customName: true,
+      waiter: { select: { fullName: true } },
+      table: { select: { number: true, section: { select: { name: true } } } },
+    } } },
   });
   if (!item) return NextResponse.json<ApiResponse>({ success: false, error: "Item no encontrado" }, { status: 404 });
   if (item.status === "CANCELLED") {
@@ -75,6 +81,37 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       cancelledAt: new Date(),
     },
   });
+
+  // Producto YA enviado a cocina/barra: al cancelarlo se avisa con un ticket de CANCELACIÓN
+  // a la misma área en el acto (los PENDING nunca llegaron a cocina, no requieren aviso).
+  // cancelledById aquí es el supervisor autorizante (nunca null en la rama SENT).
+  if (item.status !== "PENDING" && cancelledById != null) {
+    const authName = (await prisma.staff.findUnique({ where: { id: cancelledById }, select: { fullName: true } }))?.fullName ?? null;
+    const tableLabel = item.comanda.table
+      ? `Mesa ${item.comanda.table.number} - ${item.comanda.table.section.name}`
+      : (item.comanda.customName || "Cuenta sin mesa");
+    await prisma.comandaPrint.create({
+      data: {
+        tenantId: TENANT,
+        comandaId: id,
+        type: "KITCHEN_CANCEL",
+        target: prepAreaToTarget(item.prepAreaSnapshot),
+        executedById: cancelledById,
+        status: "PENDING",
+        payload: {
+          kind: "cancel",
+          folio: item.comanda.folio,
+          table: tableLabel,
+          waiter: item.comanda.waiter.fullName,
+          area: item.prepAreaSnapshot,
+          time: new Date().toISOString(),
+          item: { qty: Number(item.quantity), name: item.dishNameSnapshot },
+          reason: reason ?? null,
+          authorizedBy: authName,
+        },
+      },
+    });
+  }
 
   await recalcComandaTotals(id);
   const updated = await prisma.comanda.findFirst({ where: { id, tenantId: TENANT }, include: COMANDA_INCLUDE });

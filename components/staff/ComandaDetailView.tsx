@@ -80,6 +80,9 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   const [mergeOpen, setMergeOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
   const [hasSession, setHasSession] = useState(false);
+  // Reimpresión a cocina (solo manager): modal con selección de productos ya enviados.
+  const [reprintOpen, setReprintOpen] = useState(false);
+  const [reprintSel, setReprintSel] = useState<Set<number>>(new Set());
 
   // División de cuenta: cada entrada (División 1..N) es un Map itemId → unidades
   // asignadas a esa división. Permite repartir fracciones de un mismo platillo.
@@ -268,6 +271,14 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
     if (!t) return;
     const ok = await post(`/api/comandas/${id}/items/${itemId}/comment`, { text: t }, "Comentario agregado");
     if (ok) { setCommentDraft(""); setCommentFor(null); }
+  };
+
+  // Reimprimir a cocina los productos seleccionados (manager). Crea tickets de REIMPRESIÓN.
+  const toggleReprint = (itemId: number) => setReprintSel((s) => { const n = new Set(s); if (n.has(itemId)) n.delete(itemId); else n.add(itemId); return n; });
+  const doReprint = async () => {
+    if (reprintSel.size === 0) return;
+    const ok = await post(`/api/comandas/${id}/reprint-kitchen`, { itemIds: [...reprintSel] }, "Reimpresión enviada a cocina");
+    if (ok) { setReprintOpen(false); setReprintSel(new Set()); }
   };
 
   // Reabrir una cuenta "por cobrar" para volver a modificarla (→ IN_SERVICE). PIN supervisor.
@@ -572,6 +583,13 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
           <section data-tour="caja" style={caja.wrap}>
             <div style={caja.label}>Caja</div>
 
+            {/* Reimpresión a cocina: solo manager, solo si hay productos ya enviados. */}
+            {isManager && !isPaid && liveItems.some((i) => i.status !== "PENDING") && (
+              <button style={caja.reprint} onClick={() => { setReprintSel(new Set()); setReprintOpen(true); }} disabled={busy}>
+                <Icon name="printer" size={15} /> Reimprimir productos a cocina
+              </button>
+            )}
+
             {awaitingBill && !alreadyPrinted && (
               <div style={caja.callout}>
                 <Icon name="printer" size={18} />
@@ -821,6 +839,37 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
         onCancel={() => setClearAsk(false)}
       />
 
+      {/* Reimpresión a cocina (manager): elige qué productos enviados reimprimir */}
+      {reprintOpen && (() => {
+        const reprintable = liveItems.filter((i) => i.status !== "PENDING");
+        return (
+          <div style={rp.overlay} onClick={() => setReprintOpen(false)}>
+            <div style={rp.modal} onClick={(e) => e.stopPropagation()}>
+              <div style={rp.title}>Reimprimir a cocina</div>
+              <div style={rp.sub}>Elige qué productos reenviar a cocina/barra. Salen marcados como «REIMPRESIÓN».</div>
+              <div style={rp.list}>
+                {reprintable.length === 0 ? (
+                  <div style={{ color: C.faint, fontSize: "0.84rem", padding: "8px 2px" }}>No hay productos enviados a cocina.</div>
+                ) : reprintable.map((it) => {
+                  const on = reprintSel.has(it.id);
+                  return (
+                    <label key={it.id} style={{ ...rp.row, borderColor: on ? C.gold : C.line, background: on ? "rgba(186,132,60,0.08)" : "transparent" }}>
+                      <input type="checkbox" checked={on} onChange={() => toggleReprint(it.id)} />
+                      <span style={rp.rowName}>{fmtQty(Number(it.quantity))}× {it.dishNameSnapshot}</span>
+                      <span style={rp.rowArea}>{it.prepAreaSnapshot === "BARRA" ? "Barra" : "Cocina"}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              <div style={rp.actions}>
+                <button style={btn.ghost} onClick={() => setReprintOpen(false)}>Cancelar</button>
+                <button style={btn.primary} disabled={reprintSel.size === 0 || busy} onClick={doReprint}>Reimprimir ({reprintSel.size})</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       <Tour steps={COMANDERO_TOUR} open={tourOpen} onClose={closeTour} />
 
       <ToastHost toasts={toasts} onClose={dismiss} />
@@ -886,4 +935,18 @@ const caja: Record<string, React.CSSProperties> = {
   subLabel: { color: C.faint, fontSize: "0.6rem", letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 700, margin: "16px 0 8px" },
   moreRow: { display: "flex", flexWrap: "wrap", gap: 8 },
   more: { padding: "9px 14px", minHeight: 40, borderRadius: 9, border: `1px solid ${C.line}`, background: "transparent", color: C.dim, fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit" },
+  reprint: { display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 14px", minHeight: 40, borderRadius: 9, border: `1px solid ${C.line}`, background: "transparent", color: C.gold, fontWeight: 700, fontSize: "0.82rem", cursor: "pointer", fontFamily: "inherit", marginBottom: 12 },
+};
+
+// Modal de reimpresión a cocina (selección de productos, solo manager).
+const rp: Record<string, React.CSSProperties> = {
+  overlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 100 },
+  modal: { width: "100%", maxWidth: 460, background: C.panel, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, maxHeight: "84vh", display: "flex", flexDirection: "column" },
+  title: { color: C.cream, fontSize: "1.05rem", fontWeight: 800 },
+  sub: { color: C.dim, fontSize: "0.82rem", marginTop: 4, marginBottom: 12 },
+  list: { display: "flex", flexDirection: "column", gap: 6, overflowY: "auto", flex: 1 },
+  row: { display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: `1px solid ${C.line}`, cursor: "pointer" },
+  rowName: { color: C.cream, fontSize: "0.88rem", flex: 1, minWidth: 0 },
+  rowArea: { color: C.faint, fontSize: "0.74rem", whiteSpace: "nowrap" },
+  actions: { display: "flex", gap: 10, marginTop: 16, justifyContent: "flex-end" },
 };

@@ -608,6 +608,8 @@ enum ComandaItemStatus {
 
 enum PrintType {
   KITCHEN_BAR // ticket a barra/cocina al "Enviar"
+  KITCHEN_CANCEL // aviso de CANCELACIÓN de un producto ya enviado, a cocina/barra
+  KITCHEN_REPRINT // reimpresión manual (manager) de productos a cocina/barra
   CUSTOMER_FINAL // ticket de cliente al pedir cuenta
   CUSTOMER_REPRINT // reimpresión autorizada por capitán
   DRAWER_KICK // no imprime papel: abre el cajón de dinero (pulso ESC/POS a CAJA)

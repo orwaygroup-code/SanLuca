@@ -38,7 +38,7 @@ export interface CItemComment {
 
 export interface CPrint {
   id: number;
-  type: "KITCHEN_BAR" | "CUSTOMER_FINAL" | "CUSTOMER_REPRINT";
+  type: "KITCHEN_BAR" | "KITCHEN_CANCEL" | "KITCHEN_REPRINT" | "CUSTOMER_FINAL" | "CUSTOMER_REPRINT";
   target: string;
   printedAt: string;
   authorizationReason: string | null;

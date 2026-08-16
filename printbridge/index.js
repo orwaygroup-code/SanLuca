@@ -65,6 +65,7 @@ function renderKitchen(p, w) {
   o += center(p.folio + " - " + ascii(p.waiter), w) + "\n";
   o += center(fmtTime(p.time), w) + "\n";
   o += rule(w) + "\n";
+  if (p.reprint) o += BOLD_ON + center("** REIMPRESION **", w) + BOLD_OFF + "\n";
   // Separador de tiempo SIEMPRE que cambie el curso (incluye el primero), aunque el
   // ticket traiga un solo tiempo: el mesero envía a cocina por tandas, así cocina ve
   // en cada ticket a qué tiempo pertenece.
@@ -79,6 +80,24 @@ function renderKitchen(p, w) {
     if (it.mods)  o += "   + " + ascii(it.mods) + "\n";
     if (it.notes) o += "   * " + ascii(it.notes) + "\n";
   }
+  o += rule(w) + CUT;
+  return o;
+}
+
+// Ticket de CANCELACIÓN de un producto ya enviado (p.kind === "cancel"). Grande y claro
+// para que cocina/barra deje de prepararlo. Trae el motivo y quién lo autorizó.
+function renderKitchenCancel(p, w) {
+  let o = INIT;
+  o += BOLD_ON + BIG_ON + center("** CANCELAR **", Math.floor(w / 2)) + BIG_OFF + BOLD_OFF + "\n";
+  o += BOLD_ON + center(p.area === "BARRA" ? "BARRA" : "COCINA", w) + BOLD_OFF + "\n";
+  o += BOLD_ON + center(p.table, w) + BOLD_OFF + "\n";
+  o += center(p.folio + " - " + ascii(p.waiter), w) + "\n";
+  o += center(fmtTime(p.time), w) + "\n";
+  o += rule(w) + "\n";
+  o += BOLD_ON + BIG_ON + center(qfmt(p.item.qty) + " x " + ascii(p.item.name), Math.floor(w / 2)) + BIG_OFF + BOLD_OFF + "\n";
+  o += "\n";
+  if (p.reason) for (const ln of wrap("Motivo: " + ascii(p.reason), w)) o += center(ln, w) + "\n";
+  if (p.authorizedBy) o += center("Autorizo: " + ascii(p.authorizedBy), w) + "\n";
   o += rule(w) + CUT;
   return o;
 }
@@ -378,6 +397,8 @@ async function poll() {
             ? renderCorte(p, w)
             : p && p.kind === "tips"
             ? renderTips(p, w)
+            : p && p.kind === "cancel"
+            ? renderKitchenCancel(p, w)
             : (p && p.kind === "kitchen" ? renderKitchen(p, w) : renderCustomer(p, w));
           await sendToPrinter(pr, data);
         }
