@@ -431,6 +431,8 @@ function SeatModal({ res, freeTables, onClose, onSeated, onError }: {
   const [tableId, setTableId] = useState("");
   const [guests, setGuests] = useState(2);
   const [busy, setBusy] = useState(false);
+  const [waiters, setWaiters] = useState<{ id: number; fullName: string; role: string }[]>([]);
+  const [waiterId, setWaiterId] = useState<number | null>(null);
 
   // Mesas ofrecibles: las libres + (si la reserva ya trae mesa asignada) esa mesa.
   const options = useMemo(() => {
@@ -445,18 +447,20 @@ function SeatModal({ res, freeTables, onClose, onSeated, onError }: {
   useEffect(() => {
     if (res) {
       setGuests(res.guests || 2);
+      setWaiterId(null);
+      apiFetch<{ id: number; fullName: string; role: string }[]>("/api/comandas/waiters").then((r) => { if (r.ok) setWaiters(r.data ?? []); });
       if (res.table) { setSection(res.table.section.name); setTableId(res.table.id); }
       else { setSection(""); setTableId(""); }
     }
   }, [res]);
 
   const seat = async () => {
-    if (!res || !tableId || busy) return;
+    if (!res || !tableId || waiterId == null || busy) return;
     setBusy(true);
     const r = await apiFetch<Comanda>("/api/comandas", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tableId, guests, reservationId: res.id }),
+      body: JSON.stringify({ tableId, guests, reservationId: res.id, waiterId }),
     });
     setBusy(false);
     if (r.ok) onSeated(r.data!.id);
@@ -501,9 +505,24 @@ function SeatModal({ res, freeTables, onClose, onSeated, onError }: {
         </>
       )}
 
+      {tableId && (
+        <>
+          <label style={{ ...fld.label, marginTop: 18 }}>4 · Mesero que atiende</label>
+          {waiters.length === 0 ? (
+            <p style={{ color: C.faint, fontSize: "0.82rem" }}>Cargando meseros…</p>
+          ) : (
+            <div style={nc.chips}>
+              {waiters.map((w) => (
+                <button key={w.id} onClick={() => setWaiterId(w.id)} style={{ ...nc.chip, ...(waiterId === w.id ? nc.chipOn : {}) }}>{w.fullName}</button>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 22 }}>
         <button style={btn.ghost} onClick={onClose} disabled={busy}>Cancelar</button>
-        <button style={{ ...btn.primary, opacity: !tableId || busy ? 0.5 : 1 }} onClick={seat} disabled={!tableId || busy}>
+        <button style={{ ...btn.primary, opacity: !tableId || waiterId == null || busy ? 0.5 : 1 }} onClick={seat} disabled={!tableId || waiterId == null || busy}>
           {busy ? "Abriendo…" : "Abrir comanda"}
         </button>
       </div>
