@@ -5,23 +5,28 @@ import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/session-client";
 import { formatMXN } from "@/lib/displayTotals";
 
+interface ShiftStat { shift: string; label: string; window: string; sales: number; comandas: number; guests: number; avgTicket: number; occupancy: number; topDish: { name: string; qty: number } | null }
+interface Corte { id: number; folio: string; shift: string | null; status: string; openedAt: string; closedAt: string | null; comandas: number; sales: number }
 interface Report {
   range: string;
-  kpis: { sales: number; taxCollected: number; comandas: number; guests: number; avgTicket: number; activeNow: number };
+  cashSessionId: number | null;
+  kpis: { sales: number; taxCollected: number; tips: number; comandas: number; guests: number; avgTicket: number; activeNow: number };
+  byShift: ShiftStat[];
+  cortes: Corte[];
   byHour: { hour: number; sales: number }[];
-  bySection: { section: string; sales: number; comandas: number }[];
-  byWaiter: { waiter: string; sales: number; comandas: number }[];
   topDishes: { name: string; qty: number; revenue: number }[];
 }
 
 const RANGES: { key: string; label: string }[] = [
   { key: "today", label: "Hoy" }, { key: "7d", label: "7 días" }, { key: "30d", label: "30 días" },
 ];
+const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
 
 export default function AdminDashboardPage() {
   const router = useRouter();
   const session = useSession();
   const [range, setRange] = useState("today");
+  const [sessionId, setSessionId] = useState<number | null>(null); // corte seleccionado (turno por corte)
   const [rep, setRep] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -32,11 +37,12 @@ export default function AdminDashboardPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const r = await fetch(`/api/admin/reports?range=${range}`, { credentials: "same-origin" });
+    const qs = sessionId != null ? `cashSessionId=${sessionId}` : `range=${range}`;
+    const r = await fetch(`/api/admin/reports?${qs}`, { credentials: "same-origin" });
     const d = await r.json().catch(() => null);
     if (d?.success) setRep(d.data as Report);
     setLoading(false);
-  }, [range]);
+  }, [range, sessionId]);
 
   useEffect(() => { if (session.user?.role === "ADMIN") load(); }, [session.user, load]);
 
@@ -44,18 +50,23 @@ export default function AdminDashboardPage() {
     return <div style={S.page}><div style={{ padding: 40, color: C.dim }}>Cargando…</div></div>;
   }
 
-  const logout = async () => { await session.logout(); router.replace("/login?mode=login"); };
   const k = rep?.kpis;
+  const activeCorte = sessionId != null ? rep?.cortes.find((c) => c.id === sessionId) ?? null : null;
 
   return (
     <div style={S.page}>
       <main style={S.main}>
         <div style={S.headRow}>
-          <h1 style={S.h1}>Dashboard de ventas</h1>
-          <div style={{ display: "flex", gap: 6 }}>
-            {RANGES.map((r) => (
-              <button key={r.key} onClick={() => setRange(r.key)}
-                style={{ ...S.rangeBtn, ...(range === r.key ? S.rangeOn : {}) }}>{r.label}</button>
+          <div>
+            <h1 style={S.h1}>Dashboard de ventas</h1>
+            <div style={{ color: C.gold, fontSize: "0.84rem", marginTop: 2 }}>
+              {activeCorte ? `Corte ${activeCorte.folio}${activeCorte.status === "OPEN" ? " · abierto" : ""}` : "Comparación de turnos: Comida vs Brunch"}
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+            {activeCorte && <button style={{ ...S.rangeBtn, ...S.rangeOn }} onClick={() => setSessionId(null)}>← Ver todo el día</button>}
+            {!activeCorte && RANGES.map((r) => (
+              <button key={r.key} onClick={() => setRange(r.key)} style={{ ...S.rangeBtn, ...(range === r.key ? S.rangeOn : {}) }}>{r.label}</button>
             ))}
           </div>
         </div>
@@ -64,33 +75,69 @@ export default function AdminDashboardPage() {
           <div style={{ padding: 40, color: C.dim }}>Cargando reporte…</div>
         ) : (
           <>
+            {/* KPIs */}
             <div style={S.kpiGrid}>
-              <Kpi label="Ventas" value={formatMXN(k!.sales)} big />
-              <Kpi label="IVA recaudado" value={formatMXN(k!.taxCollected)} />
+              <Kpi label="Ventas totales" value={formatMXN(k!.sales)} big />
               <Kpi label="Comandas pagadas" value={String(k!.comandas)} />
-              <Kpi label="Comensales" value={String(k!.guests)} />
               <Kpi label="Ticket promedio" value={formatMXN(k!.avgTicket)} />
               <Kpi label="Activas ahora" value={String(k!.activeNow)} accent={C.green} />
             </div>
+
+            {/* Comparación de turnos (Comida vs Brunch) */}
+            <div style={S.shiftGrid}>
+              {rep.byShift.map((sh) => (
+                <div key={sh.shift} style={S.shiftCard}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                    <span style={{ color: C.gold, fontWeight: 800, fontSize: "1.05rem" }}>Turno {sh.label}</span>
+                    <span style={{ color: C.faint, fontSize: "0.72rem" }}>{sh.window}</span>
+                  </div>
+                  <div style={{ color: C.cream, fontWeight: 800, fontSize: "1.5rem", marginTop: 8 }}>{formatMXN(sh.sales)}</div>
+                  <div style={{ display: "flex", gap: 16, color: C.dim, fontSize: "0.78rem", marginTop: 2 }}>
+                    <span>{sh.comandas} comandas</span><span>Ticket {formatMXN(sh.avgTicket)}</span>
+                  </div>
+                  <div style={{ marginTop: 12 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", color: C.faint, fontSize: "0.72rem", marginBottom: 4 }}>
+                      <span>Ocupación</span><span>{sh.occupancy}%</span>
+                    </div>
+                    <div style={S.occTrack}><div style={{ ...S.occFill, width: `${sh.occupancy}%` }} /></div>
+                  </div>
+                  {sh.topDish && (
+                    <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <span style={{ color: C.faint, fontSize: "0.68rem", textTransform: "uppercase", letterSpacing: "0.1em" }}>Top platillo</span>
+                      <span style={S.topPill}>{sh.topDish.name} · {sh.topDish.qty}×</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Turnos por corte de caja */}
+            {rep.cortes.length > 0 && (
+              <Panel title="Turnos por corte de caja (hoy)">
+                <div style={S.corteRow}>
+                  {rep.cortes.map((c) => {
+                    const on = sessionId === c.id;
+                    return (
+                      <button key={c.id} onClick={() => setSessionId(on ? null : c.id)} style={{ ...S.corte, ...(on ? S.corteOn : {}) }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                          <span style={{ color: C.gold, fontWeight: 800, fontSize: "0.78rem" }}>{c.folio}</span>
+                          <span style={{ color: c.status === "OPEN" ? C.green : C.faint, fontSize: "0.68rem", fontWeight: 700 }}>{c.status === "OPEN" ? "Abierto" : "Cerrado"}</span>
+                        </div>
+                        <div style={{ color: C.cream, fontWeight: 800, fontSize: "1.1rem", marginTop: 6 }}>{formatMXN(c.sales)}</div>
+                        <div style={{ color: C.dim, fontSize: "0.72rem", marginTop: 2 }}>{c.comandas} comandas · {hhmm(c.openedAt)}{c.closedAt ? `–${hhmm(c.closedAt)}` : ""}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p style={{ color: C.faint, fontSize: "0.74rem", margin: "10px 2px 0" }}>Toca un corte para ver el dashboard enfocado solo en ese turno.</p>
+              </Panel>
+            )}
 
             <Panel title="Ventas por hora">
               {rep.byHour.length === 0 ? <Empty /> : (
                 <BarChart data={rep.byHour.map((h) => ({ label: `${String(h.hour).padStart(2, "0")}:00`, value: h.sales }))} format={formatMXN} />
               )}
             </Panel>
-
-            <div style={S.twoCol}>
-              <Panel title="Ventas por sección">
-                {rep.bySection.length === 0 ? <Empty /> : (
-                  <BarChart data={rep.bySection.map((s) => ({ label: `${s.section} (${s.comandas})`, value: s.sales }))} format={formatMXN} />
-                )}
-              </Panel>
-              <Panel title="Ventas por mesero">
-                {rep.byWaiter.length === 0 ? <Empty /> : (
-                  <BarChart data={rep.byWaiter.map((w) => ({ label: `${w.waiter} (${w.comandas})`, value: w.sales }))} format={formatMXN} />
-                )}
-              </Panel>
-            </div>
 
             <Panel title="Top platillos">
               {rep.topDishes.length === 0 ? <Empty /> : (
@@ -156,7 +203,7 @@ const C = { bg: "#16201f", panel: "#1a2628", gold: "#ba843c", cream: "#f5f1e8", 
 const S: Record<string, React.CSSProperties> = {
   page: { minHeight: "100vh", background: C.bg },
   main: { padding: "22px", maxWidth: 1100, margin: "0 auto" },
-  headRow: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 18 },
+  headRow: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, marginBottom: 18 },
   h1: { margin: 0, color: C.cream, fontSize: "1.4rem", fontWeight: 800 },
   rangeBtn: { padding: "8px 14px", borderRadius: 8, border: `1px solid ${C.line}`, background: "transparent", color: C.dim, fontWeight: 700, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit" },
   rangeOn: { background: C.panel, color: C.cream, borderColor: C.border },
@@ -164,8 +211,15 @@ const S: Record<string, React.CSSProperties> = {
   kpi: { background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: "16px 18px" },
   kpiLabel: { color: C.faint, fontSize: "0.66rem", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700 },
   kpiValue: { fontWeight: 800, marginTop: 6 },
+  shiftGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14, marginBottom: 18 },
+  shiftCard: { background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, padding: "18px 20px" },
+  occTrack: { height: 8, borderRadius: 6, background: "rgba(255,255,255,0.06)", overflow: "hidden" },
+  occFill: { height: "100%", background: "linear-gradient(90deg,#9a6c2e,#ba843c)", borderRadius: 6 },
+  topPill: { color: C.cream, fontSize: "0.76rem", fontWeight: 600, background: "rgba(186,132,60,0.12)", border: `1px solid ${C.border}`, borderRadius: 999, padding: "3px 10px" },
+  corteRow: { display: "flex", gap: 10, flexWrap: "wrap" },
+  corte: { textAlign: "left", minWidth: 170, padding: "12px 14px", borderRadius: 12, border: `1px solid ${C.line}`, background: "rgba(255,255,255,0.02)", cursor: "pointer", fontFamily: "inherit" },
+  corteOn: { border: `1.5px solid ${C.gold}`, boxShadow: "0 0 0 3px rgba(186,132,60,0.12)" },
   panel: { background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden", marginBottom: 16 },
   panelHead: { padding: "12px 18px", borderBottom: `1px solid ${C.line}`, color: C.faint, fontSize: "0.66rem", letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 700 },
-  twoCol: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 16 },
   dishRow: { display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: `1px solid ${C.line}`, fontSize: "0.86rem" },
 };
