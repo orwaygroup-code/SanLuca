@@ -508,8 +508,8 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
 
 // ═════════════════════════════════════════════════════════ DiscountModal ══
 
-export function DiscountModal({ open, comandaId, itemId, itemName, onClose, onDone, onError }: {
-  open: boolean; comandaId: number | null; itemId?: number | null; itemName?: string;
+export function DiscountModal({ open, comandaId, itemId, itemName, itemIds, onClose, onDone, onError }: {
+  open: boolean; comandaId: number | null; itemId?: number | null; itemName?: string; itemIds?: number[];
   onClose: () => void; onDone: (c: Comanda) => void; onError: (m: string) => void;
 }) {
   const [type, setType] = useState<"PERCENT" | "FIXED">("PERCENT");
@@ -523,12 +523,15 @@ export function DiscountModal({ open, comandaId, itemId, itemName, onClose, onDo
   const submit = async () => {
     if (comandaId == null) return;
     setBusy(true);
-    const path = itemId != null
+    const batch = itemIds != null && itemIds.length > 0;
+    const path = batch
+      ? `/api/comandas/${comandaId}/items/batch-discount`
+      : itemId != null
       ? `/api/comandas/${comandaId}/items/${itemId}/discount`
       : `/api/comandas/${comandaId}/discount`;
     const r = await apiFetch<Comanda>(path, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type, value: num(value), reason: reason.trim(), authPin: pin }),
+      body: JSON.stringify({ ...(batch ? { itemIds } : {}), type, value: num(value), reason: reason.trim(), authPin: pin }),
     });
     setBusy(false);
     if (r.ok) onDone(r.data!);
@@ -538,7 +541,7 @@ export function DiscountModal({ open, comandaId, itemId, itemName, onClose, onDo
   const canSubmit = num(value) > 0 && reason.trim().length > 0 && pin.length === 4 && !busy;
 
   return (
-    <Modal open={open} title={itemId != null ? `Descuento · ${itemName ?? "producto"}` : "Descuento a la cuenta"} onClose={onClose}>
+    <Modal open={open} title={itemIds != null && itemIds.length > 0 ? `Descuento · ${itemIds.length} productos` : itemId != null ? `Descuento · ${itemName ?? "producto"}` : "Descuento a la cuenta"} onClose={onClose}>
       <Field label="Tipo de descuento">
         <div style={{ display: "flex", gap: 8 }}>
           {(["PERCENT", "FIXED"] as const).map((t) => (
@@ -627,8 +630,8 @@ export function MergeModal({ open, target, onClose, onDone, onError }: {
 
 // ═════════════════════════════════════════════════════ TransferItemModal ══
 
-export function TransferItemModal({ open, from, onClose, onDone, onError }: {
-  open: boolean; from: Comanda | null;
+export function TransferItemModal({ open, from, itemIds, onClose, onDone, onError }: {
+  open: boolean; from: Comanda | null; itemIds?: number[];
   onClose: () => void; onDone: (c: Comanda) => void; onError: (m: string) => void;
 }) {
   const list = useActiveComandas(open, from?.id ?? -1);
@@ -649,37 +652,51 @@ export function TransferItemModal({ open, from, onClose, onDone, onError }: {
   const targetOptions = (list ?? []).map((c) => ({ value: String(c.id), label: `${c.folio} · ${comandaLabel(c)}` }));
   const maxQty = selectedItem ? Number(selectedItem.quantity) : 1;
 
+  const batch = itemIds != null && itemIds.length > 0;
   const submit = async () => {
-    if (!from || !selectedItem || !toId) return;
+    if (!from || !toId || (!batch && !selectedItem)) return;
     setBusy(true);
-    const r = await apiFetch<{ from: Comanda; to: Comanda }>(`/api/comandas/${from.id}/transfer-item`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ toComandaId: Number(toId), itemId: selectedItem.id, quantity: qty, authPin: pin, reason: reason.trim() || null }),
-    });
+    const r = batch
+      ? await apiFetch<{ from: Comanda; to: Comanda }>(`/api/comandas/${from.id}/transfer-items`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ toComandaId: Number(toId), itemIds, authPin: pin, reason: reason.trim() || null }),
+        })
+      : await apiFetch<{ from: Comanda; to: Comanda }>(`/api/comandas/${from.id}/transfer-item`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ toComandaId: Number(toId), itemId: selectedItem!.id, quantity: qty, authPin: pin, reason: reason.trim() || null }),
+        });
     setBusy(false);
     if (r.ok) onDone(r.data!.from);
     else onError(r.error ?? "No se pudo traspasar el producto");
   };
 
-  const canSubmit = !!selectedItem && !!toId && qty >= 1 && qty <= maxQty && pin.length === 4 && !busy;
+  const canSubmit = !!toId && pin.length === 4 && !busy && (batch || (!!selectedItem && qty >= 1 && qty <= maxQty));
 
   return (
-    <Modal open={open} title="Traspasar producto" onClose={onClose}>
-      <Field label="Producto a mover">
-        {itemOptions.length === 0 ? (
-          <div style={{ color: C.faint, fontSize: "0.82rem", padding: "8px 0" }}>Sin productos para traspasar.</div>
-        ) : (
-          <GoldSelect value={itemId} onChange={setItemId} options={itemOptions} placeholder="— Selecciona producto —" />
-        )}
-      </Field>
-      {selectedItem && maxQty > 1 && (
-        <Field label={`Cantidad (de ${maxQty})`}>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <button style={stepper} onClick={() => setQty((q) => Math.max(1, q - 1))}>−</button>
-            <span style={{ color: C.cream, fontWeight: 800, fontSize: "1.2rem", minWidth: 36, textAlign: "center" }}>{qty}</span>
-            <button style={stepper} onClick={() => setQty((q) => Math.min(maxQty, q + 1))}>+</button>
-          </div>
-        </Field>
+    <Modal open={open} title={batch ? "Traspasar productos" : "Traspasar producto"} onClose={onClose}>
+      {batch ? (
+        <div style={{ color: C.dim, fontSize: "0.88rem", marginBottom: 12 }}>
+          Se moverán <b style={{ color: C.cream }}>{itemIds!.length} producto(s)</b> completos a la cuenta destino.
+        </div>
+      ) : (
+        <>
+          <Field label="Producto a mover">
+            {itemOptions.length === 0 ? (
+              <div style={{ color: C.faint, fontSize: "0.82rem", padding: "8px 0" }}>Sin productos para traspasar.</div>
+            ) : (
+              <GoldSelect value={itemId} onChange={setItemId} options={itemOptions} placeholder="— Selecciona producto —" />
+            )}
+          </Field>
+          {selectedItem && maxQty > 1 && (
+            <Field label={`Cantidad (de ${maxQty})`}>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <button style={stepper} onClick={() => setQty((q) => Math.max(1, q - 1))}>−</button>
+                <span style={{ color: C.cream, fontWeight: 800, fontSize: "1.2rem", minWidth: 36, textAlign: "center" }}>{qty}</span>
+                <button style={stepper} onClick={() => setQty((q) => Math.min(maxQty, q + 1))}>+</button>
+              </div>
+            </Field>
+          )}
+        </>
       )}
       <Field label="Cuenta destino">
         {list === null ? <Spinner label="Cargando cuentas…" /> : targetOptions.length === 0 ? (

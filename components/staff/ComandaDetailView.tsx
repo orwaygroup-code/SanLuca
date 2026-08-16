@@ -83,6 +83,11 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   // Reimpresión a cocina (solo manager): modal con selección de productos ya enviados.
   const [reprintOpen, setReprintOpen] = useState(false);
   const [reprintSel, setReprintSel] = useState<Set<number>>(new Set());
+  // Multi-selección de productos para acciones en lote (cancelar / mover / descuento).
+  const [sel, setSel] = useState<Set<number>>(new Set());
+  const [batchCancelOpen, setBatchCancelOpen] = useState(false);
+  const [batchDiscount, setBatchDiscount] = useState(false);
+  const [batchMove, setBatchMove] = useState(false);
 
   // División de cuenta: cada entrada (División 1..N) es un Map itemId → unidades
   // asignadas a esa división. Permite repartir fracciones de un mismo platillo.
@@ -281,6 +286,26 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
     if (ok) { setReprintOpen(false); setReprintSel(new Set()); }
   };
 
+  // Multi-selección: alternar, limpiar y cancelar en lote (un solo PIN para todo el set).
+  const toggleSel = (itemId: number) => setSel((s) => { const n = new Set(s); if (n.has(itemId)) n.delete(itemId); else n.add(itemId); return n; });
+  const clearSel = () => setSel(new Set());
+  const doBatchCancel = async (reason?: string, pin?: string) => {
+    if (sel.size === 0) return;
+    const ok = await post(`/api/comandas/${id}/items/batch-cancel`, { itemIds: [...sel], ...(reason ? { reason } : {}), ...(pin ? { authPin: pin } : {}) }, "Productos cancelados");
+    if (ok) { setBatchCancelOpen(false); clearSel(); }
+  };
+
+  // Poda la selección cuando un producto seleccionado deja de existir (cancelado/movido).
+  useEffect(() => {
+    setSel((prev) => {
+      const live = new Set(liveItems.map((i) => i.id));
+      let changed = false;
+      const n = new Set<number>();
+      for (const idv of prev) { if (live.has(idv)) n.add(idv); else changed = true; }
+      return changed ? n : prev;
+    });
+  }, [liveItems]);
+
   // Reabrir una cuenta "por cobrar" para volver a modificarla (→ IN_SERVICE). PIN supervisor.
   const doUnlock = async (reason?: string, pin?: string) => {
     setBusy(true);
@@ -352,6 +377,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   const awaitingBill = c.status === "AWAITING_PAYMENT"; // cuenta pedida, en espera de impresión/cobro en caja
   const porCobrar = c.status === "AWAITING_PAYMENT" || c.status === "PARTIALLY_PAID"; // bloqueada: solo cobrar / reabrir
   const canComment = editable || porCobrar; // se puede comentar mientras la cuenta no esté sellada (no PAID/CANCELLED)
+  const anySentSel = liveItems.some((i) => sel.has(i.id) && i.status !== "PENDING"); // ¿algún seleccionado ya fue a cocina? → pide PIN
   const amountPaid = Number(c.amountPaid);
   const remaining = Math.max(0, Math.round((Number(c.total) - amountPaid) * 100) / 100);
 
@@ -365,7 +391,12 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   // Fila completa (vista sin divisiones): status, modificadores y cancelar item.
   const renderItemRow = (it: CItem) => (
     <div key={it.id} style={page.itemRow}>
-      <div style={{ minWidth: 0 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 10, minWidth: 0, flex: 1 }}>
+        {editable && (
+          <input type="checkbox" checked={sel.has(it.id)} onChange={() => toggleSel(it.id)}
+            style={{ width: 18, height: 18, marginTop: 3, flexShrink: 0, cursor: "pointer", accentColor: C.gold }} aria-label="Seleccionar producto" />
+        )}
+        <div style={{ minWidth: 0 }}>
         <div style={{ color: C.cream, fontSize: "0.92rem", fontWeight: 600 }}>
           {fmtQty(Number(it.quantity))}× {it.dishNameSnapshot}
         </div>
@@ -405,6 +436,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
         ) : (
           <button style={page.commentAdd} onClick={() => { setCommentFor(it.id); setCommentDraft(""); }}>＋ agregar comentario</button>
         ))}
+        </div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <div style={{ textAlign: "right" }}>
@@ -537,6 +569,19 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
             </div>
           )}
         </section>
+
+        {/* Barra de acciones en lote (aparece al seleccionar ≥1 producto) */}
+        {editable && sel.size > 0 && (
+          <section style={page.batchBar}>
+            <span style={{ color: C.cream, fontWeight: 700, fontSize: "0.86rem" }}>{sel.size} seleccionado(s)</span>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginLeft: "auto" }}>
+              <button style={page.batchBtn} onClick={() => setBatchCancelOpen(true)} disabled={busy}>Cancelar</button>
+              {isCashier && <button style={page.batchBtn} onClick={() => setBatchMove(true)} disabled={busy}>Mover</button>}
+              {isCashier && <button style={page.batchBtn} onClick={() => setBatchDiscount(true)} disabled={busy}>Descuento</button>}
+              <button style={page.batchClear} onClick={clearSel}>Limpiar</button>
+            </div>
+          </section>
+        )}
 
         {/* Totales */}
         <section style={{ ...page.panel, padding: "14px 18px" }}>
@@ -870,6 +915,50 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
         );
       })()}
 
+      {/* Cancelar en lote: PIN si algún seleccionado ya fue a cocina; si no, confirmación simple */}
+      {batchCancelOpen && (anySentSel ? (
+        <ReasonModal
+          open
+          title="Cancelar productos enviados"
+          label="Motivo de la cancelación (auditoría)"
+          confirmLabel={`Cancelar ${sel.size} producto(s)`}
+          danger
+          requirePin
+          busy={busy}
+          onConfirm={(reason, pin) => doBatchCancel(reason, pin)}
+          onCancel={() => setBatchCancelOpen(false)}
+        />
+      ) : (
+        <ConfirmModal
+          open
+          title="Quitar productos"
+          message={`¿Quitar ${sel.size} producto(s)? Aún no se envían a cocina.`}
+          confirmLabel="Quitar"
+          danger
+          busy={busy}
+          onConfirm={() => doBatchCancel()}
+          onCancel={() => setBatchCancelOpen(false)}
+        />
+      ))}
+
+      <DiscountModal
+        open={batchDiscount}
+        comandaId={c.id}
+        itemIds={[...sel]}
+        onClose={() => setBatchDiscount(false)}
+        onDone={(cc) => { setBatchDiscount(false); clearSel(); setComanda(cc); push("Descuento aplicado", "success"); }}
+        onError={(m) => push(m, "error")}
+      />
+
+      <TransferItemModal
+        open={batchMove}
+        from={c}
+        itemIds={[...sel]}
+        onClose={() => setBatchMove(false)}
+        onDone={(cc) => { setBatchMove(false); clearSel(); setComanda(cc); push("Productos traspasados", "success"); }}
+        onError={(m) => push(m, "error")}
+      />
+
       <Tour steps={COMANDERO_TOUR} open={tourOpen} onClose={closeTour} />
 
       <ToastHost toasts={toasts} onClose={dismiss} />
@@ -911,6 +1000,9 @@ const page: Record<string, React.CSSProperties> = {
   commentInput: { flex: 1, minWidth: 0, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.cream, fontSize: "0.8rem", padding: "6px 10px", fontFamily: "inherit" },
   commentSave: { padding: "6px 12px", borderRadius: 8, border: "none", background: C.gold, color: "#16201f", fontWeight: 800, fontSize: "0.76rem", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" },
   commentCancel: { width: 30, height: 30, borderRadius: 8, border: `1px solid ${C.border}`, background: "transparent", color: C.dim, fontSize: "0.9rem", cursor: "pointer", flexShrink: 0, lineHeight: 1 },
+  batchBar: { display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", padding: "12px 16px", marginBottom: 14, borderRadius: 12, border: `1px solid ${C.gold}`, background: "rgba(186,132,60,0.10)" },
+  batchBtn: { padding: "8px 14px", borderRadius: 9, border: `1px solid ${C.border}`, background: "transparent", color: C.cream, fontWeight: 700, fontSize: "0.82rem", cursor: "pointer", fontFamily: "inherit" },
+  batchClear: { padding: "8px 12px", borderRadius: 9, border: "none", background: "transparent", color: C.dim, fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit" },
   discBtn: { width: 30, height: 30, borderRadius: 7, border: `1px solid ${C.gold}`, background: "transparent", color: C.gold, fontSize: "0.92rem", fontWeight: 700, cursor: "pointer", lineHeight: 1 },
   actions: { display: "flex", flexWrap: "wrap", gap: 10, marginTop: 4 },
   splitHead: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "10px 18px", background: "rgba(255,255,255,0.03)", borderBottom: `1px solid ${C.line}`, fontSize: "0.7rem", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700 },
