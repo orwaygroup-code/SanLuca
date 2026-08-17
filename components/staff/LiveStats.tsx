@@ -24,7 +24,10 @@ export function LiveStats({ comandas }: { comandas: Comanda[] }) {
   const activasCount = all.filter(isActive).length;
   const porCobrarCount = all.filter(isBilling).length;
   const comensales = all.reduce((s, c) => s + (c.guestsActual || 0), 0);
-  const ticket = cobradasCount ? round2(cobrado / cobradasCount) : 0;
+  // Cheque promedio EN VIVO: de las cuentas NO pagadas (abiertas + por cobrar), no de las
+  // cobradas. Así varía en tiempo real conforme entran/crecen las cuentas del piso.
+  const noPagadasCount = all.filter((c) => !isPaid(c)).length;
+  const ticket = noPagadasCount ? round2(porCobrar / noPagadasCount) : 0;
 
   // Barras sobre TODAS las comandas (por hora de apertura, por mesero, por área).
   const byHour = new Map<number, number>();
@@ -59,7 +62,7 @@ export function LiveStats({ comandas }: { comandas: Comanda[] }) {
         <Kpi label={`Por cobrar (${activasCount + porCobrarCount})`} value={formatMXN(porCobrar)} accent={C.amber} />
         <Kpi label="Activas ahora" value={String(activasCount)} />
         <Kpi label="Comensales" value={String(comensales)} />
-        <Kpi label="Ticket prom." value={formatMXN(ticket)} />
+        <Kpi label="Cheque prom. (abiertas)" value={formatMXN(ticket)} />
       </div>
       <div style={st.grid}>
         <Panel title="Ventas por hora (apertura)"><Bars data={hourData} /></Panel>

@@ -646,6 +646,12 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
                 <div style={{ ...caja.callout, color: C.green, borderColor: `color-mix(in srgb, ${C.green} 45%, transparent)`, background: `color-mix(in srgb, ${C.green} 12%, transparent)` }}>
                   Cuenta saldada y sellada — solo lectura.
                 </div>
+                {/* Reimprimir el ticket del cliente aun estando pagada (supervisor, con motivo). */}
+                {isSupervisor && (
+                  <div style={caja.primaryRow}>
+                    <button style={caja.secondary} onClick={() => setReprint(true)} disabled={busy}><Icon name="printer" size={16} />Reimprimir ticket</button>
+                  </div>
+                )}
                 {isManager ? (
                   <>
                     <div style={caja.subLabel}>Más acciones</div>

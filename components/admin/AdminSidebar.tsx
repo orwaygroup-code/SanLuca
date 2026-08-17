@@ -25,7 +25,7 @@ interface AdminSidebarProps {
 
 type IconName =
   | "chart-bar" | "clipboard-text" | "map-2" | "calendar" | "history"
-  | "star" | "users" | "settings" | "message-circle" | "external" | "logout" | "grid" | "chevron";
+  | "star" | "users" | "settings" | "message-circle" | "external" | "logout" | "grid" | "chevron" | "cash";
 
 interface NavLink { href: string; label: string; icon: IconName; external?: boolean }
 
@@ -33,6 +33,7 @@ const GROUPS: { title: string; items: NavLink[] }[] = [
   { title: "Operación", items: [
     { href: "/admin/dashboard", label: "Dashboard", icon: "chart-bar" },
     { href: "/admin/piso", label: "Piso en vivo", icon: "grid" },
+    { href: "/staff/operacion", label: "Caja", icon: "cash" },
     { href: "/admin/comandas", label: "Auditoría", icon: "clipboard-text" },
     { href: "/admin/mapa", label: "Mapa de mesas", icon: "map-2" },
   ]},
@@ -111,6 +112,8 @@ function Icon({ name }: { name: IconName }) {
       return (<svg {...common}><rect x="4" y="4" width="7" height="7" rx="1.5" /><rect x="13" y="4" width="7" height="7" rx="1.5" /><rect x="4" y="13" width="7" height="7" rx="1.5" /><rect x="13" y="13" width="7" height="7" rx="1.5" /></svg>);
     case "chevron":
       return (<svg {...common} width={15} height={15}><polyline points="6 9 12 15 18 9" /></svg>);
+    case "cash":
+      return (<svg {...common}><rect x="3" y="6" width="18" height="12" rx="2" /><circle cx="12" cy="12" r="2.5" /><line x1="6" y1="9" x2="6" y2="9" /><line x1="18" y1="15" x2="18" y2="15" /></svg>);
   }
 }
 
