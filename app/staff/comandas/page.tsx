@@ -70,6 +70,8 @@ export default function MeseroComandasPage() {
         right={
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <ModeSwitch role={staff.role} />
+            <button onClick={() => router.push("/staff/wallet")} title="Mi saldo" aria-label="Mi saldo"
+              style={{ width: 40, height: 40, borderRadius: 999, border: `1px solid ${C.border}`, background: "transparent", color: C.gold, fontWeight: 800, fontSize: "1rem", cursor: "pointer" }}>$</button>
             <button onClick={() => setTourOpen(true)} title="Tutorial" aria-label="Abrir tutorial"
               style={{ width: 40, height: 40, borderRadius: 999, border: `1px solid ${C.border}`, background: "transparent", color: C.gold, fontWeight: 800, fontSize: "1.05rem", cursor: "pointer" }}>?</button>
             <button data-tour="nueva" style={btn.primary} onClick={() => setOpenModal(true)}>+ Comanda</button>
