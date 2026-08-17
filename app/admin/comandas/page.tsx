@@ -62,6 +62,18 @@ export default function AdminComandasAuditPage() {
 
   useEffect(() => { if (session.user?.role === "ADMIN") load(); }, [session.user, load]);
 
+  // Reimprime el ticket del cliente de una cuenta pasada (archivo). CUSTOMER_REPRINT con motivo.
+  const reprint = async (id: number | string) => {
+    const reason = window.prompt("Motivo de la reimpresión (auditoría):");
+    if (reason == null || !reason.trim()) return;
+    const r = await fetch(`/api/comandas/${id}/print`, {
+      method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ authorizationReason: reason.trim() }),
+    });
+    const d = await r.json().catch(() => null);
+    window.alert(d?.success ? "Reimpresión enviada a la impresora." : (d?.error ?? "No se pudo reimprimir"));
+  };
+
   if (session.loading || !session.user || session.user.role !== "ADMIN") {
     return <div style={S.page}><div style={{ padding: 40, color: C.dim }}>Cargando…</div></div>;
   }
@@ -101,6 +113,9 @@ export default function AdminComandasAuditPage() {
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     <span style={{ color: C.cream, fontWeight: 700 }}>{formatMXN(c.total)}</span>
                     <span style={{ ...S.badge, background: STATUS_COLOR[c.status] ?? C.dim }}>{STATUS_LABEL[c.status] ?? c.status}</span>
+                    {c.status === "PAID" && (
+                      <button onClick={() => reprint(c.id)} style={{ padding: "6px 12px", borderRadius: 8, border: `1px solid ${C.line}`, background: "transparent", color: C.gold, fontWeight: 700, fontSize: "0.72rem", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>Reimprimir</button>
+                    )}
                   </div>
                 </div>
 

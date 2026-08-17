@@ -118,9 +118,13 @@ export async function GET(request: NextRequest) {
     };
   });
 
-  // Cortes (CashSessions) de HOY — cada uno es un "turno por corte".
+  // Cortes (CashSessions) del día pedido (default HOY) — cada uno es un "turno por corte".
+  // cortesDate permite ver e imprimir cortes de días pasados (histórico).
+  const cortesDateStr = sp.get("cortesDate") || today;
+  const cortesStart = new Date(`${cortesDateStr}T00:00:00.000-06:00`);
+  const cortesEnd = new Date(cortesStart.getTime() + DAY);
   const sessions = await prisma.cashSession.findMany({
-    where: { tenantId: TENANT, openedAt: { gte: todayStart } },
+    where: { tenantId: TENANT, openedAt: { gte: cortesStart, lt: cortesEnd } },
     select: {
       id: true, folio: true, shift: true, status: true, openedAt: true, closedAt: true,
       _count: { select: { comandas: true } },
@@ -136,7 +140,7 @@ export async function GET(request: NextRequest) {
   }));
 
   const data = {
-    range, cashSessionId, from: from.toISOString(), to: now.toISOString(),
+    range, cashSessionId, cortesDate: cortesDateStr, from: from.toISOString(), to: now.toISOString(),
     kpis: { sales: round(sales), taxCollected: round(taxCollected), tips, comandas, guests, avgTicket: comandas ? round(sales / comandas) : 0, activeNow },
     byMethod,
     byShift,

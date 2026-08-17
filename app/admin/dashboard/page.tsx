@@ -31,9 +31,12 @@ export default function AdminDashboardPage() {
   const router = useRouter();
   const session = useSession();
   const [range, setRange] = useState("today");
+  const [cortesDate, setCortesDate] = useState(""); // día de los cortes (default hoy; se fija en el efecto)
   const [corte, setCorte] = useState<Corte | null>(null); // corte abierto en la ventana de detalle
   const [rep, setRep] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => { setCortesDate(new Date().toLocaleDateString("en-CA")); }, []); // hoy (cliente, evita mismatch SSR)
 
   useEffect(() => {
     if (session.loading) return;
@@ -42,11 +45,11 @@ export default function AdminDashboardPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const r = await fetch(`/api/admin/reports?range=${range}`, { credentials: "same-origin" });
+    const r = await fetch(`/api/admin/reports?range=${range}${cortesDate ? `&cortesDate=${cortesDate}` : ""}`, { credentials: "same-origin" });
     const d = await r.json().catch(() => null);
     if (d?.success) setRep(d.data as Report);
     setLoading(false);
-  }, [range]);
+  }, [range, cortesDate]);
 
   useEffect(() => { if (session.user?.role === "ADMIN") load(); }, [session.user, load]);
 
@@ -111,24 +114,35 @@ export default function AdminDashboardPage() {
               ))}
             </div>
 
-            {/* Turnos por corte de caja */}
-            {rep.cortes.length > 0 && (
-              <Panel title="Turnos por corte de caja (hoy)">
-                <div style={S.corteRow}>
-                  {rep.cortes.map((c) => (
-                    <button key={c.id} onClick={() => setCorte(c)} style={S.corte}>
-                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                        <span style={{ color: C.gold, fontWeight: 800, fontSize: "0.78rem" }}>{c.folio}</span>
-                        <span style={{ color: c.status === "OPEN" ? C.green : C.faint, fontSize: "0.68rem", fontWeight: 700 }}>{c.status === "OPEN" ? "Abierto" : "Cerrado"}</span>
-                      </div>
-                      <div style={{ color: C.cream, fontWeight: 800, fontSize: "1.1rem", marginTop: 6 }}>{formatMXN(c.sales)}</div>
-                      <div style={{ color: C.dim, fontSize: "0.72rem", marginTop: 2 }}>{c.comandas} comandas · {hhmm(c.openedAt)}{c.closedAt ? `–${hhmm(c.closedAt)}` : ""}</div>
-                    </button>
-                  ))}
-                </div>
-                <p style={{ color: C.faint, fontSize: "0.74rem", margin: "10px 2px 0" }}>Toca un corte para ver su detalle en una ventana.</p>
-              </Panel>
-            )}
+            {/* Turnos por corte de caja — con selector de día para ver/reimprimir cortes pasados */}
+            <section style={S.panel}>
+              <div style={{ ...S.panelHead, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                <span>Turnos por corte de caja</span>
+                <input type="date" value={cortesDate} onChange={(e) => setCortesDate(e.target.value)}
+                  style={{ background: "transparent", border: `1px solid ${C.line}`, borderRadius: 8, color: C.cream, fontSize: "0.74rem", padding: "5px 8px", fontFamily: "inherit", colorScheme: "dark" }} />
+              </div>
+              <div style={{ padding: "14px 18px 18px" }}>
+                {rep.cortes.length === 0 ? (
+                  <div style={{ color: C.faint, fontSize: "0.85rem" }}>Sin cortes ese día.</div>
+                ) : (
+                  <>
+                    <div style={S.corteRow}>
+                      {rep.cortes.map((c) => (
+                        <button key={c.id} onClick={() => setCorte(c)} style={S.corte}>
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                            <span style={{ color: C.gold, fontWeight: 800, fontSize: "0.78rem" }}>{c.folio}</span>
+                            <span style={{ color: c.status === "OPEN" ? C.green : C.faint, fontSize: "0.68rem", fontWeight: 700 }}>{c.status === "OPEN" ? "Abierto" : "Cerrado"}</span>
+                          </div>
+                          <div style={{ color: C.cream, fontWeight: 800, fontSize: "1.1rem", marginTop: 6 }}>{formatMXN(c.sales)}</div>
+                          <div style={{ color: C.dim, fontSize: "0.72rem", marginTop: 2 }}>{c.comandas} comandas · {hhmm(c.openedAt)}{c.closedAt ? `–${hhmm(c.closedAt)}` : ""}</div>
+                        </button>
+                      ))}
+                    </div>
+                    <p style={{ color: C.faint, fontSize: "0.74rem", margin: "10px 2px 0" }}>Toca un corte para ver su detalle y reimprimirlo.</p>
+                  </>
+                )}
+              </div>
+            </section>
 
             <Panel title="Ventas por hora">
               {rep.byHour.length === 0 ? <Empty /> : (
@@ -162,6 +176,15 @@ export default function AdminDashboardPage() {
 function CorteModal({ corte, onClose }: { corte: Corte; onClose: () => void }) {
   const [rep, setRep] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
+  const [reprinting, setReprinting] = useState(false);
+  const [reprinted, setReprinted] = useState(false);
+  const doReprintCorte = async () => {
+    setReprinting(true);
+    const r = await fetch(`/api/caja/sessions/${corte.id}/reprint-corte`, { method: "POST", credentials: "same-origin" });
+    const d = await r.json().catch(() => null);
+    setReprinting(false);
+    if (d?.success) setReprinted(true);
+  };
   useEffect(() => {
     let alive = true;
     setLoading(true);
@@ -228,6 +251,15 @@ function CorteModal({ corte, onClose }: { corte: Corte; onClose: () => void }) {
               </div>
             )}
           </>
+        )}
+
+        {corte.status !== "OPEN" && (
+          <button
+            style={{ ...S.rangeBtn, width: "100%", marginTop: 16, ...(reprinted ? { color: C.green, borderColor: C.green } : {}) }}
+            onClick={doReprintCorte} disabled={reprinting || reprinted}
+          >
+            {reprinted ? "✓ Enviado a impresora de caja" : reprinting ? "Enviando…" : "🖨  Reimprimir corte"}
+          </button>
         )}
       </div>
     </div>
