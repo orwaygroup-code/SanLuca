@@ -77,7 +77,7 @@ const usernameRule = z
   .min(3, "El usuario debe tener al menos 3 caracteres")
   .max(40)
   .regex(/^[a-z0-9._-]+$/, "Usuario inválido (usa minúsculas, números, . _ -)");
-const staffRoleRule = z.enum(["WAITER", "OPERATION", "CAPTAIN", "MANAGER"]);
+const staffRoleRule = z.enum(["WAITER", "OPERATION", "CAPTAIN", "MANAGER", "KITCHEN"]);
 
 export const staffLoginSchema = z.object({
   username: z.string().min(1, "Ingresa tu usuario"),

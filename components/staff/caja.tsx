@@ -341,7 +341,7 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
   useEffect(() => {
     if (!open || comandaId == null) { setComanda(null); setLoadErr(null); return; }
     setComanda(null); setLoadErr(null); setCreditWaiterId(""); setCreditPin(""); setExcludeTip(false); setExcludeTipPin("");
-    apiFetch<{ id: number; fullName: string; role: string }[]>("/api/comandas/waiters").then((r) => { if (r.ok) setWaiters(r.data ?? []); });
+    apiFetch<{ id: number; fullName: string; role: string }[]>("/api/comandas/credit-staff").then((r) => { if (r.ok) setWaiters(r.data ?? []); });
     apiFetch<Comanda>(`/api/comandas/${comandaId}`).then((r) => {
       if (r.ok) {
         const c = r.data!;
@@ -456,14 +456,14 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
 
           {hasCredit && (
             <div style={{ border: `1px solid ${C.gold}`, borderRadius: 12, padding: "12px 14px", marginTop: 12, background: "color-mix(in srgb, #ba843c 8%, transparent)" }}>
-              <div style={{ color: C.gold, fontWeight: 800, fontSize: "0.82rem", marginBottom: 8 }}>Crédito de mesero · lo autoriza el mesero deudor con su PIN</div>
-              <label style={fld.label}>Mesero al que se le carga</label>
+              <div style={{ color: C.gold, fontWeight: 800, fontSize: "0.82rem", marginBottom: 8 }}>Crédito de empleado · lo autoriza el empleado deudor con su PIN</div>
+              <label style={fld.label}>Empleado al que se le carga</label>
               <GoldSelect
                 value={creditWaiterId}
                 onChange={setCreditWaiterId}
-                options={[{ value: "", label: "Elige mesero…" }, ...waiters.map((w) => ({ value: String(w.id), label: w.fullName }))]}
+                options={[{ value: "", label: "Elige empleado…" }, ...waiters.map((w) => ({ value: String(w.id), label: w.fullName }))]}
               />
-              <label style={{ ...fld.label, marginTop: 10 }}>PIN del mesero</label>
+              <label style={{ ...fld.label, marginTop: 10 }}>PIN del empleado</label>
               <PinInput value={creditPin} onChange={setCreditPin} />
               <div style={{ color: C.faint, fontSize: "0.74rem", marginTop: 6 }}>Se le descuenta de su nómina. Queda como cuenta por cobrar.</div>
             </div>

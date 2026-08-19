@@ -6,16 +6,16 @@ import { useSession } from "@/lib/session-client";
 import { GoldSelect } from "@/components/ui/GoldSelect";
 import type { SelectOption } from "@/components/ui/GoldSelect";
 
-type Role = "WAITER" | "OPERATION" | "CAPTAIN" | "MANAGER";
+type Role = "WAITER" | "OPERATION" | "CAPTAIN" | "MANAGER" | "KITCHEN";
 
 interface StaffRow {
   id: number; username: string; fullName: string; role: Role; active: boolean;
   lastLoginAt: string | null; createdAt: string;
 }
 
-const ROLE_LABEL: Record<Role, string> = { WAITER: "Mesero", OPERATION: "Operación", CAPTAIN: "Capitán", MANAGER: "Manager" };
-const ROLE_COLOR: Record<Role, string> = { WAITER: "#4a9eca", OPERATION: "#b07cd6", CAPTAIN: "#ba843c", MANAGER: "#4caf50" };
-const ROLES: Role[] = ["WAITER", "OPERATION", "CAPTAIN", "MANAGER"];
+const ROLE_LABEL: Record<Role, string> = { WAITER: "Mesero", OPERATION: "Operación", CAPTAIN: "Capitán", MANAGER: "Manager", KITCHEN: "Cocina" };
+const ROLE_COLOR: Record<Role, string> = { WAITER: "#4a9eca", OPERATION: "#b07cd6", CAPTAIN: "#ba843c", MANAGER: "#4caf50", KITCHEN: "#c98a4a" };
+const ROLES: Role[] = ["WAITER", "OPERATION", "CAPTAIN", "MANAGER", "KITCHEN"];
 
 const ROLE_OPTIONS: SelectOption[] = ROLES.map((r) => ({ value: r, label: ROLE_LABEL[r] }));
 const ROLE_FILTER_OPTIONS: SelectOption[] = [{ value: "", label: "Todos los roles" }, ...ROLE_OPTIONS];

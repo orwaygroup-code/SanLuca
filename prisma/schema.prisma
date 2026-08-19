@@ -65,6 +65,7 @@ enum StaffRole {
   OPERATION // Perla (hostess + caja)
   CAPTAIN // Capitán
   MANAGER // Ricardo (admin)
+  KITCHEN // Empleado sin acciones (cocina/apoyo): no opera el POS; solo recibe crédito y ve su wallet
 }
 
 model Staff {

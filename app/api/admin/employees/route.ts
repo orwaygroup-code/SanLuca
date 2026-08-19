@@ -29,8 +29,8 @@ export async function GET(request: NextRequest) {
   const staff = await prisma.staff.findMany({
     where: {
       tenantId: TENANT,
-      ...(role && ["WAITER", "OPERATION", "CAPTAIN", "MANAGER"].includes(role)
-        ? { role: role as "WAITER" | "OPERATION" | "CAPTAIN" | "MANAGER" }
+      ...(role && ["WAITER", "OPERATION", "CAPTAIN", "MANAGER", "KITCHEN"].includes(role)
+        ? { role: role as "WAITER" | "OPERATION" | "CAPTAIN" | "MANAGER" | "KITCHEN" }
         : {}),
       ...(active === "true" ? { active: true } : active === "false" ? { active: false } : {}),
       ...(q ? { OR: [

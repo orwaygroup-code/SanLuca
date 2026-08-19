@@ -10,6 +10,7 @@ const ROLE_HOME: Record<string, string> = {
   OPERATION: "/staff/operacion",
   CAPTAIN:   "/staff/capitan",
   WAITER:    "/staff/comandas",
+  KITCHEN:   "/staff/wallet",     // empleado sin acciones: entra directo a su saldo/wallet
 };
 
 const ERROR_MSG: Record<string, string> = {
