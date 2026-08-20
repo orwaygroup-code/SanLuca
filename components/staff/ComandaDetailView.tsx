@@ -413,7 +413,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
           <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 3 }}>
             {it.comments.map((cm) => (
               <div key={cm.id} style={{ display: "flex", gap: 6, alignItems: "flex-start", color: C.dim, fontSize: "0.76rem" }}>
-                <span style={{ color: C.gold, flexShrink: 0, lineHeight: 1.35 }}>💬</span>
+                <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke={C.gold} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 3 }}><path d="M20 11.5a7.5 7.5 0 0 1-10.9 6.7L4 20l1.8-5.1A7.5 7.5 0 1 1 20 11.5z" /></svg>
                 <span style={{ minWidth: 0, wordBreak: "break-word" }}>{cm.text}</span>
               </div>
             ))}
@@ -514,7 +514,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
             <div style={{ color: C.cream, fontSize: "1.2rem", fontWeight: 800 }}>{c.table ? `Mesa ${c.table.number} · ${c.table.section.name}` : (c.customName || "Cuenta sin mesa")}</div>
             <div style={{ color: C.dim, fontSize: "0.84rem", marginTop: 2 }}>{c.guestsActual} comensales · mesero {c.waiter.fullName}</div>
             {c.pickupNote && (
-              <div style={{ color: C.gold, fontSize: "0.92rem", fontWeight: 700, marginTop: 4 }}>🕐 Recoge: {c.pickupNote}</div>
+              <div style={{ color: C.gold, fontSize: "0.92rem", fontWeight: 700, marginTop: 4 }}>Recoge: {c.pickupNote}</div>
             )}
           </div>
         </div>

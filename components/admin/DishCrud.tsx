@@ -346,7 +346,7 @@ export function DishFormModal({ mode, isExtra, row, preset, onClose, onSaved }: 
               <img src={imageUrl} alt="" style={{ width: 44, height: 44, borderRadius: 8, objectFit: "cover", flexShrink: 0, border: "1px solid rgba(255,255,255,0.15)" }} />
             )}
             <input style={{ ...S.input, flex: 1 }} value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="Sube una imagen o pega una ruta/URL" />
-            <button type="button" style={S.ghostBtnAuto} onClick={() => fileRef.current?.click()} disabled={uploading}>{uploading ? "Subiendo…" : "📁 Subir"}</button>
+            <button type="button" style={S.ghostBtnAuto} onClick={() => fileRef.current?.click()} disabled={uploading}>{uploading ? "Subiendo…" : "Subir"}</button>
             <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" style={{ display: "none" }} onChange={handleFile} />
           </div>
           <p style={{ color: "rgba(245,241,232,0.5)", fontSize: "0.72rem", margin: "6px 0 0" }}>PNG, JPG, WEBP o GIF (máx 5 MB). Se guarda en el servidor.</p>

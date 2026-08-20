@@ -284,7 +284,7 @@ export function OperacionView({ embedded = false, controlledTab }: { embedded?: 
                       lead={<LeadIcon name="bag" sub={isBot(c) ? "BOT" : "LLEVAR"} />}
                       who={comandaLabel(c)}
                       badge={badge}
-                      meta={c.pickupNote ? `${c.folio} · 🕐 Recoge ${c.pickupNote}` : c.folio}
+                      meta={c.pickupNote ? `${c.folio} · Recoge ${c.pickupNote}` : c.folio}
                       amount={formatMXN(Number(c.total))}
                       amountDim={!needs && !toKitchen}
                       tone={toKitchen ? "fresh" : printed ? "pay" : needs ? "act" : "passive"}

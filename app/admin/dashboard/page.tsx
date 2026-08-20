@@ -258,7 +258,7 @@ function CorteModal({ corte, onClose }: { corte: Corte; onClose: () => void }) {
             style={{ ...S.rangeBtn, width: "100%", marginTop: 16, ...(reprinted ? { color: C.green, borderColor: C.green } : {}) }}
             onClick={doReprintCorte} disabled={reprinting || reprinted}
           >
-            {reprinted ? "✓ Enviado a impresora de caja" : reprinting ? "Enviando…" : "🖨  Reimprimir corte"}
+            {reprinted ? "Enviado a impresora de caja" : reprinting ? "Enviando…" : "Reimprimir corte"}
           </button>
         )}
       </div>

@@ -104,10 +104,10 @@ export function MenuEditor() {
         </div>
       </div>
 
-      {err && <div style={X.err} onClick={() => setErr(null)}>⚠ {err} <span style={{ opacity: 0.6 }}>(toca para cerrar)</span></div>}
+      {err && <div style={X.err} onClick={() => setErr(null)}>{err} <span style={{ opacity: 0.6 }}>(toca para cerrar)</span></div>}
 
       {/* Cartas activas */}
-      <div style={X.sectionTitle}>🍽 Cartas Activas</div>
+      <div style={X.sectionTitle}>Cartas Activas</div>
       {loading ? <p style={X.muted}>Cargando…</p> : (
         <div style={X.cardGrid}>
           {cartas.map((c) => {
@@ -115,8 +115,8 @@ export function MenuEditor() {
             return (
               <button key={c.id} onClick={() => { setSelCarta(on ? "" : c.id); setExpanded(null); }} style={{ ...X.card, ...(on ? X.cardOn : {}) }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-                  <span style={{ fontSize: "1.2rem" }}>{c.clase === "BARRA" ? "🍷" : "🍴"}</span>
-                  {c.isPrincipal && <span style={X.principalTag}>★ Principal</span>}
+                  <span style={{ color: GOLD, display: "flex" }}><Ico n={c.clase === "BARRA" ? "wine" : "fork"} s={20} /></span>
+                  {c.isPrincipal && <span style={{ ...X.principalTag, display: "inline-flex", alignItems: "center", gap: 4 }}><Ico n="star" s={11} />Principal</span>}
                 </div>
                 <div style={X.cardName}>{c.name}</div>
                 <div style={X.cardMeta}>{c._count?.categories ?? 0} Categorías · {itemCountByCarta.get(c.id) ?? 0} Items</div>
@@ -133,7 +133,7 @@ export function MenuEditor() {
           <div style={X.crumb}>
             Turno {TURNO_LABEL[turno]} <span style={{ opacity: 0.5 }}>›</span> Carta {selCartaObj.name}
             <span style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-              <button style={X.mini} onClick={() => patchCarta(selCartaObj.id, { isPrincipal: !selCartaObj.isPrincipal })}>{selCartaObj.isPrincipal ? "Quitar principal" : "★ Marcar principal"}</button>
+              <button style={X.mini} onClick={() => patchCarta(selCartaObj.id, { isPrincipal: !selCartaObj.isPrincipal })}>{selCartaObj.isPrincipal ? "Quitar principal" : "Marcar principal"}</button>
               <button style={X.mini} onClick={() => setNameModal({ kind: "rename-carta", id: selCartaObj.id, initial: selCartaObj.name })}>Renombrar</button>
               <button style={X.miniDanger} onClick={() => setConfirmDel({ kind: "carta", id: selCartaObj.id, name: selCartaObj.name })}>Eliminar</button>
             </span>
@@ -151,16 +151,16 @@ export function MenuEditor() {
               <div key={cat.id} style={X.catCard}>
                 <div style={X.catRow}>
                   <button onClick={() => setExpanded(isOpen ? null : cat.id)} style={X.catToggle}>
-                    <span style={{ fontSize: "1.05rem" }}>🍴</span>
+                    <span style={{ color: GOLD, display: "flex" }}><Ico n="fork" s={17} /></span>
                     <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
                       <span style={{ fontWeight: 800, color: "#f5f1e8", fontSize: "0.98rem" }}>{cat.name}</span>
                       <span style={{ fontSize: "0.74rem", color: "rgba(245,241,232,0.55)" }}>{catDishes.length} Items · {cat.visible ? "Visible" : "Oculta"}</span>
                     </span>
                   </button>
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <button style={X.iconBtn} title="Renombrar" onClick={() => setNameModal({ kind: "rename-cat", id: cat.id, initial: cat.name })}>✎</button>
-                    <button style={X.iconBtn} title={cat.visible ? "Ocultar del menú público" : "Mostrar en el menú público"} onClick={() => patchCat(cat.id, { visible: !cat.visible })}>{cat.visible ? "👁" : "🚫"}</button>
-                    <button style={X.iconBtnDanger} title="Eliminar categoría" onClick={() => setConfirmDel({ kind: "cat", id: cat.id, name: cat.name })}>🗑</button>
+                    <button style={X.iconBtn} title="Renombrar" onClick={() => setNameModal({ kind: "rename-cat", id: cat.id, initial: cat.name })}><Ico n="edit" s={15} /></button>
+                    <button style={X.iconBtn} title={cat.visible ? "Ocultar del menú público" : "Mostrar en el menú público"} onClick={() => patchCat(cat.id, { visible: !cat.visible })}><Ico n={cat.visible ? "eye" : "eyeOff"} s={15} /></button>
+                    <button style={X.iconBtnDanger} title="Eliminar categoría" onClick={() => setConfirmDel({ kind: "cat", id: cat.id, name: cat.name })}><Ico n="trash" s={15} /></button>
                     <button style={X.iconBtn} onClick={() => setExpanded(isOpen ? null : cat.id)}>{isOpen ? "▲" : "▼"}</button>
                   </div>
                 </div>
@@ -213,6 +213,22 @@ export function MenuEditor() {
       )}
     </div>
   );
+}
+
+// Iconos SVG inline (mismo lenguaje stroke que el resto del panel) — reemplazan emojis.
+function Ico({ n, s = 16, style }: { n: string; s?: number; style?: React.CSSProperties }) {
+  const p: React.SVGProps<SVGSVGElement> = { width: s, height: s, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round", style };
+  switch (n) {
+    case "fork": return (<svg {...p}><path d="M7 3v6a2 2 0 0 0 4 0V3" /><line x1="9" y1="9" x2="9" y2="21" /><path d="M16 3c-1.4 0-2.3 1.9-2.3 4.3S15 12 16 12v9" /></svg>);
+    case "wine": return (<svg {...p}><path d="M8 3h8l-.8 5.5a3.2 3.2 0 0 1-6.4 0z" /><line x1="12" y1="12" x2="12" y2="19" /><line x1="8.5" y1="21" x2="15.5" y2="21" /></svg>);
+    case "star": return (<svg {...p}><path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.6 9.6l5.8-.8z" /></svg>);
+    case "edit": return (<svg {...p}><path d="M4 20h4L18.5 9.5a2 2 0 0 0 0-2.8l-1.2-1.2a2 2 0 0 0-2.8 0L4 16z" /><line x1="13.5" y1="6.5" x2="17.5" y2="10.5" /></svg>);
+    case "eye": return (<svg {...p}><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" /><circle cx="12" cy="12" r="2.6" /></svg>);
+    case "eyeOff": return (<svg {...p}><path d="M4.5 5.5C2.9 7 2 12 2 12s3.6 6.5 10 6.5c2 0 3.7-.6 5.1-1.5M9.7 5.7A9.9 9.9 0 0 1 12 5.5c6.4 0 10 6.5 10 6.5a19 19 0 0 1-2.4 3.1" /><line x1="4" y1="4" x2="20" y2="20" /></svg>);
+    case "trash": return (<svg {...p}><line x1="4" y1="7" x2="20" y2="7" /><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /><path d="M6.5 7l1 12.5a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1L18 7" /></svg>);
+    case "alert": return (<svg {...p}><path d="M12 4l9 15.5H3z" /><line x1="12" y1="10" x2="12" y2="14" /><circle cx="12" cy="17" r="0.6" fill="currentColor" /></svg>);
+    default: return null;
+  }
 }
 
 function Thumb({ url, name }: { url: string | null; name: string }) {
@@ -294,8 +310,8 @@ const X: Record<string, React.CSSProperties> = {
   dishRow: { display: "flex", flexWrap: "wrap", gap: 10, padding: "0 14px 14px" },
   dishChip: { display: "flex", alignItems: "center", gap: 8, padding: "6px 10px 6px 6px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.03)", cursor: "pointer", fontFamily: "inherit" },
   addDish: { display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 10, border: `1px dashed ${GOLD}`, background: "transparent", color: GOLD, fontWeight: 700, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit" },
-  iconBtn: { width: 32, height: 32, borderRadius: 8, border: "1px solid rgba(255,255,255,0.15)", background: "transparent", color: "rgba(245,241,232,0.75)", cursor: "pointer", fontSize: "0.85rem", flexShrink: 0 },
-  iconBtnDanger: { width: 32, height: 32, borderRadius: 8, border: "1px solid rgba(232,118,107,0.45)", background: "transparent", color: "#e8766b", cursor: "pointer", fontSize: "0.85rem", flexShrink: 0 },
+  iconBtn: { width: 32, height: 32, borderRadius: 8, border: "1px solid rgba(255,255,255,0.15)", background: "transparent", color: "rgba(245,241,232,0.75)", cursor: "pointer", fontSize: "0.85rem", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center" },
+  iconBtnDanger: { width: 32, height: 32, borderRadius: 8, border: "1px solid rgba(232,118,107,0.45)", background: "transparent", color: "#e8766b", cursor: "pointer", fontSize: "0.85rem", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center" },
   mini: { padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(186,132,60,0.5)", background: "transparent", color: "#c9964a", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" },
   miniDanger: { padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(232,118,107,0.45)", background: "transparent", color: "#e8766b", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" },
   primary: { padding: "10px 16px", minHeight: 40, borderRadius: 9, border: "none", background: GOLD, color: "#16201f", fontWeight: 800, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit" },
