@@ -33,8 +33,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   if (!type || !Number.isFinite(value) || value <= 0) return NextResponse.json<ApiResponse>({ success: false, error: "type/value inválidos" }, { status: 400 });
   if (!reason) return NextResponse.json<ApiResponse>({ success: false, error: "El motivo es obligatorio" }, { status: 400 });
 
-  const authorizedById = await verifySupervisorPin(authPin, { tenantId: TENANT });
-  if (!authorizedById) return NextResponse.json<ApiResponse>({ success: false, error: "PIN de supervisor inválido (Capitán/Manager)" }, { status: 403 });
+  const authorizedById = await verifySupervisorPin(authPin, { tenantId: TENANT, roles: ["OPERATION", "CAPTAIN", "MANAGER"] });
+  if (!authorizedById) return NextResponse.json<ApiResponse>({ success: false, error: "PIN inválido (Operación/Capitán/Manager)" }, { status: 403 });
 
   const comanda = await prisma.comanda.findFirst({ where: { id, tenantId: TENANT }, select: { id: true, status: true } });
   if (!comanda) return NextResponse.json<ApiResponse>({ success: false, error: "Comanda no encontrada" }, { status: 404 });

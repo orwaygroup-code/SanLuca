@@ -73,7 +73,7 @@ export async function resolvePin(
  */
 export async function verifySupervisorPin(
   pin: string,
-  opts: { tenantId?: number; roles?: ("CAPTAIN" | "MANAGER")[] } = {},
+  opts: { tenantId?: number; roles?: ("OPERATION" | "CAPTAIN" | "MANAGER")[] } = {},
 ): Promise<number | null> {
   if (!/^\d{4}$/.test(pin)) return null;
   const tenantId = opts.tenantId ?? DEFAULT_TENANT;

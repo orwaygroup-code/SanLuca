@@ -217,6 +217,8 @@ export function ReasonModal({ open, title, label = "Motivo", confirmLabel = "Con
             value={pin}
             onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
             inputMode="numeric"
+            type="password"
+            autoComplete="off"
             placeholder="••••"
           />
         </>

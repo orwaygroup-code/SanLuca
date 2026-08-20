@@ -83,12 +83,12 @@ function PinInput({ value, onChange }: { value: string; onChange: (v: string) =>
 }
 
 /** Bloque de PIN de supervisor con nota — reutilizado por descuento/merge/traspaso. */
-function SupervisorPin({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function SupervisorPin({ value, onChange, label = "PIN de Capitán/Manager (autoriza)" }: { value: string; onChange: (v: string) => void; label?: string }) {
   return (
-    <Field label="PIN de Capitán/Manager (autoriza)">
+    <Field label={label}>
       <PinInput value={value} onChange={onChange} />
       <div style={{ color: C.faint, fontSize: "0.72rem", marginTop: 6 }}>
-        Un supervisor teclea su PIN de 4 dígitos para autorizar. Queda en la auditoría.
+        Se teclea el PIN de 4 dígitos para autorizar. Queda en la auditoría.
       </div>
     </Field>
   );
@@ -559,7 +559,7 @@ export function DiscountModal({ open, comandaId, itemId, itemName, itemIds, onCl
       <Field label="Motivo (obligatorio)">
         <input style={fld.input} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="ej. cortesía, queja de servicio" />
       </Field>
-      <SupervisorPin value={pin} onChange={setPin} />
+      <SupervisorPin value={pin} onChange={setPin} label="PIN de Operación/Capitán/Manager (autoriza)" />
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 22 }}>
         <button style={btn.ghost} onClick={onClose} disabled={busy}>Cancelar</button>
         <button style={{ ...btn.primary, opacity: canSubmit ? 1 : 0.5 }} onClick={submit} disabled={!canSubmit}>

@@ -34,9 +34,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   }
   if (!reason) return NextResponse.json<ApiResponse>({ success: false, error: "El motivo es obligatorio" }, { status: 400 });
 
-  const authorizedById = await verifySupervisorPin(authPin, { tenantId: TENANT });
+  const authorizedById = await verifySupervisorPin(authPin, { tenantId: TENANT, roles: ["OPERATION", "CAPTAIN", "MANAGER"] });
   if (!authorizedById) {
-    return NextResponse.json<ApiResponse>({ success: false, error: "PIN de supervisor inválido (Capitán/Manager)" }, { status: 403 });
+    return NextResponse.json<ApiResponse>({ success: false, error: "PIN inválido (Operación/Capitán/Manager)" }, { status: 403 });
   }
 
   const comanda = await prisma.comanda.findFirst({
