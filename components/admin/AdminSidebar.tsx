@@ -33,7 +33,6 @@ const GROUPS: { title: string; items: NavLink[] }[] = [
   { title: "Operación", items: [
     { href: "/admin/dashboard", label: "Dashboard", icon: "chart-bar" },
     { href: "/admin/piso", label: "Piso en vivo", icon: "grid" },
-    { href: "/staff/operacion", label: "Caja", icon: "cash" },
     { href: "/admin/comandas", label: "Auditoría", icon: "clipboard-text" },
     { href: "/admin/mapa", label: "Mapa de mesas", icon: "map-2" },
   ]},
@@ -54,6 +53,16 @@ const GROUPS: { title: string; items: NavLink[] }[] = [
 // CRM = sección desplegable (submenú en el MISMO menú, mismo tab; ya no abre
 // pestaña nueva). Sus páginas viven en /crm (con su propio shell + enlace de
 // regreso "Panel").
+// Caja = sección desplegable que abre la vista de Operación EMBEBIDA en el panel admin
+// (/admin/caja?tab=…), sin cambiar de panel. Cada item cambia la pestaña vía ?tab.
+const CAJA_LINKS: NavLink[] = [
+  { href: "/admin/caja?tab=mesas", label: "Mesas", icon: "grid" },
+  { href: "/admin/caja?tab=llegadas", label: "Llegadas", icon: "calendar" },
+  { href: "/admin/caja?tab=llevar", label: "Llevar", icon: "clipboard-text" },
+  { href: "/admin/caja?tab=monitor", label: "Monitor", icon: "chart-bar" },
+  { href: "/admin/caja?tab=propinas", label: "Propinas", icon: "star" },
+];
+
 const CRM_LINKS: NavLink[] = [
   { href: "/crm", label: "Inicio", icon: "chart-bar" },
   { href: "/crm/whatsapp", label: "Inbox", icon: "message-circle" },
@@ -149,6 +158,7 @@ function NavItem({ link, active, onNavigate }: { link: NavLink; active: boolean;
 export function AdminSidebar({ userName, onLogout, onNavigate }: AdminSidebarProps) {
   const pathname = usePathname() ?? "";
   const [crmOpen, setCrmOpen] = useState(pathname.startsWith("/crm"));
+  const [cajaOpen, setCajaOpen] = useState(pathname.startsWith("/admin/caja"));
   return (
     <aside
       style={{
@@ -181,6 +191,32 @@ export function AdminSidebar({ userName, onLogout, onNavigate }: AdminSidebarPro
             </div>
           </div>
         ))}
+
+        {/* Caja — desplegable: abre la vista de Operación EMBEBIDA en el panel (/admin/caja) */}
+        <div>
+          <button
+            type="button"
+            onClick={() => setCajaOpen((v) => !v)}
+            aria-expanded={cajaOpen}
+            style={{
+              display: "flex", alignItems: "center", gap: 11, width: "100%",
+              minHeight: 44, padding: "9px 13px", borderRadius: 10, border: "none",
+              background: "transparent", color: cajaOpen || pathname.startsWith("/admin/caja") ? C.cream : C.dim, cursor: "pointer",
+              fontFamily: "inherit", fontSize: "0.82rem", fontWeight: 700, letterSpacing: "0.01em",
+            }}
+          >
+            <span style={{ display: "flex", flexShrink: 0 }}><Icon name="cash" /></span>
+            <span style={{ flex: 1, textAlign: "left" }}>Caja</span>
+            <span style={{ display: "flex", transform: cajaOpen ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}><Icon name="chevron" /></span>
+          </button>
+          {cajaOpen && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 2 }}>
+              {CAJA_LINKS.map((link) => (
+                <NavItem key={link.href} link={link} active={false} onNavigate={onNavigate} />
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* CRM — grupo desplegable: mismo menú, mismo tab (ya no abre pestaña nueva) */}
         <div>
