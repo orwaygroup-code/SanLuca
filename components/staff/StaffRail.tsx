@@ -37,6 +37,14 @@ export function StaffRail({
     <nav style={rail.root}>
       <div style={rail.mark}>SL</div>
 
+      {/* Volver al Panel admin — solo managers (vienen de /admin y no deben quedar atrapados en caja) */}
+      {role === "MANAGER" && (
+        <>
+          <RailItem sm icon="chevron" label="Panel" onClick={() => router.push("/admin/dashboard")} />
+          <div style={rail.div} />
+        </>
+      )}
+
       <div data-tour="tabs" style={rail.group}>
         <RailItem icon="plate" label="Mesas" active={active === "mesas"} onClick={() => goTab("mesas")} />
         <RailItem icon="arrive" label="Llegadas" count={counts?.llegadas} active={active === "llegadas"} onClick={() => goTab("llegadas")} />
