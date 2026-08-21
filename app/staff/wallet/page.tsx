@@ -8,7 +8,7 @@ import { apiFetch } from "@/components/staff/types";
 
 interface Credit { id: number; amount: number; status: string; note: string | null; folio: string | null; createdAt: string; paidAt: string | null }
 interface CashTip { id: number; amount: number; note: string | null; createdAt: string }
-interface Tips { registered: number; cash: number; total: number; cashList: CashTip[] }
+interface Tips { registered: number; cash: number; total: number; salesToday: number; pointPercent: number; puntos: number; neto: number; cashList: CashTip[] }
 interface Wallet { pending: number; credits: Credit[]; tips: Tips }
 
 /** Wallet del empleado: propinas de hoy (caja + efectivo propio) y saldo a crédito. */
@@ -58,10 +58,17 @@ export default function WalletPage() {
 
         {/* Propinas de hoy */}
         <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 16, padding: "22px 20px", marginBottom: 16 }}>
-          <div style={{ color: C.faint, fontSize: "0.7rem", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700 }}>Propinas de hoy</div>
-          <div style={{ color: C.gold, fontWeight: 800, fontSize: "2rem", marginTop: 6 }}>{formatMXN(w.tips.total)}</div>
-          <div style={{ color: C.dim, fontSize: "0.8rem", marginTop: 4 }}>
-            Registradas en caja <b style={{ color: C.cream }}>{formatMXN(w.tips.registered)}</b> · En efectivo (tuyas) <b style={{ color: C.cream }}>{formatMXN(w.tips.cash)}</b>
+          <div style={{ color: C.faint, fontSize: "0.7rem", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700 }}>Tu neto de hoy (propinas − puntos)</div>
+          <div style={{ color: w.tips.neto >= 0 ? C.gold : C.amber, fontWeight: 800, fontSize: "2rem", marginTop: 6 }}>{formatMXN(w.tips.neto)}</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 10, color: C.dim, fontSize: "0.82rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+              <span>Propinas (caja {formatMXN(w.tips.registered)} + efectivo {formatMXN(w.tips.cash)})</span>
+              <span style={{ color: C.cream, fontWeight: 700, whiteSpace: "nowrap" }}>{formatMXN(w.tips.total)}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+              <span>Puntos ({w.tips.pointPercent}% de tu venta {formatMXN(w.tips.salesToday)})</span>
+              <span style={{ color: C.amber, fontWeight: 700, whiteSpace: "nowrap" }}>−{formatMXN(w.tips.puntos)}</span>
+            </div>
           </div>
 
           {!tipOpen ? (
