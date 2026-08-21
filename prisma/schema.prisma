@@ -110,6 +110,7 @@ model Staff {
   cashMovements         CashMovement[]        @relation("CashMovementAuthor")
   waiterCredits         WaiterCredit[]        @relation("WaiterCreditDebtor")
   waiterCreditsAuthed   WaiterCredit[]        @relation("WaiterCreditAuthorizer")
+  cashTips              WaiterCashTip[]       @relation("WaiterCashTips")
   paymentsReceived      ComandaPayment[]      @relation("PaymentReceiver")
   discountsAuthorized   ComandaDiscount[]     @relation("DiscountAuthorizer")
   itemTransfers         ComandaItemTransfer[] @relation("ItemTransferAuthor")
@@ -944,6 +945,22 @@ model WaiterCredit {
 
   @@index([tenantId, waiterId, status])
   @@index([tenantId, status])
+}
+
+// Propina en EFECTIVO que el mesero recibe directo y NO declara a caja (p. ej. el cliente le
+// deja el cambio). El mesero la registra en su wallet para su propio conteo; NO entra al corte
+// ni al pool de propinas de caja. Solo referencia personal del mesero.
+model WaiterCashTip {
+  id            Int      @id @default(autoincrement())
+  tenantId      Int      @default(1)
+  waiterId      Int
+  waiter        Staff    @relation("WaiterCashTips", fields: [waiterId], references: [id])
+  cashSessionId Int? // turno en que se registró (referencia)
+  amount        Decimal  @db.Decimal(10, 2)
+  note          String?
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId, waiterId])
 }
 
 model ComandaPayment {

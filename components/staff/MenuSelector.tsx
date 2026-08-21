@@ -299,7 +299,6 @@ export function MenuSelector({ open, onClose, onAdd, busy, pendingItems = [], on
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               placeholder="ej. sin cebolla, término medio, extra pan"
-              autoFocus
             />
 
             <button

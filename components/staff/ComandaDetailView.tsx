@@ -60,6 +60,8 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   // Comentario append-only por producto: itemId con el input abierto + borrador.
   const [commentFor, setCommentFor] = useState<number | null>(null);
   const [commentDraft, setCommentDraft] = useState("");
+  const [editCm, setEditCm] = useState<number | null>(null); // comentario en edición
+  const [editDraft, setEditDraft] = useState("");
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [cancelItem, setCancelItem] = useState<CItem | null>(null);
@@ -278,6 +280,19 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
     if (ok) { setCommentDraft(""); setCommentFor(null); }
   };
 
+  // Editar un comentario existente (solo su autor o supervisor) — para no acumular listas largas.
+  const saveEditComment = async (itemId: number, commentId: number) => {
+    const t = editDraft.trim();
+    if (!t) return;
+    setBusy(true);
+    const r = await apiFetch<Comanda>(`/api/comandas/${id}/items/${itemId}/comment`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ commentId, text: t }),
+    });
+    setBusy(false);
+    if (r.ok) { setComanda(r.data!); setEditCm(null); setEditDraft(""); push("Comentario editado", "success"); }
+    else push(r.error ?? "No se pudo editar", "error");
+  };
+
   // Reimprimir a cocina los productos seleccionados (manager). Crea tickets de REIMPRESIÓN.
   const toggleReprint = (itemId: number) => setReprintSel((s) => { const n = new Set(s); if (n.has(itemId)) n.delete(itemId); else n.add(itemId); return n; });
   const doReprint = async () => {
@@ -408,15 +423,30 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
         <div style={{ marginTop: 4 }}>
           <Badge text={ITEM_STATUS_LABEL[it.status] ?? it.status} color={ITEM_STATUS_COLOR[it.status] ?? C.dim} />
         </div>
-        {/* Comentarios append-only por producto: se listan (read-only) y solo se pueden AGREGAR. */}
+        {/* Comentarios por producto: se listan; el autor (o un supervisor) puede editar el suyo. */}
         {it.comments && it.comments.length > 0 && (
           <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 3 }}>
-            {it.comments.map((cm) => (
-              <div key={cm.id} style={{ display: "flex", gap: 6, alignItems: "flex-start", color: C.dim, fontSize: "0.76rem" }}>
-                <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke={C.gold} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 3 }}><path d="M20 11.5a7.5 7.5 0 0 1-10.9 6.7L4 20l1.8-5.1A7.5 7.5 0 1 1 20 11.5z" /></svg>
-                <span style={{ minWidth: 0, wordBreak: "break-word" }}>{cm.text}</span>
-              </div>
-            ))}
+            {it.comments.map((cm) => {
+              const canEdit = canComment && ((!!staff && cm.createdById === staff.id) || isSupervisor);
+              if (editCm === cm.id) {
+                return (
+                  <div key={cm.id} style={{ display: "flex", gap: 6, alignItems: "center", maxWidth: 440 }}>
+                    <input autoFocus value={editDraft} onChange={(e) => setEditDraft(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") saveEditComment(it.id, cm.id); else if (e.key === "Escape") { setEditCm(null); setEditDraft(""); } }}
+                      maxLength={500} style={page.commentInput} />
+                    <button style={page.commentSave} disabled={busy || !editDraft.trim()} onClick={() => saveEditComment(it.id, cm.id)}>Guardar</button>
+                    <button style={page.commentCancel} title="Cancelar" onClick={() => { setEditCm(null); setEditDraft(""); }}>✕</button>
+                  </div>
+                );
+              }
+              return (
+                <div key={cm.id} style={{ display: "flex", gap: 6, alignItems: "flex-start", color: C.dim, fontSize: "0.76rem" }}>
+                  <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke={C.gold} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 3 }}><path d="M20 11.5a7.5 7.5 0 0 1-10.9 6.7L4 20l1.8-5.1A7.5 7.5 0 1 1 20 11.5z" /></svg>
+                  <span style={{ minWidth: 0, wordBreak: "break-word", flex: 1 }}>{cm.text}</span>
+                  {canEdit && <button style={page.commentEdit} onClick={() => { setEditCm(cm.id); setEditDraft(cm.text); }}>editar</button>}
+                </div>
+              );
+            })}
           </div>
         )}
         {canComment && (commentFor === it.id ? (
@@ -1003,6 +1033,7 @@ const page: Record<string, React.CSSProperties> = {
   itemRow: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "12px 18px", borderBottom: `1px solid ${C.line}` },
   cancelX: { width: 30, height: 30, borderRadius: 7, border: `1px solid ${C.red}`, background: "transparent", color: C.red, fontSize: "1.1rem", cursor: "pointer", lineHeight: 1 },
   commentAdd: { marginTop: 6, padding: 0, background: "transparent", border: "none", color: C.gold, fontSize: "0.74rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", textAlign: "left" },
+  commentEdit: { padding: 0, background: "transparent", border: "none", color: C.faint, fontSize: "0.7rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 },
   commentInput: { flex: 1, minWidth: 0, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.cream, fontSize: "0.8rem", padding: "6px 10px", fontFamily: "inherit" },
   commentSave: { padding: "6px 12px", borderRadius: 8, border: "none", background: C.gold, color: "#16201f", fontWeight: 800, fontSize: "0.76rem", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" },
   commentCancel: { width: 30, height: 30, borderRadius: 8, border: `1px solid ${C.border}`, background: "transparent", color: C.dim, fontSize: "0.9rem", cursor: "pointer", flexShrink: 0, lineHeight: 1 },
