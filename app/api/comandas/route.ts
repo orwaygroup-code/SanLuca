@@ -26,6 +26,16 @@ export async function POST(request: NextRequest) {
   const s = await getStaffSession(request);
   if (!s) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 401 });
 
+  // Regla: no se puede comandar sin un turno de caja abierto. Sin turno, la comanda quedaría
+  // en limbo (no hay turno al que ligarse al cobrar). Caja debe abrir el turno primero.
+  const openTurno = await prisma.cashSession.findFirst({
+    where: { tenantId: TENANT, status: "OPEN" },
+    select: { id: true },
+  });
+  if (!openTurno) {
+    return NextResponse.json<ApiResponse>({ success: false, error: "No hay turno de caja abierto. Caja debe abrir el turno antes de comandar." }, { status: 409 });
+  }
+
   const body = await request.json().catch(() => ({}));
   const { tableId, guests, reservationId, waiterId, notes, customName } = body || {};
   const hasTable = typeof tableId === "string" && tableId.length > 0;
