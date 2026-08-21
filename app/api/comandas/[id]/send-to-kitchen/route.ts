@@ -44,7 +44,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
   const pending = await prisma.comandaItem.findMany({
     where: { comandaId: id, tenantId: TENANT, status: "PENDING" },
-    select: { id: true, prepAreaSnapshot: true, dishNameSnapshot: true, quantity: true, course: true, kitchenNotes: true, modifiers: true },
+    select: { id: true, prepAreaSnapshot: true, dishNameSnapshot: true, quantity: true, course: true, kitchenNotes: true, modifiers: true, dish: { select: { category: { select: { name: true, carta: { select: { name: true } } } } } } },
   });
   if (pending.length === 0) {
     return NextResponse.json<ApiResponse>({ success: false, error: "No hay items pendientes por enviar" }, { status: 400 });
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       const areaItems = pending
         .filter((i) => i.prepAreaSnapshot === area)
         .sort((a, b) => a.course - b.course) // agrupa por tiempo para los separadores del ticket
-        .map((i) => ({ qty: Number(i.quantity), name: i.dishNameSnapshot, course: i.course, notes: i.kitchenNotes ?? null, mods: i.modifiers ?? null }));
+        .map((i) => ({ qty: Number(i.quantity), name: i.dishNameSnapshot, course: i.course, notes: i.kitchenNotes ?? null, mods: i.modifiers ?? null, origin: i.dish?.category ? (i.dish.category.carta ? `${i.dish.category.carta.name} · ${i.dish.category.name}` : i.dish.category.name) : null }));
       // Snapshot listo-para-imprimir → el PrintBridge lo convierte a ESC/POS.
       const payload = {
         kind:   "kitchen",

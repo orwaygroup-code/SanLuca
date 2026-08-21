@@ -42,7 +42,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
   const items = await prisma.comandaItem.findMany({
     where: { id: { in: itemIds }, comandaId: id, tenantId: TENANT, status: { not: "CANCELLED" } },
-    select: { id: true, status: true, dishNameSnapshot: true, quantity: true, prepAreaSnapshot: true },
+    select: { id: true, status: true, dishNameSnapshot: true, quantity: true, prepAreaSnapshot: true, dish: { select: { category: { select: { name: true, carta: { select: { name: true } } } } } } },
   });
   if (items.length === 0) return NextResponse.json<ApiResponse>({ success: false, error: "Ninguno de los productos elegidos se puede cancelar" }, { status: 400 });
 
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         executedById: authorizerId as number, status: "PENDING",
         payload: {
           kind: "cancel", folio: comanda.folio, table: tableLabel, waiter: comanda.waiter.fullName,
-          area: it.prepAreaSnapshot, time: now, item: { qty: Number(it.quantity), name: it.dishNameSnapshot },
+          area: it.prepAreaSnapshot, time: now, item: { qty: Number(it.quantity), name: it.dishNameSnapshot, origin: it.dish?.category ? (it.dish.category.carta ? `${it.dish.category.carta.name} · ${it.dish.category.name}` : it.dish.category.name) : null },
           reason: reason || null, authorizedBy: authName,
         },
       },

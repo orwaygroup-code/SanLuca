@@ -63,6 +63,7 @@ function renderKitchen(p, w) {
   o += BOLD_ON + BIG_ON + center(p.area === "BARRA" ? "BARRA" : "COCINA", Math.floor(w / 2)) + BIG_OFF + BOLD_OFF + "\n";
   o += BOLD_ON + center(p.table, w) + BOLD_OFF + "\n";
   o += center(p.folio + " - " + ascii(p.waiter), w) + "\n";
+  if (p.guests) o += BOLD_ON + center(p.guests + " comensales", w) + BOLD_OFF + "\n";
   o += center(fmtTime(p.time), w) + "\n";
   o += rule(w) + "\n";
   if (p.reprint) o += BOLD_ON + center("** REIMPRESION **", w) + BOLD_OFF + "\n";
@@ -77,6 +78,7 @@ function renderKitchen(p, w) {
       lastCourse = c;
     }
     o += BOLD_ON + qfmt(it.qty) + " x " + ascii(it.name) + BOLD_OFF + "\n";
+    if (it.origin) o += "   " + ascii(it.origin) + "\n"; // de qué carta/categoría viene (homónimos)
     if (it.mods)  o += "   + " + ascii(it.mods) + "\n";
     if (it.notes) o += "   * " + ascii(it.notes) + "\n";
   }
@@ -95,6 +97,7 @@ function renderKitchenCancel(p, w) {
   o += center(fmtTime(p.time), w) + "\n";
   o += rule(w) + "\n";
   o += BOLD_ON + BIG_ON + center(qfmt(p.item.qty) + " x " + ascii(p.item.name), Math.floor(w / 2)) + BIG_OFF + BOLD_OFF + "\n";
+  if (p.item.origin) o += center(ascii(p.item.origin), w) + "\n";
   o += "\n";
   if (p.reason) for (const ln of wrap("Motivo: " + ascii(p.reason), w)) o += center(ln, w) + "\n";
   if (p.authorizedBy) o += center("Autorizo: " + ascii(p.authorizedBy), w) + "\n";

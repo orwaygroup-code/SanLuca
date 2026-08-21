@@ -40,7 +40,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   // Solo productos de ESTA comanda, ya enviados (no PENDING) y no cancelados.
   const items = await prisma.comandaItem.findMany({
     where: { id: { in: itemIds }, comandaId: id, tenantId: TENANT, status: { notIn: ["PENDING", "CANCELLED"] } },
-    select: { prepAreaSnapshot: true, dishNameSnapshot: true, quantity: true, course: true, kitchenNotes: true, modifiers: true },
+    select: { prepAreaSnapshot: true, dishNameSnapshot: true, quantity: true, course: true, kitchenNotes: true, modifiers: true, dish: { select: { category: { select: { name: true, carta: { select: { name: true } } } } } } },
   });
   if (items.length === 0) return NextResponse.json<ApiResponse>({ success: false, error: "Ninguno de los productos elegidos está enviado a cocina" }, { status: 400 });
 
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       const areaItems = items
         .filter((i) => i.prepAreaSnapshot === area)
         .sort((a, b) => a.course - b.course) // conserva el orden por tiempo
-        .map((i) => ({ qty: Number(i.quantity), name: i.dishNameSnapshot, course: i.course, notes: i.kitchenNotes ?? null, mods: i.modifiers ?? null }));
+        .map((i) => ({ qty: Number(i.quantity), name: i.dishNameSnapshot, course: i.course, notes: i.kitchenNotes ?? null, mods: i.modifiers ?? null, origin: i.dish?.category ? (i.dish.category.carta ? `${i.dish.category.carta.name} · ${i.dish.category.name}` : i.dish.category.name) : null }));
       const payload = {
         kind:    "kitchen",
         reprint: true, // el PrintBridge imprime banner "REIMPRESION"

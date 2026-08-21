@@ -26,12 +26,15 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
   const item = await prisma.comandaItem.findFirst({
     where: { id: itemId, comandaId: id, tenantId: TENANT },
-    include: { comanda: { select: {
-      waiterId: true, openedById: true, tableId: true, status: true,
-      folio: true, customName: true,
-      waiter: { select: { fullName: true } },
-      table: { select: { number: true, section: { select: { name: true } } } },
-    } } },
+    include: {
+      dish: { select: { category: { select: { name: true, carta: { select: { name: true } } } } } },
+      comanda: { select: {
+        waiterId: true, openedById: true, tableId: true, status: true,
+        folio: true, customName: true,
+        waiter: { select: { fullName: true } },
+        table: { select: { number: true, section: { select: { name: true } } } },
+      } },
+    },
   });
   if (!item) return NextResponse.json<ApiResponse>({ success: false, error: "Item no encontrado" }, { status: 404 });
   if (item.status === "CANCELLED") {
@@ -105,7 +108,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
           waiter: item.comanda.waiter.fullName,
           area: item.prepAreaSnapshot,
           time: new Date().toISOString(),
-          item: { qty: Number(item.quantity), name: item.dishNameSnapshot },
+          item: { qty: Number(item.quantity), name: item.dishNameSnapshot, origin: item.dish?.category ? (item.dish.category.carta ? `${item.dish.category.carta.name} · ${item.dish.category.name}` : item.dish.category.name) : null },
           reason: reason ?? null,
           authorizedBy: authName,
         },
