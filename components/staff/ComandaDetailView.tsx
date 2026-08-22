@@ -87,6 +87,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   const [reprintSel, setReprintSel] = useState<Set<number>>(new Set());
   // Multi-selección de productos para acciones en lote (cancelar / mover / descuento).
   const [sel, setSel] = useState<Set<number>>(new Set());
+  const [selMode, setSelMode] = useState(false); // modo selección: los checkboxes solo salen al activarlo
   const [batchCancelOpen, setBatchCancelOpen] = useState(false);
   const [batchDiscount, setBatchDiscount] = useState(false);
   const [batchMove, setBatchMove] = useState(false);
@@ -303,7 +304,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
 
   // Multi-selección: alternar, limpiar y cancelar en lote (un solo PIN para todo el set).
   const toggleSel = (itemId: number) => setSel((s) => { const n = new Set(s); if (n.has(itemId)) n.delete(itemId); else n.add(itemId); return n; });
-  const clearSel = () => setSel(new Set());
+  const clearSel = () => { setSel(new Set()); setSelMode(false); };
   const doBatchCancel = async (reason?: string, pin?: string) => {
     if (sel.size === 0) return;
     const ok = await post(`/api/comandas/${id}/items/batch-cancel`, { itemIds: [...sel], ...(reason ? { reason } : {}), ...(pin ? { authPin: pin } : {}) }, "Productos cancelados");
@@ -407,7 +408,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   const renderItemRow = (it: CItem) => (
     <div key={it.id} style={page.itemRow}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 10, minWidth: 0, flex: 1 }}>
-        {editable && (
+        {editable && selMode && (
           <input type="checkbox" checked={sel.has(it.id)} onChange={() => toggleSel(it.id)}
             style={{ width: 18, height: 18, marginTop: 3, flexShrink: 0, cursor: "pointer", accentColor: C.gold }} aria-label="Seleccionar producto" />
         )}
@@ -600,15 +601,15 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
           )}
         </section>
 
-        {/* Barra de acciones en lote (aparece al seleccionar ≥1 producto) */}
-        {editable && sel.size > 0 && (
+        {/* Barra de acciones en lote (solo en modo selección) */}
+        {editable && selMode && (
           <section style={page.batchBar}>
             <span style={{ color: C.cream, fontWeight: 700, fontSize: "0.86rem" }}>{sel.size} seleccionado(s)</span>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginLeft: "auto" }}>
-              <button style={page.batchBtn} onClick={() => setBatchCancelOpen(true)} disabled={busy}>Cancelar</button>
-              {isCashier && <button style={page.batchBtn} onClick={() => setBatchMove(true)} disabled={busy}>Mover</button>}
-              {isCashier && <button style={page.batchBtn} onClick={() => setBatchDiscount(true)} disabled={busy}>Descuento</button>}
-              <button style={page.batchClear} onClick={clearSel}>Limpiar</button>
+              <button style={page.batchBtn} onClick={() => setBatchCancelOpen(true)} disabled={busy || sel.size === 0}>Cancelar</button>
+              {isCashier && <button style={page.batchBtn} onClick={() => setBatchMove(true)} disabled={busy || sel.size === 0}>Mover</button>}
+              {isCashier && <button style={page.batchBtn} onClick={() => setBatchDiscount(true)} disabled={busy || sel.size === 0}>Descuento</button>}
+              <button style={page.batchClear} onClick={clearSel}>Salir</button>
             </div>
           </section>
         )}
@@ -644,6 +645,10 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
           )}
           {editable && (
             <button style={{ ...btn.ghost, display: "inline-flex", alignItems: "center", gap: 7 }} onClick={() => setAskBill(true)} disabled={busy || liveItems.length === 0}><Icon name="printer" size={17} />Imprimir</button>
+          )}
+          {/* Modo selección: activa los checkboxes para cancelar/mover/descontar varios a la vez. */}
+          {editable && !selMode && liveItems.length > 0 && (
+            <button style={btn.ghost} onClick={() => setSelMode(true)} disabled={busy}>Seleccionar productos</button>
           )}
           {/* Cuenta ya pedida y el que la ve NO es caja (mesero): candado informativo. */}
           {!editable && !isCashier && (
@@ -703,7 +708,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
                 {awaitingBill && !alreadyPrinted && (
                   <button style={caja.primary} onClick={() => setAskPrint(true)} disabled={busy || liveItems.length === 0}><Icon name="printer" size={18} />Imprimir ticket</button>
                 )}
-                {awaitingBill && !alreadyPrinted && splittable && totalLiveUnits > 1 && (
+                {splittable && totalLiveUnits > 1 && (
                   <button style={caja.secondary} onClick={() => setSplitOpen(true)} disabled={busy || matrixItemsWithQty.length === 0}>
                     {splits.length === 0 ? "Dividir cuenta" : "Dividir otra cuenta"}
                   </button>
