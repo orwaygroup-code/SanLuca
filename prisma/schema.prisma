@@ -1183,6 +1183,7 @@ model RestaurantSettings {
   taxEnabled  Boolean  @default(true)
   taxRate     Decimal  @default(0.16) @db.Decimal(5, 4)
   tipPolicy   Json? // política default de reparto de propinas: { areas: [{ name, percent }] }
+  employeeDiscountPercent Decimal @default(50) @db.Decimal(5, 2) // #5 descuento a empleados (% configurable)
   updatedAt   DateTime @updatedAt
   updatedById Int?
   updatedBy   Staff?   @relation(fields: [updatedById], references: [id])

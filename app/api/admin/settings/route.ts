@@ -38,6 +38,14 @@ export async function PATCH(request: NextRequest) {
   if (body.tipPolicy !== undefined) {
     data.tipPolicy = normalizePolicy(body.tipPolicy) as unknown as Prisma.InputJsonValue;
   }
+  // #5 Descuento a empleados (% configurable, 0–100). Lo usa el atajo del descuento a la cuenta.
+  if (body.employeeDiscountPercent !== undefined) {
+    const ep = Number(body.employeeDiscountPercent);
+    if (!Number.isFinite(ep) || ep < 0 || ep > 100) {
+      return NextResponse.json<ApiResponse>({ success: false, error: "employeeDiscountPercent inválido (0 ≤ x ≤ 100)" }, { status: 400 });
+    }
+    data.employeeDiscountPercent = ep;
+  }
 
   await ensureSettings();
   const updated = await prisma.restaurantSettings.update({ where: { tenantId: TENANT }, data });

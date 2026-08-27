@@ -517,8 +517,15 @@ export function DiscountModal({ open, comandaId, itemId, itemName, itemIds, onCl
   const [reason, setReason] = useState("");
   const [pin, setPin] = useState("");
   const [busy, setBusy] = useState(false);
+  const [empPct, setEmpPct] = useState(50); // #5 % de descuento a empleados (configurable en Ajustes)
 
   useEffect(() => { if (open) { setType("PERCENT"); setValue(""); setReason(""); setPin(""); } }, [open]);
+  useEffect(() => {
+    if (!open) return;
+    apiFetch<{ employeeDiscountPercent?: number | string }>("/api/admin/settings").then((r) => {
+      if (r.ok && r.data?.employeeDiscountPercent != null) setEmpPct(Number(r.data.employeeDiscountPercent));
+    });
+  }, [open]);
 
   const submit = async () => {
     if (comandaId == null) return;
@@ -560,7 +567,7 @@ export function DiscountModal({ open, comandaId, itemId, itemName, itemIds, onCl
           (matar/cortesía). El 100% deja la cuenta en $0 → luego se cierra con "Cerrar en $0". */}
       {type === "PERCENT" && itemId == null && (itemIds == null || itemIds.length === 0) && (
         <div style={{ display: "flex", gap: 8, marginTop: -6, marginBottom: 6 }}>
-          <button onClick={() => setValue("50")} style={{ ...btn.ghost, flex: 1, padding: "8px 10px", fontSize: "0.82rem", ...(value === "50" ? { borderColor: C.gold, color: C.gold } : {}) }}>50% empleado</button>
+          <button onClick={() => setValue(String(empPct))} style={{ ...btn.ghost, flex: 1, padding: "8px 10px", fontSize: "0.82rem", ...(value === String(empPct) ? { borderColor: C.gold, color: C.gold } : {}) }}>{empPct}% empleado</button>
           <button onClick={() => setValue("100")} style={{ ...btn.ghost, flex: 1, padding: "8px 10px", fontSize: "0.82rem", ...(value === "100" ? { borderColor: C.gold, color: C.gold, fontWeight: 800 } : {}) }}>100% matar cuenta</button>
         </div>
       )}

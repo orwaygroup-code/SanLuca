@@ -6,7 +6,7 @@ import { useSession } from "@/lib/session-client";
 
 interface TipArea { name: string; percent: number }
 interface TipPolicyJson { pointPercent?: number; areas?: TipArea[] }
-interface Settings { taxEnabled: boolean; taxRate: number | string; tipPolicy?: TipPolicyJson | null; updatedAt: string }
+interface Settings { taxEnabled: boolean; taxRate: number | string; tipPolicy?: TipPolicyJson | null; employeeDiscountPercent?: number | string; updatedAt: string }
 
 const DEFAULT_TIP_AREAS: TipArea[] = [
   { name: "Barra", percent: 2 }, { name: "Cocina", percent: 2.5 },
@@ -21,6 +21,7 @@ export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [taxEnabled, setTaxEnabled] = useState(true);
   const [ratePct, setRatePct] = useState("16");
+  const [empDiscPct, setEmpDiscPct] = useState("50"); // #5 descuento a empleados
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
   // Reparto de propinas
@@ -42,6 +43,7 @@ export default function AdminSettingsPage() {
       setSettings(s);
       setTaxEnabled(s.taxEnabled);
       setRatePct((Number(s.taxRate) * 100).toFixed(2).replace(/\.00$/, ""));
+      setEmpDiscPct(String(s.employeeDiscountPercent ?? 50).replace(/\.00$/, ""));
       const tp = s.tipPolicy;
       setPointPct(String(tp?.pointPercent ?? 7));
       setAreas(Array.isArray(tp?.areas) && tp!.areas!.length
@@ -61,9 +63,15 @@ export default function AdminSettingsPage() {
       setSaving(false);
       return;
     }
+    const empNum = Number(empDiscPct);
+    if (!Number.isFinite(empNum) || empNum < 0 || empNum > 100) {
+      setMsg({ kind: "err", text: "Descuento a empleados inválido (0 a 100%)." });
+      setSaving(false);
+      return;
+    }
     const r = await fetch("/api/admin/settings", {
       method: "PATCH", credentials: "same-origin", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ taxEnabled, taxRate: rateNum }),
+      body: JSON.stringify({ taxEnabled, taxRate: rateNum, employeeDiscountPercent: empNum }),
     });
     const d = await r.json().catch(() => null);
     setSaving(false);
@@ -95,7 +103,7 @@ export default function AdminSettingsPage() {
   }
 
   const logout = async () => { await session.logout(); router.replace("/login?mode=login"); };
-  const dirty = !!settings && (taxEnabled !== settings.taxEnabled || Number(ratePct) / 100 !== Number(settings.taxRate));
+  const dirty = !!settings && (taxEnabled !== settings.taxEnabled || Number(ratePct) / 100 !== Number(settings.taxRate) || Number(empDiscPct) !== Number(settings.employeeDiscountPercent ?? 50));
 
   return (
     <div style={S.page}>
@@ -103,7 +111,7 @@ export default function AdminSettingsPage() {
         <h1 style={S.h1}>Ajustes del restaurante</h1>
 
         <section style={S.panel}>
-          <div style={S.panelHead}>Impuestos (IVA)</div>
+          <div style={S.panelHead}>Impuestos y descuentos</div>
           <div style={{ padding: "18px 20px" }}>
             <div style={S.toggleRow}>
               <div>
@@ -133,6 +141,22 @@ export default function AdminSettingsPage() {
                 <span style={{ color: C.dim }}>%</span>
               </div>
               <div style={{ color: C.faint, fontSize: "0.76rem", marginTop: 6 }}>México estándar: 16%.</div>
+            </div>
+
+            {/* #5 Descuento a empleados: % configurable que usa el atajo "empleado" del
+                descuento a la cuenta en caja. */}
+            <div style={{ marginTop: 22 }}>
+              <label style={S.label}>Descuento a empleados (%)</label>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input
+                  style={{ ...S.input, width: 120 }}
+                  inputMode="decimal"
+                  value={empDiscPct}
+                  onChange={(e) => setEmpDiscPct(e.target.value.replace(/[^\d.]/g, ""))}
+                />
+                <span style={{ color: C.dim }}>%</span>
+              </div>
+              <div style={{ color: C.faint, fontSize: "0.76rem", marginTop: 6 }}>Es el atajo &laquo;empleado&raquo; del descuento a la cuenta en caja. Estándar: 50%.</div>
             </div>
 
             {msg && (
