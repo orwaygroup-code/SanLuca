@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireCashier } from "@/lib/dualAuth";
-import { TENANT, isUniqueViolation } from "@/lib/comanda";
+import { verifySupervisorPin } from "@/lib/staff";
+import { TENANT, isUniqueViolation, enqueueDrawerKick } from "@/lib/comanda";
 import { getShiftWindow } from "@/lib/shifts";
 import { getOpenSession, nextCashFolio, CASH_SESSION_INCLUDE } from "@/lib/caja";
 import type { ApiResponse } from "@/types";
@@ -25,6 +26,14 @@ export async function POST(request: NextRequest) {
   const notes = typeof body?.notes === "string" ? body.notes : null;
   const registerId = typeof body?.registerId === "string" ? body.registerId : null;
 
+  // #1: abrir turno exige PIN de caja (OPERACIÓN/CAPITÁN/MANAGER). El dueño del PIN queda
+  // como quien abrió el turno (accountability, aunque la terminal tenga otra sesión).
+  const authPin = typeof body?.authPin === "string" ? body.authPin : "";
+  const openerId = await verifySupervisorPin(authPin, { tenantId: TENANT, roles: ["OPERATION", "CAPTAIN", "MANAGER"] });
+  if (!openerId) {
+    return NextResponse.json<ApiResponse>({ success: false, error: "PIN de caja inválido (Operación/Capitán/Manager)" }, { status: 403 });
+  }
+
   const open = await getOpenSession();
   if (open) {
     return NextResponse.json<ApiResponse>(
@@ -43,11 +52,13 @@ export async function POST(request: NextRequest) {
           registerId,
           shift,
           openingFloat,
-          openedById: a.staffId,
+          openedById: openerId,
           notes,
         },
         include: CASH_SESSION_INCLUDE,
       });
+      // #1: abrir el cajón para meter el fondo inicial (no rompe si el bridge está offline).
+      await enqueueDrawerKick({ staffId: openerId, comandaId: null }).catch(() => {});
       return NextResponse.json<ApiResponse>({ success: true, data: created }, { status: 201 });
     } catch (e) {
       if (isUniqueViolation(e)) continue; // colisión de folio → reintentar

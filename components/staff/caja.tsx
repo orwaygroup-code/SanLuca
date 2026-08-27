@@ -116,37 +116,44 @@ export function OpenTurnoModal({ open, onClose, onOpened, onError }: {
 }) {
   const [openingFloat, setOpeningFloat] = useState("");
   const [notes, setNotes] = useState("");
+  const [pin, setPin] = useState("");
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => { if (open) { setOpeningFloat(""); setNotes(""); } }, [open]);
+  useEffect(() => { if (open) { setOpeningFloat(""); setNotes(""); setPin(""); } }, [open]);
 
   const submit = async () => {
     setBusy(true);
+    // #1: al abrir turno también se abre el cajón (para meter el fondo). El endpoint encola
+    // el DRAWER_KICK; aquí solo mandamos PIN + fondo.
     const r = await apiFetch<CashSession>("/api/caja/sessions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ openingFloat: num(openingFloat), notes: notes.trim() || null }),
+      body: JSON.stringify({ openingFloat: num(openingFloat), notes: notes.trim() || null, authPin: pin }),
     });
     setBusy(false);
     if (r.ok) onOpened(r.data!);
     else onError(r.error ?? "No se pudo abrir el turno");
   };
 
+  const canSubmit = pin.length === 4 && num(openingFloat) >= 0 && openingFloat.trim() !== "" && !busy;
+
   return (
     <Modal open={open} title="Iniciar turno" onClose={onClose}>
       <p style={{ margin: "0 0 4px", color: C.dim, fontSize: "0.86rem", lineHeight: 1.5 }}>
-        Cuenta el efectivo con el que arranca la caja (fondo inicial). Solo puede haber un turno abierto a la vez.
+        Teclea tu PIN, cuenta el efectivo con el que arranca la caja (fondo inicial) y el cajón se
+        abrirá para meterlo. Solo puede haber un turno abierto a la vez.
       </p>
+      <SupervisorPin value={pin} onChange={setPin} label="Tu PIN de caja (Operación/Capitán/Manager)" />
       <Field label="Fondo inicial (efectivo en cajón)">
-        <MoneyInput value={openingFloat} onChange={setOpeningFloat} autoFocus />
+        <MoneyInput value={openingFloat} onChange={setOpeningFloat} />
       </Field>
       <Field label="Notas (opcional)">
         <input style={fld.input} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="ej. turno de la tarde, cajón 1" />
       </Field>
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 22 }}>
         <button style={btn.ghost} onClick={onClose} disabled={busy}>Cancelar</button>
-        <button style={{ ...btn.primary, opacity: busy ? 0.6 : 1 }} onClick={submit} disabled={busy}>
-          {busy ? "Iniciando…" : "Iniciar turno"}
+        <button style={{ ...btn.primary, opacity: canSubmit ? 1 : 0.6 }} onClick={submit} disabled={!canSubmit}>
+          {busy ? "Iniciando…" : "Iniciar turno y abrir cajón"}
         </button>
       </div>
     </Modal>
