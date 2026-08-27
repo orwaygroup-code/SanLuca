@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { resolveActor, isSupervisor } from "@/lib/dualAuth";
 import { verifySupervisorPin } from "@/lib/staff";
 import { prepAreaToTarget } from "@/lib/comandaRules";
-import { TENANT, COMANDA_INCLUDE, recalcComandaTotals } from "@/lib/comanda";
+import { TENANT, COMANDA_INCLUDE, recalcComandaTotals, isEditableStatus, LOCKED_ACCOUNT_MSG } from "@/lib/comanda";
 import type { ApiResponse } from "@/types";
 
 function parseId(raw: string): number | null {
@@ -39,6 +39,10 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   if (!item) return NextResponse.json<ApiResponse>({ success: false, error: "Item no encontrado" }, { status: 404 });
   if (item.status === "CANCELLED") {
     return NextResponse.json<ApiResponse>({ success: false, error: "El item ya está cancelado" }, { status: 409 });
+  }
+  // Regla: no se cancela un producto de una cuenta impresa / por cobrar sin reabrirla primero.
+  if (!isEditableStatus(item.comanda.status)) {
+    return NextResponse.json<ApiResponse>({ success: false, error: LOCKED_ACCOUNT_MSG }, { status: 409 });
   }
 
   const supervisor = isSupervisor(actor);

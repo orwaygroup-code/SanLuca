@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireComandaSupervisor } from "@/lib/dualAuth";
-import { TENANT, ACTIVE_STATUSES, COMANDA_INCLUDE } from "@/lib/comanda";
+import { TENANT, COMANDA_INCLUDE, isEditableStatus, LOCKED_ACCOUNT_MSG } from "@/lib/comanda";
 import type { ApiResponse } from "@/types";
 
 function parseId(raw: string): number | null {
@@ -34,8 +34,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     select: { id: true, status: true },
   });
   if (!comanda) return NextResponse.json<ApiResponse>({ success: false, error: "Comanda no encontrada" }, { status: 404 });
-  if (!ACTIVE_STATUSES.includes(comanda.status as (typeof ACTIVE_STATUSES)[number])) {
-    return NextResponse.json<ApiResponse>({ success: false, error: `Comanda ${comanda.status}: no se puede cancelar` }, { status: 409 });
+  // Regla: una cuenta impresa / por cobrar NO se cancela sin reabrirla primero.
+  if (!isEditableStatus(comanda.status)) {
+    const locked = comanda.status === "AWAITING_PAYMENT" || comanda.status === "PARTIALLY_PAID";
+    return NextResponse.json<ApiResponse>({ success: false, error: locked ? LOCKED_ACCOUNT_MSG : `Comanda ${comanda.status}: no se puede cancelar` }, { status: 409 });
   }
 
   await prisma.comanda.update({

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireCashier } from "@/lib/dualAuth";
 import { verifySupervisorPin } from "@/lib/staff";
-import { TENANT, ACTIVE_STATUSES, COMANDA_INCLUDE, recalcComandaTotals } from "@/lib/comanda";
+import { TENANT, COMANDA_INCLUDE, recalcComandaTotals, isEditableStatus, LOCKED_ACCOUNT_MSG } from "@/lib/comanda";
 import type { ApiResponse } from "@/types";
 
 function parseId(raw: string): number | null {
@@ -46,11 +46,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   ]);
   if (!target) return NextResponse.json<ApiResponse>({ success: false, error: "Cuenta destino no encontrada" }, { status: 404 });
   if (!source) return NextResponse.json<ApiResponse>({ success: false, error: "Cuenta origen no encontrada" }, { status: 404 });
-  if (!ACTIVE_STATUSES.includes(target.status as (typeof ACTIVE_STATUSES)[number])) {
-    return NextResponse.json<ApiResponse>({ success: false, error: `Cuenta destino ${target.status}: no admite juntar` }, { status: 409 });
+  if (!isEditableStatus(target.status)) {
+    const locked = target.status === "AWAITING_PAYMENT" || target.status === "PARTIALLY_PAID";
+    return NextResponse.json<ApiResponse>({ success: false, error: locked ? `Cuenta destino: ${LOCKED_ACCOUNT_MSG}` : `Cuenta destino ${target.status}: no admite juntar` }, { status: 409 });
   }
-  if (!ACTIVE_STATUSES.includes(source.status as (typeof ACTIVE_STATUSES)[number])) {
-    return NextResponse.json<ApiResponse>({ success: false, error: `Cuenta origen ${source.status}: no admite juntar` }, { status: 409 });
+  if (!isEditableStatus(source.status)) {
+    const locked = source.status === "AWAITING_PAYMENT" || source.status === "PARTIALLY_PAID";
+    return NextResponse.json<ApiResponse>({ success: false, error: locked ? `Cuenta origen: ${LOCKED_ACCOUNT_MSG}` : `Cuenta origen ${source.status}: no admite juntar` }, { status: 409 });
   }
   if (Number(source.amountPaid) > 0) {
     return NextResponse.json<ApiResponse>({ success: false, error: "La cuenta origen ya tiene pagos; reábrela/anúlala antes de juntar" }, { status: 409 });

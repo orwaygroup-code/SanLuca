@@ -169,7 +169,13 @@ export function CapitanBoard() {
                               <>
                                 <button style={mini} onClick={() => setMoveTarget(c)}>Mover mesa</button>
                                 <button style={mini} onClick={() => setWaiterTarget(c)}>Cambiar mesero</button>
-                                <button style={{ ...mini, color: C.red, borderColor: C.red }} onClick={() => setCancelTarget(c)}>Cancelar</button>
+                                {/* Regla: una cuenta impresa / por cobrar NO se cancela aquí; hay que
+                                    reabrirla primero (entra a «Ver» → «Reabrir cuenta»). */}
+                                {(c.status === "OPEN" || c.status === "IN_SERVICE") ? (
+                                  <button style={{ ...mini, color: C.red, borderColor: C.red }} onClick={() => setCancelTarget(c)}>Cancelar</button>
+                                ) : (
+                                  <button style={mini} onClick={() => router.push(detailHref(c.id))} title="Para cancelar una cuenta impresa, reábrela primero desde su detalle">Reabrir para cancelar</button>
+                                )}
                               </>
                             )}
                           </div>

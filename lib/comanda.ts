@@ -44,6 +44,20 @@ export async function enqueueDrawerKick(
  *  PARTIALLY_PAID: sigue ocupando la mesa mientras se cobra por partes. */
 export const ACTIVE_STATUSES = ["OPEN", "IN_SERVICE", "AWAITING_PAYMENT", "PARTIALLY_PAID"] as const;
 
+/**
+ * Estados en los que la cuenta SÍ se puede modificar (agregar/cancelar productos, descuentos,
+ * traspaso, merge, cancelar la cuenta). En cuanto se imprime el ticket / se manda a caja la
+ * cuenta pasa a AWAITING_PAYMENT (bloqueada): hay que REABRIRLA (unlock → IN_SERVICE) antes
+ * de tocarla. Regla de negocio de Paul: nada de cancelar/modificar una cuenta impresa sin
+ * reabrirla primero.
+ */
+export const EDITABLE_STATUSES = ["OPEN", "IN_SERVICE"] as const;
+export function isEditableStatus(status: string): boolean {
+  return (EDITABLE_STATUSES as readonly string[]).includes(status);
+}
+/** Mensaje único cuando se intenta modificar una cuenta ya bloqueada (por cobrar / pagada). */
+export const LOCKED_ACCOUNT_MSG = "La cuenta ya está impresa / por cobrar. Reábrela para poder modificarla o cancelarla.";
+
 /** Include estándar para devolver una comanda con su detalle. */
 export const COMANDA_INCLUDE = {
   items: { orderBy: { addedAt: "asc" }, include: { comments: { orderBy: { createdAt: "asc" } } } },

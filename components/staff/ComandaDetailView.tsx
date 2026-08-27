@@ -496,7 +496,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
             <div style={{ color: C.gold, fontSize: "0.68rem" }}>−{formatMXN(Number(it.discountAmount))} desc.</div>
           )}
         </div>
-        {isCashier && cajaActive && (
+        {isCashier && editable && (
           <button style={page.discBtn} title="Descuento a este producto" onClick={() => setDiscountTarget({ itemId: it.id, itemName: it.dishNameSnapshot })}>%</button>
         )}
         {canCancel(it) && (

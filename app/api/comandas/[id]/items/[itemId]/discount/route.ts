@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireCashier } from "@/lib/dualAuth";
 import { verifySupervisorPin } from "@/lib/staff";
-import { TENANT, ACTIVE_STATUSES, COMANDA_INCLUDE, recalcComandaTotals } from "@/lib/comanda";
+import { TENANT, COMANDA_INCLUDE, recalcComandaTotals, isEditableStatus, LOCKED_ACCOUNT_MSG } from "@/lib/comanda";
 import { round2, computeDiscountAmount } from "@/lib/comandaTotals";
 import type { ApiResponse } from "@/types";
 
@@ -44,8 +44,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     select: { id: true, status: true },
   });
   if (!comanda) return NextResponse.json<ApiResponse>({ success: false, error: "Comanda no encontrada" }, { status: 404 });
-  if (!ACTIVE_STATUSES.includes(comanda.status as (typeof ACTIVE_STATUSES)[number])) {
-    return NextResponse.json<ApiResponse>({ success: false, error: `Comanda ${comanda.status}: no admite descuento` }, { status: 409 });
+  if (!isEditableStatus(comanda.status)) {
+    const locked = comanda.status === "AWAITING_PAYMENT" || comanda.status === "PARTIALLY_PAID";
+    return NextResponse.json<ApiResponse>({ success: false, error: locked ? LOCKED_ACCOUNT_MSG : `Comanda ${comanda.status}: no admite descuento` }, { status: 409 });
   }
 
   const item = await prisma.comandaItem.findFirst({

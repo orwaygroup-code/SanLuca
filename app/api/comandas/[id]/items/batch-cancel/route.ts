@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { resolveActor, isSupervisor } from "@/lib/dualAuth";
 import { verifySupervisorPin } from "@/lib/staff";
 import { prepAreaToTarget } from "@/lib/comandaRules";
-import { TENANT, COMANDA_INCLUDE, recalcComandaTotals } from "@/lib/comanda";
+import { TENANT, COMANDA_INCLUDE, recalcComandaTotals, isEditableStatus, LOCKED_ACCOUNT_MSG } from "@/lib/comanda";
 import type { ApiResponse } from "@/types";
 
 function parseId(raw: string): number | null {
@@ -39,6 +39,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     },
   });
   if (!comanda) return NextResponse.json<ApiResponse>({ success: false, error: "Comanda no encontrada" }, { status: 404 });
+  // Regla: no se cancelan productos de una cuenta impresa / por cobrar sin reabrirla primero.
+  if (!isEditableStatus(comanda.status)) {
+    return NextResponse.json<ApiResponse>({ success: false, error: LOCKED_ACCOUNT_MSG }, { status: 409 });
+  }
 
   const items = await prisma.comandaItem.findMany({
     where: { id: { in: itemIds }, comandaId: id, tenantId: TENANT, status: { not: "CANCELLED" } },

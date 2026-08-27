@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireCashier } from "@/lib/dualAuth";
 import { verifySupervisorPin } from "@/lib/staff";
-import { TENANT, ACTIVE_STATUSES, COMANDA_INCLUDE, recalcComandaTotals } from "@/lib/comanda";
+import { TENANT, COMANDA_INCLUDE, recalcComandaTotals, isEditableStatus, LOCKED_ACCOUNT_MSG } from "@/lib/comanda";
 import { round2, lineTotal as calcLineTotal } from "@/lib/comandaTotals";
 import type { ApiResponse } from "@/types";
 
@@ -46,8 +46,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   if (!from) return NextResponse.json<ApiResponse>({ success: false, error: "Cuenta origen no encontrada" }, { status: 404 });
   if (!to) return NextResponse.json<ApiResponse>({ success: false, error: "Cuenta destino no encontrada" }, { status: 404 });
   for (const [c, label] of [[from, "origen"], [to, "destino"]] as const) {
-    if (!ACTIVE_STATUSES.includes(c.status as (typeof ACTIVE_STATUSES)[number])) {
-      return NextResponse.json<ApiResponse>({ success: false, error: `Cuenta ${label} ${c.status}: no admite traspaso` }, { status: 409 });
+    if (!isEditableStatus(c.status)) {
+      const locked = c.status === "AWAITING_PAYMENT" || c.status === "PARTIALLY_PAID";
+      return NextResponse.json<ApiResponse>({ success: false, error: locked ? `Cuenta ${label}: ${LOCKED_ACCOUNT_MSG}` : `Cuenta ${label} ${c.status}: no admite traspaso` }, { status: 409 });
     }
   }
 
