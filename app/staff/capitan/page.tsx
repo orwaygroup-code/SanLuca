@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStaffSession } from "@/lib/staff-session-client";
-import { C, StaffHeader, Spinner, btn, useStaffLogout } from "@/components/staff/ui";
+import { C, StaffHeader, Spinner, useStaffLogout } from "@/components/staff/ui";
 import { CapitanBoard } from "@/components/staff/CapitanBoard";
+import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { Tour, type TourStep } from "@/components/staff/Tour";
 
 /** Tutorial guiado de la vista Capitán. */
@@ -21,6 +22,7 @@ export default function CapitanPage() {
   const { staff, loading } = useStaffSession();
   const logout = useStaffLogout();
   const [tourOpen, setTourOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false); // drawer de navegación (hamburguesa)
   const autoTourDone = useRef(false);
 
   const allowed = staff && (staff.role === "CAPTAIN" || staff.role === "MANAGER");
@@ -62,13 +64,24 @@ export default function CapitanPage() {
         right={
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             {hasAdmin && (
-              <button style={{ ...btn.ghost, minHeight: 40, padding: "0 14px", fontSize: "0.82rem" }} onClick={() => router.push("/admin")}>Panel</button>
+              <button onClick={() => setMenuOpen(true)} title="Menú" aria-label="Abrir menú"
+                style={{ width: 40, height: 40, borderRadius: 999, border: `1px solid ${C.border}`, background: "transparent", color: C.gold, fontWeight: 800, fontSize: "1.15rem", lineHeight: 1, cursor: "pointer" }}>☰</button>
             )}
             <button onClick={() => setTourOpen(true)} title="Tutorial" aria-label="Abrir tutorial"
               style={{ width: 40, height: 40, borderRadius: 999, border: `1px solid ${C.border}`, background: "transparent", color: C.gold, fontWeight: 800, fontSize: "1.05rem", cursor: "pointer" }}>?</button>
           </div>
         }
       />
+
+      {/* Drawer de navegación (mismo menú del panel admin) — solo para MANAGER con puente admin. */}
+      {hasAdmin && menuOpen && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 60 }}>
+          <div onClick={() => setMenuOpen(false)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)" }} />
+          <div style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: 260, maxWidth: "82vw", boxShadow: "4px 0 24px rgba(0,0,0,0.5)" }}>
+            <AdminSidebar userName={staff.fullName} onLogout={logout} onNavigate={() => setMenuOpen(false)} />
+          </div>
+        </div>
+      )}
       <CapitanBoard />
       <Tour steps={CAPITAN_TOUR} open={tourOpen} onClose={closeTour} />
     </div>
