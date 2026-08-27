@@ -353,6 +353,7 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
       if (r.ok) {
         const c = r.data!;
         setComanda(c);
+        if (c.chargedEmployeeId) setCreditWaiterId(String(c.chargedEmployeeId)); // #4 autoselecciona empleado ligado
         const remaining = round2(Number(c.total) - Number(c.amountPaid));
         setLines([newLine(remaining > 0 ? remaining.toFixed(2) : "")]);
       } else setLoadErr(r.error ?? "No se pudo cargar la cuenta");
@@ -370,7 +371,15 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
   const newRemaining = round2(remaining - coveredNow);
   const settledPreview = newRemaining <= 0.01;
   const hasCredit = calc.some((c) => c.method === "WAITER_CREDIT" && c.billPortion > 0);
-  const creditReady = !hasCredit || (Number(creditWaiterId) > 0 && /^\d{4}$/.test(creditPin));
+  // #4 Cuenta ligada a empleado: el crédito va a ese empleado y su aprobación (en cartera)
+  // reemplaza al PIN aquí. Si aún no la aprueba, no se puede cobrar a crédito.
+  const linkedEmp = comanda?.chargedEmployeeId ?? null;
+  const isLinkedApproved = linkedEmp != null && comanda?.employeeChargeStatus === "APPROVED";
+  const creditReady = !hasCredit
+    ? true
+    : linkedEmp != null
+    ? isLinkedApproved && Number(creditWaiterId) === linkedEmp
+    : Number(creditWaiterId) > 0 && /^\d{4}$/.test(creditPin);
   const tipReady = !excludeTip || /^\d{4}$/.test(excludeTipPin);
   const canSubmit = !!comanda && coveredNow > 0 && creditReady && tipReady && !busy;
 
@@ -461,7 +470,20 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
             + Agregar otro método{newRemaining > 0 ? ` · falta ${formatMXN(newRemaining)}` : ""}
           </button>
 
-          {hasCredit && (
+          {hasCredit && linkedEmp != null && (
+            // #4 Cuenta ligada: empleado fijo, sin picker ni PIN. La aprobación en cartera manda.
+            <div style={{ border: `1px solid ${isLinkedApproved ? "#5aa06e" : "#e0b054"}`, borderRadius: 12, padding: "12px 14px", marginTop: 12, background: "rgba(0,0,0,0.14)" }}>
+              <div style={{ color: isLinkedApproved ? "#5aa06e" : "#e0b054", fontWeight: 800, fontSize: "0.82rem", marginBottom: 6 }}>
+                Crédito a empleado ligado · {comanda?.chargedEmployee?.fullName ?? "empleado"}
+              </div>
+              {isLinkedApproved ? (
+                <div style={{ color: "#5aa06e", fontSize: "0.82rem" }}>✓ El empleado ya la aprobó en su cartera. No se requiere PIN aquí.</div>
+              ) : (
+                <div style={{ color: "#e0b054", fontSize: "0.82rem" }}>Pendiente: el empleado debe palomearla en su cartera antes de cobrarla a crédito.</div>
+              )}
+            </div>
+          )}
+          {hasCredit && linkedEmp == null && (
             <div style={{ border: `1px solid ${C.gold}`, borderRadius: 12, padding: "12px 14px", marginTop: 12, background: "color-mix(in srgb, #ba843c 8%, transparent)" }}>
               <div style={{ color: C.gold, fontWeight: 800, fontSize: "0.82rem", marginBottom: 8 }}>Crédito de empleado · lo autoriza el empleado deudor con su PIN</div>
               <label style={fld.label}>Empleado al que se le carga</label>

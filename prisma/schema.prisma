@@ -97,6 +97,7 @@ model Staff {
   comandasAsWaiter      Comanda[]             @relation("ComandaWaiter")
   comandasOpened        Comanda[]             @relation("ComandaOpener")
   comandasClosed        Comanda[]             @relation("ComandaCloser")
+  comandasCharged       Comanda[]             @relation("ComandaChargedEmployee")
   itemsAdded            ComandaItem[]
   itemComments          ComandaItemComment[]
   printsExecuted        ComandaPrint[]        @relation("PrintExecutor")
@@ -688,6 +689,13 @@ model Comanda {
   // Quién la cerró (al pasar a PAID)
   closedById Int?
   closedBy   Staff? @relation("ComandaCloser", fields: [closedById], references: [id])
+
+  // #4 Ligar a empleado: cuenta (para llevar) cargada a un empleado, que debe APROBARLA con
+  // su PIN antes de que caja pueda cobrarla a crédito. status: null (sin ligar) | PENDING | APPROVED.
+  chargedEmployeeId       Int?
+  chargedEmployee         Staff?    @relation("ComandaChargedEmployee", fields: [chargedEmployeeId], references: [id])
+  employeeChargeStatus    String?
+  employeeChargeApprovedAt DateTime?
 
   status ComandaStatus @default(OPEN)
 

@@ -10,6 +10,9 @@ interface Credit { id: number; amount: number; status: string; note: string | nu
 interface CashTip { id: number; amount: number; note: string | null; createdAt: string }
 interface Tips { registered: number; cash: number; total: number; salesToday: number; pointPercent: number; puntos: number; neto: number; cashList: CashTip[] }
 interface Wallet { pending: number; credits: Credit[]; tips: Tips }
+// #4 Cuentas (para llevar) ligadas a este empleado, esperando su aprobación.
+interface ChargeItem { id: number; quantity: number | string; dishNameSnapshot: string; lineTotal: number | string }
+interface Charge { id: number; folio: string; customName: string | null; total: number | string; openedAt: string; employeeChargeStatus: "PENDING" | "APPROVED"; openedBy: { fullName: string } | null; items: ChargeItem[] }
 
 /** Wallet del empleado: propinas de hoy (caja + efectivo propio) y saldo a crédito. */
 export default function WalletPage() {
@@ -21,11 +24,31 @@ export default function WalletPage() {
   const [tipAmount, setTipAmount] = useState("");
   const [tipNote, setTipNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const [charges, setCharges] = useState<Charge[]>([]); // #4 cuentas por aprobar/aprobadas
+  const [approveId, setApproveId] = useState<number | null>(null); // tarjeta con PIN abierto
+  const [approvePin, setApprovePin] = useState("");
+  const [approveErr, setApproveErr] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const r = await apiFetch<Wallet>("/api/staff/wallet");
+    const [r, ch] = await Promise.all([
+      apiFetch<Wallet>("/api/staff/wallet"),
+      apiFetch<Charge[]>("/api/staff/employee-charges"),
+    ]);
     if (r.ok) setW(r.data!);
+    if (ch.ok) setCharges(ch.data ?? []);
   }, []);
+
+  const approve = async (id: number) => {
+    if (approvePin.length !== 4 || busy) return;
+    setBusy(true); setApproveErr(null);
+    const r = await apiFetch<unknown>(`/api/comandas/${id}/employee-approve`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pin: approvePin }),
+    });
+    setBusy(false);
+    if (r.ok) { setApproveId(null); setApprovePin(""); load(); }
+    else setApproveErr(r.error ?? "No se pudo aprobar");
+  };
 
   useEffect(() => {
     if (!loading && !staff) { router.replace("/staff/login?next=/staff/wallet"); return; }
@@ -55,6 +78,56 @@ export default function WalletPage() {
     <div style={{ minHeight: "100vh", background: C.bg }}>
       <StaffHeader title="Mi cartera" role={staff?.role} userName={staff?.fullName} onLogout={logout} onBack={() => router.back()} />
       <main style={{ padding: 18, maxWidth: 640, margin: "0 auto", paddingBottom: 60 }}>
+
+        {/* #4 Cuentas por aprobar: cuentas para llevar que caja ligó a este empleado. Debe
+            palomearlas con su PIN antes de que caja pueda cobrarlas a su crédito. */}
+        {charges.length > 0 && (
+          <div style={{ background: "rgba(90,160,110,0.08)", border: "1px solid rgba(90,160,110,0.5)", borderRadius: 16, padding: "16px 18px", marginBottom: 16 }}>
+            <div style={{ color: C.green, fontSize: "0.7rem", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 800, marginBottom: 10 }}>Cuentas por aprobar · {charges.filter((c) => c.employeeChargeStatus === "PENDING").length}</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {charges.map((c) => {
+                const approved = c.employeeChargeStatus === "APPROVED";
+                return (
+                  <div key={c.id} style={{ border: `1px solid ${C.line}`, borderRadius: 12, background: C.panel, padding: "12px 14px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ color: C.cream, fontWeight: 700, fontSize: "0.9rem" }}>{c.customName || `Cuenta ${c.folio}`}</div>
+                        <div style={{ color: C.faint, fontSize: "0.74rem", marginTop: 2 }}>{fmtTime(c.openedAt)}{c.openedBy ? ` · abrió ${c.openedBy.fullName}` : ""}</div>
+                      </div>
+                      <div style={{ color: C.cream, fontWeight: 800 }}>{formatMXN(Number(c.total))}</div>
+                    </div>
+                    <div style={{ marginTop: 8, borderTop: `1px solid ${C.line}`, paddingTop: 8, display: "flex", flexDirection: "column", gap: 3 }}>
+                      {c.items.map((it) => (
+                        <div key={it.id} style={{ display: "flex", gap: 8, fontSize: "0.8rem" }}>
+                          <span style={{ color: C.faint, minWidth: 28 }}>{Number(it.quantity)}×</span>
+                          <span style={{ color: C.dim, flex: 1, minWidth: 0 }}>{it.dishNameSnapshot}</span>
+                          <span style={{ color: C.dim }}>{formatMXN(Number(it.lineTotal))}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {approved ? (
+                      <div style={{ marginTop: 10, color: C.green, fontWeight: 700, fontSize: "0.82rem" }}>✓ Aprobada · esperando que caja la cobre a tu crédito</div>
+                    ) : approveId === c.id ? (
+                      <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+                        <div style={{ color: C.faint, fontSize: "0.74rem" }}>Teclea tu PIN para aceptar este cargo a tu crédito.</div>
+                        <input type="password" inputMode="numeric" maxLength={4} autoFocus value={approvePin}
+                          onChange={(e) => setApprovePin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                          placeholder="PIN de 4 dígitos" style={inp} />
+                        {approveErr && <div style={{ color: C.amber, fontSize: "0.78rem" }}>{approveErr}</div>}
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <button onClick={() => approve(c.id)} disabled={approvePin.length !== 4 || busy} style={{ ...btnPrimary, background: C.green, opacity: approvePin.length === 4 && !busy ? 1 : 0.5 }}>Aprobar</button>
+                          <button onClick={() => { setApproveId(null); setApprovePin(""); setApproveErr(null); }} style={btnGhost2}>Cancelar</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button onClick={() => { setApproveId(c.id); setApprovePin(""); setApproveErr(null); }} style={{ marginTop: 10, padding: "9px 14px", borderRadius: 9, border: "none", background: C.green, color: "#0f1a12", fontWeight: 800, fontSize: "0.82rem", cursor: "pointer", fontFamily: "inherit", width: "100%" }}>✓ Aprobar esta cuenta</button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Propinas de hoy */}
         <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 16, padding: "22px 20px", marginBottom: 16 }}>

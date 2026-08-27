@@ -611,8 +611,14 @@ function NuevaCuentaModal({ open, waiterId, onClose, onCreated, onError }: {
   onClose: () => void; onCreated: (id: number) => void; onError: (m: string) => void;
 }) {
   const [name, setName] = useState("");
+  const [empId, setEmpId] = useState(""); // #4 ligar a empleado (opcional)
+  const [emps, setEmps] = useState<{ id: number; fullName: string; role: string }[]>([]);
   const [busy, setBusy] = useState(false);
-  useEffect(() => { if (open) { setName(""); setBusy(false); } }, [open]);
+  useEffect(() => { if (open) { setName(""); setEmpId(""); setBusy(false); } }, [open]);
+  useEffect(() => {
+    if (!open) return;
+    apiFetch<{ id: number; fullName: string; role: string }[]>("/api/comandas/credit-staff").then((r) => { if (r.ok) setEmps(r.data ?? []); });
+  }, [open]);
 
   const submit = async () => {
     if (!name.trim() || busy) return;
@@ -621,9 +627,17 @@ function NuevaCuentaModal({ open, waiterId, onClose, onCreated, onError }: {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ customName: name.trim(), waiterId }),
     });
+    if (!r.ok) { setBusy(false); onError(r.error ?? "No se pudo crear la cuenta"); return; }
+    // #4: si se eligió empleado, ligar la cuenta (queda PENDING de aprobación del empleado).
+    if (empId) {
+      const link = await apiFetch<Comanda>(`/api/comandas/${r.data!.id}/link-employee`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ employeeId: Number(empId) }),
+      });
+      if (!link.ok) onError(link.error ?? "Cuenta creada, pero no se pudo ligar al empleado");
+    }
     setBusy(false);
-    if (r.ok) onCreated(r.data!.id);
-    else onError(r.error ?? "No se pudo crear la cuenta");
+    onCreated(r.data!.id);
   };
 
   return (
@@ -633,6 +647,12 @@ function NuevaCuentaModal({ open, waiterId, onClose, onCreated, onError }: {
       </p>
       <label style={{ ...fld.label, marginTop: 12 }}>Nombre de la cuenta</label>
       <input style={fld.input} value={name} onChange={(e) => setName(e.target.value)} placeholder="ej. Para llevar - Juan, Cuenta barra 3" autoFocus />
+      <label style={{ ...fld.label, marginTop: 14 }}>Ligar a empleado (opcional)</label>
+      <select style={{ ...fld.input, width: "100%" }} value={empId} onChange={(e) => setEmpId(e.target.value)}>
+        <option value="">— Sin ligar —</option>
+        {emps.map((e) => <option key={e.id} value={e.id}>{e.fullName} · {e.role}</option>)}
+      </select>
+      {empId && <div style={{ color: C.faint, fontSize: "0.76rem", marginTop: 6 }}>El empleado deberá aprobarla con su PIN antes de que caja pueda cobrarla a crédito.</div>}
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 22 }}>
         <button style={btn.ghost} onClick={onClose} disabled={busy}>Cancelar</button>
         <button style={{ ...btn.primary, opacity: !name.trim() || busy ? 0.5 : 1 }} onClick={submit} disabled={!name.trim() || busy}>

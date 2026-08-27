@@ -72,6 +72,9 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   const [askBill, setAskBill] = useState(false);
   const [reprint, setReprint] = useState(false);
   const [clearAsk, setClearAsk] = useState(false);
+  const [linkPick, setLinkPick] = useState(false); // #4 selector "ligar a empleado" abierto
+  const [emps, setEmps] = useState<{ id: number; fullName: string; role: string }[]>([]);
+  const [selEmp, setSelEmp] = useState("");
   const [currentCourse, setCurrentCourse] = useState(0); // "tiempo" al que se agregan nuevos platillos (0 = Sin tiempo)
   const [tourOpen, setTourOpen] = useState(false);
   const autoTourDone = useRef(false);
@@ -343,6 +346,23 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
     setCloseZeroAsk(false);
     if (r.ok) { setComanda(r.data!.comanda); push("Cuenta cerrada en $0", "success"); }
     else push(r.error ?? "No se pudo cerrar en $0", "error");
+  };
+
+  useEffect(() => {
+    if (linkPick && emps.length === 0) {
+      apiFetch<{ id: number; fullName: string; role: string }[]>("/api/comandas/credit-staff").then((r) => { if (r.ok) setEmps(r.data ?? []); });
+    }
+  }, [linkPick, emps.length]);
+
+  // #4 Ligar / desligar la cuenta (para llevar) a un empleado. employeeId=null desliga.
+  const doLink = async (employeeId: number | null) => {
+    setBusy(true);
+    const r = await apiFetch<Comanda>(`/api/comandas/${id}/link-employee`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ employeeId }),
+    });
+    setBusy(false);
+    if (r.ok) { setComanda(r.data!); setLinkPick(false); setSelEmp(""); push(employeeId ? "Cuenta ligada al empleado" : "Cuenta desligada", "success"); }
+    else push(r.error ?? "No se pudo ligar", "error");
   };
 
   // Vaciar borrador: borra TODOS los platillos aún no enviados (status PENDING).
@@ -730,6 +750,37 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
             {cajaActive && Number(c.total) === 0 && (
               <div style={caja.primaryRow}>
                 <button style={caja.primary} onClick={() => setCloseZeroAsk(true)} disabled={busy}>Cerrar en $0 (sin cobro)</button>
+              </div>
+            )}
+
+            {/* #4 Ligar a empleado (solo cuentas para llevar / sin mesa). El empleado debe
+                aprobarla en su cartera antes de que caja pueda cobrarla a crédito. */}
+            {cajaActive && c.table == null && (
+              <div style={{ marginTop: 14 }}>
+                <div style={caja.subLabel}>Empleado (crédito)</div>
+                {c.chargedEmployeeId ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                    <span style={{ color: C.cream, fontWeight: 700 }}>{c.chargedEmployee?.fullName ?? "Empleado"}</span>
+                    <span style={{ fontSize: "0.7rem", fontWeight: 800, padding: "3px 9px", borderRadius: 6, color: "#16201f", background: c.employeeChargeStatus === "APPROVED" ? "#5aa06e" : "#e0b054" }}>
+                      {c.employeeChargeStatus === "APPROVED" ? "APROBADA" : "POR APROBAR"}
+                    </span>
+                    {editable && <button style={caja.more} onClick={() => doLink(null)} disabled={busy}>Desligar</button>}
+                  </div>
+                ) : !linkPick ? (
+                  <button style={caja.more} onClick={() => setLinkPick(true)} disabled={busy}>Ligar a empleado</button>
+                ) : (
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    <select value={selEmp} onChange={(e) => setSelEmp(e.target.value)} style={{ padding: "9px 11px", borderRadius: 9, background: "rgba(0,0,0,0.2)", border: `1px solid ${C.border}`, color: C.cream, fontFamily: "inherit", fontSize: "0.85rem", minWidth: 200 }}>
+                      <option value="">— Empleado —</option>
+                      {emps.map((e) => <option key={e.id} value={e.id}>{e.fullName} · {e.role}</option>)}
+                    </select>
+                    <button style={caja.primary} onClick={() => selEmp && doLink(Number(selEmp))} disabled={busy || !selEmp}>Ligar</button>
+                    <button style={caja.more} onClick={() => { setLinkPick(false); setSelEmp(""); }} disabled={busy}>Cancelar</button>
+                  </div>
+                )}
+                {c.chargedEmployeeId != null && c.employeeChargeStatus !== "APPROVED" && (
+                  <div style={{ color: C.faint, fontSize: "0.74rem", marginTop: 6 }}>El empleado debe aprobarla en su cartera antes de cobrarla a crédito.</div>
+                )}
               </div>
             )}
 

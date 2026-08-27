@@ -92,7 +92,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
   const comanda = await prisma.comanda.findFirst({
     where: { id, tenantId: TENANT },
-    select: { id: true, status: true, total: true, amountPaid: true, tipTotal: true },
+    select: { id: true, status: true, total: true, amountPaid: true, tipTotal: true, chargedEmployeeId: true, employeeChargeStatus: true },
   });
   if (!comanda) return NextResponse.json<ApiResponse>({ success: false, error: "Comanda no encontrada" }, { status: 404 });
   if (!ACTIVE_STATUSES.includes(comanda.status as (typeof ACTIVE_STATUSES)[number])) {
@@ -134,7 +134,18 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     }
     const waiter = await prisma.staff.findFirst({ where: { id: creditWaiterId, tenantId: TENANT, active: true }, select: { id: true } });
     if (!waiter) return NextResponse.json<ApiResponse>({ success: false, error: "Mesero no encontrado o inactivo" }, { status: 404 });
-    if (!(await verifyWaiterPin(creditWaiterId, pin))) {
+    if (comanda.chargedEmployeeId != null) {
+      // #4 Cuenta LIGADA: el crédito solo puede ir a ese empleado y solo si ya la aprobó en su
+      // cartera. Esa aprobación (con PIN, ya registrada) ES la autorización — no se pide PIN otra
+      // vez aquí, así el empleado no tiene que estar en caja al momento de cobrar.
+      if (creditWaiterId !== comanda.chargedEmployeeId) {
+        return NextResponse.json<ApiResponse>({ success: false, error: "Esta cuenta está ligada a otro empleado; el crédito debe ir a ese empleado" }, { status: 409 });
+      }
+      if (comanda.employeeChargeStatus !== "APPROVED") {
+        return NextResponse.json<ApiResponse>({ success: false, error: "El empleado aún no aprueba esta cuenta. Debe palomearla en su cartera antes de cobrarla a crédito." }, { status: 409 });
+      }
+    } else if (!(await verifyWaiterPin(creditWaiterId, pin))) {
+      // Crédito ad-hoc (sin ligar): el empleado deudor lo autoriza con su PIN aquí mismo.
       return NextResponse.json<ApiResponse>({ success: false, error: "PIN del mesero incorrecto" }, { status: 403 });
     }
   }

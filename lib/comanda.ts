@@ -50,6 +50,7 @@ export const COMANDA_INCLUDE = {
   prints: { orderBy: { printedAt: "asc" } },
   table: { select: { id: true, number: true, section: { select: { name: true } } } },
   waiter: { select: { id: true, fullName: true, username: true, role: true } },
+  chargedEmployee: { select: { id: true, fullName: true, role: true } }, // #4 empleado ligado (crédito)
 } as const;
 
 /** Lee la config de IVA del tenant (default IVA 16% activo si no hay fila). */

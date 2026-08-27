@@ -74,6 +74,11 @@ export interface Comanda {
   prints: CPrint[];
   table: CTableRef | null;
   waiter: CWaiterRef;
+  // #4 Ligar a empleado (cuenta a crédito con aprobación previa del empleado)
+  chargedEmployeeId?: number | null;
+  employeeChargeStatus?: "PENDING" | "APPROVED" | null;
+  employeeChargeApprovedAt?: string | null;
+  chargedEmployee?: { id: number; fullName: string; role: string } | null;
 }
 
 /** Etiqueta corta de una comanda: "Mesa 5" o el nombre de la cuenta sin mesa. */
