@@ -16,6 +16,14 @@ import { Tour, type TourStep } from "@/components/staff/Tour";
 import { TipsPanel } from "@/components/staff/TipsPanel";
 
 const AWAIT = STATUS_COLOR.AWAITING_PAYMENT; // #e0b054 — tinte "requiere caja"
+const TAKEOUT_ALERT_MS = 90 * 60 * 1000; // #3 umbral de alerta para cuentas "para llevar" (1h30)
+
+/** "hace 1h 42m" a partir de un ISO. */
+function elapsedLabel(iso: string, nowTs: number): string {
+  const mins = Math.max(0, Math.floor((nowTs - new Date(iso).getTime()) / 60000));
+  const h = Math.floor(mins / 60), m = mins % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
 
 /** Tutorial guiado de la vista Caja / Operación. */
 const OPERACION_TOUR: TourStep[] = [
@@ -76,6 +84,8 @@ export function OperacionView({ embedded = false, controlledTab }: { embedded?: 
   const [printing, setPrinting] = useState<number | null>(null); // comanda cuyo ticket se está imprimiendo
   const [openingDrawer, setOpeningDrawer] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false); // modal de entrada/salida de efectivo
+  const [nowTs, setNowTs] = useState(() => Date.now()); // #3 reloj para alertas de tiempo
+  const [ackAlerts, setAckAlerts] = useState<Set<number>>(new Set()); // #3 llevar ya "OK"-eadas
 
   const allowed = staff && ["OPERATION", "CAPTAIN", "MANAGER"].includes(staff.role);
 
@@ -103,6 +113,21 @@ export function OperacionView({ embedded = false, controlledTab }: { embedded?: 
   }, [loading, staff, allowed, router, load]);
 
   usePoll(load, 7000, !!(staff && allowed)); // refresco en vivo de mesas/reservas/cuentas
+
+  // #3 Alerta por tiempo en cuentas "para llevar": tras 1h30 sin cerrarse, se avisa a la
+  // cajera (banner persistente + modal que obliga OK). El reloj corre cada 20 s.
+  useEffect(() => {
+    const t = setInterval(() => setNowTs(Date.now()), 20000);
+    return () => clearInterval(t);
+  }, []);
+  const overdueTakeout = useMemo(() => {
+    const cutoff = nowTs - TAKEOUT_ALERT_MS;
+    return (takeout ?? []).filter((c) => {
+      const active = c.status !== "PAID" && c.status !== "CANCELLED" && c.status !== "MERGED";
+      return active && new Date(c.openedAt).getTime() < cutoff;
+    });
+  }, [takeout, nowTs]);
+  const unackedTakeout = overdueTakeout.filter((c) => !ackAlerts.has(c.id));
 
   // Auto-abrir el tutorial la primera vez (una vez por dispositivo).
   useEffect(() => {
@@ -177,6 +202,24 @@ export function OperacionView({ embedded = false, controlledTab }: { embedded?: 
               ><Icon name="lock" size={16} />Abrir cajón</button>
             </div>
           </div>
+
+          {/* #3 Banner persistente: cuentas para llevar con +1h30 sin cerrar. Se queda mientras
+              la cuenta siga abierta; desaparece sola al cobrarse/cerrarse. */}
+          {overdueTakeout.length > 0 && (
+            <div style={alertBox.wrap} role="alert">
+              <div style={alertBox.head}><Icon name="alert" size={18} />Para llevar con más de 1h30 sin cerrar · {overdueTakeout.length}</div>
+              <div style={alertBox.list}>
+                {overdueTakeout.map((c) => (
+                  <button key={c.id} style={alertBox.row} onClick={() => router.push(`/staff/comandas/${c.id}?back=${opBack()}`)}>
+                    <span style={{ fontWeight: 700, color: C.cream }}>{comandaLabel(c)}</span>
+                    <span style={{ color: C.cream }}>{formatMXN(Number(c.total))}</span>
+                    <span style={alertBox.time}>hace {elapsedLabel(c.openedAt, nowTs)}</span>
+                    <Icon name="chevron" size={15} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {tab === "mesas" ? (
             tables === null ? <Spinner /> : (() => {
@@ -377,6 +420,28 @@ export function OperacionView({ embedded = false, controlledTab }: { embedded?: 
       />
 
       <Tour steps={OPERACION_TOUR} open={tourOpen} onClose={closeTour} />
+
+      {/* #3 Modal que OBLIGA OK cuando una cuenta para llevar cruza 1h30. Reaparece por cada
+          cuenta nueva que se venza; el banner de arriba persiste hasta que se cierre. */}
+      <Modal open={unackedTakeout.length > 0} title="Cuentas para llevar demoradas" onClose={() => {}}>
+        <p style={{ margin: "0 0 10px", color: C.dim, fontSize: "0.86rem", lineHeight: 1.5 }}>
+          Estas cuentas <b style={{ color: C.cream }}>para llevar</b> llevan más de 1h30 sin cerrarse. Revísalas: entrega, cobro o cierre.
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+          {unackedTakeout.map((c) => (
+            <div key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 12px" }}>
+              <span style={{ color: C.cream, fontWeight: 700 }}>{comandaLabel(c)}</span>
+              <span style={{ color: "#e8766b", fontSize: "0.8rem" }}>hace {elapsedLabel(c.openedAt, nowTs)}</span>
+              <span style={{ color: C.cream }}>{formatMXN(Number(c.total))}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <button style={btn.primary} onClick={() => setAckAlerts((s) => { const n = new Set(s); unackedTakeout.forEach((c) => n.add(c.id)); return n; })}>
+            Entendido
+          </button>
+        </div>
+      </Modal>
 
       <ToastHost toasts={toasts} onClose={dismiss} />
     </>
@@ -669,6 +734,14 @@ const rowBtn: Record<string, React.CSSProperties> = {
 };
 
 // ─── shell (riel + contenido) y filas ────────────────────────────────────────
+const alertBox: Record<string, React.CSSProperties> = {
+  wrap: { background: "rgba(224,118,107,0.10)", border: "1px solid rgba(224,118,107,0.5)", borderRadius: 12, padding: "12px 14px", margin: "6px 0 14px" },
+  head: { display: "flex", alignItems: "center", gap: 8, color: "#e8766b", fontWeight: 800, fontSize: "0.86rem", marginBottom: 8 },
+  list: { display: "flex", flexDirection: "column", gap: 6 },
+  row: { display: "flex", alignItems: "center", gap: 12, width: "100%", textAlign: "left", background: "rgba(0,0,0,0.14)", border: `1px solid ${C.border}`, borderRadius: 9, padding: "9px 12px", cursor: "pointer", fontFamily: "inherit", fontSize: "0.85rem", color: C.dim },
+  time: { marginLeft: "auto", color: "#e8766b", fontSize: "0.78rem", fontWeight: 700 },
+};
+
 const sh: Record<string, React.CSSProperties> = {
   kicker: { display: "flex", alignItems: "baseline", gap: 12, margin: "8px 0 4px" },
   h1: { margin: 0, fontSize: "1.15rem", fontWeight: 800, color: C.cream, letterSpacing: "0.01em" },
