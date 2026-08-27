@@ -16,7 +16,7 @@ import { apiFetch, type CItem } from "./types";
 type Area = "COCINA" | "BARRA";
 type Turno = "comida" | "brunch";
 interface CartaRef { id: string; name: string; turno: "COMIDA" | "BRUNCH"; clase: Area; position: number | null }
-interface Dish { id: string; name: string; price: number; description: string | null; imageUrl: string | null; prepArea: Area | null }
+interface Dish { id: string; name: string; price: number; description: string | null; imageUrl: string | null; prepArea: Area | null; featured101?: boolean } // #7 featured101 = priorizar (101)
 interface Cat { id: string; name: string; dishes: Dish[]; carta: CartaRef | null }
 interface FlatDish extends Dish { catId: string; catName: string; cartaId: string; cartaName: string; turno: Turno }
 
@@ -52,6 +52,14 @@ export function MenuSelector({ open, onClose, onAdd, busy, pendingItems = [], on
   const [imgFailed, setImgFailed] = useState<Set<string>>(new Set());
   const [wide, setWide] = useState(true); // ≥900px = panel de pedido fijo a la derecha (tablet horizontal)
   const [panelOpen, setPanelOpen] = useState(false); // en angosto, el panel se abre como overlay
+  const [faltaIds, setFaltaIds] = useState<Set<string>>(new Set()); // #6 platillos en la lista de faltantes (86)
+
+  useEffect(() => {
+    if (!open) return;
+    apiFetch<{ dishId: string | null }[]>("/api/eighty-six").then((r) => {
+      if (r.ok) setFaltaIds(new Set((r.data ?? []).map((f) => f.dishId).filter((x): x is string => !!x)));
+    });
+  }, [open]);
 
   const loadMenu = useCallback(() => {
     setError(null);
@@ -220,8 +228,15 @@ export function MenuSelector({ open, onClose, onAdd, busy, pendingItems = [], on
               </div>
             ) : dishes.map((d) => {
               const hasImg = !!d.imageUrl && !imgFailed.has(d.id);
+              const is86 = faltaIds.has(d.id);
               return (
-                <button key={d.id} style={s.card} onClick={() => pick(d)}>
+                <button key={d.id} style={{ ...s.card, position: "relative" }} onClick={() => pick(d)}>
+                  {(is86 || d.featured101) && (
+                    <div style={{ position: "absolute", top: 6, left: 6, display: "flex", gap: 4, zIndex: 2 }}>
+                      {is86 && <span style={badgeFalta}>86 · AGOTADO</span>}
+                      {d.featured101 && <span style={badge101}>★ 101</span>}
+                    </div>
+                  )}
                   {hasImg ? (
                     <div style={s.cardImgWrap}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -376,6 +391,10 @@ function OrderPanel({ items, onRemove, busy, onClose }: {
     </aside>
   );
 }
+
+// #6/#7 badges sobre la tarjeta del platillo (visibles al mesero al ordenar).
+const badgeFalta: React.CSSProperties = { background: "#c0392b", color: "#fff", fontSize: "0.62rem", fontWeight: 800, letterSpacing: "0.03em", padding: "3px 6px", borderRadius: 6 };
+const badge101: React.CSSProperties = { background: C.gold, color: "#16201f", fontSize: "0.62rem", fontWeight: 800, letterSpacing: "0.03em", padding: "3px 6px", borderRadius: 6 };
 
 const s: Record<string, React.CSSProperties> = {
   root: { position: "fixed", inset: 0, zIndex: 90, background: C.bg, display: "flex", flexDirection: "column" },

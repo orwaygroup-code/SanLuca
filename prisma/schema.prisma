@@ -174,6 +174,7 @@ model Dish {
   available        Boolean           @default(true) // "Mostrar en menú" público (agotado/oculto). Distinto de `active`.
   active           Boolean           @default(true) // false = DESHABILITADO/retirado: no se muestra ni se puede pedir en ningún lado, pero el registro NUNCA se borra (históricos de venta intactos). Reemplaza al borrado.
   isExtra          Boolean           @default(false) // extra/especial (paquete de Ricardo); oculto del menú, lo piden meseros
+  featured101      Boolean           @default(false) // #7 "101": producto a priorizar en venta (lo prende capitán/manager)
   position         Int?
   categoryId       String
   category         MenuCategory      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
@@ -181,6 +182,26 @@ model Dish {
   prepArea         PrepArea? // área de preparación (Fase B). NULL = no clasificado
   comandaItems     ComandaItem[]
   createdAt        DateTime          @default(now())
+}
+
+// #6 Panel "86": lista de faltantes (productos sin insumos). Es una lista APARTE — no toca
+// el flag `available` del platillo. La marca el encargado de área o el manager; la ven los
+// meseros para no venderlos. Entrada activa = clearedAt NULL. Usa escalares + snapshots
+// (sin relaciones) para no acoplar Dish/Staff. `area` la divide en Barra / Cocina.
+model EightySix {
+  id            Int       @id @default(autoincrement())
+  tenantId      Int       @default(1)
+  dishId        String? // platillo agotado (opcional; puede ser texto libre)
+  label         String // nombre mostrado (snapshot del platillo o texto libre)
+  area          PrepArea? // BARRA / COCINA (divide el panel)
+  note          String?
+  createdById   Int
+  createdByName String
+  createdAt     DateTime  @default(now())
+  clearedById   Int?
+  clearedAt     DateTime?
+
+  @@index([tenantId, clearedAt])
 }
 
 // ============================================

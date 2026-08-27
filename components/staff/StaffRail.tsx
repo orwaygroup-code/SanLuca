@@ -15,7 +15,7 @@ import { Icon, type IconName } from "./icons";
  */
 
 export type OperTab = "mesas" | "llegadas" | "llevar" | "monitor" | "propinas";
-export type RailActive = OperTab | "reservas" | "historial" | "cuentas";
+export type RailActive = OperTab | "reservas" | "historial" | "cuentas" | "cocina";
 
 export function StaffRail({
   active, counts, onTab, onRefresh, onHelp, onLogout, userName, role,
@@ -57,6 +57,7 @@ export function StaffRail({
         <RailItem sm icon="calendar" label="Reservas" active={active === "reservas"} onClick={() => router.push("/staff/reservas")} />
         <RailItem sm icon="history" label="Historial" active={active === "historial"} onClick={() => router.push("/staff/historial")} />
         <RailItem sm icon="card" label="Cuentas" active={active === "cuentas"} onClick={() => router.push("/staff/cuentas")} />
+        <RailItem sm icon="alert" label="86 / 101" active={active === "cocina"} onClick={() => router.push("/staff/cocina")} />
         <RailItem sm icon="pulse" label="Monitor" dataTour="monitor" active={active === "monitor"} onClick={() => goTab("monitor")} />
         <RailItem sm icon="coins" label="Propinas" active={active === "propinas"} onClick={() => goTab("propinas")} />
       </div>
