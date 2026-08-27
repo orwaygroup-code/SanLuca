@@ -644,7 +644,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
             <button data-tour="clear" style={btn.ghost} onClick={() => setClearAsk(true)} disabled={busy}>Vaciar ({pendingCount})</button>
           )}
           {editable && (
-            <button style={{ ...btn.ghost, display: "inline-flex", alignItems: "center", gap: 7 }} onClick={() => setAskBill(true)} disabled={busy || liveItems.length === 0}><Icon name="printer" size={17} />Imprimir</button>
+            <button style={{ ...btn.ghost, display: "inline-flex", alignItems: "center", gap: 7 }} onClick={() => setAskBill(true)} disabled={busy || liveItems.length === 0 || pendingCount > 0} title={pendingCount > 0 ? "Envía a cocina lo pendiente antes de imprimir" : undefined}><Icon name="printer" size={17} />Imprimir</button>
           )}
           {/* Modo selección: activa los checkboxes para cancelar/mover/descontar varios a la vez. */}
           {editable && !selMode && liveItems.length > 0 && (
@@ -706,7 +706,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
             {cajaActive && (
               <div style={caja.primaryRow}>
                 {awaitingBill && !alreadyPrinted && (
-                  <button style={caja.primary} onClick={() => setAskPrint(true)} disabled={busy || liveItems.length === 0}><Icon name="printer" size={18} />Imprimir ticket</button>
+                  <button style={caja.primary} onClick={() => setAskPrint(true)} disabled={busy || liveItems.length === 0 || pendingCount > 0} title={pendingCount > 0 ? "Envía a cocina lo pendiente antes de imprimir" : undefined}><Icon name="printer" size={18} />Imprimir ticket</button>
                 )}
                 {splittable && totalLiveUnits > 1 && (
                   <button style={caja.secondary} onClick={() => setSplitOpen(true)} disabled={busy || matrixItemsWithQty.length === 0}>

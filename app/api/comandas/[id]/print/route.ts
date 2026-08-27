@@ -91,6 +91,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     printType = "CUSTOMER_REPRINT";
   }
 
+  // #9 (crítico): no imprimir la cuenta con productos aún "Por enviar" (PENDING). Nunca
+  // llegaron a cocina y se estarían cobrando como si se hubieran entregado. Hay que enviarlos
+  // a cocina o quitarlos antes de imprimir. (La reimpresión no aplica: ya se envió todo.)
+  if (printType === "CUSTOMER_FINAL" && comanda.items.some((i) => i.status === "PENDING")) {
+    return NextResponse.json<ApiResponse>({ success: false, error: "Hay productos por enviar a cocina. Envíalos o quítalos antes de imprimir la cuenta." }, { status: 409 });
+  }
+
   // Validar splits (si vienen) contra los items vivos de la comanda.
   const maxQtyById = new Map(comanda.items.map((i) => [i.id, Number(i.quantity)]));
   const itemsById = new Map(
