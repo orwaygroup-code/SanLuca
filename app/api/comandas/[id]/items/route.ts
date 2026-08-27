@@ -50,7 +50,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     return NextResponse.json<ApiResponse>({ success: false, error: "dishId es obligatorio" }, { status: 400 });
   }
   // "tiempo" del platillo (1º, 2º…): entero ≥1, default 1.
-  const courseNum = Number.isInteger(course) && course >= 1 ? course : 1;
+  const courseNum = Number.isInteger(course) && course >= 0 && course <= 10 ? course : 0; // 0 = Sin tiempo
   // Cantidad decimal: >0, redondeada a 2 decimales, acotada. Default 1 si es inválida.
   const rawQty = typeof quantity === "number" && Number.isFinite(quantity) && quantity > 0 ? quantity : 1;
   const qty = Math.min(999, Math.round(rawQty * 100) / 100);

@@ -54,7 +54,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     where: { id, tenantId: TENANT },
     select: {
       id: true, waiterId: true, folio: true, guestsActual: true, openedAt: true,
-      subtotal: true, taxAmount: true, total: true,
+      subtotal: true, taxAmount: true, total: true, discountTotal: true,
       customName: true,
       waiter: { select: { fullName: true } },
       table: { select: { number: true, section: { select: { name: true } } } },
@@ -177,6 +177,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           opened: comanda.openedAt.toISOString(), time: nowIso,
           reprint: isReprint, ticketNumber: null, items: lines,
           subtotal: Number(comanda.subtotal), tax: Number(comanda.taxAmount), total: Number(comanda.total),
+          // #11: descuento a la cuenta visible en el ticket. `gross` = suma bruta de líneas
+          // (antes de descuento) para anclar el renglón "Descuento" y calcular el %.
+          discount: Number(comanda.discountTotal), gross: +lines.reduce((s, l) => s + l.total, 0).toFixed(2),
           importeLetra: numeroALetras(Number(comanda.total)),
           factura: { url: FACTURA_URL, folio: comanda.folio },
         },

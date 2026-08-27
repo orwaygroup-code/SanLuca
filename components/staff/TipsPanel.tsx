@@ -241,6 +241,8 @@ function SettleModal({ row, onClose, onSettled, onError }: {
             value={pin}
             onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
             inputMode="numeric"
+            type="password"
+            autoComplete="off"
             placeholder="••••"
             autoFocus={!isCollect}
           />

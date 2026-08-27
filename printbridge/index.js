@@ -73,7 +73,7 @@ function renderKitchen(p, w) {
   let lastCourse = null;
   for (const it of p.items) {
     const c = it.course || 1;
-    if (c !== lastCourse) {
+    if (c !== lastCourse && c >= 1) { // course 0 = "Sin tiempo": sin separador
       o += "\n" + BOLD_ON + center("-- " + courseLabel(c) + " --", w) + BOLD_OFF + "\n";
       lastCourse = c;
     }
@@ -142,6 +142,15 @@ function renderCustomer(p, w) {
     }
   }
   o += rule(w) + "\n";
+
+  // #11: descuento a la cuenta visible. Si hubo, mostramos el importe BRUTO, el descuento
+  // (con % si aplica) y luego el TOTAL ya neto. Sin descuento, no se imprime nada de esto.
+  if (p.discount != null && Number(p.discount) > 0.005) {
+    const gross = Number(p.gross != null ? p.gross : Number(p.total) + Number(p.discount));
+    const pct = gross > 0 ? Math.round((Number(p.discount) / gross) * 100) : 0;
+    o += row("Importe", money(gross), w) + "\n";
+    o += row("Descuento" + (pct >= 1 && pct <= 99 ? " (" + pct + "%)" : ""), "-" + money(p.discount), w) + "\n";
+  }
 
   // TOTAL en grande (dato importante).
   o += BOLD_ON + BIG_ON + row("TOTAL", money(p.total), Math.floor(w / 2)) + BIG_OFF + BOLD_OFF + "\n";

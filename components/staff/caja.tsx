@@ -556,6 +556,14 @@ export function DiscountModal({ open, comandaId, itemId, itemName, itemIds, onCl
       <Field label={type === "PERCENT" ? "Porcentaje (ej. 10 = 10%)" : "Monto en pesos"}>
         <MoneyInput value={value} onChange={setValue} autoFocus />
       </Field>
+      {/* Atajos de % para el descuento A LA CUENTA (no por producto): 50% (empleado) y 100%
+          (matar/cortesía). El 100% deja la cuenta en $0 → luego se cierra con "Cerrar en $0". */}
+      {type === "PERCENT" && itemId == null && (itemIds == null || itemIds.length === 0) && (
+        <div style={{ display: "flex", gap: 8, marginTop: -6, marginBottom: 6 }}>
+          <button onClick={() => setValue("50")} style={{ ...btn.ghost, flex: 1, padding: "8px 10px", fontSize: "0.82rem", ...(value === "50" ? { borderColor: C.gold, color: C.gold } : {}) }}>50% empleado</button>
+          <button onClick={() => setValue("100")} style={{ ...btn.ghost, flex: 1, padding: "8px 10px", fontSize: "0.82rem", ...(value === "100" ? { borderColor: C.gold, color: C.gold, fontWeight: 800 } : {}) }}>100% matar cuenta</button>
+        </div>
+      )}
       <Field label="Motivo (obligatorio)">
         <input style={fld.input} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="ej. cortesía, queja de servicio" />
       </Field>

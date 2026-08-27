@@ -31,7 +31,7 @@ const fmtQty = (q: number) => String(Math.round(q * 100) / 100);
 
 /** Etiqueta de "tiempo" (curso): 1 → "1er tiempo", 2 → "2do tiempo"… */
 const COURSE_ORD = ["", "1er", "2do", "3er", "4to", "5to", "6to", "7mo", "8vo", "9no", "10mo"];
-const courseLabel = (n: number) => `${COURSE_ORD[n] ?? `${n}º`} tiempo`;
+const courseLabel = (n: number) => n === 0 ? "Sin tiempo" : `${COURSE_ORD[n] ?? `${n}º`} tiempo`;
 
 /** Tutorial guiado (estilo videojuego) de lo nuevo del comandero. */
 const COMANDERO_TOUR: TourStep[] = [
@@ -72,7 +72,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   const [askBill, setAskBill] = useState(false);
   const [reprint, setReprint] = useState(false);
   const [clearAsk, setClearAsk] = useState(false);
-  const [currentCourse, setCurrentCourse] = useState(1); // "tiempo" al que se agregan nuevos platillos
+  const [currentCourse, setCurrentCourse] = useState(0); // "tiempo" al que se agregan nuevos platillos (0 = Sin tiempo)
   const [tourOpen, setTourOpen] = useState(false);
   const autoTourDone = useRef(false);
 
@@ -628,10 +628,10 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
           {editable && (
             <div data-tour="course" style={{ display: "flex", alignItems: "center", gap: 10, flexBasis: "100%", flexWrap: "wrap", padding: "2px 0 4px" }}>
               <span style={{ color: C.dim, fontSize: "0.85rem", fontWeight: 800 }}>Tiempo</span>
-              <button style={courseStepBtn} onClick={() => setCurrentCourse((c) => Math.max(1, c - 1))} disabled={busy || currentCourse <= 1} aria-label="Bajar tiempo">−</button>
-              <span style={{ color: C.gold, fontWeight: 900, fontSize: "1.55rem", minWidth: 30, textAlign: "center", fontVariantNumeric: "tabular-nums" }} aria-live="polite">{currentCourse}</span>
+              <button style={courseStepBtn} onClick={() => setCurrentCourse((c) => Math.max(0, c - 1))} disabled={busy || currentCourse <= 0} aria-label="Bajar tiempo">−</button>
+              <span style={{ color: C.gold, fontWeight: 900, fontSize: currentCourse === 0 ? "0.95rem" : "1.55rem", minWidth: 30, textAlign: "center", fontVariantNumeric: "tabular-nums" }} aria-live="polite">{currentCourse === 0 ? "S/T" : currentCourse}</span>
               <button style={courseStepBtn} onClick={() => setCurrentCourse((c) => Math.min(4, c + 1))} disabled={busy || currentCourse >= 4} aria-label="Subir tiempo">＋</button>
-              <span style={{ color: C.faint, fontSize: "0.75rem", flex: 1, minWidth: 150 }}>Lo que agregues va al {courseLabel(currentCourse)}. Súbelo o bájalo (1–4) según el orden en que pidan.</span>
+              <span style={{ color: C.faint, fontSize: "0.75rem", flex: 1, minWidth: 150 }}>Lo que agregues va al {courseLabel(currentCourse)}. Empieza en Sin tiempo; sube (1–4) según el orden en que pidan.</span>
             </div>
           )}
           {editable && (
