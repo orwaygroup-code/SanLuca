@@ -179,6 +179,7 @@ function PinModal({ row, onClose, onDone }: {
         <div>
           <label style={S.label}>Escribe el nuevo PIN (4 dígitos)</label>
           <input
+            type="password" autoComplete="off"
             style={S.input} inputMode="numeric" maxLength={4} value={pin} autoFocus
             onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
             placeholder="ej. 4821"
@@ -255,7 +256,7 @@ function EmployeeFormModal({ mode, row, onClose, onSaved }: {
         {mode === "create" && (
           <div>
             <label style={S.label}>PIN inicial (opcional)</label>
-            <input style={S.input} inputMode="numeric" maxLength={4} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="Vacío = se genera automático" />
+            <input type="password" autoComplete="off" style={S.input} inputMode="numeric" maxLength={4} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="Vacío = se genera automático" />
           </div>
         )}
         {error && <p style={{ color: "#e8766b", fontSize: "0.82rem", margin: 0 }}>⚠ {error}</p>}
