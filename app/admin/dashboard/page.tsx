@@ -20,7 +20,7 @@ interface Report {
 }
 
 const METHOD_LABEL: Record<string, string> = {
-  CASH: "Efectivo", CARD_DEBIT: "Débito", CARD_CREDIT: "Crédito", TRANSFER: "Transferencia", WAITER_CREDIT: "Crédito mesero",
+  CASH: "Efectivo", CARD_DEBIT: "Débito", CARD_CREDIT: "Crédito", TRANSFER: "Transferencia", WAITER_CREDIT: "Crédito de personal",
 };
 
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });

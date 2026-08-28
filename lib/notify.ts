@@ -67,3 +67,23 @@ export async function notify(input: NotifyInput): Promise<void> {
     console.error("[NOTIFY] error enviando Web Push:", (e as Error).message);
   }
 }
+
+/** Envía un Web Push a TODOS los dispositivos de UN empleado (notificación personal). */
+export async function pushToStaff(employeeId: number, msg: { title: string; body: string; url?: string }): Promise<void> {
+  if (!ensureVapid()) return;
+  try {
+    const subs = await prisma.pushSubscription.findMany({ where: { tenantId: TENANT, staffId: employeeId } });
+    if (subs.length === 0) return;
+    const payload = JSON.stringify({ title: msg.title.slice(0, 120), body: msg.body.slice(0, 300), url: msg.url ?? "/" });
+    await Promise.all(subs.map(async (s) => {
+      try {
+        await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload);
+      } catch (err) {
+        const code = (err as { statusCode?: number })?.statusCode;
+        if (code === 404 || code === 410) await prisma.pushSubscription.delete({ where: { id: s.id } }).catch(() => {});
+      }
+    }));
+  } catch (e) {
+    console.error("[NOTIFY] pushToStaff falló:", (e as Error).message);
+  }
+}

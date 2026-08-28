@@ -33,7 +33,7 @@ export const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
   CARD_DEBIT: "Tarjeta débito",
   CARD_CREDIT: "Tarjeta crédito",
   TRANSFER: "Transferencia",
-  WAITER_CREDIT: "Crédito mesero",
+  WAITER_CREDIT: "Crédito de personal",
 };
 const METHOD_OPTIONS = (Object.keys(PAYMENT_METHOD_LABEL) as PaymentMethod[]).map((m) => ({
   value: m,
@@ -344,10 +344,18 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
   const [creditPin, setCreditPin] = useState("");
   const [excludeTip, setExcludeTip] = useState(false);
   const [excludeTipPin, setExcludeTipPin] = useState("");
+  // Cobrar por CRÉDITO DE PERSONAL (desplegable): elegir empleado → confirmar en caja (PIN) o en tablet.
+  const [scOpen, setScOpen] = useState(false);
+  const [scEmp, setScEmp] = useState<number | null>(null);
+  const [scPinMode, setScPinMode] = useState(false); // true = mostrando el input de PIN (confirmar en caja)
+  const [scPin, setScPin] = useState("");
+  const [scBusy, setScBusy] = useState(false);
+  const [scSent, setScSent] = useState<string | null>(null); // nombre del empleado al que se le mandó a la tablet
 
   useEffect(() => {
     if (!open || comandaId == null) { setComanda(null); setLoadErr(null); return; }
     setComanda(null); setLoadErr(null); setCreditWaiterId(""); setCreditPin(""); setExcludeTip(false); setExcludeTipPin("");
+    setScOpen(false); setScEmp(null); setScPinMode(false); setScPin(""); setScSent(null);
     apiFetch<{ id: number; fullName: string; role: string }[]>("/api/comandas/credit-staff").then((r) => { if (r.ok) setWaiters(r.data ?? []); });
     apiFetch<Comanda>(`/api/comandas/${comandaId}`).then((r) => {
       if (r.ok) {
@@ -411,6 +419,31 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
     else onError(r.error ?? "No se pudo cobrar");
   };
 
+  // Cobrar TODO el saldo al crédito de personal del empleado, confirmando con su PIN aquí en caja.
+  const payStaffCredit = async () => {
+    if (!comanda || scEmp == null || scPin.length !== 4) return;
+    setScBusy(true);
+    const r = await apiFetch<PayResult>(`/api/comandas/${comanda.id}/pay`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ payments: [{ method: "WAITER_CREDIT", amount: remaining, tip: 0, reference: "Crédito de personal" }], creditWaiterId: scEmp, creditWaiterPin: scPin }),
+    });
+    setScBusy(false);
+    if (r.ok) onPaid(r.data!);
+    else onError(r.error ?? "No se pudo cobrar a crédito");
+  };
+
+  // Mandar la confirmación a la TABLET del empleado. La cuenta queda pendiente hasta que confirme.
+  const requestStaffCredit = async () => {
+    if (!comanda || scEmp == null) return;
+    setScBusy(true);
+    const r = await apiFetch<{ employee: string }>(`/api/comandas/${comanda.id}/staff-credit/request`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ employeeId: scEmp }),
+    });
+    setScBusy(false);
+    if (r.ok) setScSent(r.data?.employee ?? "el empleado");
+    else onError(r.error ?? "No se pudo enviar la confirmación");
+  };
+
   return (
     <Modal open={open} title="Cobrar cuenta" onClose={onClose} width={520}>
       {!hasOpenSession ? (
@@ -469,6 +502,63 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
           <button style={{ ...btn.ghost, marginTop: 12, width: "100%", opacity: settledPreview ? 0.5 : 1 }} onClick={addLine} disabled={busy || settledPreview}>
             + Agregar otro método{newRemaining > 0 ? ` · falta ${formatMXN(newRemaining)}` : ""}
           </button>
+
+          {/* Cobrar por CRÉDITO DE PERSONAL (todo el saldo a un empleado). Flecha que despliega. */}
+          <div style={{ marginTop: 12, border: `1px solid ${C.line}`, borderRadius: 12, overflow: "hidden" }}>
+            <button onClick={() => setScOpen((v) => !v)} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "12px 14px", background: "transparent", border: "none", color: C.cream, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: "0.9rem" }}>
+              <span>Cobrar por crédito de personal</span>
+              <span style={{ color: C.gold, display: "inline-block", transform: scOpen ? "rotate(90deg)" : "none", transition: "transform .15s" }}>▸</span>
+            </button>
+            {scOpen && (
+              <div style={{ padding: "0 14px 14px" }}>
+                {scSent ? (
+                  <div>
+                    <div style={{ color: C.green, fontSize: "0.88rem", lineHeight: 1.5 }}>Confirmación enviada a <b>{scSent}</b>. La cuenta queda <b>pendiente</b> hasta que confirme en su tablet.</div>
+                    <button style={{ ...btn.primary, marginTop: 12, width: "100%" }} onClick={onClose}>Listo</button>
+                  </div>
+                ) : scEmp == null ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    {([["Meseros", "WAITER"], ["Cocina", "KITCHEN"]] as const).map(([label, role]) => {
+                      const list = waiters.filter((w) => w.role === role);
+                      if (list.length === 0) return null;
+                      return (
+                        <div key={role}>
+                          <div style={{ color: C.faint, fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 800, marginBottom: 6 }}>{label}</div>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                            {list.map((w) => (
+                              <button key={w.id} onClick={() => { setScEmp(w.id); setScPinMode(false); setScPin(""); }} style={{ ...btn.ghost, padding: "8px 12px", fontSize: "0.82rem" }}>{w.fullName}</button>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                      <span style={{ color: C.cream, fontWeight: 800 }}>{waiters.find((w) => w.id === scEmp)?.fullName ?? "Empleado"} · {formatMXN(remaining)}</span>
+                      <button onClick={() => { setScEmp(null); setScPinMode(false); setScPin(""); }} style={{ background: "transparent", border: "none", color: C.gold, fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit" }}>cambiar</button>
+                    </div>
+                    {!scPinMode ? (
+                      <div style={{ display: "flex", gap: 10 }}>
+                        <button onClick={() => setScPinMode(true)} disabled={scBusy} style={{ ...btn.primary, flex: 1, minHeight: 64, fontSize: "0.92rem" }}>Confirmar en caja</button>
+                        <button onClick={requestStaffCredit} disabled={scBusy} style={{ ...btn.ghost, flex: 1, minHeight: 64, fontSize: "0.92rem", borderColor: C.gold, color: C.gold }}>{scBusy ? "Enviando…" : "Confirmar en tablet"}</button>
+                      </div>
+                    ) : (
+                      <div>
+                        <label style={fld.label}>PIN de {waiters.find((w) => w.id === scEmp)?.fullName ?? "el empleado"}</label>
+                        <PinInput value={scPin} onChange={setScPin} />
+                        <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+                          <button onClick={() => { setScPinMode(false); setScPin(""); }} disabled={scBusy} style={{ ...btn.ghost, flex: 1 }}>Atrás</button>
+                          <button onClick={payStaffCredit} disabled={scBusy || scPin.length !== 4} style={{ ...btn.primary, flex: 1, opacity: scPin.length === 4 && !scBusy ? 1 : 0.5 }}>{scBusy ? "Cobrando…" : "Cobrar a crédito"}</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {hasCredit && linkedEmp != null && (
             // #4 Cuenta ligada: empleado fijo, sin picker ni PIN. La aprobación en cartera manda.

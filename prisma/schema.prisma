@@ -1233,6 +1233,23 @@ model PushSubscription {
   @@index([tenantId, staffId])
 }
 
+// Cobro a "crédito de personal" que espera la CONFIRMACIÓN del empleado desde su tablet.
+// Caja lo crea (PENDING) y notifica al empleado; éste confirma con su PIN y ahí se cobra.
+model StaffCreditConfirm {
+  id          Int       @id @default(autoincrement())
+  tenantId    Int       @default(1)
+  comandaId   Int
+  employeeId  Int // a quién se le carga (su crédito de personal)
+  amount      Decimal   @db.Decimal(10, 2)
+  status      String    @default("PENDING") // PENDING | CONFIRMED | CANCELLED
+  createdById Int // caja que lo inició
+  createdAt   DateTime  @default(now())
+  confirmedAt DateTime?
+
+  @@index([tenantId, employeeId, status])
+  @@index([tenantId, comandaId])
+}
+
 // Notificación in-app (campana). `roles` = qué roles la ven. El "no leído" lo lleva el cliente
 // por dispositivo (localStorage lastSeen). Se envía además por Web Push a los suscritos.
 model Notification {
