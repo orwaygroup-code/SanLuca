@@ -4,6 +4,7 @@ import { resolveActor, isSupervisor } from "@/lib/dualAuth";
 import { verifySupervisorPin } from "@/lib/staff";
 import { prepAreaToTarget } from "@/lib/comandaRules";
 import { TENANT, COMANDA_INCLUDE, recalcComandaTotals, isEditableStatus, LOCKED_ACCOUNT_MSG } from "@/lib/comanda";
+import { notify } from "@/lib/notify";
 import type { ApiResponse } from "@/types";
 
 function parseId(raw: string): number | null {
@@ -121,6 +122,9 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   }
 
   await recalcComandaTotals(id);
+  if (item.status !== "PENDING") {
+    void notify({ roles: ["MANAGER"], type: "audit", title: "Producto cancelado", body: `${item.comanda.folio} · ${Number(item.quantity)}× ${item.dishNameSnapshot}${reason ? ` · ${reason}` : ""}`, url: "/admin/comandas" });
+  }
   const updated = await prisma.comanda.findFirst({ where: { id, tenantId: TENANT }, include: COMANDA_INCLUDE });
   return NextResponse.json<ApiResponse>({ success: true, data: updated });
 }

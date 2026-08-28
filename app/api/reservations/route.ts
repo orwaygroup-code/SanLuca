@@ -9,6 +9,7 @@ import { findTableConflict, getReservationWindow } from "@/lib/tableConflict";
 import { expirePendingPayments } from "@/lib/expirePendingPayments";
 import { getSpecialDateForDateStr } from "@/lib/specialDates";
 import { sendReservationQR } from "@/lib/whatsapp";
+import { notify } from "@/lib/notify";
 import { getAvailableCredit, applyCreditsToReservation } from "@/lib/credits";
 import { createReservationPreference } from "@/lib/mercadopago";
 import { getSession } from "@/lib/auth-server";
@@ -395,6 +396,15 @@ export async function POST(request: NextRequest) {
                 qrToken:           reservation.qrToken,
             }).catch((e) => console.error("[WhatsApp QR web auto-confirm]", e));
         }
+
+        // Notifica a managers + caja/hostess (Operación) que entró una reserva nueva.
+        void notify({
+            roles: ["MANAGER", "OPERATION"],
+            type: "reserva",
+            title: "Nueva reserva",
+            body: `${reservation.guestName} · ${reservation.guests} pers · ${new Date(reservation.date).toLocaleString("es-MX", { timeZone: "America/Mexico_City", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: false })}${reservation.sectionPreference ? ` · ${reservation.sectionPreference}` : ""}`,
+            url: "/admin",
+        });
 
         return NextResponse.json<ApiResponse>(
             {

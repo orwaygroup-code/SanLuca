@@ -18,6 +18,7 @@ import { SessionProvider } from "@/lib/session-client";
 import { PwaRegister } from "@/components/PwaRegister";
 import { SplashScreen } from "@/components/SplashScreen";
 import { InstallButton } from "@/components/InstallButton";
+import { StaffNotifications } from "@/components/staff/StaffNotifications";
 
 export const metadata: Metadata = {
   title: "San Luca Ristorante — Auténtica Cocina Italiana",
@@ -65,6 +66,7 @@ export default function RootLayout({
         <SplashScreen />
         <PwaRegister />
         <InstallButton />
+        <StaffNotifications />
         <SessionProvider>
           <LanguageProvider>
             <LayoutWrapper>{children}</LayoutWrapper>

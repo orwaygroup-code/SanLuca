@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireCashier } from "@/lib/dualAuth";
 import { verifySupervisorPin } from "@/lib/staff";
 import { TENANT, COMANDA_INCLUDE } from "@/lib/comanda";
+import { notify } from "@/lib/notify";
 import type { ApiResponse } from "@/types";
 
 function parseId(raw: string): number | null {
@@ -47,5 +48,6 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   });
 
   const updated = await prisma.comanda.findFirst({ where: { id, tenantId: TENANT }, include: COMANDA_INCLUDE });
+  void notify({ roles: ["MANAGER"], type: "audit", title: "Cuenta reabierta (por cobrar)", body: `${updated?.folio ?? `#${id}`} · ${reason}`, url: "/admin/comandas" });
   return NextResponse.json<ApiResponse>({ success: true, data: updated });
 }

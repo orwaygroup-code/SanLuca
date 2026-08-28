@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireComandaSupervisor } from "@/lib/dualAuth";
 import { TENANT, COMANDA_INCLUDE, isEditableStatus, LOCKED_ACCOUNT_MSG } from "@/lib/comanda";
+import { notify } from "@/lib/notify";
 import type { ApiResponse } from "@/types";
 
 function parseId(raw: string): number | null {
@@ -46,5 +47,6 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   });
 
   const updated = await prisma.comanda.findFirst({ where: { id, tenantId: TENANT }, include: COMANDA_INCLUDE });
+  void notify({ roles: ["MANAGER"], type: "audit", title: "Cuenta cancelada", body: `${updated?.folio ?? `#${id}`} · ${cancellationReason}`, url: "/admin/comandas" });
   return NextResponse.json<ApiResponse>({ success: true, data: updated });
 }

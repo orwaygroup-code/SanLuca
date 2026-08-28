@@ -4,6 +4,7 @@ import { requireCashier } from "@/lib/dualAuth";
 import { TENANT, ACTIVE_STATUSES, COMANDA_INCLUDE, settleComanda } from "@/lib/comanda";
 import { round2 } from "@/lib/comandaTotals";
 import { getOpenSession } from "@/lib/caja";
+import { notify } from "@/lib/notify";
 import type { ApiResponse } from "@/types";
 
 function parseId(raw: string): number | null {
@@ -66,5 +67,6 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   });
 
   const updated = await prisma.comanda.findFirst({ where: { id, tenantId: TENANT }, include: COMANDA_INCLUDE });
+  void notify({ roles: ["MANAGER"], type: "audit", title: "Cuenta cerrada en $0", body: `${updated?.folio ?? `#${id}`}${note ? ` · ${note}` : ""}`, url: "/admin/comandas" });
   return NextResponse.json<ApiResponse>({ success: true, data: { comanda: updated, settled: true, closedZero: true } });
 }

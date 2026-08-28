@@ -6,6 +6,7 @@ import { TENANT, ACTIVE_STATUSES, enqueueDrawerKick } from "@/lib/comanda";
 import { round2 } from "@/lib/comandaTotals";
 import { buildCut, CASH_SESSION_INCLUDE } from "@/lib/caja";
 import { loadWaiterBase } from "@/lib/tips";
+import { notify } from "@/lib/notify";
 import type { ApiResponse } from "@/types";
 
 function parseId(raw: string): number | null {
@@ -183,5 +184,6 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   // Abre el cajón para contar el efectivo. Fire-and-forget.
   await enqueueDrawerKick({ staffId: a.staffId as number, comandaId: null });
 
+  void notify({ roles: ["MANAGER"], type: "turno", title: "Cierre de turno", body: `Turno ${updated.folio} cerrado · efectivo ${Number(difference) >= 0 ? "sobra" : "falta"} ${Math.abs(Number(difference)).toFixed(2)}`, url: "/admin/dashboard" });
   return NextResponse.json<ApiResponse>({ success: true, data: { session: updated, cut: snapshot, difference } });
 }

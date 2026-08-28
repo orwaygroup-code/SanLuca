@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireComandaSupervisor } from "@/lib/dualAuth";
 import { TENANT, ACTIVE_STATUSES, COMANDA_INCLUDE } from "@/lib/comanda";
+import { notify } from "@/lib/notify";
 import type { ApiResponse } from "@/types";
 
 function parseId(raw: string): number | null {
@@ -56,5 +57,6 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   ]);
 
   const updated = await prisma.comanda.findFirst({ where: { id, tenantId: TENANT }, include: COMANDA_INCLUDE });
+  void notify({ roles: ["MANAGER"], type: "audit", title: "Cambio de mesa", body: `${updated?.folio ?? `#${id}`}${updated?.table ? ` · ahora Mesa ${updated.table.number}` : ""}`, url: "/admin/comandas" });
   return NextResponse.json<ApiResponse>({ success: true, data: updated });
 }

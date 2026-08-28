@@ -1219,3 +1219,31 @@ model RestaurantSettings {
   updatedById Int?
   updatedBy   Staff?   @relation(fields: [updatedById], references: [id])
 }
+
+// Suscripción Web Push de un dispositivo de un empleado (para notificaciones con la app cerrada).
+model PushSubscription {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int      @default(1)
+  staffId   Int
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, staffId])
+}
+
+// Notificación in-app (campana). `roles` = qué roles la ven. El "no leído" lo lleva el cliente
+// por dispositivo (localStorage lastSeen). Se envía además por Web Push a los suscritos.
+model Notification {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int      @default(1)
+  roles     String[] // ["MANAGER"], ["MANAGER","OPERATION"], etc.
+  type      String // audit | turno | reserva
+  title     String
+  body      String
+  url       String?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+}

@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { resolveBotAssignment } from "@/lib/autoAssignTable";
 import { reEvalUserRule } from "@/lib/tagRules";
 import { sendReservationQR, buildReservationCaption } from "@/lib/whatsapp";
+import { notify } from "@/lib/notify";
 
 // ── Normaliza teléfono a 10 dígitos ───────────────────────────────────
 function normalizePhone(raw: string): string {
@@ -157,6 +158,15 @@ export async function POST(request: NextRequest) {
         include: {
             table: { select: { number: true, section: { select: { name: true } } } },
         },
+    });
+
+    // Notifica a managers + caja/hostess (Operación) la reserva nueva del bot.
+    void notify({
+        roles: ["MANAGER", "OPERATION"],
+        type: "reserva",
+        title: "Nueva reserva (WhatsApp)",
+        body: `${reservation.guestName} · ${reservation.guests} pers · ${new Date(reservation.date).toLocaleString("es-MX", { timeZone: "America/Mexico_City", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: false })}${reservation.sectionPreference ? ` · ${reservation.sectionPreference}` : ""}${reservation.status === "PENDING" ? " · SIN CUPO (revisar)" : ""}`,
+        url: "/admin",
     });
 
     // Fire-and-forget: re-evaluar Inactivo (cliente WA volvió a reservar).

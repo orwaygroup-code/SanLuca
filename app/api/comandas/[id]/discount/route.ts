@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireCashier } from "@/lib/dualAuth";
 import { verifySupervisorPin } from "@/lib/staff";
 import { TENANT, COMANDA_INCLUDE, recalcComandaTotals, isEditableStatus, LOCKED_ACCOUNT_MSG } from "@/lib/comanda";
+import { notify } from "@/lib/notify";
 import { round2, computeDiscountAmount } from "@/lib/comandaTotals";
 import type { ApiResponse } from "@/types";
 
@@ -74,5 +75,6 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   await recalcComandaTotals(id);
 
   const updated = await prisma.comanda.findFirst({ where: { id, tenantId: TENANT }, include: COMANDA_INCLUDE });
+  void notify({ roles: ["MANAGER"], type: "audit", title: "Descuento a la cuenta", body: `${updated?.folio ?? `#${id}`} · -${amount.toFixed(2)} · ${reason}`, url: "/admin/comandas" });
   return NextResponse.json<ApiResponse>({ success: true, data: updated });
 }

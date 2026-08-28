@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireCashier } from "@/lib/dualAuth";
 import { verifySupervisorPin } from "@/lib/staff";
 import { TENANT, COMANDA_INCLUDE, recalcComandaTotals, isEditableStatus, LOCKED_ACCOUNT_MSG } from "@/lib/comanda";
+import { notify } from "@/lib/notify";
 import { round2, lineTotal as calcLineTotal } from "@/lib/comandaTotals";
 import type { ApiResponse } from "@/types";
 
@@ -134,5 +135,6 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     prisma.comanda.findFirst({ where: { id: fromId, tenantId: TENANT }, include: COMANDA_INCLUDE }),
     prisma.comanda.findFirst({ where: { id: toId, tenantId: TENANT }, include: COMANDA_INCLUDE }),
   ]);
+  void notify({ roles: ["MANAGER"], type: "audit", title: "Traspaso de producto", body: `${fromUpd?.folio ?? `#${fromId}`} → ${toUpd?.folio ?? `#${toId}`}`, url: "/admin/comandas" });
   return NextResponse.json<ApiResponse>({ success: true, data: { from: fromUpd, to: toUpd } });
 }

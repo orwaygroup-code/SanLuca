@@ -5,6 +5,7 @@ import { verifySupervisorPin } from "@/lib/staff";
 import { TENANT, isUniqueViolation, enqueueDrawerKick } from "@/lib/comanda";
 import { getShiftWindow } from "@/lib/shifts";
 import { getOpenSession, nextCashFolio, CASH_SESSION_INCLUDE } from "@/lib/caja";
+import { notify } from "@/lib/notify";
 import type { ApiResponse } from "@/types";
 
 /**
@@ -59,6 +60,7 @@ export async function POST(request: NextRequest) {
       });
       // #1: abrir el cajón para meter el fondo inicial (no rompe si el bridge está offline).
       await enqueueDrawerKick({ staffId: openerId, comandaId: null }).catch(() => {});
+      void notify({ roles: ["MANAGER"], type: "turno", title: "Apertura de turno", body: `Turno ${created.folio} abierto · fondo ${Number(openingFloat).toFixed(2)}`, url: "/admin/dashboard" });
       return NextResponse.json<ApiResponse>({ success: true, data: created }, { status: 201 });
     } catch (e) {
       if (isUniqueViolation(e)) continue; // colisión de folio → reintentar
