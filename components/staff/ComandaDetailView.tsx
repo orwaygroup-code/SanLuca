@@ -153,6 +153,9 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   const pendingCount = useMemo(() => liveItems.filter((i) => i.status === "PENDING").length, [liveItems]);
   const alreadyPrinted = useMemo(() => (comanda?.prints ?? []).some((p) => p.type === "CUSTOMER_FINAL"), [comanda]);
   const editable = comanda?.status === "OPEN" || comanda?.status === "IN_SERVICE";
+  // Se puede MODIFICAR solo si está editable Y aún NO se imprimió la cuenta. Al imprimir (aunque
+  // siga IN_SERVICE), se cierra todo lo editable — solo queda Cobrar (regla de Paul).
+  const canModify = editable && !alreadyPrinted;
 
   // ── división de cuenta (derivados) ──
   const itemById = useMemo(() => new Map(liveItems.map((i) => [i.id, i])), [liveItems]);
@@ -415,7 +418,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   // la cuenta está bloqueada: para modificar hay que "Reabrir cuenta" primero. El supervisor
   // (Capitán/Manager) quita cualquier producto; el mesero dueño solo los PENDING.
   const canCancel = (it: CItem) => {
-    if (!editable) return false;
+    if (!canModify) return false;
     if (isSupervisor) return true;
     return it.status === "PENDING";
   };
@@ -428,7 +431,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   const isPaid = c.status === "PAID";
   const awaitingBill = c.status === "AWAITING_PAYMENT"; // cuenta pedida, en espera de impresión/cobro en caja
   const porCobrar = c.status === "AWAITING_PAYMENT" || c.status === "PARTIALLY_PAID"; // bloqueada: solo cobrar / reabrir
-  const canComment = editable || porCobrar; // se puede comentar mientras la cuenta no esté sellada (no PAID/CANCELLED)
+  const canComment = (editable || porCobrar) && !alreadyPrinted; // comentar solo antes de imprimir (después ya se imprimió con la comanda)
   const anySentSel = liveItems.some((i) => sel.has(i.id) && i.status !== "PENDING"); // ¿algún seleccionado ya fue a cocina? → pide PIN
   const amountPaid = Number(c.amountPaid);
   const remaining = Math.max(0, Math.round((Number(c.total) - amountPaid) * 100) / 100);
@@ -444,7 +447,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   const renderItemRow = (it: CItem) => (
     <div key={it.id} style={page.itemRow}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 10, minWidth: 0, flex: 1 }}>
-        {editable && selMode && (
+        {canModify && selMode && (
           <input type="checkbox" checked={sel.has(it.id)} onChange={() => toggleSel(it.id)}
             style={{ width: 18, height: 18, marginTop: 3, flexShrink: 0, cursor: "pointer", accentColor: C.gold }} aria-label="Seleccionar producto" />
         )}
@@ -514,7 +517,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
             <div style={{ color: C.gold, fontSize: "0.68rem" }}>−{formatMXN(Number(it.discountAmount))} desc.</div>
           )}
         </div>
-        {isCashier && editable && (
+        {isCashier && canModify && (
           <button style={page.discBtn} title="Descuento a este producto" onClick={() => setDiscountTarget({ itemId: it.id, itemName: it.dishNameSnapshot })}>%</button>
         )}
         {canCancel(it) && (
@@ -640,7 +643,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
         </section>
 
         {/* Barra de acciones en lote (solo en modo selección) */}
-        {editable && selMode && (
+        {canModify && selMode && (
           <section style={page.batchBar}>
             <span style={{ color: C.cream, fontWeight: 700, fontSize: "0.86rem" }}>{sel.size} seleccionado(s)</span>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginLeft: "auto" }}>
@@ -663,7 +666,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
 
         {/* Acciones */}
         <section style={page.actions}>
-          {editable && (
+          {canModify && (
             <div data-tour="course" style={{ display: "flex", alignItems: "center", gap: 10, flexBasis: "100%", flexWrap: "wrap", padding: "2px 0 4px" }}>
               <span style={{ color: C.dim, fontSize: "0.85rem", fontWeight: 800 }}>Tiempo</span>
               <button style={courseStepBtn} onClick={() => setCurrentCourse((c) => Math.max(0, c - 1))} disabled={busy || currentCourse <= 0} aria-label="Bajar tiempo">−</button>
@@ -672,26 +675,26 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
               <span style={{ color: C.faint, fontSize: "0.75rem", flex: 1, minWidth: 150 }}>Lo que agregues va al {courseLabel(currentCourse)}. Empieza en Sin tiempo; sube (1–4) según el orden en que pidan.</span>
             </div>
           )}
-          {editable && (
+          {canModify && (
             <button data-tour="add" style={btn.ghost} onClick={() => setMenuOpen(true)} disabled={busy}>+ Agregar platillos ({courseLabel(currentCourse)})</button>
           )}
-          {editable && pendingCount > 0 && (
+          {canModify && pendingCount > 0 && (
             <button data-tour="send" style={btn.primary} onClick={sendToKitchen} disabled={busy}>Enviar a cocina ({pendingCount})</button>
           )}
-          {editable && pendingCount > 0 && (
+          {canModify && pendingCount > 0 && (
             <button data-tour="clear" style={btn.ghost} onClick={() => setClearAsk(true)} disabled={busy}>Vaciar ({pendingCount})</button>
           )}
-          {editable && (
+          {canModify && (
             <button style={{ ...btn.ghost, display: "inline-flex", alignItems: "center", gap: 7 }} onClick={() => setAskBill(true)} disabled={busy || liveItems.length === 0 || pendingCount > 0} title={pendingCount > 0 ? "Envía a cocina lo pendiente antes de imprimir" : undefined}><Icon name="printer" size={17} />Imprimir</button>
           )}
           {/* Modo selección: activa los checkboxes para cancelar/mover/descontar varios a la vez. */}
-          {editable && !selMode && liveItems.length > 0 && (
+          {canModify && !selMode && liveItems.length > 0 && (
             <button style={btn.ghost} onClick={() => setSelMode(true)} disabled={busy}>Seleccionar productos</button>
           )}
-          {/* Cuenta ya pedida y el que la ve NO es caja (mesero): candado informativo. */}
-          {!editable && !isCashier && (
+          {/* Cuenta ya impresa / enviada a caja y el que la ve NO es caja (mesero): candado. */}
+          {!canModify && !isCashier && (
             <span style={{ flexBasis: "100%", color: C.faint, fontSize: "0.82rem", display: "flex", alignItems: "center", gap: 6 }}>
-              <Icon name="lock" size={15} /> Cuenta enviada a caja — ya no se puede modificar.
+              <Icon name="lock" size={15} /> {alreadyPrinted ? "Cuenta impresa — ya no se puede modificar." : "Cuenta enviada a caja — ya no se puede modificar."}
             </span>
           )}
           {/* Mensaje libre a un área. Una vez impresa la cuenta, la UI queda SOLO en Cobrar. */}
@@ -811,7 +814,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
 
             {/* Acciones que MODIFICAN la cuenta: solo mientras es editable (OPEN/IN_SERVICE).
                 En "por cobrar" la cuenta está bloqueada — hay que "Reabrir cuenta" primero. */}
-            {editable && (
+            {canModify && (
               <>
                 <div style={caja.subLabel}>Más acciones</div>
                 <div style={caja.moreRow}>
