@@ -88,13 +88,19 @@ export async function GET(request: NextRequest) {
   const data = comandas.map((c) => {
     const events: AuditEvent[] = [];
     for (const p of c.prints) {
+      // Solo auditamos IMPRESIONES REALES de papel del cliente/cocina. Se ignoran:
+      // KITCHEN_BAR (envío a cocina, ruido), DRAWER_KICK (abre el cajón, NO imprime),
+      // KITCHEN_CANCEL (ya se ve como cancelación del producto), CORTE/TIP/MESSAGE.
+      // Antes TODO lo que no fuera CUSTOMER_REPRINT se marcaba "Impresión de cuenta", así
+      // que el pulso del cajón al cobrar aparecía como una impresión de más.
+      if (p.type !== "CUSTOMER_FINAL" && p.type !== "CUSTOMER_REPRINT" && p.type !== "KITCHEN_REPRINT") continue;
       const reprint = p.type === "CUSTOMER_REPRINT";
-      if (p.type === "KITCHEN_BAR") continue; // ruido de cocina; auditamos tickets de cliente
+      const kitchenReprint = p.type === "KITCHEN_REPRINT";
       events.push({
-        kind: reprint ? "REPRINT" : "PRINT",
+        kind: (reprint || kitchenReprint) ? "REPRINT" : "PRINT",
         at: p.printedAt.toISOString(),
         actor: reprint ? (p.authorizedBy?.fullName ?? p.executedBy.fullName) : p.executedBy.fullName,
-        detail: reprint ? "Reimpresión de ticket" : "Impresión de cuenta",
+        detail: kitchenReprint ? "Reimpresión a cocina" : reprint ? "Reimpresión de ticket" : "Impresión de cuenta",
         reason: p.authorizationReason ?? null,
       });
     }
