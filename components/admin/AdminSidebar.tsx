@@ -35,7 +35,6 @@ const GROUPS: { title: string; items: NavLink[] }[] = [
     { href: "/admin/meseros", label: "Meseros", icon: "users" },
     { href: "/admin/piso", label: "Piso en vivo", icon: "grid" },
     { href: "/admin/comandas", label: "Auditoría", icon: "clipboard-text" },
-    { href: "/admin/mapa", label: "Mapa de mesas", icon: "map-2" },
   ]},
   { title: "Reservas", items: [
     { href: "/admin", label: "Reservas", icon: "calendar" },
