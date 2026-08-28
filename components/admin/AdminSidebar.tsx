@@ -32,6 +32,7 @@ interface NavLink { href: string; label: string; icon: IconName; external?: bool
 const GROUPS: { title: string; items: NavLink[] }[] = [
   { title: "Operación", items: [
     { href: "/admin/dashboard", label: "Dashboard", icon: "chart-bar" },
+    { href: "/admin/meseros", label: "Meseros", icon: "users" },
     { href: "/admin/piso", label: "Piso en vivo", icon: "grid" },
     { href: "/admin/comandas", label: "Auditoría", icon: "clipboard-text" },
     { href: "/admin/mapa", label: "Mapa de mesas", icon: "map-2" },

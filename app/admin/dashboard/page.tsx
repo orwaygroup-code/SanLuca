@@ -68,6 +68,10 @@ export default function AdminDashboardPage() {
             <div style={{ color: C.gold, fontSize: "0.84rem", marginTop: 2 }}>Comparación de turnos: Comida vs Brunch</div>
           </div>
           <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+            <button
+              onClick={() => router.push("/admin/meseros")}
+              style={{ ...S.rangeBtn, borderColor: C.gold, color: C.gold, fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 6 }}
+            >Meseros →</button>
             {RANGES.map((r) => (
               <button key={r.key} onClick={() => setRange(r.key)} style={{ ...S.rangeBtn, ...(range === r.key ? S.rangeOn : {}) }}>{r.label}</button>
             ))}
