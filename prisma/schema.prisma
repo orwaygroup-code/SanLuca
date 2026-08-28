@@ -752,6 +752,7 @@ model Comanda {
   waiterCredits WaiterCredit[]
 
   openedAt           DateTime  @default(now())
+  awaitingPaymentAt  DateTime? // cuándo pasó a "por pagar" (AWAITING_PAYMENT). Alerta al mesero tras 1h.
   closedAt           DateTime?
   cancelledAt        DateTime?
   cancelledById      Int?

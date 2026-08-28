@@ -73,6 +73,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       where: { id },
       data: {
         status: "AWAITING_PAYMENT",
+        awaitingPaymentAt: new Date(),
         closedAt: null,
         closedById: null,
         reopenCount: { increment: 1 },

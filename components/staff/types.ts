@@ -63,6 +63,7 @@ export interface Comanda {
   reopenCount: number;
   cashSessionId: number | null;
   openedAt: string;
+  awaitingPaymentAt?: string | null; // cuándo pasó a "por pagar" (alerta al mesero tras 1h)
   closedAt: string | null;
   tableId: string | null;
   customName: string | null; // nombre de la cuenta cuando no hay mesa (para llevar / cuenta X)

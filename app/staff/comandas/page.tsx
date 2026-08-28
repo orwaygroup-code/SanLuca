@@ -19,6 +19,13 @@ const MESERO_TOUR: TourStep[] = [
   { title: "¿Dudas después?", body: "Puedes reabrir este tutorial cuando quieras con el botón «?» de arriba a la derecha." },
 ];
 
+const POR_PAGAR_ALERT_MS = 60 * 60 * 1000;  // 1 h en "por pagar" antes de alertar al mesero
+const ALERT_REPEAT_MS    = 4 * 60 * 1000;   // re-alerta cada 4 min (sin empalmarse)
+
+function comandaLabel(c: Comanda): string {
+  return c.table ? `Mesa ${c.table.number} · ${c.table.section.name}` : (c.customName || "Cuenta sin mesa");
+}
+
 /**
  * Vista Mesero — lista de SUS comandas activas y apertura de comanda nueva.
  * Realm sl_staff. El detalle de captura vive en /staff/comandas/[id].
@@ -33,6 +40,10 @@ export default function MeseroComandasPage() {
   const [openModal, setOpenModal] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
   const autoTourDone = useRef(false);
+  // Alerta "cuenta por pagar > 1h": ventana cada 4 min, UNA a la vez (no se empalma).
+  const [nowTs, setNowTs] = useState(() => Date.now());
+  const [payAlertOpen, setPayAlertOpen] = useState(false);
+  const lastPayAlertRef = useRef(0);
 
   const load = useCallback(async () => {
     // mine=1: si es Capitán/Manager en "modo mesero", ve SOLO sus comandas (el WAITER
@@ -48,6 +59,28 @@ export default function MeseroComandasPage() {
   }, [loading, staff, router, load]);
 
   usePoll(load, 8000, !!staff); // refresco en vivo de mis comandas
+
+  // Reloj para la alerta de "por pagar" (corre cada 30 s).
+  useEffect(() => {
+    const t = setInterval(() => setNowTs(Date.now()), 30000);
+    return () => clearInterval(t);
+  }, []);
+  // Mis cuentas en "por pagar" que llevan +1h sin cobrarse.
+  const overduePorPagar = useMemo(() => {
+    const cutoff = nowTs - POR_PAGAR_ALERT_MS;
+    return (comandas ?? []).filter((c) =>
+      (c.status === "AWAITING_PAYMENT" || c.status === "PARTIALLY_PAID") &&
+      c.awaitingPaymentAt != null && new Date(c.awaitingPaymentAt).getTime() < cutoff,
+    );
+  }, [comandas, nowTs]);
+  // Dispara la ventana cada 4 min, UNA a la vez: no se abre si ya hay una, ni antes de 4 min
+  // desde la última vez que se cerró.
+  useEffect(() => {
+    if (overduePorPagar.length === 0) { if (payAlertOpen) setPayAlertOpen(false); return; }
+    if (payAlertOpen) return;
+    if (nowTs - lastPayAlertRef.current >= ALERT_REPEAT_MS) setPayAlertOpen(true);
+  }, [overduePorPagar, nowTs, payAlertOpen]);
+  const dismissPayAlert = () => { lastPayAlertRef.current = Date.now(); setPayAlertOpen(false); };
 
   // Auto-abrir el tutorial la primera vez (una vez por dispositivo).
   useEffect(() => {
@@ -115,6 +148,27 @@ export default function MeseroComandasPage() {
         onError={(m) => push(m, "error")}
       />
       <Tour steps={MESERO_TOUR} open={tourOpen} onClose={closeTour} />
+
+      {/* Alerta al mesero: cuenta(s) en "por pagar" hace más de 1h. Reaparece cada 4 min hasta
+          que se cobren. Una sola ventana a la vez (onClose no-op → solo cierra con el botón). */}
+      <Modal open={payAlertOpen} title="Cuentas por pagar pendientes" onClose={() => {}}>
+        <p style={{ margin: "0 0 12px", color: C.dim, fontSize: "0.9rem", lineHeight: 1.5 }}>
+          Tienes {overduePorPagar.length === 1 ? "una cuenta" : `${overduePorPagar.length} cuentas`} en <b style={{ color: C.cream }}>por pagar</b> desde hace más de 1 hora. Cóbrala(s) o pásala(s) a caja.
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+          {overduePorPagar.map((c) => (
+            <button key={c.id} onClick={() => { dismissPayAlert(); router.push(`/staff/comandas/${c.id}?back=/staff/comandas`); }}
+              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, textAlign: "left", background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: "11px 13px", cursor: "pointer", fontFamily: "inherit" }}>
+              <span style={{ color: C.cream, fontWeight: 700, fontSize: "0.9rem" }}>{comandaLabel(c)}</span>
+              <span style={{ color: "#e8766b", fontSize: "0.78rem", fontWeight: 700 }}>{formatMXN(Number(c.total))}</span>
+            </button>
+          ))}
+        </div>
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <button style={btn.primary} onClick={dismissPayAlert}>Entendido</button>
+        </div>
+      </Modal>
+
       <ToastHost toasts={toasts} onClose={dismiss} />
     </div>
   );
