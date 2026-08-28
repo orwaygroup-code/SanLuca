@@ -8,6 +8,7 @@ import { autoAssignTable } from "@/lib/autoAssignTable";
 import { findTableConflict, getReservationWindow } from "@/lib/tableConflict";
 import { expirePendingPayments } from "@/lib/expirePendingPayments";
 import { getSpecialDateForDateStr } from "@/lib/specialDates";
+import { sendReservationQR } from "@/lib/whatsapp";
 import { getAvailableCredit, applyCreditsToReservation } from "@/lib/credits";
 import { createReservationPreference } from "@/lib/mercadopago";
 import { getSession } from "@/lib/auth-server";
@@ -257,6 +258,11 @@ export async function POST(request: NextRequest) {
             }
         }
 
+        // Confirmación automática para grupos pequeños: menos de 16 personas, en fecha
+        // normal (sin anticipo) y con mesa asignada (hay cupo) → nace CONFIRMED y se le manda
+        // el QR, sin que la hostess tenga que confirmar. 16+ o grupo grande siguen en PENDING.
+        const autoConfirm = !special && !isLargeGroup && Number(rest.guests) < 16 && !!assignedTableId;
+
         // 11. Crear la reserva
         const reservation = await prisma.reservation.create({
             data: {
@@ -278,6 +284,12 @@ export async function POST(request: NextRequest) {
                     ? {
                           status: "CONFIRMED" as const,
                           paymentStatus: "PAID" as const,
+                          confirmedAt: new Date(),
+                      }
+                    : {}),
+                ...(autoConfirm
+                    ? {
+                          status: "CONFIRMED" as const,
                           confirmedAt: new Date(),
                       }
                     : {}),
@@ -369,6 +381,19 @@ export async function POST(request: NextRequest) {
                     { status: 502 }
                 );
             }
+        }
+
+        // Auto-confirmación (grupo pequeño con cupo): manda el QR al cliente sin pasar por la
+        // hostess. Fire-and-forget: un fallo de WhatsApp NO tumba la creación de la reserva.
+        if (autoConfirm) {
+            sendReservationQR({
+                phone:             reservation.guestPhone,
+                guestName:         reservation.guestName,
+                date:              new Date(reservation.date),
+                guests:            reservation.guests,
+                sectionPreference: reservation.sectionPreference,
+                qrToken:           reservation.qrToken,
+            }).catch((e) => console.error("[WhatsApp QR web auto-confirm]", e));
         }
 
         return NextResponse.json<ApiResponse>(
