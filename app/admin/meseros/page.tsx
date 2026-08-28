@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/session-client";
 import { formatMXN } from "@/lib/displayTotals";
+import { DateRangeBar, DEFAULT_FILTER, dateFilterQuery, type DateFilter } from "@/components/admin/DateRangeBar";
 
 interface WaiterRow {
   waiterId: number; name: string;
@@ -18,9 +19,6 @@ interface Data {
   waiters: WaiterRow[];
 }
 
-const RANGES: { key: string; label: string }[] = [
-  { key: "today", label: "Hoy" }, { key: "7d", label: "7 días" }, { key: "30d", label: "30 días" },
-];
 const MEDAL = ["#d4af37", "#b8b8b8", "#c07b3a"]; // oro / plata / bronce para el podio
 
 // Métricas por mesero. `num` = valor para ordenar/barra (null = no ordenable, ej. "más vendido").
@@ -51,7 +49,7 @@ const SORTABLE = METRICS.filter((m) => m.num); // "más vendido" no ordena
 export default function MeserosPage() {
   const router = useRouter();
   const session = useSession();
-  const [range, setRange] = useState("today");
+  const [filter, setFilter] = useState<DateFilter>(DEFAULT_FILTER);
   const [data, setData] = useState<Data | null>(null);
   const [loading, setLoading] = useState(true);
   const [sortKey, setSortKey] = useState("sales");
@@ -64,11 +62,11 @@ export default function MeserosPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const r = await fetch(`/api/admin/meseros?range=${range}`, { credentials: "same-origin" });
+    const r = await fetch(`/api/admin/meseros?${dateFilterQuery(filter)}`, { credentials: "same-origin" });
     const d = await r.json().catch(() => null);
     if (d?.success) setData(d.data as Data);
     setLoading(false);
-  }, [range]);
+  }, [filter]);
 
   useEffect(() => { if (session.user?.role === "ADMIN") load(); }, [session.user, load]);
 
@@ -95,11 +93,7 @@ export default function MeserosPage() {
             <h1 style={S.h1}>Meseros</h1>
             <div style={{ color: C.gold, fontSize: "0.84rem", marginTop: 2 }}>Quién vende más y su desempeño en piso</div>
           </div>
-          <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-            {RANGES.map((r) => (
-              <button key={r.key} onClick={() => setRange(r.key)} style={{ ...S.rangeBtn, ...(range === r.key ? S.rangeOn : {}) }}>{r.label}</button>
-            ))}
-          </div>
+          <DateRangeBar value={filter} onChange={setFilter} />
         </div>
 
         {loading || !data ? (

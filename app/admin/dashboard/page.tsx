@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/session-client";
 import { formatMXN } from "@/lib/displayTotals";
+import { DateRangeBar, DEFAULT_FILTER, dateFilterQuery, type DateFilter } from "@/components/admin/DateRangeBar";
 
 interface ShiftStat { shift: string; label: string; window: string; sales: number; comandas: number; guests: number; avgTicket: number; occupancy: number; topDish: { name: string; qty: number } | null }
 interface Corte { id: number; folio: string; shift: string | null; status: string; openedAt: string; closedAt: string | null; comandas: number; sales: number }
@@ -22,15 +23,12 @@ const METHOD_LABEL: Record<string, string> = {
   CASH: "Efectivo", CARD_DEBIT: "Débito", CARD_CREDIT: "Crédito", TRANSFER: "Transferencia", WAITER_CREDIT: "Crédito mesero",
 };
 
-const RANGES: { key: string; label: string }[] = [
-  { key: "today", label: "Hoy" }, { key: "7d", label: "7 días" }, { key: "30d", label: "30 días" },
-];
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
 
 export default function AdminDashboardPage() {
   const router = useRouter();
   const session = useSession();
-  const [range, setRange] = useState("today");
+  const [filter, setFilter] = useState<DateFilter>(DEFAULT_FILTER);
   const [cortesDate, setCortesDate] = useState(""); // día de los cortes (default hoy; se fija en el efecto)
   const [corte, setCorte] = useState<Corte | null>(null); // corte abierto en la ventana de detalle
   const [rep, setRep] = useState<Report | null>(null);
@@ -45,11 +43,11 @@ export default function AdminDashboardPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const r = await fetch(`/api/admin/reports?range=${range}${cortesDate ? `&cortesDate=${cortesDate}` : ""}`, { credentials: "same-origin" });
+    const r = await fetch(`/api/admin/reports?${dateFilterQuery(filter)}${cortesDate ? `&cortesDate=${cortesDate}` : ""}`, { credentials: "same-origin" });
     const d = await r.json().catch(() => null);
     if (d?.success) setRep(d.data as Report);
     setLoading(false);
-  }, [range, cortesDate]);
+  }, [filter, cortesDate]);
 
   useEffect(() => { if (session.user?.role === "ADMIN") load(); }, [session.user, load]);
 
@@ -72,9 +70,7 @@ export default function AdminDashboardPage() {
               onClick={() => router.push("/admin/meseros")}
               style={{ ...S.rangeBtn, borderColor: C.gold, color: C.gold, fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 6 }}
             >Meseros →</button>
-            {RANGES.map((r) => (
-              <button key={r.key} onClick={() => setRange(r.key)} style={{ ...S.rangeBtn, ...(range === r.key ? S.rangeOn : {}) }}>{r.label}</button>
-            ))}
+            <DateRangeBar value={filter} onChange={setFilter} />
           </div>
         </div>
 

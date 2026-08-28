@@ -2,11 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/dualAuth";
 import { TENANT } from "@/lib/comanda";
+import { resolveDateRange } from "@/lib/dateRange";
 import type { ApiResponse } from "@/types";
-
-const MX_TZ = "America/Mexico_City";
-const DAY = 86_400_000;
-const mxToday = () => new Intl.DateTimeFormat("en-CA", { timeZone: MX_TZ }).format(new Date());
 
 type AuditKind =
   | "PRINT" | "REPRINT" | "TABLE_CHANGE" | "WAITER_CHANGE" | "ITEM_CANCEL" | "ITEM_REMOVE"
@@ -25,10 +22,7 @@ export async function GET(request: NextRequest) {
   const a = await requireAdminSession(request);
   if (!a) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
 
-  const range = new URL(request.url).searchParams.get("range") ?? "today";
-  const days = range === "30d" ? 30 : range === "7d" ? 7 : 1;
-  const todayStart = new Date(`${mxToday()}T00:00:00.000-06:00`);
-  const from = new Date(todayStart.getTime() - (days - 1) * DAY);
+  const { from, to } = resolveDateRange(new URL(request.url).searchParams);
 
   // Mapas de resolución (scalars de auditoría → nombre legible). Tablas pequeñas.
   const [staffRows, tableRows] = await Promise.all([
@@ -41,7 +35,7 @@ export async function GET(request: NextRequest) {
   const tName = (id: string) => (tableNo.has(id) ? `Mesa ${tableNo.get(id)}` : id);
 
   const comandas = await prisma.comanda.findMany({
-    where: { tenantId: TENANT, openedAt: { gte: from } },
+    where: { tenantId: TENANT, openedAt: { gte: from, lte: to } },
     orderBy: { openedAt: "desc" },
     select: {
       id: true, folio: true, status: true, total: true, openedAt: true, closedAt: true,

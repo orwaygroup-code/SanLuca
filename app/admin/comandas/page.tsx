@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/session-client";
 import { formatMXN } from "@/lib/displayTotals";
+import { DateRangeBar, DEFAULT_FILTER, dateFilterQuery, type DateFilter } from "@/components/admin/DateRangeBar";
 
 type AuditKind =
   | "PRINT" | "REPRINT" | "TABLE_CHANGE" | "WAITER_CHANGE" | "ITEM_CANCEL" | "ITEM_REMOVE"
@@ -16,7 +17,6 @@ interface AuditComanda {
   events: AuditEvent[];
 }
 
-const RANGES = [{ key: "today", label: "Hoy" }, { key: "7d", label: "7 días" }, { key: "30d", label: "30 días" }];
 
 const STATUS_LABEL: Record<string, string> = { OPEN: "Abierta", IN_SERVICE: "En servicio", AWAITING_PAYMENT: "Por cobrar", PAID: "Pagada", CANCELLED: "Cancelada" };
 const STATUS_COLOR: Record<string, string> = { OPEN: "#4a82c4", IN_SERVICE: "#3f9d6f", AWAITING_PAYMENT: "#d8a13a", PAID: "rgba(245,241,232,0.5)", CANCELLED: "#d9534f" };
@@ -44,7 +44,7 @@ function fmt(iso: string): string {
 export default function AdminComandasAuditPage() {
   const router = useRouter();
   const session = useSession();
-  const [range, setRange] = useState("today");
+  const [filter, setFilter] = useState<DateFilter>(DEFAULT_FILTER);
   const [rows, setRows] = useState<AuditComanda[] | null>(null);
   const [onlyFlagged, setOnlyFlagged] = useState(false);
 
@@ -55,10 +55,10 @@ export default function AdminComandasAuditPage() {
 
   const load = useCallback(async () => {
     setRows(null);
-    const r = await fetch(`/api/admin/comandas?range=${range}`, { credentials: "same-origin" });
+    const r = await fetch(`/api/admin/comandas?${dateFilterQuery(filter)}`, { credentials: "same-origin" });
     const d = await r.json().catch(() => null);
     setRows(d?.success ? (d.data as AuditComanda[]) : []);
-  }, [range]);
+  }, [filter]);
 
   useEffect(() => { if (session.user?.role === "ADMIN") load(); }, [session.user, load]);
 
@@ -91,9 +91,7 @@ export default function AdminComandasAuditPage() {
               <input type="checkbox" checked={onlyFlagged} onChange={(e) => setOnlyFlagged(e.target.checked)} />
               Solo con eventos
             </label>
-            {RANGES.map((r) => (
-              <button key={r.key} onClick={() => setRange(r.key)} style={{ ...S.rangeBtn, ...(range === r.key ? S.rangeOn : {}) }}>{r.label}</button>
-            ))}
+            <DateRangeBar value={filter} onChange={setFilter} />
           </div>
         </div>
 

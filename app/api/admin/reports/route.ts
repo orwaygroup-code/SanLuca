@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/dualAuth";
 import { TENANT, ACTIVE_STATUSES } from "@/lib/comanda";
+import { resolveDateRange } from "@/lib/dateRange";
 import type { ApiResponse } from "@/types";
 
 const MX_TZ = "America/Mexico_City";
@@ -33,14 +34,10 @@ export async function GET(request: NextRequest) {
   if (!a) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
 
   const sp = new URL(request.url).searchParams;
-  const range = sp.get("range") ?? "today";
   const cashSessionId = sp.get("cashSessionId") ? Number(sp.get("cashSessionId")) : null;
-  const days = range === "30d" ? 30 : range === "7d" ? 7 : 1;
-
+  const { from, to, label: range } = resolveDateRange(sp);
   const today = mxToday();
-  const todayStart = new Date(`${today}T00:00:00.000-06:00`);
-  const from = new Date(todayStart.getTime() - (days - 1) * DAY);
-  const now = new Date();
+  const now = to;
 
   // El corte (cashSessionId) tiene prioridad sobre el rango.
   const paidWhere = cashSessionId

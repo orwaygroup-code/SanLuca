@@ -2,13 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/dualAuth";
 import { TENANT, ACTIVE_STATUSES } from "@/lib/comanda";
+import { resolveDateRange } from "@/lib/dateRange";
 import type { ApiResponse } from "@/types";
 
-const MX_TZ = "America/Mexico_City";
-const DAY = 86_400_000;
-function mxToday(): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: MX_TZ }).format(new Date());
-}
 const round = (n: number) => Math.round(n * 100) / 100;
 
 interface Agg {
@@ -29,14 +25,10 @@ export async function GET(request: NextRequest) {
   if (!a) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
 
   const sp = new URL(request.url).searchParams;
-  const range = sp.get("range") ?? "today";
-  const days = range === "30d" ? 30 : range === "7d" ? 7 : 1;
-  const todayStart = new Date(`${mxToday()}T00:00:00.000-06:00`);
-  const from = new Date(todayStart.getTime() - (days - 1) * DAY);
-  const now = new Date();
+  const { from, to, label } = resolveDateRange(sp);
 
   const paid = await prisma.comanda.findMany({
-    where: { tenantId: TENANT, status: "PAID", closedAt: { gte: from, lte: now } },
+    where: { tenantId: TENANT, status: "PAID", closedAt: { gte: from, lte: to } },
     select: {
       total: true, guestsActual: true, discountTotal: true,
       waiterId: true, waiter: { select: { fullName: true } },
@@ -96,5 +88,5 @@ export async function GET(request: NextRequest) {
     cancelValue: round(waiters.reduce((s, w) => s + w.cancelValue, 0)),
   };
 
-  return NextResponse.json<ApiResponse>({ success: true, data: { range, from: from.toISOString(), to: now.toISOString(), totals, waiters } });
+  return NextResponse.json<ApiResponse>({ success: true, data: { range: label, from: from.toISOString(), to: to.toISOString(), totals, waiters } });
 }
