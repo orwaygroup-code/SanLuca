@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/session-client";
 import { GoldSelect } from "@/components/ui/GoldSelect";
 import type { SelectOption } from "@/components/ui/GoldSelect";
+import { dialogAlert } from "@/components/ui/DialogHost";
 
 type Role = "WAITER" | "OPERATION" | "CAPTAIN" | "MANAGER" | "KITCHEN";
 
@@ -69,7 +70,7 @@ export default function EmployeesPage() {
       body: JSON.stringify({ active: !row.active }),
     });
     const d = await r.json().catch(() => null);
-    if (!d?.success) alert(d?.error ?? "Error");
+    if (!d?.success) void dialogAlert(d?.error ?? "Error");
     await fetchList();
   };
 

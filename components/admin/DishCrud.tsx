@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/session-client";
 import { GoldSelect, type SelectOption } from "@/components/ui/GoldSelect";
+import { dialogAlert } from "@/components/ui/DialogHost";
 
 /**
  * CRUD de platillos del menú (y de "Extras"). Jerarquía: Turno (Comida/Brunch) →
@@ -85,7 +86,7 @@ export function DishCrud({ isExtra }: { isExtra: boolean }) {
       body: JSON.stringify({ available: !row.available }),
     });
     const d = await r.json().catch(() => null);
-    if (!d?.success) alert(d?.error ?? "Error");
+    if (!d?.success) void dialogAlert(d?.error ?? "Error");
     await fetchList();
   };
 
@@ -97,7 +98,7 @@ export function DishCrud({ isExtra }: { isExtra: boolean }) {
       body: JSON.stringify({ active: !row.active }),
     });
     const d = await r.json().catch(() => null);
-    if (!d?.success) { alert(d?.error ?? "Error"); return; }
+    if (!d?.success) { void dialogAlert(d?.error ?? "Error"); return; }
     await fetchList();
   };
 

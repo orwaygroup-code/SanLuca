@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CrmPageHead } from "@/components/crm/CrmPageHead";
+import { dialogAlert } from "@/components/ui/DialogHost";
 
 type ArcoStatus  = "IN_PROGRESS" | "COMPLETED" | "REJECTED";
 type ArcoChannel = "APP" | "EMAIL";
@@ -98,7 +99,7 @@ export default function ArcoPage() {
     });
     const d = await r.json();
     if (!r.ok) {
-      alert(`Error: ${d.error ?? "patch_failed"}`);
+      void dialogAlert(`Error: ${d.error ?? "patch_failed"}`);
       return;
     }
     setSelected(d.request);

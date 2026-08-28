@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { GoldSelect } from "@/components/ui/GoldSelect";
 import type { SelectOption } from "@/components/ui/GoldSelect";
+import { dialogConfirm } from "@/components/ui/DialogHost";
 
 const MONTHS_ES = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -94,7 +95,7 @@ export default function FechasEspecialesPage() {
   }
 
   async function remove(id: string) {
-    if (!confirm("¿Eliminar esta fecha especial?")) return;
+    if (!(await dialogConfirm("¿Eliminar esta fecha especial?", { danger: true, confirmLabel: "Eliminar" }))) return;
     await fetch(`/api/admin/special-dates/${id}`, {
       method: "DELETE",
       ...fetchOpts,

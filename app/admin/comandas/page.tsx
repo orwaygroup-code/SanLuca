@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/session-client";
 import { formatMXN } from "@/lib/displayTotals";
 import { DateRangeBar, DEFAULT_FILTER, dateFilterQuery, type DateFilter } from "@/components/admin/DateRangeBar";
+import { dialogAlert, dialogPrompt } from "@/components/ui/DialogHost";
 
 type AuditKind =
   | "PRINT" | "REPRINT" | "TABLE_CHANGE" | "WAITER_CHANGE" | "ITEM_CANCEL" | "ITEM_REMOVE"
@@ -64,14 +65,14 @@ export default function AdminComandasAuditPage() {
 
   // Reimprime el ticket del cliente de una cuenta pasada (archivo). CUSTOMER_REPRINT con motivo.
   const reprint = async (id: number | string) => {
-    const reason = window.prompt("Motivo de la reimpresión (auditoría):");
+    const reason = await dialogPrompt("Motivo de la reimpresión (queda en auditoría):", { title: "Reimprimir ticket", placeholder: "ej. cliente pidió otra copia" });
     if (reason == null || !reason.trim()) return;
     const r = await fetch(`/api/comandas/${id}/print`, {
       method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ authorizationReason: reason.trim() }),
     });
     const d = await r.json().catch(() => null);
-    window.alert(d?.success ? "Reimpresión enviada a la impresora." : (d?.error ?? "No se pudo reimprimir"));
+    await dialogAlert(d?.success ? "Reimpresión enviada a la impresora." : (d?.error ?? "No se pudo reimprimir"));
   };
 
   if (session.loading || !session.user || session.user.role !== "ADMIN") {

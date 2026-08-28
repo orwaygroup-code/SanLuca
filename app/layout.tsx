@@ -20,6 +20,7 @@ import { SplashScreen } from "@/components/SplashScreen";
 import { InstallButton } from "@/components/InstallButton";
 import { StaffNotifications } from "@/components/staff/StaffNotifications";
 import { StaffCreditConfirmPrompt } from "@/components/staff/StaffCreditConfirmPrompt";
+import { DialogHost } from "@/components/ui/DialogHost";
 
 export const metadata: Metadata = {
   title: "San Luca Ristorante — Auténtica Cocina Italiana",
@@ -69,6 +70,7 @@ export default function RootLayout({
         <InstallButton />
         <StaffNotifications />
         <StaffCreditConfirmPrompt />
+        <DialogHost />
         <SessionProvider>
           <LanguageProvider>
             <LayoutWrapper>{children}</LayoutWrapper>

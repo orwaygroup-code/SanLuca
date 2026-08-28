@@ -31,6 +31,22 @@ export function StaffNotifications() {
   const [lastSeen, setLastSeen] = useState<number>(0);       // última vez que se marcó "visto" (al cerrar)
   const [clearedBefore, setClearedBefore] = useState<number>(0); // "limpiar": oculta lo anterior (por equipo)
   const subscribedRef = useRef(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // Cerrar (minimizar) el panel al hacer click en cualquier otro lado.
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        const now = Date.now();
+        setLastSeen(now);
+        try { localStorage.setItem(SEEN_KEY, String(now)); } catch { /* ignore */ }
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [open]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -109,7 +125,7 @@ export function StaffNotifications() {
   const fmt = (iso: string) => new Date(iso).toLocaleString("es-MX", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: false });
 
   return (
-    <div style={{ position: "fixed", right: 16, bottom: 16, zIndex: 2147483000 }}>
+    <div ref={rootRef} style={{ position: "fixed", right: 16, bottom: 16, zIndex: 2147483000 }}>
       {open && (
         <div style={{ position: "absolute", right: 0, bottom: 58, width: "min(92vw, 360px)", maxHeight: "70vh", overflowY: "auto", background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, boxShadow: "0 10px 40px rgba(0,0,0,0.5)" }}>
           <div style={{ padding: "12px 14px", borderBottom: `1px solid ${C.line}`, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
