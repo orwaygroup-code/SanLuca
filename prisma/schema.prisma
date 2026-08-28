@@ -641,6 +641,7 @@ enum PrintType {
   DRAWER_KICK // no imprime papel: abre el cajón de dinero (pulso ESC/POS a CAJA)
   CORTE // ticket de corte de caja (Z-report) a la impresora de CAJA
   TIP_SETTLEMENT // ticket de liquidación de propina de un mesero (7%) a CAJA
+  MESSAGE // mensaje libre del staff a un área (cocina/barra/caja) por su impresora
 }
 
 enum PrintTarget {

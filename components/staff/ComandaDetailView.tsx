@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useStaffSession } from "@/lib/staff-session-client";
 import {
-  C, StaffHeader, Spinner, EmptyState, Badge, ConfirmModal, ReasonModal,
+  C, StaffHeader, Spinner, EmptyState, Badge, ConfirmModal, ReasonModal, Modal, fld,
   TicketPreview, btn, formatMXN, STATUS_LABEL, STATUS_COLOR, useToasts, ToastHost, useStaffLogout, usePoll,
 } from "@/components/staff/ui";
 import { apiFetch, type Comanda, type CItem, type PayResult, type CashSession, type CutSnapshot } from "@/components/staff/types";
@@ -72,6 +72,9 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   const [askBill, setAskBill] = useState(false);
   const [reprint, setReprint] = useState(false);
   const [clearAsk, setClearAsk] = useState(false);
+  const [msgOpen, setMsgOpen] = useState(false); // modal "Mensaje a un área"
+  const [msgArea, setMsgArea] = useState<"COCINA" | "BARRA" | "CAJA">("COCINA");
+  const [msgText, setMsgText] = useState("");
   const [linkPick, setLinkPick] = useState(false); // #4 selector "ligar a empleado" abierto
   const [emps, setEmps] = useState<{ id: number; fullName: string; role: string }[]>([]);
   const [selEmp, setSelEmp] = useState("");
@@ -353,6 +356,19 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
       apiFetch<{ id: number; fullName: string; role: string }[]>("/api/comandas/credit-staff").then((r) => { if (r.ok) setEmps(r.data ?? []); });
     }
   }, [linkPick, emps.length]);
+
+  // Enviar un mensaje libre a la impresora de un área (Cocina/Barra/Caja).
+  const doSendMessage = async () => {
+    if (!msgText.trim() || busy) return;
+    setBusy(true);
+    const r = await apiFetch(`/api/print/message`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ area: msgArea, text: msgText.trim() }),
+    });
+    setBusy(false);
+    const label = msgArea === "COCINA" ? "Cocina" : msgArea === "BARRA" ? "Barra" : "Caja";
+    if (r.ok) { setMsgOpen(false); setMsgText(""); push(`Mensaje enviado a ${label}`, "success"); }
+    else push(r.error ?? "No se pudo enviar el mensaje", "error");
+  };
 
   // #4 Ligar / desligar la cuenta (para llevar) a un empleado. employeeId=null desliga.
   const doLink = async (employeeId: number | null) => {
@@ -676,6 +692,10 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
               <Icon name="lock" size={15} /> Cuenta enviada a caja — ya no se puede modificar.
             </span>
           )}
+          {/* Mensaje libre a un área (siempre disponible; no depende del estado de la cuenta). */}
+          <button style={{ ...btn.ghost, display: "inline-flex", alignItems: "center", gap: 7 }} onClick={() => setMsgOpen(true)} disabled={busy}>
+            <Icon name="printer" size={16} />Mensaje
+          </button>
         </section>
 
         {/* Acciones de CAJA (OPERATION/CAPTAIN/MANAGER). Las sensibles piden PIN. */}
@@ -1052,6 +1072,33 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
       />
 
       <Tour steps={COMANDERO_TOUR} open={tourOpen} onClose={closeTour} />
+
+      {/* Mensaje a un área: se imprime en la impresora de Cocina, Barra o Caja. */}
+      <Modal open={msgOpen} title="Mensaje a un área" onClose={() => setMsgOpen(false)}>
+        <p style={{ margin: "0 0 12px", color: C.dim, fontSize: "0.86rem", lineHeight: 1.5 }}>
+          Se imprime en la impresora del área que elijas. Útil para avisar algo rápido a cocina, barra o caja.
+        </p>
+        <div style={{ ...fld.label as React.CSSProperties, marginBottom: 6 }}>Enviar a</div>
+        <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+          {([["COCINA", "Cocina"], ["BARRA", "Barra"], ["CAJA", "Caja"]] as const).map(([val, lbl]) => (
+            <button key={val} onClick={() => setMsgArea(val)}
+              style={{ ...btn.ghost, flex: 1, ...(msgArea === val ? { background: C.gold, color: "#16201f", borderColor: C.gold, fontWeight: 800 } : {}) }}>
+              {lbl}
+            </button>
+          ))}
+        </div>
+        <div style={{ ...fld.label as React.CSSProperties, marginBottom: 6 }}>Mensaje</div>
+        <textarea value={msgText} onChange={(e) => setMsgText(e.target.value.slice(0, 300))} autoFocus rows={4}
+          placeholder="Escribe el mensaje…"
+          style={{ ...fld.input as React.CSSProperties, width: "100%", resize: "vertical", fontFamily: "inherit", boxSizing: "border-box" }} />
+        <div style={{ color: C.faint, fontSize: "0.72rem", marginTop: 4, textAlign: "right" }}>{msgText.length}/300</div>
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 18 }}>
+          <button style={btn.ghost} onClick={() => setMsgOpen(false)} disabled={busy}>Cancelar</button>
+          <button style={{ ...btn.primary, opacity: msgText.trim() && !busy ? 1 : 0.5 }} onClick={doSendMessage} disabled={!msgText.trim() || busy}>
+            {busy ? "Enviando…" : "Enviar mensaje"}
+          </button>
+        </div>
+      </Modal>
 
       <ToastHost toasts={toasts} onClose={dismiss} />
     </div>

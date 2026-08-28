@@ -105,6 +105,20 @@ function renderKitchenCancel(p, w) {
   return o;
 }
 
+// Mensaje libre a un área (p.kind === "message"). Lo manda el staff desde la comanda para
+// avisar algo a cocina/barra/caja por la impresora del área elegida.
+function renderMessage(p, w) {
+  let o = INIT;
+  o += BOLD_ON + BIG_ON + center("** MENSAJE **", Math.floor(w / 2)) + BIG_OFF + BOLD_OFF + "\n";
+  if (p.area) o += BOLD_ON + center(ascii(p.area), w) + BOLD_OFF + "\n";
+  if (p.from) o += center("De: " + ascii(p.from), w) + "\n";
+  o += center(fmtTime(p.time), w) + "\n";
+  o += rule(w) + "\n";
+  for (const ln of wrap(ascii(p.text || ""), w)) o += ln + "\n";
+  o += rule(w) + CUT;
+  return o;
+}
+
 function renderCustomer(p, w) {
   const f = p.fiscal || {};
   let o = INIT;
@@ -411,6 +425,8 @@ async function poll() {
             ? renderTips(p, w)
             : p && p.kind === "cancel"
             ? renderKitchenCancel(p, w)
+            : p && p.kind === "message"
+            ? renderMessage(p, w)
             : (p && p.kind === "kitchen" ? renderKitchen(p, w) : renderCustomer(p, w));
           await sendToPrinter(pr, data);
         }

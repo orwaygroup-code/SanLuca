@@ -40,6 +40,30 @@ export async function enqueueDrawerKick(
   }
 }
 
+/**
+ * Encola un MENSAJE libre para imprimirse en la impresora de un área (COCINA/BARRA/CAJA).
+ * Lo consume el PrintBridge (payload.kind = "message"). No va ligado a una comanda.
+ * Devuelve el id del ComandaPrint creado.
+ */
+export async function enqueueMessage(
+  args: { staffId: number; area: "COCINA" | "BARRA" | "CAJA"; text: string; fromName?: string | null },
+  db: Db = prisma,
+): Promise<number> {
+  const print = await db.comandaPrint.create({
+    data: {
+      tenantId: TENANT,
+      comandaId: null,
+      type: "MESSAGE",
+      target: args.area,
+      executedById: args.staffId,
+      status: "PENDING",
+      payload: { kind: "message", area: args.area, text: args.text, from: args.fromName ?? null, time: new Date().toISOString() },
+    },
+    select: { id: true },
+  });
+  return print.id;
+}
+
 /** Estados de comanda considerados "activos" (en el piso). Incluye
  *  PARTIALLY_PAID: sigue ocupando la mesa mientras se cobra por partes. */
 export const ACTIVE_STATUSES = ["OPEN", "IN_SERVICE", "AWAITING_PAYMENT", "PARTIALLY_PAID"] as const;
