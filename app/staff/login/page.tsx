@@ -148,12 +148,6 @@ function StaffLoginInner() {
             {loading ? "Entrando…" : "Entrar"}
           </button>
         </form>
-
-        <div style={{ marginTop: 18, textAlign: "center" }}>
-          <a href="/login" style={{ color: "rgba(245,241,232,0.5)", fontSize: "0.76rem", textDecoration: "none" }}>
-            ¿Administras por correo? Entra aquí
-          </a>
-        </div>
       </div>
     </div>
   );
