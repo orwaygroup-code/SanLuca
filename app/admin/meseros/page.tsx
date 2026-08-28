@@ -8,12 +8,13 @@ import { formatMXN } from "@/lib/displayTotals";
 interface WaiterRow {
   waiterId: number; name: string;
   sales: number; comandas: number; guests: number; items: number; tips: number;
+  discounts: number; cancelCount: number; cancelValue: number;
   avgTicket: number; avgPerGuest: number; sharePct: number; activeNow: number;
   topDish: { name: string; qty: number } | null;
 }
 interface Data {
   range: string;
-  totals: { sales: number; comandas: number; guests: number; tips: number };
+  totals: { sales: number; comandas: number; guests: number; tips: number; discounts: number; cancelValue: number };
   waiters: WaiterRow[];
 }
 
@@ -76,6 +77,8 @@ export default function MeserosPage() {
               <Kpi label="Cuentas pagadas" value={String(data.totals.comandas)} />
               <Kpi label="Comensales" value={String(data.totals.guests)} />
               <Kpi label="Propinas" value={formatMXN(data.totals.tips)} accent={C.gold} />
+              <Kpi label="Descuentos" value={formatMXN(data.totals.discounts)} accent="#63aede" />
+              <Kpi label="Cancelado" value={formatMXN(data.totals.cancelValue)} accent="#e8766b" />
             </div>
 
             <div style={{ color: C.faint, fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700, margin: "8px 2px 12px" }}>
@@ -106,6 +109,8 @@ export default function MeserosPage() {
                     <Metric label="Por persona" value={formatMXN(w.avgPerGuest)} />
                     <Metric label="Propinas" value={formatMXN(w.tips)} />
                     <Metric label="Platillos" value={String(w.items)} />
+                    <Metric label="Descuentos" value={w.discounts > 0 ? formatMXN(w.discounts) : "—"} accent={w.discounts > 0 ? "#63aede" : undefined} />
+                    <Metric label="Cancelado" value={w.cancelCount > 0 ? `${w.cancelCount} · ${formatMXN(w.cancelValue)}` : "—"} accent={w.cancelCount > 0 ? "#e8766b" : undefined} />
                     <Metric label="Más vendido" value={w.topDish ? `${w.topDish.name} (${w.topDish.qty})` : "—"} wide />
                   </div>
                 </div>
@@ -126,11 +131,11 @@ function Kpi({ label, value, big, accent }: { label: string; value: string; big?
     </div>
   );
 }
-function Metric({ label, value, wide }: { label: string; value: string; wide?: boolean }) {
+function Metric({ label, value, wide, accent }: { label: string; value: string; wide?: boolean; accent?: string }) {
   return (
     <div style={{ ...(wide ? { gridColumn: "1 / -1" } : {}) }}>
       <div style={{ color: C.faint, fontSize: "0.66rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</div>
-      <div style={{ color: C.cream, fontWeight: 700, fontSize: "0.9rem", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{value}</div>
+      <div style={{ color: accent ?? C.cream, fontWeight: 700, fontSize: "0.9rem", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{value}</div>
     </div>
   );
 }
