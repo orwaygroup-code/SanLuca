@@ -82,11 +82,16 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
   const comment = await prisma.comandaItemComment.findFirst({
     where: { id: commentId, itemId, tenantId: TENANT, item: { comandaId: id } },
-    select: { id: true, createdById: true, item: { select: { comanda: { select: { status: true } } } } },
+    select: { id: true, createdById: true, item: { select: { status: true, comanda: { select: { status: true } } } } },
   });
   if (!comment) return NextResponse.json<ApiResponse>({ success: false, error: "Comentario no encontrado" }, { status: 404 });
   if (["PAID", "CANCELLED", "MERGED"].includes(comment.item.comanda.status)) {
     return NextResponse.json<ApiResponse>({ success: false, error: "La cuenta ya está cerrada; no admite cambios" }, { status: 409 });
+  }
+  // El comentario se imprime en el ticket de cocina AL ENVIAR el platillo. Una vez enviado
+  // (item ya no PENDING), la cocina ya tiene la versión impresa: el comentario queda fijo.
+  if (comment.item.status !== "PENDING") {
+    return NextResponse.json<ApiResponse>({ success: false, error: "El platillo ya se envió a cocina; su comentario ya se imprimió y no se puede editar." }, { status: 409 });
   }
 
   // Solo el autor del comentario o un supervisor puede editarlo.

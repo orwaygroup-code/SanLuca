@@ -460,11 +460,13 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
         <div style={{ marginTop: 4 }}>
           <Badge text={ITEM_STATUS_LABEL[it.status] ?? it.status} color={ITEM_STATUS_COLOR[it.status] ?? C.dim} />
         </div>
-        {/* Comentarios por producto: se listan; el autor (o un supervisor) puede editar el suyo. */}
+        {/* Comentarios por producto: se listan; el autor (o un supervisor) puede editar el suyo,
+            PERO solo mientras el platillo NO se haya enviado a cocina — al enviarlo, el comentario
+            ya se imprimió en el ticket de cocina y queda fijo. */}
         {it.comments && it.comments.length > 0 && (
           <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 3 }}>
             {it.comments.map((cm) => {
-              const canEdit = canComment && ((!!staff && cm.createdById === staff.id) || isSupervisor);
+              const canEdit = it.status === "PENDING" && canComment && ((!!staff && cm.createdById === staff.id) || isSupervisor);
               if (editCm === cm.id) {
                 return (
                   <div key={cm.id} style={{ display: "flex", gap: 6, alignItems: "center", maxWidth: 440 }}>
