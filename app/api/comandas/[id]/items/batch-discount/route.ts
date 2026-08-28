@@ -53,15 +53,15 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const ops = [];
   for (const it of items) {
     const lineTotal = round2(Number(it.lineTotal));
-    const currentDiscount = round2(Number(it.discountAmount));
-    const room = round2(lineTotal - currentDiscount);
-    if (room <= 0) continue; // renglón sin saldo: se salta
-    const amount = round2(Math.min(computeDiscountAmount(lineTotal, type, value), room));
+    if (lineTotal <= 0) continue; // renglón sin saldo: se salta
+    // REEMPLAZA el descuento anterior del producto (no acumula). Acotado al 100% del renglón.
+    const amount = round2(Math.min(computeDiscountAmount(lineTotal, type, value), lineTotal));
     if (amount <= 0) continue;
+    ops.push(prisma.comandaDiscount.deleteMany({ where: { comandaId: id, tenantId: TENANT, scope: "ITEM", itemId: it.id } }));
     ops.push(prisma.comandaDiscount.create({
       data: { tenantId: TENANT, comandaId: id, scope: "ITEM", itemId: it.id, type, value, amount, reason, authorizedById },
     }));
-    ops.push(prisma.comandaItem.update({ where: { id: it.id }, data: { discountAmount: round2(currentDiscount + amount) } }));
+    ops.push(prisma.comandaItem.update({ where: { id: it.id }, data: { discountAmount: amount } }));
   }
   if (ops.length === 0) return NextResponse.json<ApiResponse>({ success: false, error: "El descuento resulta en $0 en todos los productos elegidos" }, { status: 400 });
 

@@ -60,18 +60,18 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   }
 
   const lineTotal = round2(Number(item.lineTotal));
-  const currentDiscount = round2(Number(item.discountAmount));
-  const room = round2(lineTotal - currentDiscount);
-  if (room <= 0) return NextResponse.json<ApiResponse>({ success: false, error: "No hay saldo para descontar en este producto" }, { status: 409 });
+  if (lineTotal <= 0) return NextResponse.json<ApiResponse>({ success: false, error: "No hay saldo para descontar en este producto" }, { status: 409 });
 
-  const amount = round2(Math.min(computeDiscountAmount(lineTotal, type, value), room));
+  // REEMPLAZA el descuento anterior del producto (no acumula). Acotado al 100% del renglón.
+  const amount = round2(Math.min(computeDiscountAmount(lineTotal, type, value), lineTotal));
   if (amount <= 0) return NextResponse.json<ApiResponse>({ success: false, error: "El descuento resulta en $0" }, { status: 400 });
 
   await prisma.$transaction([
+    prisma.comandaDiscount.deleteMany({ where: { comandaId: id, tenantId: TENANT, scope: "ITEM", itemId } }),
     prisma.comandaDiscount.create({
       data: { tenantId: TENANT, comandaId: id, scope: "ITEM", itemId, type, value, amount, reason, authorizedById },
     }),
-    prisma.comandaItem.update({ where: { id: itemId }, data: { discountAmount: round2(currentDiscount + amount) } }),
+    prisma.comandaItem.update({ where: { id: itemId }, data: { discountAmount: amount } }),
   ]);
   await recalcComandaTotals(id);
 

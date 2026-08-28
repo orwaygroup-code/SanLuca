@@ -56,21 +56,24 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     return NextResponse.json<ApiResponse>({ success: false, error: locked ? LOCKED_ACCOUNT_MSG : `Comanda ${comanda.status}: no admite descuento` }, { status: 409 });
   }
 
+  // Base = suma de líneas menos descuentos POR PRODUCTO. El descuento a la cuenta se calcula
+  // sobre esta base completa.
   const base = round2(
     comanda.items.reduce((s, i) => s + Math.max(0, round2(Number(i.lineTotal) - Number(i.discountAmount))), 0),
   );
-  const currentDiscount = round2(Number(comanda.discountTotal));
-  const room = round2(base - currentDiscount);
-  if (room <= 0) return NextResponse.json<ApiResponse>({ success: false, error: "No hay saldo para descontar" }, { status: 409 });
+  if (base <= 0) return NextResponse.json<ApiResponse>({ success: false, error: "No hay saldo para descontar" }, { status: 409 });
 
-  const amount = round2(Math.min(computeDiscountAmount(base, type, value), room));
+  // REEMPLAZA el descuento a la cuenta anterior (no se acumula): el nuevo valor manda. Se acota
+  // al 100% de la base (nunca queda negativo). Ej: 20% y luego 90% → queda 90%, no 110%.
+  const amount = round2(Math.min(computeDiscountAmount(base, type, value), base));
   if (amount <= 0) return NextResponse.json<ApiResponse>({ success: false, error: "El descuento resulta en $0" }, { status: 400 });
 
   await prisma.$transaction([
+    prisma.comandaDiscount.deleteMany({ where: { comandaId: id, tenantId: TENANT, scope: "BILL" } }),
     prisma.comandaDiscount.create({
       data: { tenantId: TENANT, comandaId: id, scope: "BILL", type, value, amount, reason, authorizedById },
     }),
-    prisma.comanda.update({ where: { id }, data: { discountTotal: round2(currentDiscount + amount) } }),
+    prisma.comanda.update({ where: { id }, data: { discountTotal: amount } }),
   ]);
   await recalcComandaTotals(id);
 
