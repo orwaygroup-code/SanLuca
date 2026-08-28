@@ -347,6 +347,7 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
   // Cobrar por CRÉDITO DE PERSONAL (desplegable): elegir empleado → confirmar en caja (PIN) o en tablet.
   const [scOpen, setScOpen] = useState(false);
   const [scEmp, setScEmp] = useState<number | null>(null);
+  const [scSearch, setScSearch] = useState("");
   const [scPinMode, setScPinMode] = useState(false); // true = mostrando el input de PIN (confirmar en caja)
   const [scPin, setScPin] = useState("");
   const [scBusy, setScBusy] = useState(false);
@@ -355,7 +356,7 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
   useEffect(() => {
     if (!open || comandaId == null) { setComanda(null); setLoadErr(null); return; }
     setComanda(null); setLoadErr(null); setCreditWaiterId(""); setCreditPin(""); setExcludeTip(false); setExcludeTipPin("");
-    setScOpen(false); setScEmp(null); setScPinMode(false); setScPin(""); setScSent(null);
+    setScOpen(false); setScEmp(null); setScPinMode(false); setScPin(""); setScSent(null); setScSearch("");
     apiFetch<{ id: number; fullName: string; role: string }[]>("/api/comandas/credit-staff").then((r) => { if (r.ok) setWaiters(r.data ?? []); });
     apiFetch<Comanda>(`/api/comandas/${comandaId}`).then((r) => {
       if (r.ok) {
@@ -517,21 +518,36 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
                     <button style={{ ...btn.primary, marginTop: 12, width: "100%" }} onClick={onClose}>Listo</button>
                   </div>
                 ) : scEmp == null ? (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    {([["Meseros", "WAITER"], ["Cocina", "KITCHEN"]] as const).map(([label, role]) => {
-                      const list = waiters.filter((w) => w.role === role);
-                      if (list.length === 0) return null;
-                      return (
-                        <div key={role}>
-                          <div style={{ color: C.faint, fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 800, marginBottom: 6 }}>{label}</div>
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-                            {list.map((w) => (
-                              <button key={w.id} onClick={() => { setScEmp(w.id); setScPinMode(false); setScPin(""); }} style={{ ...btn.ghost, padding: "8px 12px", fontSize: "0.82rem" }}>{w.fullName}</button>
-                            ))}
+                  <div>
+                    <input
+                      value={scSearch}
+                      onChange={(e) => setScSearch(e.target.value)}
+                      placeholder="Buscar persona…"
+                      autoFocus
+                      style={{ ...fld.input, width: "100%", boxSizing: "border-box" }}
+                    />
+                    <div style={{ marginTop: 8, maxHeight: 240, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
+                      {(() => {
+                        const q = scSearch.trim().toLowerCase();
+                        const groups = ([["Meseros", "WAITER"], ["Cocina", "KITCHEN"]] as const)
+                          .map(([label, role]) => [label, waiters.filter((w) => w.role === role && (!q || w.fullName.toLowerCase().includes(q)))] as const)
+                          .filter(([, list]) => list.length > 0);
+                        if (groups.length === 0) return <div style={{ color: C.faint, fontSize: "0.82rem", padding: "8px 2px" }}>Sin coincidencias.</div>;
+                        return groups.map(([label, list]) => (
+                          <div key={label}>
+                            <div style={{ color: C.faint, fontSize: "0.68rem", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 800, marginBottom: 5 }}>{label}</div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                              {list.map((w) => (
+                                <button key={w.id} onClick={() => { setScEmp(w.id); setScPinMode(false); setScPin(""); setScSearch(""); }}
+                                  style={{ display: "block", width: "100%", textAlign: "left", background: "rgba(0,0,0,0.16)", border: `1px solid ${C.border}`, borderRadius: 9, padding: "10px 12px", color: C.cream, fontFamily: "inherit", fontSize: "0.86rem", cursor: "pointer" }}>
+                                  {w.fullName}
+                                </button>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        ));
+                      })()}
+                    </div>
                   </div>
                 ) : (
                   <div>
