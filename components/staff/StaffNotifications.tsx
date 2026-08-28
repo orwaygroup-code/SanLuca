@@ -6,6 +6,7 @@ import { useStaffSession } from "@/lib/staff-session-client";
 // Solo estos roles reciben/ven notificaciones (managers todo; operación las reservas).
 const NOTIFY_ROLES = ["MANAGER", "OPERATION", "CAPTAIN"];
 const SEEN_KEY = "sl_notif_seen_at";
+const CLEAR_KEY = "sl_notif_cleared_at";
 
 interface Notif { id: number; type: string; title: string; body: string; url: string | null; createdAt: string }
 
@@ -27,13 +28,17 @@ export function StaffNotifications() {
   const [items, setItems] = useState<Notif[]>([]);
   const [open, setOpen] = useState(false);
   const [perm, setPerm] = useState<NotificationPermission | "unsupported">("default");
-  const [lastSeen, setLastSeen] = useState<number>(0);
+  const [lastSeen, setLastSeen] = useState<number>(0);       // última vez que se marcó "visto" (al cerrar)
+  const [clearedBefore, setClearedBefore] = useState<number>(0); // "limpiar": oculta lo anterior (por equipo)
   const subscribedRef = useRef(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     setPerm(typeof Notification === "undefined" ? "unsupported" : Notification.permission);
-    try { setLastSeen(Number(localStorage.getItem(SEEN_KEY)) || 0); } catch { /* ignore */ }
+    try {
+      setLastSeen(Number(localStorage.getItem(SEEN_KEY)) || 0);
+      setClearedBefore(Number(localStorage.getItem(CLEAR_KEY)) || 0);
+    } catch { /* ignore */ }
   }, []);
 
   const load = useCallback(async () => {
@@ -78,42 +83,58 @@ export function StaffNotifications() {
     if (p === "granted") subscribe();
   };
 
+  // Al CERRAR el panel se marcan como vistas (así, al abrir, las nuevas aún salen con asterisco).
   const openPanel = () => {
-    setOpen((v) => !v);
-    if (!open) {
-      const now = Date.now();
-      setLastSeen(now);
-      try { localStorage.setItem(SEEN_KEY, String(now)); } catch { /* ignore */ }
-    }
+    setOpen((prev) => {
+      if (prev) {
+        const now = Date.now();
+        setLastSeen(now);
+        try { localStorage.setItem(SEEN_KEY, String(now)); } catch { /* ignore */ }
+      }
+      return !prev;
+    });
+  };
+
+  const clearAll = () => {
+    const now = Date.now();
+    setClearedBefore(now);
+    setLastSeen(now);
+    try { localStorage.setItem(CLEAR_KEY, String(now)); localStorage.setItem(SEEN_KEY, String(now)); } catch { /* ignore */ }
   };
 
   if (loading || !enabled) return null;
 
-  const unread = items.filter((n) => new Date(n.createdAt).getTime() > lastSeen).length;
+  const visible = items.filter((n) => new Date(n.createdAt).getTime() > clearedBefore);
+  const unread = visible.filter((n) => new Date(n.createdAt).getTime() > lastSeen).length;
   const fmt = (iso: string) => new Date(iso).toLocaleString("es-MX", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: false });
 
   return (
     <div style={{ position: "fixed", right: 16, bottom: 16, zIndex: 2147483000 }}>
       {open && (
         <div style={{ position: "absolute", right: 0, bottom: 58, width: "min(92vw, 360px)", maxHeight: "70vh", overflowY: "auto", background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, boxShadow: "0 10px 40px rgba(0,0,0,0.5)" }}>
-          <div style={{ padding: "12px 14px", borderBottom: `1px solid ${C.line}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ padding: "12px 14px", borderBottom: `1px solid ${C.line}`, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
             <span style={{ color: C.cream, fontWeight: 800, fontSize: "0.9rem" }}>Notificaciones</span>
-            {perm !== "granted" && perm !== "unsupported" && (
-              <button onClick={askPermission} style={{ background: C.gold, color: "#16201f", border: "none", borderRadius: 8, padding: "5px 10px", fontWeight: 800, fontSize: "0.72rem", cursor: "pointer", fontFamily: "inherit" }}>Activar en este equipo</button>
-            )}
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              {perm !== "granted" && perm !== "unsupported" && (
+                <button onClick={askPermission} style={{ background: C.gold, color: "#16201f", border: "none", borderRadius: 8, padding: "5px 10px", fontWeight: 800, fontSize: "0.7rem", cursor: "pointer", fontFamily: "inherit" }}>Activar</button>
+              )}
+              {visible.length > 0 && (
+                <button onClick={clearAll} style={{ background: "transparent", border: `1px solid ${C.border}`, color: C.dim, borderRadius: 8, padding: "5px 10px", fontWeight: 700, fontSize: "0.7rem", cursor: "pointer", fontFamily: "inherit" }}>Limpiar</button>
+              )}
+            </div>
           </div>
           {perm === "denied" && (
             <div style={{ padding: "10px 14px", color: C.faint, fontSize: "0.74rem", borderBottom: `1px solid ${C.line}` }}>Las notificaciones están bloqueadas en este equipo. Actívalas en los ajustes del navegador para recibir avisos con la app cerrada.</div>
           )}
-          {items.length === 0 ? (
+          {visible.length === 0 ? (
             <div style={{ padding: 24, color: C.faint, fontSize: "0.84rem", textAlign: "center" }}>Sin notificaciones.</div>
           ) : (
-            items.map((n) => {
+            visible.map((n) => {
               const isNew = new Date(n.createdAt).getTime() > lastSeen;
               return (
                 <button key={n.id} onClick={() => { if (n.url) window.location.href = n.url; }} style={{ display: "block", width: "100%", textAlign: "left", background: isNew ? "rgba(186,132,60,0.08)" : "transparent", border: "none", borderBottom: `1px solid ${C.line}`, padding: "11px 14px", cursor: n.url ? "pointer" : "default", fontFamily: "inherit" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    {isNew && <span style={{ width: 7, height: 7, borderRadius: 999, background: C.gold, flexShrink: 0 }} />}
+                    {isNew && <span style={{ color: C.gold, fontWeight: 900, fontSize: "1rem", lineHeight: 1, flexShrink: 0 }}>✳</span>}
                     <span style={{ color: C.cream, fontWeight: 700, fontSize: "0.84rem", flex: 1, minWidth: 0 }}>{n.title}</span>
                     <span style={{ color: C.faint, fontSize: "0.66rem", whiteSpace: "nowrap" }}>{fmt(n.createdAt)}</span>
                   </div>
