@@ -692,10 +692,12 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
               <Icon name="lock" size={15} /> Cuenta enviada a caja — ya no se puede modificar.
             </span>
           )}
-          {/* Mensaje libre a un área (siempre disponible; no depende del estado de la cuenta). */}
-          <button style={{ ...btn.ghost, display: "inline-flex", alignItems: "center", gap: 7 }} onClick={() => setMsgOpen(true)} disabled={busy}>
-            <Icon name="printer" size={16} />Mensaje
-          </button>
+          {/* Mensaje libre a un área. Una vez impresa la cuenta, la UI queda SOLO en Cobrar. */}
+          {!alreadyPrinted && (
+            <button style={{ ...btn.ghost, display: "inline-flex", alignItems: "center", gap: 7 }} onClick={() => setMsgOpen(true)} disabled={busy}>
+              <Icon name="printer" size={16} />Mensaje
+            </button>
+          )}
         </section>
 
         {/* Acciones de CAJA (OPERATION/CAPTAIN/MANAGER). Las sensibles piden PIN. */}
@@ -703,8 +705,9 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
           <section data-tour="caja" style={caja.wrap}>
             <div style={caja.label}>Caja</div>
 
-            {/* Reimpresión a cocina: solo manager, solo si hay productos ya enviados. */}
-            {isManager && !isPaid && liveItems.some((i) => i.status !== "PENDING") && (
+            {/* Reimpresión a cocina: solo manager, con productos enviados y ANTES de imprimir la
+                cuenta (tras imprimir, la UI queda solo en Cobrar). */}
+            {isManager && !isPaid && !alreadyPrinted && liveItems.some((i) => i.status !== "PENDING") && (
               <button style={caja.reprint} onClick={() => { setReprintSel(new Set()); setReprintOpen(true); }} disabled={busy}>
                 <Icon name="printer" size={15} /> Reimprimir productos a cocina
               </button>
@@ -756,10 +759,9 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
                 {alreadyPrinted && (
                   <button style={caja.primary} onClick={() => setPayOpen(true)} disabled={busy}><Icon name="card" size={18} />Cobrar{amountPaid > 0 ? ` · restan ${formatMXN(remaining)}` : ""}</button>
                 )}
-                {alreadyPrinted && isSupervisor && (
-                  <button style={caja.secondary} onClick={() => setReprint(true)} disabled={busy}><Icon name="printer" size={16} />Reimprimir</button>
-                )}
-                {porCobrar && (
+                {/* Impresa: la ÚNICA acción es Cobrar. "Reabrir cuenta" queda solo como salida de
+                    emergencia para SUPERVISORES (Capitán/Manager) — corrige errores tras imprimir. */}
+                {porCobrar && isSupervisor && (
                   <button style={caja.secondary} onClick={() => setUnlockAsk(true)} disabled={busy}>Reabrir cuenta</button>
                 )}
               </div>
@@ -773,9 +775,10 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
               </div>
             )}
 
-            {/* #4 Ligar a empleado (solo cuentas para llevar / sin mesa). El empleado debe
-                aprobarla en su cartera antes de que caja pueda cobrarla a crédito. */}
-            {cajaActive && c.table == null && (
+            {/* #4 Ligar a empleado (solo cuentas para llevar / sin mesa, ANTES de imprimir). El
+                empleado debe aprobarla en su cartera antes de que caja pueda cobrarla a crédito.
+                Tras imprimir, la UI queda solo en Cobrar (el crédito se maneja en el cobro). */}
+            {cajaActive && c.table == null && !alreadyPrinted && (
               <div style={{ marginTop: 14 }}>
                 <div style={caja.subLabel}>Empleado (crédito)</div>
                 {c.chargedEmployeeId ? (
