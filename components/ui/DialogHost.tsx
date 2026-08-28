@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 type Kind = "alert" | "confirm" | "prompt";
 interface Req {
   kind: Kind; message: string; title?: string;
-  placeholder?: string; defaultValue?: string; danger?: boolean; confirmLabel?: string;
+  placeholder?: string; defaultValue?: string; danger?: boolean; confirmLabel?: string; password?: boolean; maxLength?: number;
   resolve: (v: unknown) => void;
 }
 
@@ -35,7 +35,7 @@ export function dialogAlert(message: string, title?: string): Promise<void> {
 export function dialogConfirm(message: string, opts?: { title?: string; danger?: boolean; confirmLabel?: string }): Promise<boolean> {
   return open({ kind: "confirm", message, ...opts }) as Promise<boolean>;
 }
-export function dialogPrompt(message: string, opts?: { title?: string; placeholder?: string; defaultValue?: string; confirmLabel?: string }): Promise<string | null> {
+export function dialogPrompt(message: string, opts?: { title?: string; placeholder?: string; defaultValue?: string; confirmLabel?: string; password?: boolean; maxLength?: number }): Promise<string | null> {
   return open({ kind: "prompt", message, ...opts }) as Promise<string | null>;
 }
 
@@ -71,9 +71,11 @@ export function DialogHost() {
         {req.kind === "prompt" && (
           <input
             autoFocus value={value} placeholder={req.placeholder ?? ""}
-            onChange={(e) => setValue(e.target.value)}
+            type={req.password ? "password" : "text"} inputMode={req.password ? "numeric" : undefined} maxLength={req.maxLength}
+            autoComplete="off"
+            onChange={(e) => setValue(req.password ? e.target.value.replace(/\D/g, "").slice(0, req.maxLength ?? 8) : e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") onOk(); else if (e.key === "Escape") onCancel(); }}
-            style={{ width: "100%", marginTop: 14, padding: "11px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.bg, color: C.cream, fontSize: "0.92rem", fontFamily: "inherit", boxSizing: "border-box" }}
+            style={{ width: "100%", marginTop: 14, padding: "11px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.bg, color: C.cream, fontSize: req.password ? "1.3rem" : "0.92rem", letterSpacing: req.password ? "0.35em" : "normal", textAlign: req.password ? "center" : "left", fontFamily: "inherit", boxSizing: "border-box" }}
           />
         )}
 

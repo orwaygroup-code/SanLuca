@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "@/components/staff/types";
+import { dialogAlert, dialogPrompt } from "@/components/ui/DialogHost";
 
 /**
  * Créditos de meseros: cuentas que un mesero pagó a crédito (se descuentan de su
@@ -34,12 +35,18 @@ export default function CreditosPage() {
   useEffect(() => { load(); }, [load]);
 
   const setStatus = async (id: number, status: "PAID" | "OUTSTANDING") => {
+    const pin = await dialogPrompt(
+      status === "PAID" ? "PIN de Manager para marcar este crédito como pagado (se descuenta de nómina)." : "PIN de Manager para reabrir este crédito.",
+      { title: status === "PAID" ? "Marcar pagada" : "Reabrir crédito", password: true, maxLength: 4, placeholder: "PIN", confirmLabel: status === "PAID" ? "Marcar pagada" : "Reabrir" },
+    );
+    if (!pin || pin.length !== 4) return;
     setBusy(id);
     const r = await apiFetch(`/api/admin/waiter-credits/${id}`, {
-      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }),
+      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status, authPin: pin }),
     });
     setBusy(null);
     if (r.ok) load();
+    else await dialogAlert(r.error ?? "No se pudo actualizar el crédito");
   };
 
   const byWaiter = new Map<number, { name: string; items: Credit[]; owed: number }>();

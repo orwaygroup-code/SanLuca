@@ -973,6 +973,7 @@ model WaiterCredit {
   note           String?
   createdAt      DateTime  @default(now())
   paidAt         DateTime?
+  paidById       Int? // manager que autorizó marcarlo pagado (con su PIN)
 
   @@index([tenantId, waiterId, status])
   @@index([tenantId, status])
