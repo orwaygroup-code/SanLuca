@@ -103,6 +103,11 @@ export default function MeseroComandasPage() {
         right={
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <ModeSwitch role={staff.role} />
+            {/* Faltantes (86) y Priorizar (101): el mesero los consulta para no vender agotados y empujar lo del 101. */}
+            <button onClick={() => router.push("/staff/cocina?tab=86")} title="Faltantes (86)" aria-label="Faltantes 86"
+              style={{ height: 40, padding: "0 13px", borderRadius: 999, border: `1px solid ${C.border}`, background: "transparent", color: C.gold, fontWeight: 800, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" }}>86</button>
+            <button onClick={() => router.push("/staff/cocina?tab=101")} title="Priorizar (101)" aria-label="Priorizar 101"
+              style={{ height: 40, padding: "0 13px", borderRadius: 999, border: `1px solid ${C.border}`, background: "transparent", color: C.gold, fontWeight: 800, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" }}>101</button>
             <button onClick={() => router.push("/staff/wallet")} title="Mi saldo" aria-label="Mi saldo"
               style={{ width: 40, height: 40, borderRadius: 999, border: `1px solid ${C.border}`, background: "transparent", color: C.gold, fontWeight: 800, fontSize: "1rem", cursor: "pointer" }}>$</button>
             <button onClick={() => setTourOpen(true)} title="Tutorial" aria-label="Abrir tutorial"

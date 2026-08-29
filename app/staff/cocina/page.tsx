@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStaffSession } from "@/lib/staff-session-client";
-import { C, Spinner, EmptyState, Badge, btn, fld, useToasts, ToastHost, useStaffLogout, usePoll } from "@/components/staff/ui";
+import { C, StaffHeader, Spinner, EmptyState, Badge, btn, fld, useToasts, ToastHost, useStaffLogout, usePoll } from "@/components/staff/ui";
 import { StaffShell } from "@/components/staff/StaffShell";
 import { apiFetch } from "@/components/staff/types";
 
@@ -95,9 +95,11 @@ export default function CocinaPanelPage() {
   const featured = flatDishes.filter((d) => d.featured101);
   const faltasByArea = (area: Area | "SIN") => (faltas ?? []).filter((f) => (area === "SIN" ? !f.area : f.area === area));
 
-  return (
+  // El mesero (WAITER) también ve 86/101, pero con un header simple + "Volver a mis comandas";
+  // Perla (Operación/Capitán/Manager) conserva el riel lateral con el que gestiona.
+  const isPerla = ["OPERATION", "CAPTAIN", "MANAGER"].includes(role ?? "");
+  const content = (
     <>
-      <StaffShell active="cocina" onRefresh={() => { loadMenu(); loadFaltas(); }} onLogout={logout} userName={staff.fullName} role={staff.role} maxWidth={900}>
         <div style={ui.head}>
           <h1 style={ui.h1}>{tab === "86" ? "Faltantes (86)" : "Priorizar venta (101)"}</h1>
           <div style={{ display: "flex", gap: 8 }}>
@@ -197,7 +199,27 @@ export default function CocinaPanelPage() {
             )}
           </>
         )}
-      </StaffShell>
+    </>
+  );
+
+  return (
+    <>
+      {isPerla ? (
+        <StaffShell active="cocina" onRefresh={() => { loadMenu(); loadFaltas(); }} onLogout={logout} userName={staff.fullName} role={staff.role} maxWidth={900}>
+          {content}
+        </StaffShell>
+      ) : (
+        <div style={{ minHeight: "100vh", background: C.bg }}>
+          <StaffHeader
+            title="Faltantes / Priorizar"
+            role={staff.role}
+            userName={staff.fullName}
+            onLogout={logout}
+            right={<button onClick={() => router.push("/staff/comandas")} style={btn.ghost}>← Mis comandas</button>}
+          />
+          <main style={{ maxWidth: 900, margin: "0 auto", padding: "16px 22px 48px", boxSizing: "border-box" }}>{content}</main>
+        </div>
+      )}
       <ToastHost toasts={toasts} onClose={dismiss} />
     </>
   );
