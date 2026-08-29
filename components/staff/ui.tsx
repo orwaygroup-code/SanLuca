@@ -21,6 +21,24 @@ export function usePoll(fn: () => void, ms = 7000, active = true) {
 }
 
 /**
+ * true cuando la pantalla es angosta (celular). Las vistas de staff se diseñaron para
+ * tablet; en celular conviene una variante más compacta. Arranca en false (evita
+ * desajuste de SSR) y se corrige al montar; escucha cambios de tamaño/orientación.
+ */
+export function useIsPhone(maxWidth = 640) {
+  const [isPhone, setIsPhone] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia(`(max-width: ${maxWidth}px)`);
+    const update = () => setIsPhone(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, [maxWidth]);
+  return isPhone;
+}
+
+/**
  * Primitivos de UI compartidos por las vistas de Staff (Fase B.2):
  * paleta, StaffHeader, sistema de toasts, modales (confirm / razón),
  * TicketPreview. Todo inline-style, sin dependencias externas.

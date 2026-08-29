@@ -6,7 +6,7 @@ import { useStaffSession } from "@/lib/staff-session-client";
 import { ModeSwitch } from "@/components/staff/ModeSwitch";
 import {
   C, StaffHeader, Spinner, EmptyState, Badge, Modal, btn, fld, formatMXN,
-  STATUS_LABEL, STATUS_COLOR, useToasts, ToastHost, useStaffLogout, usePoll,
+  STATUS_LABEL, STATUS_COLOR, useToasts, ToastHost, useStaffLogout, usePoll, useIsPhone,
 } from "@/components/staff/ui";
 import { apiFetch, type Comanda, type TableStatus } from "@/components/staff/types";
 import { Tour, type TourStep } from "@/components/staff/Tour";
@@ -36,6 +36,7 @@ export default function MeseroComandasPage() {
   const { staff, loading } = useStaffSession();
   const logout = useStaffLogout();
   const { toasts, push, dismiss } = useToasts();
+  const isPhone = useIsPhone(); // vista compacta en celular (se diseñó para tablet)
 
   const [comandas, setComandas] = useState<Comanda[] | null>(null);
   const [openModal, setOpenModal] = useState(false);
@@ -137,24 +138,38 @@ export default function MeseroComandasPage() {
         ) : comandas.length === 0 ? (
           <EmptyState text="No tienes comandas abiertas. Toca «+ Comanda» para abrir una." />
         ) : (
-          <div style={page.grid}>
-            {comandas.map((c) => (
-              <button key={c.id} style={page.card} onClick={() => router.push(`/staff/comandas/${c.id}?back=/staff/comandas`)}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ color: C.gold, fontWeight: 800, fontSize: "0.78rem", letterSpacing: "0.05em" }}>{c.folio}</span>
-                  <Badge text={STATUS_LABEL[c.status] ?? c.status} color={STATUS_COLOR[c.status] ?? C.dim} />
-                </div>
-                <div style={{ color: C.cream, fontSize: "1.05rem", fontWeight: 700, marginTop: 8 }}>
-                  {c.table ? `Mesa ${c.table.number} · ${c.table.section.name}` : (c.customName || "Cuenta sin mesa")}
-                </div>
-                <div style={{ color: C.dim, fontSize: "0.8rem", marginTop: 2 }}>
-                  {c.guestsActual} pers · {c.items.filter((i) => i.status !== "CANCELLED").length} items
-                </div>
-                <div style={{ color: C.cream, fontSize: "1.1rem", fontWeight: 800, marginTop: 10 }}>
-                  {formatMXN(Number(c.total))}
-                </div>
+          <div style={isPhone ? page.gridSm : page.grid}>
+            {comandas.map((c) => {
+              const label = c.table ? `Mesa ${c.table.number} · ${c.table.section.name}` : (c.customName || "Cuenta sin mesa");
+              const items = c.items.filter((i) => i.status !== "CANCELLED").length;
+              return (
+              <button key={c.id} style={isPhone ? page.cardSm : page.card} onClick={() => router.push(`/staff/comandas/${c.id}?back=/staff/comandas`)}>
+                {isPhone ? (
+                  <>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                      <span style={{ color: C.gold, fontWeight: 800, fontSize: "0.72rem", letterSpacing: "0.04em" }}>{c.folio}</span>
+                      <Badge text={STATUS_LABEL[c.status] ?? c.status} color={STATUS_COLOR[c.status] ?? C.dim} />
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginTop: 5 }}>
+                      <span style={{ color: C.cream, fontSize: "0.95rem", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+                      <span style={{ color: C.cream, fontSize: "1rem", fontWeight: 800, whiteSpace: "nowrap" }}>{formatMXN(Number(c.total))}</span>
+                    </div>
+                    <div style={{ color: C.dim, fontSize: "0.74rem", marginTop: 2 }}>{c.guestsActual} pers · {items} items</div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ color: C.gold, fontWeight: 800, fontSize: "0.78rem", letterSpacing: "0.05em" }}>{c.folio}</span>
+                      <Badge text={STATUS_LABEL[c.status] ?? c.status} color={STATUS_COLOR[c.status] ?? C.dim} />
+                    </div>
+                    <div style={{ color: C.cream, fontSize: "1.05rem", fontWeight: 700, marginTop: 8 }}>{label}</div>
+                    <div style={{ color: C.dim, fontSize: "0.8rem", marginTop: 2 }}>{c.guestsActual} pers · {items} items</div>
+                    <div style={{ color: C.cream, fontSize: "1.1rem", fontWeight: 800, marginTop: 10 }}>{formatMXN(Number(c.total))}</div>
+                  </>
+                )}
               </button>
-            ))}
+              );
+            })}
           </div>
         )}
       </main>
@@ -317,5 +332,11 @@ const page: Record<string, React.CSSProperties> = {
   card: {
     textAlign: "left", cursor: "pointer", background: C.panel, border: `1px solid ${C.border}`,
     borderRadius: 14, padding: "16px 16px 18px", fontFamily: "inherit",
+  },
+  // Variantes compactas para celular (pantallas angostas): una columna, tarjetas densas.
+  gridSm: { display: "grid", gridTemplateColumns: "1fr", gap: 8 },
+  cardSm: {
+    textAlign: "left", cursor: "pointer", background: C.panel, border: `1px solid ${C.border}`,
+    borderRadius: 12, padding: "11px 13px", fontFamily: "inherit",
   },
 };
