@@ -17,16 +17,16 @@ interface Reports {
   kpis: Kpis;
   byShift: Shift[];
   bySection: { section: string; sales: number; comandas: number }[];
-  topDishes: { name: string; qty: number; revenue: number }[];
-  byCarta: { carta: string; qty: number; revenue: number }[];
+  topDishes: { name: string; qty: number; revenue: number; comandas: number }[];
+  byCarta: { carta: string; qty: number; revenue: number; comandas: number; dishes: { name: string; qty: number; revenue: number; comandas: number }[] }[];
 }
 
 type Sub = "todo" | "producto" | "secciones" | "menus";
 const SUBS: { key: Sub; label: string }[] = [
   { key: "todo", label: "Todo" },
   { key: "producto", label: "Por producto" },
-  { key: "secciones", label: "Por secciones" },
-  { key: "menus", label: "Por menús" },
+  { key: "menus", label: "Por sección" },   // carta del menú (Vinos, Destilados…) con desglose de productos
+  { key: "secciones", label: "Por zona" },  // zona física del restaurante (Salón, Terraza…)
 ];
 
 export default function ReportesPage() {
@@ -72,10 +72,10 @@ export default function ReportesPage() {
         <TodoView data={data} />
       ) : sub === "producto" ? (
         <ProductoView rows={data.topDishes} />
-      ) : sub === "secciones" ? (
-        <SeccionesView rows={data.bySection} />
-      ) : (
+      ) : sub === "menus" ? (
         <MenusView rows={data.byCarta} />
+      ) : (
+        <ZonaView rows={data.bySection} />
       )}
     </div>
   );
@@ -159,12 +159,83 @@ function RankTable({ head, rows }: { head: [string, string, string]; rows: { c1:
   );
 }
 
+// Tabla de 4 columnas: nombre, cantidad vendida, en cuántas comandas, ingreso.
+function QtyComandasTable({ nameHead, rows }: { nameHead: string; rows: { name: string; qty: number; comandas: number; revenue: number }[] }) {
+  const totalQty = rows.reduce((s, r) => s + r.qty, 0);
+  const totalRev = rows.reduce((s, r) => s + r.revenue, 0);
+  if (rows.length === 0) return <p style={{ color: RP.dim }}>Sin datos en este rango.</p>;
+  return (
+    <div style={tbl.wrap}>
+      <table style={tbl.table}>
+        <thead><tr>
+          <th style={tbl.th}>{nameHead}</th>
+          <th style={{ ...tbl.th, ...tbl.num }}>Cant.</th>
+          <th style={{ ...tbl.th, ...tbl.num }}>Comandas</th>
+          <th style={{ ...tbl.th, ...tbl.num }}>Ingreso</th>
+        </tr></thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={r.name + i}>
+              <td style={tbl.td}>{r.name}</td>
+              <td style={{ ...tbl.td, ...tbl.num }}>{r.qty}</td>
+              <td style={{ ...tbl.td, ...tbl.num }}>{r.comandas}</td>
+              <td style={{ ...tbl.td, ...tbl.num }}>{money(r.revenue)}</td>
+            </tr>
+          ))}
+          <tr>
+            <td style={{ ...tbl.td, fontWeight: 800, color: RP.gold, borderBottom: "none" }}>Total</td>
+            <td style={{ ...tbl.td, ...tbl.num, fontWeight: 800, color: RP.gold, borderBottom: "none" }}>{totalQty}</td>
+            <td style={{ ...tbl.td, ...tbl.num, borderBottom: "none" }} />
+            <td style={{ ...tbl.td, ...tbl.num, fontWeight: 800, color: RP.gold, borderBottom: "none" }}>{money(totalRev)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function ProductoView({ rows }: { rows: Reports["topDishes"] }) {
-  return <RankTable head={["Producto", "Cant.", "Ingreso"]} rows={rows.map((r) => ({ c1: r.name, qty: r.qty, money: r.revenue }))} />;
+  return <QtyComandasTable nameHead="Producto" rows={rows} />;
 }
-function SeccionesView({ rows }: { rows: Reports["bySection"] }) {
-  return <RankTable head={["Sección", "Cuentas", "Ventas"]} rows={rows.map((r) => ({ c1: r.section, qty: r.comandas, money: r.sales }))} />;
+
+function ZonaView({ rows }: { rows: Reports["bySection"] }) {
+  return <RankTable head={["Zona", "Cuentas", "Ventas"]} rows={rows.map((r) => ({ c1: r.section, qty: r.comandas, money: r.sales }))} />;
 }
+
+// Por sección de menú (carta): cada carta se expande a sus productos, con cuántos se
+// vendieron y en cuántas comandas apareció cada uno. Responde "Sección vino: qué vinos,
+// cuántos y en cuántas comandas".
 function MenusView({ rows }: { rows: Reports["byCarta"] }) {
-  return <RankTable head={["Menú / carta", "Cant.", "Ingreso"]} rows={rows.map((r) => ({ c1: r.carta, qty: r.qty, money: r.revenue }))} />;
+  const [open, setOpen] = useState<string | null>(rows.length === 1 ? rows[0].carta : null);
+  if (rows.length === 0) return <p style={{ color: RP.dim }}>Sin datos en este rango.</p>;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {rows.map((c) => {
+        const isOpen = open === c.carta;
+        return (
+          <div key={c.carta} style={{ border: `1px solid ${RP.line}`, borderRadius: 12, overflow: "hidden", background: RP.panel }}>
+            <button onClick={() => setOpen(isOpen ? null : c.carta)}
+              style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", padding: "13px 16px", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ color: RP.faint, display: "inline-block", transform: isOpen ? "rotate(90deg)" : "none", transition: "transform .15s" }}>▸</span>
+                <b style={{ color: RP.cream, fontSize: "0.95rem" }}>{c.carta}</b>
+              </span>
+              <span style={{ display: "flex", gap: 16, alignItems: "baseline", color: RP.dim, fontSize: "0.82rem", flexWrap: "wrap" }}>
+                <span>{c.dishes.length} productos</span>
+                <span>{c.qty} vendidos</span>
+                <span>{c.comandas} comandas</span>
+                <b style={{ color: RP.gold, fontSize: "0.9rem" }}>{money(c.revenue)}</b>
+                <span style={{ color: RP.faint }}>{isOpen ? "ocultar" : "ver más"}</span>
+              </span>
+            </button>
+            {isOpen && (
+              <div style={{ borderTop: `1px solid ${RP.line}`, padding: "2px 0 6px" }}>
+                <QtyComandasTable nameHead="Producto" rows={c.dishes} />
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
 }

@@ -73,8 +73,9 @@ export async function GET(request: NextRequest) {
   const byHour = new Map<number, number>();
   const bySection = new Map<string, { sales: number; comandas: number }>();
   const byWaiter = new Map<string, { sales: number; comandas: number }>();
-  const dishes = new Map<string, { qty: number; revenue: number }>();
-  const cartas = new Map<string, { qty: number; revenue: number }>(); // por menú (carta)
+  const dishes = new Map<string, { qty: number; revenue: number; comandas: Set<number> }>();
+  // Por menú (carta) con desglose de sus platillos y en cuántas comandas apareció cada uno.
+  const cartas = new Map<string, { qty: number; revenue: number; comandas: Set<number>; dishes: Map<string, { qty: number; revenue: number; comandas: Set<number> }> }>();
   const shifts = new Map<string, { sales: number; comandas: number; guests: number; tables: Set<string>; dishes: Map<string, number> }>();
 
   for (const c of paid) {
@@ -89,9 +90,15 @@ export async function GET(request: NextRequest) {
     const w = c.waiter?.fullName ?? "—";
     const wv = byWaiter.get(w) ?? { sales: 0, comandas: 0 }; wv.sales += total; wv.comandas += 1; byWaiter.set(w, wv);
     for (const it of c.items) {
-      const d = dishes.get(it.dishNameSnapshot) ?? { qty: 0, revenue: 0 }; d.qty += Number(it.quantity); d.revenue += Number(it.lineTotal); dishes.set(it.dishNameSnapshot, d);
+      const q = Number(it.quantity), lt = Number(it.lineTotal), nm = it.dishNameSnapshot;
+      const d = dishes.get(nm) ?? { qty: 0, revenue: 0, comandas: new Set<number>() };
+      d.qty += q; d.revenue += lt; d.comandas.add(c.id); dishes.set(nm, d);
       const cartaName = it.dish?.category?.carta?.name ?? "Sin carta / extras";
-      const cv = cartas.get(cartaName) ?? { qty: 0, revenue: 0 }; cv.qty += Number(it.quantity); cv.revenue += Number(it.lineTotal); cartas.set(cartaName, cv);
+      const cv = cartas.get(cartaName) ?? { qty: 0, revenue: 0, comandas: new Set<number>(), dishes: new Map() };
+      cv.qty += q; cv.revenue += lt; cv.comandas.add(c.id);
+      const cd = cv.dishes.get(nm) ?? { qty: 0, revenue: 0, comandas: new Set<number>() };
+      cd.qty += q; cd.revenue += lt; cd.comandas.add(c.id); cv.dishes.set(nm, cd);
+      cartas.set(cartaName, cv);
     }
 
     const sk = shiftKey(c.shift);
@@ -153,8 +160,11 @@ export async function GET(request: NextRequest) {
     byHour: Array.from(byHour.entries()).sort((a, b) => a[0] - b[0]).map(([hour, s]) => ({ hour, sales: round(s) })),
     bySection: Array.from(bySection.entries()).map(([section, v]) => ({ section, sales: round(v.sales), comandas: v.comandas })).sort((a, b) => b.sales - a.sales),
     byWaiter: Array.from(byWaiter.entries()).map(([waiter, v]) => ({ waiter, sales: round(v.sales), comandas: v.comandas })).sort((a, b) => b.sales - a.sales),
-    topDishes: Array.from(dishes.entries()).map(([name, v]) => ({ name, qty: v.qty, revenue: round(v.revenue) })).sort((a, b) => b.qty - a.qty).slice(0, 100),
-    byCarta: Array.from(cartas.entries()).map(([carta, v]) => ({ carta, qty: v.qty, revenue: round(v.revenue) })).sort((a, b) => b.revenue - a.revenue),
+    topDishes: Array.from(dishes.entries()).map(([name, v]) => ({ name, qty: v.qty, revenue: round(v.revenue), comandas: v.comandas.size })).sort((a, b) => b.qty - a.qty).slice(0, 100),
+    byCarta: Array.from(cartas.entries()).map(([carta, v]) => ({
+      carta, qty: v.qty, revenue: round(v.revenue), comandas: v.comandas.size,
+      dishes: Array.from(v.dishes.entries()).map(([name, d]) => ({ name, qty: d.qty, revenue: round(d.revenue), comandas: d.comandas.size })).sort((a, b) => b.qty - a.qty),
+    })).sort((a, b) => b.revenue - a.revenue),
   };
 
   return NextResponse.json<ApiResponse>({ success: true, data });
