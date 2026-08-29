@@ -57,7 +57,8 @@ export function StaffRail({
         <RailItem sm icon="calendar" label="Reservas" active={active === "reservas"} onClick={() => router.push("/staff/reservas")} />
         <RailItem sm icon="history" label="Historial" active={active === "historial"} onClick={() => router.push("/staff/historial")} />
         <RailItem sm icon="card" label="Cuentas" active={active === "cuentas"} onClick={() => router.push("/staff/cuentas")} />
-        <RailItem sm icon="alert" label="86 / 101" active={active === "cocina"} onClick={() => router.push("/staff/cocina")} />
+        <RailItem sm icon="alert" label="Faltantes 86" active={active === "cocina"} onClick={() => router.push("/staff/cocina?tab=86")} />
+        <RailItem sm icon="n101" label="Priorizar 101" active={active === "cocina"} onClick={() => router.push("/staff/cocina?tab=101")} />
         <RailItem sm icon="pulse" label="Monitor" dataTour="monitor" active={active === "monitor"} onClick={() => goTab("monitor")} />
         <RailItem sm icon="coins" label="Propinas" active={active === "propinas"} onClick={() => goTab("propinas")} />
       </div>

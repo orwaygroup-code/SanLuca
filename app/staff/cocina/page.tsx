@@ -24,6 +24,12 @@ export default function CocinaPanelPage() {
   const { toasts, push, dismiss } = useToasts();
 
   const [tab, setTab] = useState<"86" | "101">("86");
+  // Abre la pestaña según ?tab=86|101 (los botones separados del rail apuntan aquí).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const t = new URLSearchParams(window.location.search).get("tab");
+    if (t === "101" || t === "86") setTab(t);
+  }, []);
   const [menu, setMenu] = useState<MenuCat[] | null>(null);
   const [faltas, setFaltas] = useState<Falta[] | null>(null);
   const [q, setQ] = useState("");
