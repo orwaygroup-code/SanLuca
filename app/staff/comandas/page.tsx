@@ -10,6 +10,7 @@ import {
 } from "@/components/staff/ui";
 import { apiFetch, type Comanda, type TableStatus } from "@/components/staff/types";
 import { Tour, type TourStep } from "@/components/staff/Tour";
+import { FaltantesPanel } from "@/components/staff/FaltantesPanel";
 
 /** Tutorial guiado de la vista Mesero (mis comandas). */
 const MESERO_TOUR: TourStep[] = [
@@ -38,6 +39,8 @@ export default function MeseroComandasPage() {
 
   const [comandas, setComandas] = useState<Comanda[] | null>(null);
   const [openModal, setOpenModal] = useState(false);
+  // Panel 86/101 embebido: cambia SOLO el cuerpo de esta vista (el mesero no sale de sus comandas).
+  const [panelView, setPanelView] = useState<null | "86" | "101">(null);
   const [tourOpen, setTourOpen] = useState(false);
   const autoTourDone = useRef(false);
   // Alerta "cuenta por pagar > 1h": ventana cada 4 min, UNA a la vez (no se empalma).
@@ -103,11 +106,15 @@ export default function MeseroComandasPage() {
         right={
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <ModeSwitch role={staff.role} />
-            {/* Faltantes (86) y Priorizar (101): el mesero los consulta para no vender agotados y empujar lo del 101. */}
-            <button onClick={() => router.push("/staff/cocina?tab=86")} title="Faltantes (86)" aria-label="Faltantes 86"
-              style={{ height: 40, padding: "0 13px", borderRadius: 999, border: `1px solid ${C.border}`, background: "transparent", color: C.gold, fontWeight: 800, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" }}>86</button>
-            <button onClick={() => router.push("/staff/cocina?tab=101")} title="Priorizar (101)" aria-label="Priorizar 101"
-              style={{ height: 40, padding: "0 13px", borderRadius: 999, border: `1px solid ${C.border}`, background: "transparent", color: C.gold, fontWeight: 800, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" }}>101</button>
+            {/* Faltantes (86) y Priorizar (101): cambian SOLO el cuerpo, sin salir de la vista del mesero. */}
+            {(["86", "101"] as const).map((k) => {
+              const on = panelView === k;
+              return (
+                <button key={k} onClick={() => setPanelView(on ? null : k)} aria-pressed={on}
+                  title={k === "86" ? "Faltantes (86)" : "Priorizar (101)"} aria-label={k === "86" ? "Faltantes 86" : "Priorizar 101"}
+                  style={{ height: 40, padding: "0 13px", borderRadius: 999, border: `1px solid ${on ? C.gold : C.border}`, background: on ? C.gold : "transparent", color: on ? "#16201f" : C.gold, fontWeight: 800, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" }}>{k}</button>
+              );
+            })}
             <button onClick={() => router.push("/staff/wallet")} title="Mi saldo" aria-label="Mi saldo"
               style={{ width: 40, height: 40, borderRadius: 999, border: `1px solid ${C.border}`, background: "transparent", color: C.gold, fontWeight: 800, fontSize: "1rem", cursor: "pointer" }}>$</button>
             <button onClick={() => setTourOpen(true)} title="Tutorial" aria-label="Abrir tutorial"
@@ -118,7 +125,14 @@ export default function MeseroComandasPage() {
       />
 
       <main style={page.main} data-tour="lista">
-        {comandas === null ? (
+        {panelView ? (
+          <>
+            <div style={{ marginBottom: 14 }}>
+              <button onClick={() => setPanelView(null)} style={btn.ghost}>← Regresar a comandas</button>
+            </div>
+            <FaltantesPanel role={staff.role} initialTab={panelView} push={push} />
+          </>
+        ) : comandas === null ? (
           <Spinner />
         ) : comandas.length === 0 ? (
           <EmptyState text="No tienes comandas abiertas. Toca «+ Comanda» para abrir una." />
