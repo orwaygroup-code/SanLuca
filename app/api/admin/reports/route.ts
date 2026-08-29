@@ -50,7 +50,10 @@ export async function GET(request: NextRequest) {
       id: true, total: true, taxAmount: true, guestsActual: true, closedAt: true, shift: true, tableId: true,
       table: { select: { section: { select: { name: true } } } },
       waiter: { select: { fullName: true } },
-      items: { where: { status: { not: "CANCELLED" } }, select: { dishNameSnapshot: true, quantity: true, lineTotal: true } },
+      items: { where: { status: { not: "CANCELLED" } }, select: {
+        dishNameSnapshot: true, quantity: true, lineTotal: true,
+        dish: { select: { category: { select: { carta: { select: { name: true, turno: true } } } } } },
+      } },
     },
   });
 
@@ -71,6 +74,7 @@ export async function GET(request: NextRequest) {
   const bySection = new Map<string, { sales: number; comandas: number }>();
   const byWaiter = new Map<string, { sales: number; comandas: number }>();
   const dishes = new Map<string, { qty: number; revenue: number }>();
+  const cartas = new Map<string, { qty: number; revenue: number }>(); // por menú (carta)
   const shifts = new Map<string, { sales: number; comandas: number; guests: number; tables: Set<string>; dishes: Map<string, number> }>();
 
   for (const c of paid) {
@@ -84,7 +88,11 @@ export async function GET(request: NextRequest) {
     const s = bySection.get(sec) ?? { sales: 0, comandas: 0 }; s.sales += total; s.comandas += 1; bySection.set(sec, s);
     const w = c.waiter?.fullName ?? "—";
     const wv = byWaiter.get(w) ?? { sales: 0, comandas: 0 }; wv.sales += total; wv.comandas += 1; byWaiter.set(w, wv);
-    for (const it of c.items) { const d = dishes.get(it.dishNameSnapshot) ?? { qty: 0, revenue: 0 }; d.qty += Number(it.quantity); d.revenue += Number(it.lineTotal); dishes.set(it.dishNameSnapshot, d); }
+    for (const it of c.items) {
+      const d = dishes.get(it.dishNameSnapshot) ?? { qty: 0, revenue: 0 }; d.qty += Number(it.quantity); d.revenue += Number(it.lineTotal); dishes.set(it.dishNameSnapshot, d);
+      const cartaName = it.dish?.category?.carta?.name ?? "Sin carta / extras";
+      const cv = cartas.get(cartaName) ?? { qty: 0, revenue: 0 }; cv.qty += Number(it.quantity); cv.revenue += Number(it.lineTotal); cartas.set(cartaName, cv);
+    }
 
     const sk = shiftKey(c.shift);
     const sh = shifts.get(sk) ?? { sales: 0, comandas: 0, guests: 0, tables: new Set<string>(), dishes: new Map<string, number>() };
@@ -145,7 +153,8 @@ export async function GET(request: NextRequest) {
     byHour: Array.from(byHour.entries()).sort((a, b) => a[0] - b[0]).map(([hour, s]) => ({ hour, sales: round(s) })),
     bySection: Array.from(bySection.entries()).map(([section, v]) => ({ section, sales: round(v.sales), comandas: v.comandas })).sort((a, b) => b.sales - a.sales),
     byWaiter: Array.from(byWaiter.entries()).map(([waiter, v]) => ({ waiter, sales: round(v.sales), comandas: v.comandas })).sort((a, b) => b.sales - a.sales),
-    topDishes: Array.from(dishes.entries()).map(([name, v]) => ({ name, qty: v.qty, revenue: round(v.revenue) })).sort((a, b) => b.qty - a.qty).slice(0, 10),
+    topDishes: Array.from(dishes.entries()).map(([name, v]) => ({ name, qty: v.qty, revenue: round(v.revenue) })).sort((a, b) => b.qty - a.qty).slice(0, 100),
+    byCarta: Array.from(cartas.entries()).map(([carta, v]) => ({ carta, qty: v.qty, revenue: round(v.revenue) })).sort((a, b) => b.revenue - a.revenue),
   };
 
   return NextResponse.json<ApiResponse>({ success: true, data });

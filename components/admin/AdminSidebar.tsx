@@ -41,6 +41,11 @@ const GROUPS: { title: string; items: NavLink[] }[] = [
     { href: "/admin/historial", label: "Historial", icon: "history" },
     { href: "/admin/fechas-especiales", label: "Fechas especiales", icon: "star" },
   ]},
+  { title: "Reportes de venta", items: [
+    { href: "/admin/reportes", label: "Reportes", icon: "chart-bar" },
+    { href: "/admin/reportes/historial", label: "Historial de venta", icon: "history" },
+    { href: "/admin/reportes/cierres", label: "Cierres de turno", icon: "cash" },
+  ]},
   { title: "Administración", items: [
     { href: "/admin/employees", label: "Empleados", icon: "users" },
     { href: "/admin/creditos", label: "Créditos de personal", icon: "clipboard-text" },
