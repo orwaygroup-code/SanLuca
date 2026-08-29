@@ -86,6 +86,8 @@ export const LOCKED_ACCOUNT_MSG = "La cuenta ya está impresa / por cobrar. Reá
 export const COMANDA_INCLUDE = {
   items: { orderBy: { addedAt: "asc" }, include: { comments: { orderBy: { createdAt: "asc" } } } },
   prints: { orderBy: { printedAt: "asc" } },
+  reopens: { orderBy: { reopenedAt: "desc" }, take: 1 }, // solo la última: el candado de impresión se reinicia al reabrir
+
   table: { select: { id: true, number: true, section: { select: { name: true } } } },
   waiter: { select: { id: true, fullName: true, username: true, role: true } },
   chargedEmployee: { select: { id: true, fullName: true, role: true } }, // #4 empleado ligado (crédito)

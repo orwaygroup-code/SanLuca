@@ -7,7 +7,7 @@ import {
   C, Spinner, EmptyState, Badge, Modal, btn, fld, formatMXN,
   STATUS_LABEL, STATUS_COLOR, useToasts, ToastHost, useStaffLogout, usePoll,
 } from "@/components/staff/ui";
-import { apiFetch, comandaLabel, type TableStatus, type ReservationToday, type Comanda, type CashSession, type CutSnapshot, type PayResult } from "@/components/staff/types";
+import { apiFetch, comandaLabel, isBillPrinted, type TableStatus, type ReservationToday, type Comanda, type CashSession, type CutSnapshot, type PayResult } from "@/components/staff/types";
 import { TurnoBar, OpenTurnoModal, CloseCashSessionModal, CajaMonitor, PayModal } from "@/components/staff/caja";
 import { StaffShell } from "@/components/staff/StaffShell";
 import { type OperTab } from "@/components/staff/StaffRail";
@@ -314,7 +314,7 @@ export function OperacionView({ embedded = false, controlledTab }: { embedded?: 
                 // Una fila de cuenta sin mesa, con la acción según en qué punto va del flujo.
                 const takeoutRow = (c: Comanda) => {
                   const toKitchen = needsKitchen(c);
-                  const printed = (c.prints ?? []).some((p) => p.type === "CUSTOMER_FINAL");
+                  const printed = isBillPrinted(c); // ticket vigente (se reinicia al reabrir)
                   const needs = printed || c.status === "AWAITING_PAYMENT";
                   const badge = toKitchen
                     ? { text: isBot(c) ? "Nueva" : "Por enviar", color: C.green }

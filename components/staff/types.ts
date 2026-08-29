@@ -73,6 +73,7 @@ export interface Comanda {
   reservationId: string | null;
   items: CItem[];
   prints: CPrint[];
+  reopens?: { reopenedAt: string }[]; // última reapertura primero; para saber si se imprimió DESPUÉS de reabrir
   table: CTableRef | null;
   waiter: CWaiterRef;
   // #4 Ligar a empleado (cuenta a crédito con aprobación previa del empleado)
@@ -80,6 +81,21 @@ export interface Comanda {
   employeeChargeStatus?: "PENDING" | "APPROVED" | null;
   employeeChargeApprovedAt?: string | null;
   chargedEmployee?: { id: number; fullName: string; role: string } | null;
+}
+
+/**
+ * ¿La cuenta tiene un ticket de cliente VIGENTE? = hay un CUSTOMER_FINAL emitido DESPUÉS de
+ * la última reapertura. Al reabrir la cuenta el candado se reinicia: se puede volver a
+ * modificar e imprimir; al reimprimir se vuelve a cerrar (solo Cobrar). Fuente única de la
+ * regla "impreso → solo Cobrar" para el detalle y las listas de operación.
+ */
+export function isBillPrinted(c: { prints?: CPrint[]; reopens?: { reopenedAt: string }[] }): boolean {
+  const lastFinal = (c.prints ?? [])
+    .filter((p) => p.type === "CUSTOMER_FINAL")
+    .reduce((max, p) => Math.max(max, new Date(p.printedAt).getTime()), 0);
+  if (!lastFinal) return false;
+  const lastReopen = c.reopens?.[0]?.reopenedAt ? new Date(c.reopens[0].reopenedAt).getTime() : 0;
+  return lastFinal > lastReopen;
 }
 
 /** Etiqueta corta de una comanda: "Mesa 5" o el nombre de la cuenta sin mesa. */

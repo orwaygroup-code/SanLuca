@@ -7,7 +7,7 @@ import {
   C, StaffHeader, Spinner, EmptyState, Badge, ConfirmModal, ReasonModal, Modal, fld,
   TicketPreview, btn, formatMXN, STATUS_LABEL, STATUS_COLOR, useToasts, ToastHost, useStaffLogout, usePoll,
 } from "@/components/staff/ui";
-import { apiFetch, type Comanda, type CItem, type PayResult, type CashSession, type CutSnapshot } from "@/components/staff/types";
+import { apiFetch, isBillPrinted, type Comanda, type CItem, type PayResult, type CashSession, type CutSnapshot } from "@/components/staff/types";
 import { SplitBillModal } from "@/components/staff/SplitBillModal";
 import { PayModal, DiscountModal, MergeModal, TransferItemModal, ReopenModal } from "@/components/staff/caja";
 import { Icon } from "@/components/staff/icons";
@@ -151,7 +151,10 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
 
   const liveItems = useMemo(() => (comanda?.items ?? []).filter((i) => i.status !== "CANCELLED"), [comanda]);
   const pendingCount = useMemo(() => liveItems.filter((i) => i.status === "PENDING").length, [liveItems]);
-  const alreadyPrinted = useMemo(() => (comanda?.prints ?? []).some((p) => p.type === "CUSTOMER_FINAL"), [comanda]);
+  // "Impreso" = ticket de cliente vigente (emitido DESPUÉS de la última reapertura). Al
+  // reabrir la cuenta el candado se reinicia: se puede modificar y volver a imprimir. Ver
+  // isBillPrinted (fuente única, compartida con la lista de operación).
+  const alreadyPrinted = useMemo(() => (comanda ? isBillPrinted(comanda) : false), [comanda]);
   const editable = comanda?.status === "OPEN" || comanda?.status === "IN_SERVICE";
   // Se puede MODIFICAR solo si está editable Y aún NO se imprimió la cuenta. Al imprimir (aunque
   // siga IN_SERVICE), se cierra todo lo editable — solo queda Cobrar (regla de Paul).
