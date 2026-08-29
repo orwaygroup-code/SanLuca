@@ -12,7 +12,7 @@ import type { ApiResponse } from "@/types";
 
 const DISH_SELECT = {
   id: true, name: true, description: true, price: true, imageUrl: true,
-  available: true, active: true, isExtra: true, position: true, prepArea: true, categoryId: true,
+  available: true, active: true, archivedAt: true, isExtra: true, position: true, prepArea: true, categoryId: true,
   category: { select: { id: true, name: true, cartaId: true, carta: { select: { id: true, name: true, turno: true, clase: true } } } },
   createdAt: true,
 } as const;

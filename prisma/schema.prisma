@@ -172,7 +172,8 @@ model Dish {
   price            Float
   imageUrl         String?
   available        Boolean           @default(true) // "Mostrar en menú" público (agotado/oculto). Distinto de `active`.
-  active           Boolean           @default(true) // false = DESHABILITADO/retirado: no se muestra ni se puede pedir en ningún lado, pero el registro NUNCA se borra (históricos de venta intactos). Reemplaza al borrado.
+  active           Boolean           @default(true) // false = RETIRADO (archivado o eliminado): no se muestra ni se puede pedir en ningún lado, pero el registro NUNCA se borra (históricos de venta intactos). Reemplaza al borrado.
+  archivedAt       DateTime? // set = ARCHIVADO (guardado, restaurable de un toque). null + active=false = ELIMINADO. Solo distingue intención en el admin; ambos ya salen de operación por active=false.
   isExtra          Boolean           @default(false) // extra/especial (paquete de Ricardo); oculto del menú, lo piden meseros
   featured101      Boolean           @default(false) // #7 "101": producto a priorizar en venta (lo prende capitán/manager)
   position         Int?

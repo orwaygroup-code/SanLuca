@@ -114,6 +114,7 @@ export const dishCreateSchema = z.object({
   prepArea: prepAreaRule.nullish(),
   available: z.boolean().optional(),
   active: z.boolean().optional(),
+  archived: z.boolean().optional(), // acción (solo update): true=archivar (active→false, archivedAt=now); false=restaurar
   isExtra: z.boolean().optional(),
   position: z.number().int().nullish(),
 });

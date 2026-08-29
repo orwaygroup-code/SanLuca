@@ -6,7 +6,7 @@ import type { ApiResponse } from "@/types";
 
 const DISH_SELECT = {
   id: true, name: true, description: true, price: true, imageUrl: true,
-  available: true, active: true, isExtra: true, position: true, prepArea: true, categoryId: true,
+  available: true, active: true, archivedAt: true, isExtra: true, position: true, prepArea: true, categoryId: true,
   category: { select: { id: true, name: true, cartaId: true, carta: { select: { id: true, name: true, turno: true, clase: true } } } },
   createdAt: true,
 } as const;
@@ -42,9 +42,13 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       ...(d.categoryId !== undefined ? { categoryId: d.categoryId } : {}),
       ...(d.prepArea !== undefined ? { prepArea: d.prepArea ?? null } : {}),
       ...(d.available !== undefined ? { available: d.available } : {}),
-      ...(d.active !== undefined ? { active: d.active } : {}),
       ...(d.isExtra !== undefined ? { isExtra: d.isExtra } : {}),
       ...(d.position !== undefined ? { position: d.position ?? null } : {}),
+      // Retiro/restauración. `archived` tiene prioridad: archivar boxea (active=false + sello);
+      // eliminar/restaurar (via `active`) siempre limpian el sello para no dejar estados mixtos.
+      ...(d.active !== undefined ? { active: d.active, archivedAt: null } : {}),
+      ...(d.archived === true ? { active: false, archivedAt: new Date() } : {}),
+      ...(d.archived === false ? { active: true, archivedAt: null } : {}),
     },
     select: DISH_SELECT,
   });
@@ -52,5 +56,6 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 }
 
 // Sin DELETE a propósito: los platillos NO se borran (romperían los históricos de
-// venta). Para retirar uno, se DESHABILITA (PATCH { active:false }) — el registro
-// se conserva y deja de mostrarse/pedirse en todos lados.
+// venta). Para retirar uno se ARCHIVA (PATCH { archived:true }) o se ELIMINA (PATCH
+// { active:false }); ambos ocultan/deshabilitan el platillo pero conservan el registro
+// y sus ventas. Restaurar = PATCH { active:true } (o { archived:false }).

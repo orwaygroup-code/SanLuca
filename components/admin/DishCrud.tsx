@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/session-client";
 import { GoldSelect, type SelectOption } from "@/components/ui/GoldSelect";
-import { dialogAlert } from "@/components/ui/DialogHost";
+import { dialogAlert, dialogConfirm } from "@/components/ui/DialogHost";
 
 /**
  * CRUD de platillos del menú (y de "Extras"). Jerarquía: Turno (Comida/Brunch) →
@@ -20,7 +20,7 @@ type Clase = "COCINA" | "BARRA";
 interface CartaRef { id: string; name: string; turno: Turno; clase: Clase }
 interface DishRow {
   id: string; name: string; description: string | null; price: number;
-  imageUrl: string | null; available: boolean; active: boolean; isExtra: boolean;
+  imageUrl: string | null; available: boolean; active: boolean; archivedAt: string | null; isExtra: boolean;
   position: number | null; prepArea: Clase | null;
   categoryId: string; category: { id: string; name: string; cartaId: string | null; carta: CartaRef | null } | null;
   createdAt: string;
@@ -90,17 +90,28 @@ export function DishCrud({ isExtra }: { isExtra: boolean }) {
     await fetchList();
   };
 
-  // Deshabilitar/Habilitar (reemplaza al borrado): retira el platillo de todos
-  // lados pero CONSERVA el registro para los históricos de venta. Reversible.
-  const toggleActive = async (row: DishRow) => {
+  // Retiro/restauración. NUNCA se borra el registro: archivar y eliminar solo apagan
+  // el platillo (active=false) conservando sus ventas; archivedAt distingue la intención.
+  const patchDish = async (row: DishRow, body: Record<string, unknown>) => {
     const r = await fetch(`/api/admin/menu/${row.id}`, {
       method: "PATCH", credentials: "same-origin", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ active: !row.active }),
+      body: JSON.stringify(body),
     });
     const d = await r.json().catch(() => null);
     if (!d?.success) { void dialogAlert(d?.error ?? "Error"); return; }
     await fetchList();
   };
+  // Archivar: guardar por si acaso (restaurable de un toque). Sale de operación.
+  const archiveDish = (row: DishRow) => patchDish(row, { archived: true });
+  // Eliminar: retirar de la operación. No borra ventas; queda en «Eliminados», restaurable.
+  const eliminarDish = async (row: DishRow) => {
+    const ok = await dialogConfirm(
+      `«${row.name}» se retirará de la carta y la comandera. Sus ventas históricas se conservan y puedes restaurarlo después. ¿Eliminar?`,
+      { title: "Eliminar producto", confirmLabel: "Eliminar", danger: true },
+    );
+    if (ok) await patchDish(row, { active: false });
+  };
+  const restoreDish = (row: DishRow) => patchDish(row, { active: true });
 
   if (session.loading || !session.user || session.user.role !== "ADMIN") {
     return <div style={S.page}><p style={S.empty}>Verificando acceso…</p></div>;
@@ -127,7 +138,7 @@ export function DishCrud({ isExtra }: { isExtra: boolean }) {
 
       {!isExtra && (
         <p style={S.hint}>
-          Los productos <b>no se eliminan</b>. «Oculto» los quita del <b>menú público</b> (el mesero los sigue viendo en la comandera); <b>«Deshabilitar»</b> los retira por completo pero conserva su historial de ventas.
+          Nada se borra: las <b>ventas históricas siempre se conservan</b>. «Oculto» solo lo quita del <b>menú público</b> (el mesero lo sigue viendo). <b>«Archivar»</b> lo guarda fuera de operación pero restaurable de un toque; <b>«Eliminar»</b> lo retira por completo (queda en «Eliminados», también restaurable).
         </p>
       )}
 
@@ -136,7 +147,7 @@ export function DishCrud({ isExtra }: { isExtra: boolean }) {
         <GoldSelect value={availFilter} onChange={(v) => setAvailFilter(v as "" | "true" | "false")} options={AVAIL_FILTER} placeholder="Visibilidad" style={{ minWidth: 180 }} />
         <input style={S.search} placeholder="Buscar producto…" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && fetchList()} />
         <label style={{ display: "flex", alignItems: "center", gap: 7, color: "rgba(245,241,232,0.72)", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
-          <input type="checkbox" checked={showDisabled} onChange={(e) => setShowDisabled(e.target.checked)} /> Ver deshabilitados
+          <input type="checkbox" checked={showDisabled} onChange={(e) => setShowDisabled(e.target.checked)} /> Ver archivados / eliminados
         </label>
       </div>
 
@@ -159,14 +170,26 @@ export function DishCrud({ isExtra }: { isExtra: boolean }) {
                   <td style={S.td}>
                     {row.active
                       ? <Switch on={row.available} onClick={() => toggleAvailable(row)} labelOn="Mostrar" labelOff="Oculto" />
-                      : <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "#e8766b", border: "1px solid rgba(232,118,107,0.5)", borderRadius: 999, padding: "3px 10px", whiteSpace: "nowrap" }}>Deshabilitado</span>}
+                      : row.archivedAt
+                        ? <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "#c9a24a", border: "1px solid rgba(201,162,74,0.5)", borderRadius: 999, padding: "3px 10px", whiteSpace: "nowrap" }}>Archivado</span>
+                        : <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "#e8766b", border: "1px solid rgba(232,118,107,0.5)", borderRadius: 999, padding: "3px 10px", whiteSpace: "nowrap" }}>Eliminado</span>}
                   </td>
                   <td style={S.td}>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                      <button style={S.miniBtn} onClick={() => setEditTarget(row)}>Editar</button>
-                      {row.active
-                        ? <button style={{ ...S.miniBtn, borderColor: "rgba(245,241,232,0.25)", color: "rgba(245,241,232,0.72)" }} onClick={() => toggleActive(row)}>Deshabilitar</button>
-                        : <button style={S.miniBtn} onClick={() => toggleActive(row)}>Habilitar</button>}
+                      {row.active ? (
+                        <>
+                          <button style={S.miniBtn} onClick={() => setEditTarget(row)}>Editar</button>
+                          <button style={{ ...S.miniBtn, borderColor: "rgba(201,162,74,0.35)", color: "#c9a24a" }} onClick={() => archiveDish(row)}>Archivar</button>
+                          <button style={{ ...S.miniBtn, borderColor: "rgba(232,118,107,0.4)", color: "#e8766b" }} onClick={() => eliminarDish(row)}>Eliminar</button>
+                        </>
+                      ) : row.archivedAt ? (
+                        <>
+                          <button style={S.miniBtn} onClick={() => restoreDish(row)}>Restaurar</button>
+                          <button style={{ ...S.miniBtn, borderColor: "rgba(232,118,107,0.4)", color: "#e8766b" }} onClick={() => eliminarDish(row)}>Eliminar</button>
+                        </>
+                      ) : (
+                        <button style={S.miniBtn} onClick={() => restoreDish(row)}>Restaurar</button>
+                      )}
                     </div>
                   </td>
                 </tr>
