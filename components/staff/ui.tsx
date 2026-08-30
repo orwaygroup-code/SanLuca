@@ -89,11 +89,11 @@ export const STATUS_LABEL: Record<string, string> = {
 export const STATUS_COLOR: Record<string, string> = {
   OPEN: "#6fa3e0",
   IN_SERVICE: "#57b586",
-  AWAITING_PAYMENT: "#e0b054",
-  PARTIALLY_PAID: "#d8a13a",
+  AWAITING_PAYMENT: "var(--sl-gold-soft)",
+  PARTIALLY_PAID: "var(--sl-amber)",
   PAID: C.dim,
   MERGED: "rgb(var(--sl-cream-rgb) / 0.5)",
-  CANCELLED: "#e8766b",
+  CANCELLED: "var(--sl-danger)",
   FREE: "rgb(var(--sl-cream-rgb) / 0.5)",
 };
 

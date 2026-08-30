@@ -17,7 +17,7 @@ import { buildTotalLines } from "@/lib/displayTotals";
 import { buildSplitsPayload, effectiveTaxRate, divisionMoney, unitsSubtotal } from "@/lib/splitBill";
 
 
-const AWAIT = STATUS_COLOR.AWAITING_PAYMENT; // #e0b054 — tinte "requiere caja"
+const AWAIT = STATUS_COLOR.AWAITING_PAYMENT; // var(--sl-gold-soft) — tinte "requiere caja"
 
 const ITEM_STATUS_LABEL: Record<string, string> = {
   PENDING: "Por enviar", SENT: "En cocina", READY: "Listo", SERVED: "Servido", CANCELLED: "Cancelado",
@@ -811,7 +811,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
                 {c.chargedEmployeeId ? (
                   <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                     <span style={{ color: C.cream, fontWeight: 700 }}>{c.chargedEmployee?.fullName ?? "Empleado"}</span>
-                    <span style={{ fontSize: "0.7rem", fontWeight: 800, padding: "3px 9px", borderRadius: 6, color: "var(--sl-on-accent)", background: c.employeeChargeStatus === "APPROVED" ? "#5aa06e" : "#e0b054" }}>
+                    <span style={{ fontSize: "0.7rem", fontWeight: 800, padding: "3px 9px", borderRadius: 6, color: "var(--sl-on-accent)", background: c.employeeChargeStatus === "APPROVED" ? "#5aa06e" : "var(--sl-gold-soft)" }}>
                       {c.employeeChargeStatus === "APPROVED" ? "APROBADA" : "POR APROBAR"}
                     </span>
                     {editable && <button style={caja.more} onClick={() => doLink(null)} disabled={busy}>Desligar</button>}

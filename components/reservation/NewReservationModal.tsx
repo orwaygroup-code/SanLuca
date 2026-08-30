@@ -52,8 +52,8 @@ export function NewReservationModal({
     const [saving,            setSaving]             = useState(false);
     const [saveError,         setSaveError]          = useState<string | null>(null);
 
-    const fs: React.CSSProperties = { width: "100%", padding: "10px 12px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, color: "#f5f1e8", fontSize: "0.85rem", boxSizing: "border-box" };
-    const ls: React.CSSProperties = { display: "block", marginBottom: 6, fontSize: "0.65rem", letterSpacing: "0.15em", color: "rgba(245,241,232,0.62)", textTransform: "uppercase", fontWeight: 700 };
+    const fs: React.CSSProperties = { width: "100%", padding: "10px 12px", background: "rgb(var(--sl-veil-rgb) / 0.05)", border: "1px solid rgb(var(--sl-veil-rgb) / 0.12)", borderRadius: 8, color: "var(--sl-cream)", fontSize: "0.85rem", boxSizing: "border-box" };
+    const ls: React.CSSProperties = { display: "block", marginBottom: 6, fontSize: "0.65rem", letterSpacing: "0.15em", color: "rgb(var(--sl-cream-rgb) / 0.62)", textTransform: "uppercase", fontWeight: 700 };
 
     const readableDate = date ? new Date(`${date}T12:00:00`).toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long", timeZone: MX_TZ }) : "";
 
@@ -115,16 +115,16 @@ export function NewReservationModal({
             : `Mesa M${selection.tableNumber}`
         : null;
 
-    const btnBack  = { background: "none", border: "1px solid rgba(186,132,60,0.4)", borderRadius: 8, color: "rgba(245,241,232,0.7)", padding: "6px 14px", cursor: "pointer", fontSize: "0.75rem" } as const;
-    const btnCancel = { flex: 1, padding: "11px 0", background: "transparent", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, color: "rgba(245,241,232,0.5)", fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" } as const;
-    const btnPrimary = (disabled?: boolean) => ({ flex: 2, padding: "11px 0", background: disabled ? "rgba(186,132,60,0.2)" : "#ba843c", border: "none", borderRadius: 10, color: disabled ? "rgba(245,241,232,0.6)" : "#fff", fontWeight: 700, fontSize: "0.82rem", cursor: disabled ? "default" : "pointer", letterSpacing: "0.06em", textTransform: "uppercase" as const });
+    const btnBack  = { background: "none", border: "1px solid rgb(var(--sl-gold-rgb) / 0.4)", borderRadius: 8, color: "rgb(var(--sl-cream-rgb) / 0.7)", padding: "6px 14px", cursor: "pointer", fontSize: "0.75rem" } as const;
+    const btnCancel = { flex: 1, padding: "11px 0", background: "transparent", border: "1px solid rgb(var(--sl-veil-rgb) / 0.12)", borderRadius: 10, color: "rgb(var(--sl-cream-rgb) / 0.5)", fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" } as const;
+    const btnPrimary = (disabled?: boolean) => ({ flex: 2, padding: "11px 0", background: disabled ? "rgb(var(--sl-gold-rgb) / 0.2)" : "var(--sl-gold)", border: "none", borderRadius: 10, color: disabled ? "rgb(var(--sl-cream-rgb) / 0.6)" : "#fff", fontWeight: 700, fontSize: "0.82rem", cursor: disabled ? "default" : "pointer", letterSpacing: "0.06em", textTransform: "uppercase" as const });
 
     return (
         <div
             style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
             onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
         >
-            <div style={{ background: "#1a2628", border: "1px solid rgba(186,132,60,0.25)", borderRadius: 16, width: "100%", maxWidth: 560, maxHeight: "92vh", overflowY: "auto", padding: "28px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ background: "var(--sl-panel)", border: "1px solid rgb(var(--sl-gold-rgb) / 0.25)", borderRadius: 16, width: "100%", maxWidth: 560, maxHeight: "92vh", overflowY: "auto", padding: "28px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
 
                 {/* Header */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -133,13 +133,13 @@ export function NewReservationModal({
                             <button style={btnBack} onClick={() => { setStep("form"); setAvailability(null); setSelection(null); }}>← Volver</button>
                         )}
                         <div>
-                            <p style={{ margin: 0, fontSize: "0.65rem", letterSpacing: "0.2em", color: "#ba843c", fontWeight: 700, textTransform: "uppercase" }}>Nueva Reserva</p>
-                            <p style={{ margin: "3px 0 0", fontSize: "0.95rem", color: "#f5f1e8", fontWeight: 700 }}>
+                            <p style={{ margin: 0, fontSize: "0.65rem", letterSpacing: "0.2em", color: "var(--sl-gold)", fontWeight: 700, textTransform: "uppercase" }}>Nueva Reserva</p>
+                            <p style={{ margin: "3px 0 0", fontSize: "0.95rem", color: "var(--sl-cream)", fontWeight: 700 }}>
                                 {step === "form" ? "Datos de la reserva" : step === "map" ? "Seleccionar mesa" : "Confirmar grupo grande"}
                             </p>
                         </div>
                     </div>
-                    <button onClick={onClose} style={{ background: "none", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, color: "rgba(245,241,232,0.5)", padding: "6px 12px", cursor: "pointer", fontSize: "0.8rem" }}>✕</button>
+                    <button onClick={onClose} style={{ background: "none", border: "1px solid rgb(var(--sl-veil-rgb) / 0.12)", borderRadius: 8, color: "rgb(var(--sl-cream-rgb) / 0.5)", padding: "6px 12px", cursor: "pointer", fontSize: "0.8rem" }}>✕</button>
                 </div>
 
                 {/* ── PASO 1: FORMULARIO ── */}
@@ -192,11 +192,11 @@ export function NewReservationModal({
                                     <input style={{ ...fs, flex: 1 }} type="number" min={16} placeholder="Ej. 20" value={customGuests}
                                         onChange={(e) => { setCustomGuests(e.target.value); const n = parseInt(e.target.value); if (!isNaN(n) && n >= 16) setGuests(n); }} />
                                     <button type="button" onClick={() => { setLargeGroupMode(false); setCustomGuests(""); setGuests(2); }}
-                                        style={{ whiteSpace: "nowrap", padding: "0 12px", background: "transparent", border: "1px solid rgba(245,241,232,0.15)", borderRadius: 8, color: "rgba(245,241,232,0.62)", fontSize: "0.7rem", cursor: "pointer" }}>
+                                        style={{ whiteSpace: "nowrap", padding: "0 12px", background: "transparent", border: "1px solid rgb(var(--sl-cream-rgb) / 0.15)", borderRadius: 8, color: "rgb(var(--sl-cream-rgb) / 0.62)", fontSize: "0.7rem", cursor: "pointer" }}>
                                         Cancelar
                                     </button>
                                 </div>
-                                <p style={{ margin: 0, fontSize: "0.68rem", color: "rgba(186,132,60,0.75)", lineHeight: 1.4 }}>Grupos de +15 personas reservan el área completa en su horario (ventana de ±3½ h), no todo el día.</p>
+                                <p style={{ margin: 0, fontSize: "0.68rem", color: "rgb(var(--sl-gold-rgb) / 0.75)", lineHeight: 1.4 }}>Grupos de +15 personas reservan el área completa en su horario (ventana de ±3½ h), no todo el día.</p>
                             </div>
                         )}
                     </div>
@@ -208,9 +208,9 @@ export function NewReservationModal({
                             {NR_SECTIONS.map((s) => (
                                 <button key={s} onClick={() => setSection(s)}
                                     style={{ padding: "7px 16px", borderRadius: 999, fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", transition: "all 0.15s",
-                                        background: section === s ? "#ba843c" : "transparent",
-                                        border: `1px solid ${section === s ? "#ba843c" : "rgba(255,255,255,0.15)"}`,
-                                        color: section === s ? "#fff" : "rgba(245,241,232,0.6)" }}>
+                                        background: section === s ? "var(--sl-gold)" : "transparent",
+                                        border: `1px solid ${section === s ? "var(--sl-gold)" : "rgb(var(--sl-veil-rgb) / 0.15)"}`,
+                                        color: section === s ? "#fff" : "rgb(var(--sl-cream-rgb) / 0.6)" }}>
                                     {s}
                                 </button>
                             ))}
@@ -234,7 +234,7 @@ export function NewReservationModal({
                         <textarea style={{ ...fs, resize: "vertical", minHeight: 68 }} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Alergias, decoración, peticiones especiales…" />
                     </label>
 
-                    {searchError && <p style={{ margin: 0, color: "#e8766b", fontSize: "0.82rem" }}>⚠ {searchError}</p>}
+                    {searchError && <p style={{ margin: 0, color: "var(--sl-danger)", fontSize: "0.82rem" }}>⚠ {searchError}</p>}
 
                     <div style={{ display: "flex", gap: 10 }}>
                         <button onClick={onClose} style={btnCancel}>Cancelar</button>
@@ -246,13 +246,13 @@ export function NewReservationModal({
 
                 {/* ── PASO 2: MAPA DE MESAS ── */}
                 {step === "map" && availability && (<>
-                    <p style={{ margin: 0, fontSize: "0.8rem", color: "rgba(245,241,232,0.65)" }}>
+                    <p style={{ margin: 0, fontSize: "0.8rem", color: "rgb(var(--sl-cream-rgb) / 0.65)" }}>
                         {section} · {guests} {guests === 1 ? "persona" : "personas"} · {date} {time}
                     </p>
                     <TableMap data={availability} guests={guests} selection={selection} onSelect={setSelection} />
-                    {selLabel && <p style={{ margin: 0, textAlign: "center", color: "#ba843c", fontSize: "0.85rem", fontWeight: 600 }}>{selLabel}</p>}
-                    {!availability.hasAvailability && <p style={{ margin: 0, color: "#e8766b", fontSize: "0.82rem", textAlign: "center" }}>Sin mesas disponibles en {section} para ese horario.</p>}
-                    {saveError && <p style={{ margin: 0, color: "#e8766b", fontSize: "0.82rem" }}>⚠ {saveError}</p>}
+                    {selLabel && <p style={{ margin: 0, textAlign: "center", color: "var(--sl-gold)", fontSize: "0.85rem", fontWeight: 600 }}>{selLabel}</p>}
+                    {!availability.hasAvailability && <p style={{ margin: 0, color: "var(--sl-danger)", fontSize: "0.82rem", textAlign: "center" }}>Sin mesas disponibles en {section} para ese horario.</p>}
+                    {saveError && <p style={{ margin: 0, color: "var(--sl-danger)", fontSize: "0.82rem" }}>⚠ {saveError}</p>}
                     <div style={{ display: "flex", gap: 10 }}>
                         <button onClick={onClose} style={btnCancel}>Cancelar</button>
                         <button disabled={!selection || saving} onClick={() => doCreate({ tableId: selection?.tableId, linkedTableId: selection?.linkedTableId, thirdTableId: selection?.thirdTableId, fourthTableId: selection?.fourthTableId })} style={btnPrimary(!selection || saving)}>
@@ -263,22 +263,22 @@ export function NewReservationModal({
 
                 {/* ── PASO 3: GRUPO GRANDE ── */}
                 {step === "large-confirm" && (<>
-                    <p style={{ margin: 0, fontSize: "0.8rem", color: "rgba(245,241,232,0.65)" }}>{section} · {guests} personas · {date} {time}</p>
+                    <p style={{ margin: 0, fontSize: "0.8rem", color: "rgb(var(--sl-cream-rgb) / 0.65)" }}>{section} · {guests} personas · {date} {time}</p>
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                         {([["Titular", guestName], ["Teléfono", guestPhone], ["Fecha", readableDate], ["Hora", time], ["Personas", `${guests} personas`], ["Área", section], ...(notes ? [["Notas", notes]] : [])] as [string,string][]).map(([l, v]) => (
                             <div key={l} style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-                                <span style={{ fontSize: "0.72rem", color: "rgba(245,241,232,0.62)", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>{l}</span>
-                                <span style={{ fontSize: "0.82rem", color: "rgba(245,241,232,0.85)", textAlign: "right" }}>{v}</span>
+                                <span style={{ fontSize: "0.72rem", color: "rgb(var(--sl-cream-rgb) / 0.62)", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>{l}</span>
+                                <span style={{ fontSize: "0.82rem", color: "rgb(var(--sl-cream-rgb) / 0.85)", textAlign: "right" }}>{v}</span>
                             </div>
                         ))}
                     </div>
-                    <div style={{ background: "rgba(186,132,60,0.07)", border: "1px solid rgba(186,132,60,0.25)", borderRadius: 10, padding: "14px 16px" }}>
-                        <p style={{ margin: "0 0 6px", fontSize: "0.75rem", fontWeight: 700, color: "#ba843c", letterSpacing: "0.04em" }}>RESERVA EXCLUSIVA DE ÁREA</p>
-                        <p style={{ margin: 0, fontSize: "0.8rem", color: "rgba(245,241,232,0.65)", lineHeight: 1.6 }}>
-                            El área completa de <strong style={{ color: "rgba(245,241,232,0.85)" }}>{section}</strong> queda en exclusiva para el grupo en su horario del <strong style={{ color: "rgba(245,241,232,0.85)" }}>{readableDate}</strong> — unas 3½ horas antes y después de la hora reservada. Fuera de ese lapso, el área sigue disponible para otras reservas.
+                    <div style={{ background: "rgb(var(--sl-gold-rgb) / 0.07)", border: "1px solid rgb(var(--sl-gold-rgb) / 0.25)", borderRadius: 10, padding: "14px 16px" }}>
+                        <p style={{ margin: "0 0 6px", fontSize: "0.75rem", fontWeight: 700, color: "var(--sl-gold)", letterSpacing: "0.04em" }}>RESERVA EXCLUSIVA DE ÁREA</p>
+                        <p style={{ margin: 0, fontSize: "0.8rem", color: "rgb(var(--sl-cream-rgb) / 0.65)", lineHeight: 1.6 }}>
+                            El área completa de <strong style={{ color: "rgb(var(--sl-cream-rgb) / 0.85)" }}>{section}</strong> queda en exclusiva para el grupo en su horario del <strong style={{ color: "rgb(var(--sl-cream-rgb) / 0.85)" }}>{readableDate}</strong> — unas 3½ horas antes y después de la hora reservada. Fuera de ese lapso, el área sigue disponible para otras reservas.
                         </p>
                     </div>
-                    {saveError && <p style={{ margin: 0, color: "#e8766b", fontSize: "0.82rem" }}>⚠ {saveError}</p>}
+                    {saveError && <p style={{ margin: 0, color: "var(--sl-danger)", fontSize: "0.82rem" }}>⚠ {saveError}</p>}
                     <div style={{ display: "flex", gap: 10 }}>
                         <button onClick={onClose} style={btnCancel}>Cancelar</button>
                         <button disabled={saving} onClick={() => doCreate({ isLargeGroup: true })} style={btnPrimary(saving)}>

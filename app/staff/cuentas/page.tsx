@@ -132,8 +132,8 @@ export default function CuentasHistorialPage() {
                       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                         <span style={{ color: C.cream, fontWeight: 700 }}>{label}</span>
                         <Badge text={`FOLIO ${c.folio}`} color={C.dim} />
-                        {c.reopenCount > 0 && <Badge text="REABIERTA" color="#e09632" />}
-                        {Number(c.discountTotal) > 0.005 && <Badge text="CON DESCUENTO" color="#63aede" />}
+                        {c.reopenCount > 0 && <Badge text="REABIERTA" color="var(--sl-gold)" />}
+                        {Number(c.discountTotal) > 0.005 && <Badge text="CON DESCUENTO" color="var(--sl-info)" />}
                       </div>
                       <div style={{ color: C.dim, fontSize: "0.8rem", marginTop: 3 }}>
                         {fmtHour(c.closedAt)} · {c.waiter?.fullName ?? "—"} · {c.guestsActual ?? 1} pers
@@ -153,7 +153,7 @@ export default function CuentasHistorialPage() {
                         <div key={it.id} style={hi.line}>
                           <span style={{ color: C.dim, minWidth: 34 }}>{fmtQty(Number(it.quantity))}×</span>
                           <span style={{ color: C.cream, flex: 1, minWidth: 0 }}>{it.dishNameSnapshot}</span>
-                          {Number(it.discountAmount) > 0.005 && <span style={{ color: "#63aede", fontSize: "0.74rem" }}>-{formatMXN(Number(it.discountAmount))}</span>}
+                          {Number(it.discountAmount) > 0.005 && <span style={{ color: "var(--sl-info)", fontSize: "0.74rem" }}>-{formatMXN(Number(it.discountAmount))}</span>}
                           <span style={{ color: C.cream }}>{formatMXN(Number(it.lineTotal) - Number(it.discountAmount))}</span>
                         </div>
                       ))}

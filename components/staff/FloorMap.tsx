@@ -16,11 +16,11 @@ import type { TableStatus } from "@/components/staff/types";
  * con reservas (datos vacíos + renderTable de comandas).
  */
 const FILL: Record<string, { table: string; chair: string; text: string; border: string }> = {
-  FREE:             { table: "#2c3537", chair: "#222c2e", text: "rgb(var(--sl-cream-rgb) / 0.5)", border: "none" },
-  OPEN:             { table: "color-mix(in srgb, #4a82c4 32%, #1e2426)", chair: "#1a2022", text: "var(--sl-cream)", border: "2px solid #4a82c4" },
-  IN_SERVICE:       { table: "color-mix(in srgb, #3f9d6f 32%, #1e2426)", chair: "#1a2022", text: "var(--sl-cream)", border: "2px solid #3f9d6f" },
-  AWAITING_PAYMENT: { table: "color-mix(in srgb, #d8a13a 34%, #1e2426)", chair: "#1a2022", text: "var(--sl-cream)", border: "2px solid #d8a13a" },
-  PARTIALLY_PAID:   { table: "color-mix(in srgb, #d8a13a 34%, #1e2426)", chair: "#1a2022", text: "var(--sl-cream)", border: "2px solid #d8a13a" },
+  FREE:             { table: "var(--sl-panel2)", chair: "var(--sl-panel2)", text: "rgb(var(--sl-cream-rgb) / 0.5)", border: "none" },
+  OPEN:             { table: "color-mix(in srgb, var(--sl-blue) 32%, var(--sl-panel))", chair: "var(--sl-panel)", text: "var(--sl-cream)", border: "2px solid var(--sl-blue)" },
+  IN_SERVICE:       { table: "color-mix(in srgb, var(--sl-green) 32%, var(--sl-panel))", chair: "var(--sl-panel)", text: "var(--sl-cream)", border: "2px solid var(--sl-green)" },
+  AWAITING_PAYMENT: { table: "color-mix(in srgb, var(--sl-amber) 34%, var(--sl-panel))", chair: "var(--sl-panel)", text: "var(--sl-cream)", border: "2px solid var(--sl-amber)" },
+  PARTIALLY_PAID:   { table: "color-mix(in srgb, var(--sl-amber) 34%, var(--sl-panel))", chair: "var(--sl-panel)", text: "var(--sl-cream)", border: "2px solid var(--sl-amber)" },
 };
 const fillOf = (s: string) => FILL[s] ?? FILL.FREE;
 
@@ -88,7 +88,7 @@ export function FloorMap({ tables, onOpen, area, onArea }: {
 
   const legend = (
     <div style={fm.legend}>
-      {[["Libre", "#2c3537"], ["Abierta", "#4a82c4"], ["En servicio", "#3f9d6f"], ["Por cobrar", "#d8a13a"]].map(([l, col]) => (
+      {[["Libre", "var(--sl-panel2)"], ["Abierta", "var(--sl-blue)"], ["En servicio", "var(--sl-green)"], ["Por cobrar", "var(--sl-amber)"]].map(([l, col]) => (
         <span key={l} style={fm.legItem}><span style={{ ...fm.legDot, background: col }} />{l}</span>
       ))}
     </div>

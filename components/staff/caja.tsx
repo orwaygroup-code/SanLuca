@@ -657,14 +657,14 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
 
           {hasCredit && linkedEmp != null && (
             // #4 Cuenta ligada: empleado fijo, sin picker ni PIN. La aprobación en cartera manda.
-            <div style={{ border: `1px solid ${isLinkedApproved ? "#5aa06e" : "#e0b054"}`, borderRadius: 12, padding: "12px 14px", marginTop: 12, background: "rgba(0,0,0,0.14)" }}>
-              <div style={{ color: isLinkedApproved ? "#5aa06e" : "#e0b054", fontWeight: 800, fontSize: "0.82rem", marginBottom: 6 }}>
+            <div style={{ border: `1px solid ${isLinkedApproved ? "#5aa06e" : "var(--sl-gold-soft)"}`, borderRadius: 12, padding: "12px 14px", marginTop: 12, background: "rgba(0,0,0,0.14)" }}>
+              <div style={{ color: isLinkedApproved ? "#5aa06e" : "var(--sl-gold-soft)", fontWeight: 800, fontSize: "0.82rem", marginBottom: 6 }}>
                 Crédito a empleado ligado · {comanda?.chargedEmployee?.fullName ?? "empleado"}
               </div>
               {isLinkedApproved ? (
                 <div style={{ color: "#5aa06e", fontSize: "0.82rem" }}>✓ El empleado ya la aprobó en su cartera. No se requiere PIN aquí.</div>
               ) : (
-                <div style={{ color: "#e0b054", fontSize: "0.82rem" }}>Pendiente: el empleado debe palomearla en su cartera antes de cobrarla a crédito.</div>
+                <div style={{ color: "var(--sl-gold-soft)", fontSize: "0.82rem" }}>Pendiente: el empleado debe palomearla en su cartera antes de cobrarla a crédito.</div>
               )}
             </div>
           )}

@@ -66,40 +66,40 @@ export function TerrazaMap({ tables, pairs, triples, quads, guests, selection, o
   };
 
   return (
-    <div style={{ width: "100%", aspectRatio: "16/7", position: "relative", background: "#1a2224", borderRadius: 14, border: "1px solid rgba(186,132,60,0.35)", overflow: "hidden", userSelect: "none" }}>
+    <div style={{ width: "100%", aspectRatio: "16/7", position: "relative", background: "var(--sl-panel)", borderRadius: 14, border: "1px solid rgb(var(--sl-gold-rgb) / 0.35)", overflow: "hidden", userSelect: "none" }}>
 
       {/* ── Título ── */}
       <div style={{ position: "absolute", top: 10, left: 16 }}>
         <div style={{ fontSize: "clamp(0.7rem,1.8vw,1.1rem)", fontWeight: 700, letterSpacing: "0.06em" }}>
-          <span style={{ color: "#ba843c" }}>SELECION</span>
-          <span style={{ color: "#f5f1e8" }}> DE MESA</span>
+          <span style={{ color: "var(--sl-gold)" }}>SELECION</span>
+          <span style={{ color: "var(--sl-cream)" }}> DE MESA</span>
         </div>
-        <div style={{ fontSize: "clamp(0.5rem,1.2vw,0.7rem)", color: "rgba(245,241,232,0.4)", letterSpacing: "0.12em", marginTop: 2 }}>TERRAZA</div>
+        <div style={{ fontSize: "clamp(0.5rem,1.2vw,0.7rem)", color: "rgb(var(--sl-cream-rgb) / 0.4)", letterSpacing: "0.12em", marginTop: 2 }}>TERRAZA</div>
       </div>
 
       {/* ── Salón 1 (edificio central) ── */}
-      <div style={{ position: "absolute", left: "14%", top: "8%", width: "58%", height: "56%", background: "#1e2a2c", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <span style={{ fontSize: "clamp(0.6rem,2vw,1rem)", color: "rgba(255,255,255,0.18)", letterSpacing: "0.08em" }}>SALON 1</span>
+      <div style={{ position: "absolute", left: "14%", top: "8%", width: "58%", height: "56%", background: "var(--sl-panel)", border: "1px solid rgb(var(--sl-veil-rgb) / 0.09)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ fontSize: "clamp(0.6rem,2vw,1rem)", color: "rgb(var(--sl-veil-rgb) / 0.18)", letterSpacing: "0.08em" }}>SALON 1</span>
       </div>
 
       {/* ── Privado ── */}
-      <div style={{ position: "absolute", right: "2%", top: "8%", width: "20%", height: "56%", background: "#1e2a2c", border: "2px solid rgba(186,132,60,0.5)", borderRadius: 12, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+      <div style={{ position: "absolute", right: "2%", top: "8%", width: "20%", height: "56%", background: "var(--sl-panel)", border: "2px solid rgb(var(--sl-gold-rgb) / 0.5)", borderRadius: 12, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
         <div style={{ position: "relative", width: 56, height: 56, flexShrink: 0 }}>
           {[0,1,2,3,4,5].map(i => {
             const angle = (i / 6) * 2 * Math.PI - Math.PI / 2;
             const r = 22;
             return (
-              <div key={i} style={{ position: "absolute", width: 13, height: 13, borderRadius: "50%", background: "#253234", left: 28 + r * Math.cos(angle) - 6.5, top: 28 + r * Math.sin(angle) - 6.5 }} />
+              <div key={i} style={{ position: "absolute", width: 13, height: 13, borderRadius: "50%", background: "var(--sl-panel2)", left: 28 + r * Math.cos(angle) - 6.5, top: 28 + r * Math.sin(angle) - 6.5 }} />
             );
           })}
-          <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 26, height: 26, background: "#2c3537", borderRadius: 7 }} />
+          <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 26, height: 26, background: "var(--sl-panel2)", borderRadius: 7 }} />
         </div>
-        <span style={{ fontSize: "clamp(0.45rem,1vw,0.65rem)", color: "rgba(186,132,60,0.7)", letterSpacing: "0.1em" }}>PRIVADO</span>
+        <span style={{ fontSize: "clamp(0.45rem,1vw,0.65rem)", color: "rgb(var(--sl-gold-rgb) / 0.7)", letterSpacing: "0.1em" }}>PRIVADO</span>
       </div>
 
       {/* ── ENTRADA ── */}
-      <div style={{ position: "absolute", left: "55%", top: "60%", width: "10%", height: "8%", background: "rgba(255,255,255,0.05)", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <span style={{ fontSize: "0.42rem", color: "rgba(255,255,255,0.25)", letterSpacing: "0.12em" }}>ENTRADA</span>
+      <div style={{ position: "absolute", left: "55%", top: "60%", width: "10%", height: "8%", background: "rgb(var(--sl-veil-rgb) / 0.05)", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ fontSize: "0.42rem", color: "rgb(var(--sl-veil-rgb) / 0.25)", letterSpacing: "0.12em" }}>ENTRADA</span>
       </div>
 
       {/* ── Mesas columna izquierda ── */}

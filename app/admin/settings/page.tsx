@@ -161,7 +161,7 @@ export default function AdminSettingsPage() {
             </div>
 
             {msg && (
-              <p style={{ marginTop: 16, color: msg.kind === "ok" ? C.green : "#e05555", fontSize: "0.84rem" }}>
+              <p style={{ marginTop: 16, color: msg.kind === "ok" ? C.green : "var(--sl-danger-strong)", fontSize: "0.84rem" }}>
                 {msg.kind === "ok" ? "✓ " : "⚠ "}{msg.text}
               </p>
             )}
@@ -205,7 +205,7 @@ export default function AdminSettingsPage() {
             ))}
             <button onClick={addArea} style={S.ghost}>+ Agregar área</button>
 
-            {tipMsg && <p style={{ marginTop: 16, color: tipMsg.kind === "ok" ? C.green : "#e05555", fontSize: "0.84rem" }}>{tipMsg.kind === "ok" ? "✓ " : "⚠ "}{tipMsg.text}</p>}
+            {tipMsg && <p style={{ marginTop: 16, color: tipMsg.kind === "ok" ? C.green : "var(--sl-danger-strong)", fontSize: "0.84rem" }}>{tipMsg.kind === "ok" ? "✓ " : "⚠ "}{tipMsg.text}</p>}
             <div style={{ marginTop: 20 }}>
               <button onClick={saveTips} disabled={savingTips} style={{ ...S.save, opacity: savingTips ? 0.5 : 1, cursor: savingTips ? "default" : "pointer" }}>{savingTips ? "Guardando…" : "Guardar reparto"}</button>
             </div>
@@ -242,6 +242,6 @@ const S: Record<string, React.CSSProperties> = {
   label: { display: "block", fontSize: "0.62rem", letterSpacing: "0.14em", textTransform: "uppercase", color: C.faint, fontWeight: 700, marginBottom: 6 },
   input: { padding: "11px 13px", borderRadius: 9, border: `1px solid ${C.line}`, background: "rgb(var(--sl-veil-rgb) / 0.05)", color: C.cream, fontSize: "0.95rem", fontFamily: "inherit" },
   save: { padding: "11px 20px", borderRadius: 9, border: "none", background: C.gold, color: "#fff", fontWeight: 700, fontSize: "0.85rem", fontFamily: "inherit" },
-  rm: { width: 34, height: 34, borderRadius: 8, border: "1px solid #e05555", background: "transparent", color: "#e05555", fontSize: "1.1rem", cursor: "pointer", lineHeight: 1, flexShrink: 0 },
+  rm: { width: 34, height: 34, borderRadius: 8, border: "1px solid var(--sl-danger-strong)", background: "transparent", color: "var(--sl-danger-strong)", fontSize: "1.1rem", cursor: "pointer", lineHeight: 1, flexShrink: 0 },
   ghost: { padding: "9px 16px", borderRadius: 9, border: `1px solid ${C.line}`, background: "transparent", color: C.dim, fontWeight: 600, fontSize: "0.82rem", fontFamily: "inherit", cursor: "pointer" },
 };

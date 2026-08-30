@@ -107,7 +107,7 @@ export function MoveTableModal({
             onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
         >
             <div style={{
-                background: "#1a2628", border: "1px solid rgba(186,132,60,0.2)",
+                background: "var(--sl-panel)", border: "1px solid rgb(var(--sl-gold-rgb) / 0.2)",
                 borderRadius: 16, width: "100%", maxWidth: 680,
                 maxHeight: "90vh", overflowY: "auto",
                 padding: "28px 24px", display: "flex", flexDirection: "column", gap: 20,
@@ -115,19 +115,19 @@ export function MoveTableModal({
                 {/* Header */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                     <div>
-                        <p style={{ margin: 0, fontSize: "0.65rem", letterSpacing: "0.2em", color: "#ba843c", fontWeight: 700, textTransform: "uppercase" }}>
+                        <p style={{ margin: 0, fontSize: "0.65rem", letterSpacing: "0.2em", color: "var(--sl-gold)", fontWeight: 700, textTransform: "uppercase" }}>
                             Cambiar Mesa
                         </p>
-                        <p style={{ margin: "4px 0 0", fontSize: "1rem", color: "#f5f1e8", fontWeight: 700 }}>
+                        <p style={{ margin: "4px 0 0", fontSize: "1rem", color: "var(--sl-cream)", fontWeight: 700 }}>
                             {reservation.guestName}
                         </p>
-                        <p style={{ margin: "2px 0 0", fontSize: "0.8rem", color: "rgba(245,241,232,0.65)" }}>
+                        <p style={{ margin: "2px 0 0", fontSize: "0.8rem", color: "rgb(var(--sl-cream-rgb) / 0.65)" }}>
                             {reservation.guests} personas · {date} {time}
                         </p>
                     </div>
                     <button
                         onClick={onClose}
-                        style={{ background: "none", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, color: "rgba(245,241,232,0.5)", padding: "6px 12px", cursor: "pointer", fontSize: "0.8rem" }}
+                        style={{ background: "none", border: "1px solid rgb(var(--sl-veil-rgb) / 0.12)", borderRadius: 8, color: "rgb(var(--sl-cream-rgb) / 0.5)", padding: "6px 12px", cursor: "pointer", fontSize: "0.8rem" }}
                     >
                         ✕ Cerrar
                     </button>
@@ -135,7 +135,7 @@ export function MoveTableModal({
 
                 {/* Selector de área */}
                 <div>
-                    <p style={{ margin: "0 0 10px", fontSize: "0.65rem", letterSpacing: "0.15em", color: "rgba(245,241,232,0.62)", textTransform: "uppercase", fontWeight: 700 }}>
+                    <p style={{ margin: "0 0 10px", fontSize: "0.65rem", letterSpacing: "0.15em", color: "rgb(var(--sl-cream-rgb) / 0.62)", textTransform: "uppercase", fontWeight: 700 }}>
                         Área
                     </p>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -145,9 +145,9 @@ export function MoveTableModal({
                                 onClick={() => setSelectedSection(sec)}
                                 style={{
                                     padding: "7px 16px", borderRadius: 999, fontSize: "0.75rem", fontWeight: 600, cursor: "pointer",
-                                    background: selectedSection === sec ? "#ba843c" : "transparent",
-                                    border: `1px solid ${selectedSection === sec ? "#ba843c" : "rgba(255,255,255,0.15)"}`,
-                                    color: selectedSection === sec ? "#fff" : "rgba(245,241,232,0.6)",
+                                    background: selectedSection === sec ? "var(--sl-gold)" : "transparent",
+                                    border: `1px solid ${selectedSection === sec ? "var(--sl-gold)" : "rgb(var(--sl-veil-rgb) / 0.15)"}`,
+                                    color: selectedSection === sec ? "#fff" : "rgb(var(--sl-cream-rgb) / 0.6)",
                                     transition: "all 0.2s",
                                 }}
                             >
@@ -160,7 +160,7 @@ export function MoveTableModal({
                 {/* Mapa de mesas */}
                 <div>
                     {loading && (
-                        <p style={{ textAlign: "center", color: "rgba(245,241,232,0.62)", fontSize: "0.85rem" }}>Cargando mesas…</p>
+                        <p style={{ textAlign: "center", color: "rgb(var(--sl-cream-rgb) / 0.62)", fontSize: "0.85rem" }}>Cargando mesas…</p>
                     )}
                     {!loading && availability && !availability.isLargeGroup && (
                         <TableMap
@@ -171,34 +171,34 @@ export function MoveTableModal({
                         />
                     )}
                     {!loading && availability?.isLargeGroup && (
-                        <p style={{ textAlign: "center", color: availability.hasAvailability ? "#ba843c" : "#e8766b", fontSize: "0.85rem", margin: "12px 0" }}>
+                        <p style={{ textAlign: "center", color: availability.hasAvailability ? "var(--sl-gold)" : "var(--sl-danger)", fontSize: "0.85rem", margin: "12px 0" }}>
                             {availability.hasAvailability
                                 ? `✓ Área ${selectedSection} disponible para grupo grande. Se asignará el área completa.`
                                 : `✗ El área ${selectedSection} ya está bloqueada por otro grupo grande ese día.`}
                         </p>
                     )}
                     {!loading && availability && !availability.hasAvailability && !availability.isLargeGroup && (
-                        <p style={{ textAlign: "center", color: "#e8766b", fontSize: "0.82rem", margin: "12px 0 0" }}>
+                        <p style={{ textAlign: "center", color: "var(--sl-danger)", fontSize: "0.82rem", margin: "12px 0 0" }}>
                             Sin mesas disponibles en {selectedSection} para este turno.
                         </p>
                     )}
                 </div>
 
                 {selLabel && (
-                    <p style={{ textAlign: "center", color: "#ba843c", fontSize: "0.85rem", fontWeight: 600, margin: 0 }}>
+                    <p style={{ textAlign: "center", color: "var(--sl-gold)", fontSize: "0.85rem", fontWeight: 600, margin: 0 }}>
                         Seleccionada: {selLabel}
                     </p>
                 )}
 
                 {error && (
-                    <p style={{ color: "#e8766b", fontSize: "0.82rem", margin: 0 }}>⚠ {error}</p>
+                    <p style={{ color: "var(--sl-danger)", fontSize: "0.82rem", margin: 0 }}>⚠ {error}</p>
                 )}
 
                 {/* Acciones */}
                 <div style={{ display: "flex", gap: 10 }}>
                     <button
                         onClick={onClose}
-                        style={{ flex: 1, padding: "11px 0", background: "transparent", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, color: "rgba(245,241,232,0.5)", fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" }}
+                        style={{ flex: 1, padding: "11px 0", background: "transparent", border: "1px solid rgb(var(--sl-veil-rgb) / 0.12)", borderRadius: 10, color: "rgb(var(--sl-cream-rgb) / 0.5)", fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" }}
                     >
                         Cancelar
                     </button>
@@ -206,8 +206,8 @@ export function MoveTableModal({
                         onClick={handleConfirm}
                         disabled={(!selection && !isLargeGroupReady) || saving}
                         style={{
-                            flex: 2, padding: "11px 0", background: (selection || isLargeGroupReady) ? "#ba843c" : "rgba(186,132,60,0.2)",
-                            border: "none", borderRadius: 10, color: (selection || isLargeGroupReady) ? "#fff" : "rgba(245,241,232,0.6)",
+                            flex: 2, padding: "11px 0", background: (selection || isLargeGroupReady) ? "var(--sl-gold)" : "rgb(var(--sl-gold-rgb) / 0.2)",
+                            border: "none", borderRadius: 10, color: (selection || isLargeGroupReady) ? "#fff" : "rgb(var(--sl-cream-rgb) / 0.6)",
                             fontWeight: 700, fontSize: "0.82rem", cursor: (selection || isLargeGroupReady) ? "pointer" : "default",
                             letterSpacing: "0.06em", textTransform: "uppercase",
                         }}
@@ -219,14 +219,14 @@ export function MoveTableModal({
                 {/* Confirmación de override de capacidad */}
                 {capacityWarn && (
                     <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.72)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-                        <div style={{ background: "#22302e", border: "1px solid rgba(186,132,60,0.4)", borderRadius: 14, padding: "24px 22px", maxWidth: 380, width: "100%" }}>
-                            <p style={{ margin: 0, fontSize: "0.65rem", letterSpacing: "0.18em", textTransform: "uppercase", color: "#ba843c", fontWeight: 700 }}>Capacidad insuficiente</p>
-                            <p style={{ margin: "10px 0 0", color: "#f5f1e8", fontSize: "0.92rem", lineHeight: 1.5 }}>
+                        <div style={{ background: "var(--sl-panel2)", border: "1px solid rgb(var(--sl-gold-rgb) / 0.4)", borderRadius: 14, padding: "24px 22px", maxWidth: 380, width: "100%" }}>
+                            <p style={{ margin: 0, fontSize: "0.65rem", letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--sl-gold)", fontWeight: 700 }}>Capacidad insuficiente</p>
+                            <p style={{ margin: "10px 0 0", color: "var(--sl-cream)", fontSize: "0.92rem", lineHeight: 1.5 }}>
                                 Esta mesa es para <b>{capacityWarn.totalCap}</b> personas, vas a sentar <b>{reservation.guests}</b>. ¿Continuar?
                             </p>
                             <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
-                                <button onClick={() => setCapacityWarn(null)} style={{ flex: 1, padding: "10px 0", background: "transparent", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 9, color: "rgba(245,241,232,0.6)", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer" }}>Cancelar</button>
-                                <button onClick={() => submit(true)} disabled={saving} style={{ flex: 1, padding: "10px 0", background: "#ba843c", border: "none", borderRadius: 9, color: "#fff", fontWeight: 700, fontSize: "0.8rem", cursor: "pointer" }}>Sí, continuar</button>
+                                <button onClick={() => setCapacityWarn(null)} style={{ flex: 1, padding: "10px 0", background: "transparent", border: "1px solid rgb(var(--sl-veil-rgb) / 0.15)", borderRadius: 9, color: "rgb(var(--sl-cream-rgb) / 0.6)", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer" }}>Cancelar</button>
+                                <button onClick={() => submit(true)} disabled={saving} style={{ flex: 1, padding: "10px 0", background: "var(--sl-gold)", border: "none", borderRadius: 9, color: "#fff", fontWeight: 700, fontSize: "0.8rem", cursor: "pointer" }}>Sí, continuar</button>
                             </div>
                         </div>
                     </div>

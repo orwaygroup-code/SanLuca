@@ -95,7 +95,7 @@ function RailItem({ icon, label, active, count, danger, sm, dataTour, onClick }:
   const base: React.CSSProperties = {
     ...rail.btn, ...(sm ? rail.btnSm : {}),
     ...(active ? rail.btnOn : {}),
-    ...(danger && !active ? { color: "#e8766b" } : {}),
+    ...(danger && !active ? { color: "var(--sl-danger)" } : {}),
   };
   return (
     <button data-tour={dataTour} onClick={onClick} title={label} aria-label={label} aria-current={active ? "page" : undefined} style={base}>
@@ -130,7 +130,7 @@ const rail: Record<string, React.CSSProperties> = {
   tx: { fontSize: "0.61rem", fontWeight: 800, letterSpacing: "0.03em" },
   txSm: { fontSize: "0.56rem", color: "var(--sl-on-ink-faint)", fontWeight: 700 },
   cnt: {
-    position: "absolute", top: -8, right: -12, background: "#e0b054", color: "var(--sl-ink)",
+    position: "absolute", top: -8, right: -12, background: "var(--sl-gold-soft)", color: "var(--sl-on-accent)",
     fontSize: "0.58rem", fontWeight: 900, borderRadius: 999, padding: "0 5px", minWidth: 17, lineHeight: "16px", textAlign: "center",
   },
   div: { height: 1, background: "var(--sl-ink-line)", margin: "9px 8px" },

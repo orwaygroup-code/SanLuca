@@ -198,7 +198,7 @@ const styles: Record<string, React.CSSProperties> = {
     border: "1px solid rgb(var(--sl-veil-rgb) / 0.2)", background: "var(--sl-panel2)",
     color: "var(--sl-cream)", fontSize: "0.95rem", fontFamily: "inherit",
   },
-  error: { margin: 0, color: "#e8766b", fontSize: "0.84rem", fontWeight: 600 },
+  error: { margin: 0, color: "var(--sl-danger)", fontSize: "0.84rem", fontWeight: 600 },
   button: {
     padding: "14px 0", minHeight: 48, borderRadius: 10, border: "none", background: "var(--sl-gold)",
     color: "var(--sl-on-accent)", fontWeight: 800, fontSize: "0.9rem", letterSpacing: "0.05em",

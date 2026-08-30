@@ -19,7 +19,7 @@ interface Data {
   waiters: WaiterRow[];
 }
 
-const MEDAL = ["#d4af37", "#b8b8b8", "#c07b3a"]; // oro / plata / bronce para el podio
+const MEDAL = ["var(--sl-gold-soft)", "var(--sl-dim)", "var(--sl-gold)"]; // oro / plata / bronce para el podio
 
 // Métricas por mesero. `num` = valor para ordenar/barra (null = no ordenable, ej. "más vendido").
 // `additive` = tiene sentido sumar entre meseros (para el % del total); los promedios no.
@@ -37,8 +37,8 @@ const METRICS: MetricDef[] = [
   { key: "avgPerGuest", label: "Por persona", additive: false, num: (w) => w.avgPerGuest, render: (w) => formatMXN(w.avgPerGuest) },
   { key: "tips", label: "Propinas", additive: true, num: (w) => w.tips, render: (w) => formatMXN(w.tips) },
   { key: "items", label: "Platillos", additive: true, num: (w) => w.items, render: (w) => String(w.items) },
-  { key: "discounts", label: "Descuentos", additive: true, num: (w) => w.discounts, render: (w) => (w.discounts > 0 ? formatMXN(w.discounts) : "—"), accent: (w) => (w.discounts > 0 ? "#63aede" : undefined) },
-  { key: "cancelValue", label: "Cancelado", additive: true, num: (w) => w.cancelValue, render: (w) => (w.cancelCount > 0 ? `${w.cancelCount} · ${formatMXN(w.cancelValue)}` : "—"), accent: (w) => (w.cancelCount > 0 ? "#e8766b" : undefined) },
+  { key: "discounts", label: "Descuentos", additive: true, num: (w) => w.discounts, render: (w) => (w.discounts > 0 ? formatMXN(w.discounts) : "—"), accent: (w) => (w.discounts > 0 ? "var(--sl-info)" : undefined) },
+  { key: "cancelValue", label: "Cancelado", additive: true, num: (w) => w.cancelValue, render: (w) => (w.cancelCount > 0 ? `${w.cancelCount} · ${formatMXN(w.cancelValue)}` : "—"), accent: (w) => (w.cancelCount > 0 ? "var(--sl-danger)" : undefined) },
   { key: "topDish", label: "Más vendido", additive: false, num: null, render: (w) => (w.topDish ? `${w.topDish.name} (${w.topDish.qty})` : "—") },
 ];
 const METRIC = Object.fromEntries(METRICS.map((m) => [m.key, m])) as Record<string, MetricDef>;
@@ -107,8 +107,8 @@ export default function MeserosPage() {
               <Kpi label="Cuentas pagadas" value={String(data.totals.comandas)} />
               <Kpi label="Comensales" value={String(data.totals.guests)} />
               <Kpi label="Propinas" value={formatMXN(data.totals.tips)} accent={C.gold} />
-              <Kpi label="Descuentos" value={formatMXN(data.totals.discounts)} accent="#63aede" />
-              <Kpi label="Cancelado" value={formatMXN(data.totals.cancelValue)} accent="#e8766b" />
+              <Kpi label="Descuentos" value={formatMXN(data.totals.discounts)} accent="var(--sl-info)" />
+              <Kpi label="Cancelado" value={formatMXN(data.totals.cancelValue)} accent="var(--sl-danger)" />
             </div>
 
             {/* Ordenar por (una métrica) */}
@@ -230,6 +230,6 @@ const S: Record<string, React.CSSProperties> = {
   card: { background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, padding: "14px 16px" },
   rank: { width: 34, height: 34, borderRadius: 999, display: "grid", placeItems: "center", fontWeight: 800, fontSize: "0.95rem", flexShrink: 0 },
   barTrack: { height: 7, borderRadius: 999, background: "rgb(var(--sl-veil-rgb) / 0.07)", overflow: "hidden", marginTop: 7 },
-  barFill: { height: "100%", borderRadius: 999, background: `linear-gradient(90deg, ${C.gold}, #d8a765)` },
+  barFill: { height: "100%", borderRadius: 999, background: `linear-gradient(90deg, ${C.gold}, var(--sl-gold-soft))` },
   metrics: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(90px, 1fr))", gap: 10, marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.line}` },
 };

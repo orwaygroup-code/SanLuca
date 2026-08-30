@@ -492,7 +492,7 @@ const s: Record<string, React.CSSProperties> = {
 
   flash: {
     position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", zIndex: 95,
-    background: "color-mix(in srgb, #3f9d6f 16%, var(--sl-panel))", border: `1px solid ${C.green}`, color: C.cream,
+    background: "color-mix(in srgb, var(--sl-green) 16%, var(--sl-panel))", border: `1px solid ${C.green}`, color: C.cream,
     padding: "12px 20px", borderRadius: 999, fontSize: "0.86rem", fontWeight: 600, boxShadow: "0 12px 32px rgba(0,0,0,0.5)",
   },
 

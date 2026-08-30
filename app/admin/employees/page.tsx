@@ -15,7 +15,7 @@ interface StaffRow {
 }
 
 const ROLE_LABEL: Record<Role, string> = { WAITER: "Mesero", OPERATION: "Operación", CAPTAIN: "Capitán", MANAGER: "Manager", KITCHEN: "Cocina" };
-const ROLE_COLOR: Record<Role, string> = { WAITER: "#4a9eca", OPERATION: "#b07cd6", CAPTAIN: "var(--sl-gold)", MANAGER: "#4caf50", KITCHEN: "#c98a4a" };
+const ROLE_COLOR: Record<Role, string> = { WAITER: "#4a9eca", OPERATION: "#b07cd6", CAPTAIN: "var(--sl-gold)", MANAGER: "#4caf50", KITCHEN: "var(--sl-gold)" };
 const ROLES: Role[] = ["WAITER", "OPERATION", "CAPTAIN", "MANAGER", "KITCHEN"];
 
 const ROLE_OPTIONS: SelectOption[] = ROLES.map((r) => ({ value: r, label: ROLE_LABEL[r] }));
@@ -113,13 +113,13 @@ export default function EmployeesPage() {
                   <td style={S.td}>{row.fullName}</td>
                   <td style={{ ...S.td, color: "rgb(var(--sl-cream-rgb) / 0.72)" }}>{row.username}</td>
                   <td style={S.td}><span style={{ ...S.badge, borderColor: ROLE_COLOR[row.role], color: ROLE_COLOR[row.role] }}>{ROLE_LABEL[row.role]}</span></td>
-                  <td style={S.td}><span style={{ color: row.active ? "#4caf50" : "#e8766b", fontWeight: 600, fontSize: "0.78rem" }}>{row.active ? "Activo" : "Inactivo"}</span></td>
+                  <td style={S.td}><span style={{ color: row.active ? "#4caf50" : "var(--sl-danger)", fontWeight: 600, fontSize: "0.78rem" }}>{row.active ? "Activo" : "Inactivo"}</span></td>
                   <td style={{ ...S.td, color: "rgb(var(--sl-cream-rgb) / 0.68)", fontSize: "0.78rem" }}>{fmtDateTime(row.lastLoginAt)}</td>
                   <td style={S.td}>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       <button style={S.miniBtn} onClick={() => setEditTarget(row)}>Editar</button>
                       <button style={S.miniBtn} onClick={() => setPinTarget(row)}>Cambiar PIN</button>
-                      <button style={{ ...S.miniBtn, borderColor: row.active ? "rgba(224,85,85,0.5)" : "rgba(76,175,80,0.5)", color: row.active ? "#e8766b" : "#4caf50" }} onClick={() => toggleActive(row)}>
+                      <button style={{ ...S.miniBtn, borderColor: row.active ? "rgba(224,85,85,0.5)" : "rgba(76,175,80,0.5)", color: row.active ? "var(--sl-danger)" : "#4caf50" }} onClick={() => toggleActive(row)}>
                         {row.active ? "Desactivar" : "Reactivar"}
                       </button>
                     </div>
@@ -186,7 +186,7 @@ function PinModal({ row, onClose, onDone }: {
             placeholder="ej. 4821"
           />
         </div>
-        {error && <p style={{ color: "#e8766b", fontSize: "0.82rem", margin: 0 }}>⚠ {error}</p>}
+        {error && <p style={{ color: "var(--sl-danger)", fontSize: "0.82rem", margin: 0 }}>⚠ {error}</p>}
         <button
           style={{ ...S.primaryBtn, opacity: pinOk && !saving ? 1 : 0.5 }}
           disabled={!pinOk || saving}
@@ -260,7 +260,7 @@ function EmployeeFormModal({ mode, row, onClose, onSaved }: {
             <input type="password" autoComplete="off" style={S.input} inputMode="numeric" maxLength={4} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="Vacío = se genera automático" />
           </div>
         )}
-        {error && <p style={{ color: "#e8766b", fontSize: "0.82rem", margin: 0 }}>⚠ {error}</p>}
+        {error && <p style={{ color: "var(--sl-danger)", fontSize: "0.82rem", margin: 0 }}>⚠ {error}</p>}
         <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
           <button style={S.ghostBtn} onClick={onClose}>Cancelar</button>
           <button style={{ ...S.primaryBtn, flex: 1, opacity: canSave && !saving ? 1 : 0.5 }} onClick={submit} disabled={!canSave || saving}>{saving ? "Guardando…" : mode === "create" ? "Crear" : "Guardar"}</button>
@@ -300,8 +300,8 @@ const S: Record<string, React.CSSProperties> = {
   empty: { textAlign: "center", color: "rgb(var(--sl-cream-rgb) / 0.62)", marginTop: 60 },
   primaryBtn: { padding: "12px 18px", minHeight: 44, borderRadius: 9, border: "none", background: "var(--sl-gold)", color: "var(--sl-on-accent)", fontWeight: 800, fontSize: "0.8rem", letterSpacing: "0.04em", cursor: "pointer", fontFamily: "inherit" },
   ghostBtn: { flex: 1, padding: "12px 0", minHeight: 44, borderRadius: 9, border: "1px solid rgb(var(--sl-veil-rgb) / 0.18)", background: "transparent", color: "rgb(var(--sl-cream-rgb) / 0.72)", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit" },
-  miniBtn: { padding: "9px 14px", minHeight: 40, borderRadius: 8, border: "1px solid rgb(var(--sl-gold-rgb) / 0.5)", background: "transparent", color: "#c9964a", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" },
-  kicker: { fontSize: "0.62rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#c9964a", fontWeight: 700, margin: 0 },
+  miniBtn: { padding: "9px 14px", minHeight: 40, borderRadius: 8, border: "1px solid rgb(var(--sl-gold-rgb) / 0.5)", background: "transparent", color: "var(--sl-gold)", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" },
+  kicker: { fontSize: "0.62rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--sl-gold)", fontWeight: 700, margin: 0 },
   label: { display: "block", fontSize: "0.62rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgb(var(--sl-cream-rgb) / 0.62)", fontWeight: 700, marginBottom: 5 },
   input: { width: "100%", padding: "12px 13px", minHeight: 44, borderRadius: 9, boxSizing: "border-box", border: "1px solid rgb(var(--sl-veil-rgb) / 0.2)", background: "rgb(var(--sl-veil-rgb) / 0.05)", color: "var(--sl-cream)", fontSize: "0.9rem", fontFamily: "inherit" },
 };

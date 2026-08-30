@@ -69,18 +69,18 @@ export function SalonMap({ tables, pairs, triples, quads, guests, selection, onS
   return (
     <div style={{
       width: "100%", aspectRatio: "16/7", position: "relative",
-      background: "#1a2224", borderRadius: 14,
-      border: "1px solid rgba(186,132,60,0.35)",
+      background: "var(--sl-panel)", borderRadius: 14,
+      border: "1px solid rgb(var(--sl-gold-rgb) / 0.35)",
       overflow: "hidden", userSelect: "none",
     }}>
 
       {/* ── Title ── */}
       <div style={{ position: "absolute", top: 10, left: 16 }}>
         <div style={{ fontSize: "clamp(0.7rem,1.8vw,1.1rem)", fontWeight: 700, letterSpacing: "0.06em" }}>
-          <span style={{ color: "#ba843c" }}>SELECCIÓN</span>
-          <span style={{ color: "#f5f1e8" }}> DE MESA</span>
+          <span style={{ color: "var(--sl-gold)" }}>SELECCIÓN</span>
+          <span style={{ color: "var(--sl-cream)" }}> DE MESA</span>
         </div>
-        <div style={{ fontSize: "clamp(0.5rem,1.2vw,0.7rem)", color: "rgba(245,241,232,0.4)", letterSpacing: "0.12em", marginTop: 2 }}>
+        <div style={{ fontSize: "clamp(0.5rem,1.2vw,0.7rem)", color: "rgb(var(--sl-cream-rgb) / 0.4)", letterSpacing: "0.12em", marginTop: 2 }}>
           SALÓN Y SILLONES
         </div>
       </div>
@@ -88,10 +88,10 @@ export function SalonMap({ tables, pairs, triples, quads, guests, selection, onS
       {/* ── ENTRADA (right strip) ── */}
       <div style={{
         position: "absolute", right: 0, top: 0, bottom: 0, width: "8%",
-        background: "rgba(255,255,255,0.025)", borderLeft: "1px solid rgba(255,255,255,0.06)",
+        background: "rgb(var(--sl-veil-rgb) / 0.025)", borderLeft: "1px solid rgb(var(--sl-veil-rgb) / 0.06)",
         display: "flex", alignItems: "center", justifyContent: "center",
       }}>
-        <span style={{ fontSize: "0.42rem", color: "rgba(255,255,255,0.22)", writingMode: "vertical-rl", letterSpacing: "0.14em", textTransform: "uppercase" }}>
+        <span style={{ fontSize: "0.42rem", color: "rgb(var(--sl-veil-rgb) / 0.22)", writingMode: "vertical-rl", letterSpacing: "0.14em", textTransform: "uppercase" }}>
           ENTRADA
         </span>
       </div>
@@ -99,10 +99,10 @@ export function SalonMap({ tables, pairs, triples, quads, guests, selection, onS
       {/* ── Zona sillones ── */}
       <div style={{
         position: "absolute", left: "36%", top: "6%", width: "54%", height: "88%",
-        border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10,
-        background: "rgba(255,255,255,0.015)",
+        border: "1px solid rgb(var(--sl-veil-rgb) / 0.08)", borderRadius: 10,
+        background: "rgb(var(--sl-veil-rgb) / 0.015)",
       }}>
-        <div style={{ position: "absolute", top: 5, left: 10, fontSize: "0.38rem", color: "rgba(186,132,60,0.4)", letterSpacing: "0.14em", textTransform: "uppercase" }}>
+        <div style={{ position: "absolute", top: 5, left: 10, fontSize: "0.38rem", color: "rgb(var(--sl-gold-rgb) / 0.4)", letterSpacing: "0.14em", textTransform: "uppercase" }}>
           Sillones
         </div>
       </div>

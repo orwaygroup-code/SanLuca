@@ -73,11 +73,11 @@ export function EditReservationModal({
     };
 
     const inp: React.CSSProperties = {
-        width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.15)",
-        background: "rgba(255,255,255,0.05)", color: "#f5f1e8", fontSize: "0.85rem", boxSizing: "border-box",
+        width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid rgb(var(--sl-veil-rgb) / 0.15)",
+        background: "rgb(var(--sl-veil-rgb) / 0.05)", color: "var(--sl-cream)", fontSize: "0.85rem", boxSizing: "border-box",
     };
     const lbl: React.CSSProperties = {
-        fontSize: "0.65rem", letterSpacing: "0.15em", color: "rgba(245,241,232,0.62)",
+        fontSize: "0.65rem", letterSpacing: "0.15em", color: "rgb(var(--sl-cream-rgb) / 0.62)",
         textTransform: "uppercase", fontWeight: 700, marginBottom: 5, display: "block",
     };
 
@@ -86,14 +86,14 @@ export function EditReservationModal({
             style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
             onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
         >
-            <div style={{ background: "#1a2628", border: "1px solid rgba(186,132,60,0.2)", borderRadius: 16, width: "100%", maxWidth: 700, maxHeight: "92vh", overflowY: "auto", padding: "28px 24px", display: "flex", flexDirection: "column", gap: 18 }}>
+            <div style={{ background: "var(--sl-panel)", border: "1px solid rgb(var(--sl-gold-rgb) / 0.2)", borderRadius: 16, width: "100%", maxWidth: 700, maxHeight: "92vh", overflowY: "auto", padding: "28px 24px", display: "flex", flexDirection: "column", gap: 18 }}>
                 {/* Header */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div>
-                        <p style={{ margin: 0, fontSize: "0.65rem", letterSpacing: "0.2em", color: "#ba843c", fontWeight: 700, textTransform: "uppercase" }}>Editar Reserva</p>
-                        <p style={{ margin: "4px 0 0", fontSize: "1rem", color: "#f5f1e8", fontWeight: 700 }}>{reservation.guestName}</p>
+                        <p style={{ margin: 0, fontSize: "0.65rem", letterSpacing: "0.2em", color: "var(--sl-gold)", fontWeight: 700, textTransform: "uppercase" }}>Editar Reserva</p>
+                        <p style={{ margin: "4px 0 0", fontSize: "1rem", color: "var(--sl-cream)", fontWeight: 700 }}>{reservation.guestName}</p>
                     </div>
-                    <button onClick={onClose} style={{ background: "none", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, color: "rgba(245,241,232,0.5)", padding: "6px 12px", cursor: "pointer", fontSize: "0.8rem" }}>✕</button>
+                    <button onClick={onClose} style={{ background: "none", border: "1px solid rgb(var(--sl-veil-rgb) / 0.12)", borderRadius: 8, color: "rgb(var(--sl-cream-rgb) / 0.5)", padding: "6px 12px", cursor: "pointer", fontSize: "0.8rem" }}>✕</button>
                 </div>
 
                 {/* Datos del titular */}
@@ -117,7 +117,7 @@ export function EditReservationModal({
                     <div>
                         <label style={lbl}>Hora</label>
                         {isDayClosed ? (
-                            <p style={{ color: "#e8766b", fontSize: "0.8rem", margin: "6px 0 0" }}>Lunes cerrado</p>
+                            <p style={{ color: "var(--sl-danger)", fontSize: "0.8rem", margin: "6px 0 0" }}>Lunes cerrado</p>
                         ) : (
                             <GoldSelect
                                 value={time}
@@ -144,7 +144,7 @@ export function EditReservationModal({
                     ) : (
                         <div style={{ display: "flex", gap: 8 }}>
                             <input type="number" min={16} max={500} style={{ ...inp, flex: 1 }} value={guests} onChange={(e) => setGuests(parseInt(e.target.value) || 16)} />
-                            <button type="button" onClick={() => setGuests(2)} style={{ whiteSpace: "nowrap", padding: "0 12px", background: "transparent", border: "1px solid rgba(245,241,232,0.15)", borderRadius: 8, color: "rgba(245,241,232,0.62)", fontSize: "0.7rem", cursor: "pointer" }}>← Volver</button>
+                            <button type="button" onClick={() => setGuests(2)} style={{ whiteSpace: "nowrap", padding: "0 12px", background: "transparent", border: "1px solid rgb(var(--sl-cream-rgb) / 0.15)", borderRadius: 8, color: "rgb(var(--sl-cream-rgb) / 0.62)", fontSize: "0.7rem", cursor: "pointer" }}>← Volver</button>
                         </div>
                     )}
                 </div>
@@ -171,7 +171,7 @@ export function EditReservationModal({
                     <p style={lbl}>Área</p>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                         {MODAL_SECTIONS.map((sec) => (
-                            <button key={sec} onClick={() => setSection(sec)} style={{ padding: "7px 16px", borderRadius: 999, fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", background: section === sec ? "#ba843c" : "transparent", border: `1px solid ${section === sec ? "#ba843c" : "rgba(255,255,255,0.15)"}`, color: section === sec ? "#fff" : "rgba(245,241,232,0.6)" }}>
+                            <button key={sec} onClick={() => setSection(sec)} style={{ padding: "7px 16px", borderRadius: 999, fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", background: section === sec ? "var(--sl-gold)" : "transparent", border: `1px solid ${section === sec ? "var(--sl-gold)" : "rgb(var(--sl-veil-rgb) / 0.15)"}`, color: section === sec ? "#fff" : "rgb(var(--sl-cream-rgb) / 0.6)" }}>
                                 {sec}
                             </button>
                         ))}
@@ -180,18 +180,18 @@ export function EditReservationModal({
 
                 {/* Mesa: NO se cambia desde aquí. Editar preserva la mesa actual;
                     para reubicar la reserva usar el botón "Cambiar Mesa". */}
-                <p style={{ ...lbl, marginBottom: 0, color: "rgba(245,241,232,0.38)", textTransform: "none", letterSpacing: 0, fontWeight: 500 }}>
-                    La mesa asignada no cambia al editar. Usa <b style={{ color: "rgba(245,241,232,0.6)" }}>“Cambiar Mesa”</b> para reubicar la reserva.
+                <p style={{ ...lbl, marginBottom: 0, color: "rgb(var(--sl-cream-rgb) / 0.38)", textTransform: "none", letterSpacing: 0, fontWeight: 500 }}>
+                    La mesa asignada no cambia al editar. Usa <b style={{ color: "rgb(var(--sl-cream-rgb) / 0.6)" }}>“Cambiar Mesa”</b> para reubicar la reserva.
                 </p>
 
-                {error && <p style={{ color: "#e8766b", fontSize: "0.82rem", margin: 0 }}>⚠ {error}</p>}
+                {error && <p style={{ color: "var(--sl-danger)", fontSize: "0.82rem", margin: 0 }}>⚠ {error}</p>}
 
                 {/* Acciones */}
                 <div style={{ display: "flex", gap: 10 }}>
-                    <button onClick={onClose} style={{ flex: 1, padding: "11px 0", background: "transparent", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, color: "rgba(245,241,232,0.5)", fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" }}>
+                    <button onClick={onClose} style={{ flex: 1, padding: "11px 0", background: "transparent", border: "1px solid rgb(var(--sl-veil-rgb) / 0.12)", borderRadius: 10, color: "rgb(var(--sl-cream-rgb) / 0.5)", fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" }}>
                         Cancelar
                     </button>
-                    <button onClick={handleSave} disabled={saving} style={{ flex: 2, padding: "11px 0", background: "#ba843c", border: "none", borderRadius: 10, color: "#fff", fontWeight: 700, fontSize: "0.82rem", cursor: saving ? "default" : "pointer", letterSpacing: "0.06em", textTransform: "uppercase", opacity: saving ? 0.6 : 1 }}>
+                    <button onClick={handleSave} disabled={saving} style={{ flex: 2, padding: "11px 0", background: "var(--sl-gold)", border: "none", borderRadius: 10, color: "#fff", fontWeight: 700, fontSize: "0.82rem", cursor: saving ? "default" : "pointer", letterSpacing: "0.06em", textTransform: "uppercase", opacity: saving ? 0.6 : 1 }}>
                         {saving ? "Guardando…" : "Guardar Cambios"}
                     </button>
                 </div>

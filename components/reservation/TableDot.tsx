@@ -14,13 +14,13 @@ interface TableDotProps {
 }
 
 const stateStyle: Record<TableState, { bg: string; border: string; color: string; cursor: string }> = {
-  available: { bg: "rgba(186,132,60,0.12)", border: "rgba(186,132,60,0.55)", color: "#f5f1e8",            cursor: "pointer"    },
-  occupied:  { bg: "rgba(255,255,255,0.03)", border: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.2)", cursor: "default" },
-  selected:  { bg: "rgba(186,132,60,0.45)", border: "#ba843c",                color: "#f5f1e8",            cursor: "pointer"    },
-  pair:      { bg: "rgba(186,132,60,0.25)", border: "rgba(186,132,60,0.85)", color: "#f5f1e8",            cursor: "pointer"    },
-  triple:    { bg: "rgba(100,160,80,0.18)",  border: "rgba(100,160,80,0.75)",  color: "rgba(140,210,110,0.9)", cursor: "pointer"     },
-  quad:      { bg: "rgba(80,120,200,0.18)",  border: "rgba(80,140,220,0.75)",  color: "rgba(120,180,255,0.9)", cursor: "pointer"     },
-  disabled:  { bg: "rgba(255,255,255,0.02)", border: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.15)", cursor: "not-allowed" },
+  available: { bg: "rgb(var(--sl-gold-rgb) / 0.12)", border: "rgb(var(--sl-gold-rgb) / 0.55)", color: "var(--sl-cream)",            cursor: "pointer"    },
+  occupied:  { bg: "rgb(var(--sl-veil-rgb) / 0.03)", border: "rgb(var(--sl-veil-rgb) / 0.12)", color: "rgb(var(--sl-veil-rgb) / 0.2)", cursor: "default" },
+  selected:  { bg: "rgb(var(--sl-gold-rgb) / 0.45)", border: "var(--sl-gold)",                color: "var(--sl-cream)",            cursor: "pointer"    },
+  pair:      { bg: "rgb(var(--sl-gold-rgb) / 0.25)", border: "rgb(var(--sl-gold-rgb) / 0.85)", color: "var(--sl-cream)",            cursor: "pointer"    },
+  triple:    { bg: "color-mix(in srgb, var(--sl-ok) 18%, transparent)",  border: "var(--sl-ok)",  color: "var(--sl-ok)", cursor: "pointer"     },
+  quad:      { bg: "color-mix(in srgb, var(--sl-info) 18%, transparent)",  border: "var(--sl-info)",  color: "var(--sl-info)", cursor: "pointer"     },
+  disabled:  { bg: "rgb(var(--sl-veil-rgb) / 0.02)", border: "rgb(var(--sl-veil-rgb) / 0.07)", color: "rgb(var(--sl-veil-rgb) / 0.15)", cursor: "not-allowed" },
 };
 
 export function TableDot({

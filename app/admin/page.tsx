@@ -35,11 +35,11 @@ const STATUS_LABEL: Record<string, string> = {
 // Colores de estado usados como TEXTO/borde sobre fondo oscuro → tonos con
 // contraste AA (≥4.5:1). Los archivados van atenuados pero aún legibles.
 const STATUS_COLOR: Record<string, string> = {
-    PENDING_PAYMENT: "#e09632",
-    PENDING:     "#c9964a",
-    CONFIRMED:   "#63aede",
+    PENDING_PAYMENT: "var(--sl-gold)",
+    PENDING:     "var(--sl-gold)",
+    CONFIRMED:   "var(--sl-info)",
     IN_PROGRESS: "#5cbf60",
-    DELAYED:     "#e8766b",
+    DELAYED:     "var(--sl-danger)",
     CANCELLED:   "rgb(var(--sl-veil-rgb) / 0.6)",
     COMPLETED:   "rgb(var(--sl-veil-rgb) / 0.55)",
     NO_SHOW:     "#d95f4a",
@@ -47,9 +47,9 @@ const STATUS_COLOR: Record<string, string> = {
 
 const STATUS_GROUPS: { key: string; label: string; color: string }[] = [
     { key: "IN_PROGRESS", label: "EN CURSO",            color: "#5cbf60" },
-    { key: "DELAYED",     label: "RETRASO",              color: "#e8766b" },
-    { key: "PENDING",     label: "PENDIENTES",           color: "#c9964a" },
-    { key: "CONFIRMED",   label: "CONFIRMADAS",          color: "#63aede" },
+    { key: "DELAYED",     label: "RETRASO",              color: "var(--sl-danger)" },
+    { key: "PENDING",     label: "PENDIENTES",           color: "var(--sl-gold)" },
+    { key: "CONFIRMED",   label: "CONFIRMADAS",          color: "var(--sl-info)" },
     { key: "COMPLETED",   label: "COMPLETADAS",          color: "rgb(var(--sl-veil-rgb) / 0.55)" },
     { key: "NO_SHOW",     label: "NO SE PRESENTARON",    color: "#d95f4a" },
     { key: "CANCELLED",   label: "CANCELADAS",           color: "rgb(var(--sl-veil-rgb) / 0.5)" },
@@ -291,13 +291,13 @@ export default function AdminPage() {
                     border-radius: 999px;
                     background: rgba(224,85,85,0.14);
                     border: 1px solid rgba(224,85,85,0.55);
-                    color: #e8766b;
+                    color: var(--sl-danger);
                     font-size: 0.6rem; font-weight: 800;
                     letter-spacing: 0.16em; text-transform: uppercase;
                 }
                 .adm-new-dot {
                     width: 8px; height: 8px; border-radius: 50%;
-                    background: #e8766b;
+                    background: var(--sl-danger);
                     animation: admNewPulse 1.1s ease-in-out infinite;
                 }
                 .adm-hold-badge {
@@ -307,7 +307,7 @@ export default function AdminPage() {
                     border-radius: 999px;
                     background: rgba(224,150,50,0.14);
                     border: 1px solid rgba(224,150,50,0.6);
-                    color: #e0a13f;
+                    color: var(--sl-gold-soft);
                     font-size: 0.62rem; font-weight: 800;
                     letter-spacing: 0.12em; text-transform: uppercase;
                 }
@@ -494,7 +494,7 @@ export default function AdminPage() {
                                                                     </p>
                                                                     <p style={{ margin: "1px 0 0", fontSize: "0.78rem", color: "var(--sl-cream)", fontWeight: 600 }}>
                                                                         {r.amountPaid && Number(r.amountPaid) > 0 && (
-                                                                            <>Pagado: <b style={{ color: "#5fa15f" }}>${Number(r.amountPaid).toFixed(0)}</b></>
+                                                                            <>Pagado: <b style={{ color: "var(--sl-ok)" }}>${Number(r.amountPaid).toFixed(0)}</b></>
                                                                         )}
                                                                         {r.creditUsed && r.creditUsed > 0 && (
                                                                             <> · Crédito: <b style={{ color: "var(--sl-gold)" }}>${r.creditUsed.toFixed(0)}</b></>

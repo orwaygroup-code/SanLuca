@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
  * sitio público, que tiene su propia identidad por carta.
  *
  * El modo claro usa la paleta de la carta de brunch del sitio público —crema
- * #f0ebe0, azul profundo #1e3a52, acento #3d6b8c—, que es el positivo de la
+ * var(--sl-cream), azul profundo #1e3a52, acento #3d6b8c—, que es el positivo de la
  * identidad de San Luca. Las variables viven en styles/san-luca.css y las
  * paletas de JS apuntan a ellas, así que cambiar el atributo del documento
  * repinta el sistema entero sin volver a renderizar nada.

@@ -34,8 +34,8 @@ const STATUS_LABEL: Record<ArcoStatus, string> = {
 };
 const STATUS_COLOR: Record<ArcoStatus, string> = {
   IN_PROGRESS: "var(--sl-gold)",
-  COMPLETED:   "#5fa15f",
-  REJECTED:    "#e05555",
+  COMPLETED:   "var(--sl-ok)",
+  REJECTED:    "var(--sl-danger-strong)",
 };
 const RIGHT_LABEL: Record<ArcoRight, string> = {
   ACCESS:        "Acceso",
@@ -181,7 +181,7 @@ export default function ArcoPage() {
                 onClick={() => setSelected(r)}
                 style={{ ...tr, background: selected?.id === r.id ? "rgb(var(--sl-gold-rgb) / 0.08)" : "transparent" }}
               >
-                <td style={{ ...td, fontFamily: "ui-monospace, monospace", color: "#d09a52" }}>{r.folio}</td>
+                <td style={{ ...td, fontFamily: "ui-monospace, monospace", color: "var(--sl-gold-soft)" }}>{r.folio}</td>
                 <td style={td}>{fmt(r.receivedAt)}</td>
                 <td style={td}>{CHANNEL_LABEL[r.channel]}</td>
                 <td style={td}>{RIGHT_LABEL[r.rightExercised]}</td>
@@ -245,7 +245,7 @@ function DetailDrawer({
     <div style={drawerOverlay} role="dialog" aria-modal="true">
       <div style={drawer}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-          <h2 style={{ margin: 0, color: "#d09a52", fontFamily: "ui-monospace, monospace" }}>{row.folio}</h2>
+          <h2 style={{ margin: 0, color: "var(--sl-gold-soft)", fontFamily: "ui-monospace, monospace" }}>{row.folio}</h2>
           <button onClick={onClose} style={closeBtn}>✕</button>
         </div>
         <p style={{ margin: "4px 0 18px", color: "rgb(var(--sl-cream-rgb) / 0.55)", fontSize: "0.85rem" }}>
@@ -342,7 +342,7 @@ function Stage({ label, at, onMark }: { label: string; at: string | null; onMark
     <div style={{ marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
       <div>
         <div style={{ fontSize: "0.85rem", color: "var(--sl-cream)" }}>{label}</div>
-        <div style={{ fontSize: "0.78rem", color: at ? "#5fa15f" : "rgb(var(--sl-cream-rgb) / 0.4)" }}>
+        <div style={{ fontSize: "0.78rem", color: at ? "var(--sl-ok)" : "rgb(var(--sl-cream-rgb) / 0.4)" }}>
           {at ? `✓ ${fmt(at)}` : "Pendiente"}
         </div>
       </div>
@@ -387,7 +387,7 @@ function NewRequestModal({ onClose, onCreated }: { onClose: () => void; onCreate
   return (
     <div style={drawerOverlay} role="dialog" aria-modal="true">
       <div style={{ ...drawer, maxWidth: 480 }}>
-        <h2 style={{ margin: "0 0 16px", color: "#d09a52" }}>Nueva solicitud por correo</h2>
+        <h2 style={{ margin: "0 0 16px", color: "var(--sl-gold-soft)" }}>Nueva solicitud por correo</h2>
         <p style={{ margin: "0 0 16px", color: "rgb(var(--sl-cream-rgb) / 0.6)", fontSize: "0.85rem" }}>
           Captura una solicitud ARCO recibida en privacidad@sanlucaristorante.com. El folio se asigna automáticamente.
         </p>
@@ -408,7 +408,7 @@ function NewRequestModal({ onClose, onCreated }: { onClose: () => void; onCreate
         <DetailField label="Notas">
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} style={textarea} />
         </DetailField>
-        {err && <div style={{ color: "#e05555", fontSize: "0.85rem", marginBottom: 12 }}>{err}</div>}
+        {err && <div style={{ color: "var(--sl-danger-strong)", fontSize: "0.85rem", marginBottom: 12 }}>{err}</div>}
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
           <button onClick={onClose} style={smallBtn} disabled={submitting}>Cancelar</button>
           <button onClick={submit} style={primaryBtn} disabled={submitting || !email}>
@@ -438,5 +438,5 @@ const drawer:   React.CSSProperties = { width: "min(540px, 100%)", maxWidth: "10
 const closeBtn: React.CSSProperties = { background: "transparent", border: "none", color: "rgb(var(--sl-cream-rgb) / 0.5)", fontSize: "1.2rem", cursor: "pointer" };
 const textarea: React.CSSProperties = { ...ctrl, width: "100%", boxSizing: "border-box", resize: "vertical", minWidth: 0 };
 const smallBtn: React.CSSProperties = { marginTop: 6, padding: "6px 12px", background: "transparent", border: "1px solid rgb(var(--sl-gold-rgb) / 0.4)", color: "var(--sl-gold)", borderRadius: 4, fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit" };
-const primaryBtn:React.CSSProperties = { padding: "8px 16px", background: "var(--sl-gold)", border: "none", color: "#1c2628", borderRadius: 6, fontSize: "0.88rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" };
-const dangerBtn: React.CSSProperties = { padding: "8px 16px", background: "transparent", border: "1px solid #e05555", color: "#e05555", borderRadius: 6, fontSize: "0.88rem", cursor: "pointer", fontFamily: "inherit" };
+const primaryBtn:React.CSSProperties = { padding: "8px 16px", background: "var(--sl-gold)", border: "none", color: "var(--sl-panel)", borderRadius: 6, fontSize: "0.88rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" };
+const dangerBtn: React.CSSProperties = { padding: "8px 16px", background: "transparent", border: "1px solid var(--sl-danger-strong)", color: "var(--sl-danger-strong)", borderRadius: 6, fontSize: "0.88rem", cursor: "pointer", fontFamily: "inherit" };

@@ -120,7 +120,7 @@ export default function WalletPage() {
                         </div>
                       </div>
                     ) : (
-                      <button onClick={() => { setApproveId(c.id); setApprovePin(""); setApproveErr(null); }} style={{ marginTop: 10, padding: "9px 14px", borderRadius: 9, border: "none", background: C.green, color: "#0f1a12", fontWeight: 800, fontSize: "0.82rem", cursor: "pointer", fontFamily: "inherit", width: "100%" }}>✓ Aprobar esta cuenta</button>
+                      <button onClick={() => { setApproveId(c.id); setApprovePin(""); setApproveErr(null); }} style={{ marginTop: 10, padding: "9px 14px", borderRadius: 9, border: "none", background: C.green, color: "var(--sl-bg)", fontWeight: 800, fontSize: "0.82rem", cursor: "pointer", fontFamily: "inherit", width: "100%" }}>✓ Aprobar esta cuenta</button>
                     )}
                   </div>
                 );

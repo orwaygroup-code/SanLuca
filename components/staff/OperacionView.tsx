@@ -15,7 +15,7 @@ import { Icon, type IconName } from "@/components/staff/icons";
 import { Tour, type TourStep } from "@/components/staff/Tour";
 import { TipsPanel } from "@/components/staff/TipsPanel";
 
-const AWAIT = STATUS_COLOR.AWAITING_PAYMENT; // #e0b054 — tinte "requiere caja"
+const AWAIT = STATUS_COLOR.AWAITING_PAYMENT; // var(--sl-gold-soft) — tinte "requiere caja"
 const TAKEOUT_ALERT_MS = 90 * 60 * 1000; // #3 umbral de alerta para cuentas "para llevar" (1h30)
 
 /** "hace 1h 42m" a partir de un ISO. */
@@ -431,7 +431,7 @@ export function OperacionView({ embedded = false, controlledTab }: { embedded?: 
           {unackedTakeout.map((c) => (
             <div key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 12px" }}>
               <span style={{ color: C.cream, fontWeight: 700 }}>{comandaLabel(c)}</span>
-              <span style={{ color: "#e8766b", fontSize: "0.8rem" }}>hace {elapsedLabel(c.openedAt, nowTs)}</span>
+              <span style={{ color: "var(--sl-danger)", fontSize: "0.8rem" }}>hace {elapsedLabel(c.openedAt, nowTs)}</span>
               <span style={{ color: C.cream }}>{formatMXN(Number(c.total))}</span>
             </div>
           ))}
@@ -453,7 +453,7 @@ export function OperacionView({ embedded = false, controlledTab }: { embedded?: 
 function SectionLabel({ children, tone }: { children: React.ReactNode; tone?: "gold" }) {
   return (
     <div style={sh.sectionRow}>
-      <span style={{ ...sh.sectionTx, color: tone === "gold" ? "#c9964a" : C.faint }}>{children}</span>
+      <span style={{ ...sh.sectionTx, color: tone === "gold" ? "var(--sl-gold)" : C.faint }}>{children}</span>
       <span style={sh.sectionLine} />
     </div>
   );
@@ -748,7 +748,7 @@ const rowBtn: Record<string, React.CSSProperties> = {
   },
   kitchen: {
     minHeight: 48, minWidth: 156, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, flexShrink: 0,
-    padding: "0 18px", borderRadius: 12, border: "none", background: C.green, color: "#0f1a15",
+    padding: "0 18px", borderRadius: 12, border: "none", background: C.green, color: "var(--sl-bg)",
     fontWeight: 800, fontSize: "0.88rem", cursor: "pointer", fontFamily: "inherit",
   },
 };
@@ -756,10 +756,10 @@ const rowBtn: Record<string, React.CSSProperties> = {
 // ─── shell (riel + contenido) y filas ────────────────────────────────────────
 const alertBox: Record<string, React.CSSProperties> = {
   wrap: { background: "rgba(224,118,107,0.10)", border: "1px solid rgba(224,118,107,0.5)", borderRadius: 12, padding: "12px 14px", margin: "6px 0 14px" },
-  head: { display: "flex", alignItems: "center", gap: 8, color: "#e8766b", fontWeight: 800, fontSize: "0.86rem", marginBottom: 8 },
+  head: { display: "flex", alignItems: "center", gap: 8, color: "var(--sl-danger)", fontWeight: 800, fontSize: "0.86rem", marginBottom: 8 },
   list: { display: "flex", flexDirection: "column", gap: 6 },
   row: { display: "flex", alignItems: "center", gap: 12, width: "100%", textAlign: "left", background: "rgba(0,0,0,0.14)", border: `1px solid ${C.border}`, borderRadius: 9, padding: "9px 12px", cursor: "pointer", fontFamily: "inherit", fontSize: "0.85rem", color: C.dim },
-  time: { marginLeft: "auto", color: "#e8766b", fontSize: "0.78rem", fontWeight: 700 },
+  time: { marginLeft: "auto", color: "var(--sl-danger)", fontSize: "0.78rem", fontWeight: 700 },
 };
 
 const sh: Record<string, React.CSSProperties> = {

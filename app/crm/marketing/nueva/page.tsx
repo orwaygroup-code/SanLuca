@@ -356,7 +356,7 @@ function RadioPill({ checked, onClick, label }: { checked: boolean; onClick: () 
       style={{
         ...pillBase,
         background: checked ? "var(--sl-gold)"           : "transparent",
-        color:      checked ? "#1c2628"           : "rgb(var(--sl-cream-rgb) / 0.7)",
+        color:      checked ? "var(--sl-panel)"           : "rgb(var(--sl-cream-rgb) / 0.7)",
         border:     checked ? "1px solid var(--sl-gold)" : "1px solid rgb(var(--sl-cream-rgb) / 0.18)",
         fontWeight: checked ? 700                 : 500,
       }}
@@ -526,7 +526,7 @@ const radioLine: React.CSSProperties = {
 const errBox: React.CSSProperties = {
   background: "rgba(224,85,85,0.08)",
   border: "1px solid rgba(224,85,85,0.35)",
-  color: "#e05555",
+  color: "var(--sl-danger-strong)",
   padding: "10px 14px",
   borderRadius: 10,
   fontSize: "0.85rem",
@@ -540,7 +540,7 @@ const actionsRow: React.CSSProperties = {
 
 const primaryBtn: React.CSSProperties = {
   background: "var(--sl-gold)",
-  color: "#1c2628",
+  color: "var(--sl-panel)",
   padding: "12px 24px",
   borderRadius: 999,
   fontWeight: 700,

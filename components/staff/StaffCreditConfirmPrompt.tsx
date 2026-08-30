@@ -76,7 +76,7 @@ export function StaffCreditConfirmPrompt() {
         {err && <div style={{ color: C.red, fontSize: "0.82rem", textAlign: "center", marginTop: 8 }}>{err}</div>}
 
         <button onClick={confirm} disabled={pin.length !== 4 || busy}
-          style={{ width: "100%", marginTop: 16, padding: "15px", borderRadius: 12, border: "none", background: C.green, color: "#0f1a12", fontWeight: 800, fontSize: "1rem", cursor: "pointer", fontFamily: "inherit", opacity: pin.length === 4 && !busy ? 1 : 0.55 }}>
+          style={{ width: "100%", marginTop: 16, padding: "15px", borderRadius: 12, border: "none", background: C.green, color: "var(--sl-bg)", fontWeight: 800, fontSize: "1rem", cursor: "pointer", fontFamily: "inherit", opacity: pin.length === 4 && !busy ? 1 : 0.55 }}>
           {busy ? "Confirmando…" : "Confirmar y cobrar"}
         </button>
         <div style={{ color: C.faint, fontSize: "0.72rem", textAlign: "center", marginTop: 12 }}>Si no eras tú, avisa a caja. La cuenta queda pendiente hasta confirmar.</div>

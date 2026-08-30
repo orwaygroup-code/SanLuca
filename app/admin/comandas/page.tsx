@@ -20,19 +20,19 @@ interface AuditComanda {
 
 
 const STATUS_LABEL: Record<string, string> = { OPEN: "Abierta", IN_SERVICE: "En servicio", AWAITING_PAYMENT: "Por cobrar", PAID: "Pagada", CANCELLED: "Cancelada" };
-const STATUS_COLOR: Record<string, string> = { OPEN: "#4a82c4", IN_SERVICE: "#3f9d6f", AWAITING_PAYMENT: "#d8a13a", PAID: "rgb(var(--sl-cream-rgb) / 0.5)", CANCELLED: "#d9534f" };
+const STATUS_COLOR: Record<string, string> = { OPEN: "var(--sl-blue)", IN_SERVICE: "var(--sl-green)", AWAITING_PAYMENT: "var(--sl-amber)", PAID: "rgb(var(--sl-cream-rgb) / 0.5)", CANCELLED: "var(--sl-red)" };
 const EVENT_META: Record<string, { label: string; color: string }> = {
-  PRINT: { label: "Impresión", color: "#4a82c4" },
-  REPRINT: { label: "Reimpresión", color: "#d8a13a" },
+  PRINT: { label: "Impresión", color: "var(--sl-blue)" },
+  REPRINT: { label: "Reimpresión", color: "var(--sl-amber)" },
   TABLE_CHANGE: { label: "Cambio de mesa", color: "#b07cd6" },
   WAITER_CHANGE: { label: "Cambio de mesero", color: "#b07cd6" },
-  ITEM_CANCEL: { label: "Item cancelado", color: "#d9534f" },
-  ITEM_REMOVE: { label: "Producto quitado", color: "#d8a13a" },
-  PAYMENT: { label: "Cobro", color: "#3f9d6f" },
-  PAYMENT_VOID: { label: "Pago anulado", color: "#d9534f" },
-  DISCOUNT: { label: "Descuento", color: "#d8a13a" },
+  ITEM_CANCEL: { label: "Item cancelado", color: "var(--sl-red)" },
+  ITEM_REMOVE: { label: "Producto quitado", color: "var(--sl-amber)" },
+  PAYMENT: { label: "Cobro", color: "var(--sl-green)" },
+  PAYMENT_VOID: { label: "Pago anulado", color: "var(--sl-red)" },
+  DISCOUNT: { label: "Descuento", color: "var(--sl-amber)" },
   MERGE: { label: "Cuentas juntadas", color: "#b07cd6" },
-  TRANSFER: { label: "Traspaso", color: "#4a82c4" },
+  TRANSFER: { label: "Traspaso", color: "var(--sl-blue)" },
   REOPEN: { label: "Reapertura", color: "#e0794a" },
 };
 const eventMeta = (kind: string) => EVENT_META[kind] ?? { label: kind, color: "rgb(var(--sl-cream-rgb) / 0.6)" };

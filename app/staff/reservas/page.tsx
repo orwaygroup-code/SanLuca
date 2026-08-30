@@ -28,11 +28,11 @@ const RES_STATUS_LABEL: Record<string, string> = {
   NO_SHOW:     "NO SE PRESENTÓ",
 };
 const RES_STATUS_COLOR: Record<string, string> = {
-  PENDING_PAYMENT: "#e09632",
-  PENDING:     "#c9964a",
-  CONFIRMED:   "#63aede",
+  PENDING_PAYMENT: "var(--sl-gold)",
+  PENDING:     "var(--sl-gold)",
+  CONFIRMED:   "var(--sl-info)",
   IN_PROGRESS: "#5cbf60",
-  DELAYED:     "#e8766b",
+  DELAYED:     "var(--sl-danger)",
   CANCELLED:   "rgb(var(--sl-veil-rgb) / 0.6)",
   COMPLETED:   "rgb(var(--sl-veil-rgb) / 0.55)",
   NO_SHOW:     "#d95f4a",

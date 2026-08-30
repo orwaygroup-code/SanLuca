@@ -59,7 +59,7 @@ export default function CreditosPage() {
   const groups = [...byWaiter.values()].sort((a, b) => b.owed - a.owed);
 
   return (
-    <div style={{ padding: 24, maxWidth: 900, margin: "0 auto", color: "#e8e6e0" }}>
+    <div style={{ padding: 24, maxWidth: 900, margin: "0 auto", color: "var(--sl-cream)" }}>
       <h1 style={{ fontSize: "1.4rem", fontWeight: 800, margin: "0 0 4px" }}>Créditos de meseros</h1>
       <p style={{ opacity: 0.6, fontSize: "0.85rem", margin: "0 0 16px" }}>
         Cuentas que los meseros pagaron a crédito. Márcalas como pagadas al descontarlas de nómina.
@@ -74,7 +74,7 @@ export default function CreditosPage() {
               padding: "8px 14px", borderRadius: 8, cursor: "pointer", fontWeight: 700,
               border: "1px solid " + (filter === f ? "var(--sl-gold)" : "rgb(var(--sl-veil-rgb) / 0.15)"),
               background: filter === f ? "rgb(var(--sl-gold-rgb) / 0.16)" : "transparent",
-              color: filter === f ? "#d8a13a" : "#bbb",
+              color: filter === f ? "var(--sl-amber)" : "#bbb",
             }}
           >{f === "OUTSTANDING" ? "Por cobrar" : f === "PAID" ? "Pagadas" : "Todas"}</button>
         ))}
@@ -90,7 +90,7 @@ export default function CreditosPage() {
             <div key={g.name} style={{ border: "1px solid rgb(var(--sl-veil-rgb) / 0.1)", borderRadius: 12, overflow: "hidden" }}>
               <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 16px", background: "rgb(var(--sl-veil-rgb) / 0.03)", fontWeight: 800 }}>
                 <span>{g.name}</span>
-                {g.owed > 0 && <span style={{ color: "#d9534f" }}>Debe {fmt(g.owed)}</span>}
+                {g.owed > 0 && <span style={{ color: "var(--sl-red)" }}>Debe {fmt(g.owed)}</span>}
               </div>
               {g.items.map((c) => (
                 <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", borderTop: "1px solid rgb(var(--sl-veil-rgb) / 0.06)", opacity: c.status === "PAID" ? 0.55 : 1 }}>
@@ -104,7 +104,7 @@ export default function CreditosPage() {
                   </div>
                   {c.status === "OUTSTANDING" ? (
                     <button onClick={() => setStatus(c.id, "PAID")} disabled={busy === c.id}
-                      style={{ padding: "7px 12px", borderRadius: 8, border: "none", background: "#3f9d6f", color: "#0f1a15", fontWeight: 800, cursor: "pointer" }}>
+                      style={{ padding: "7px 12px", borderRadius: 8, border: "none", background: "var(--sl-green)", color: "var(--sl-bg)", fontWeight: 800, cursor: "pointer" }}>
                       Marcar pagada
                     </button>
                   ) : (

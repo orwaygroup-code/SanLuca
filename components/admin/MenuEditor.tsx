@@ -270,7 +270,7 @@ function Confirm({ title, message, onClose, onConfirm }: { title: string; messag
       <p style={{ color: "rgb(var(--sl-cream-rgb) / 0.82)", fontSize: "0.9rem", lineHeight: 1.5, margin: "8px 0 0" }}>{message}</p>
       <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
         <button style={X.ghost} onClick={onClose}>Cancelar</button>
-        <button style={{ ...X.primary, flex: 1, background: "#e8766b", color: "var(--sl-ink)" }} onClick={onConfirm}>Eliminar</button>
+        <button style={{ ...X.primary, flex: 1, background: "var(--sl-danger)", color: "var(--sl-ink)" }} onClick={onConfirm}>Eliminar</button>
       </div>
     </Overlay>
   );
@@ -292,7 +292,7 @@ const X: Record<string, React.CSSProperties> = {
   turnoToggle: { display: "inline-flex", border: "1px solid rgb(var(--sl-veil-rgb) / 0.15)", borderRadius: 10, overflow: "hidden" },
   turnoBtn: { padding: "9px 18px", background: "transparent", border: "none", color: "rgb(var(--sl-cream-rgb) / 0.6)", fontWeight: 800, fontSize: "0.76rem", letterSpacing: "0.08em", cursor: "pointer", fontFamily: "inherit" },
   turnoOn: { background: GOLD, color: "var(--sl-on-accent)" },
-  err: { background: "rgba(232,118,107,0.12)", border: "1px solid rgba(232,118,107,0.4)", color: "#e8766b", borderRadius: 10, padding: "10px 14px", fontSize: "0.84rem", marginBottom: 16, cursor: "pointer" },
+  err: { background: "rgba(232,118,107,0.12)", border: "1px solid rgba(232,118,107,0.4)", color: "var(--sl-danger)", borderRadius: 10, padding: "10px 14px", fontSize: "0.84rem", marginBottom: 16, cursor: "pointer" },
   sectionTitle: { color: GOLD, fontWeight: 800, fontSize: "1.05rem", marginBottom: 14 },
   muted: { color: "rgb(var(--sl-cream-rgb) / 0.55)", fontSize: "0.86rem" },
   cardGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 14 },
@@ -311,12 +311,12 @@ const X: Record<string, React.CSSProperties> = {
   dishChip: { display: "flex", alignItems: "center", gap: 8, padding: "6px 10px 6px 6px", borderRadius: 10, border: "1px solid rgb(var(--sl-veil-rgb) / 0.12)", background: "rgb(var(--sl-veil-rgb) / 0.03)", cursor: "pointer", fontFamily: "inherit" },
   addDish: { display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 10, border: `1px dashed ${GOLD}`, background: "transparent", color: GOLD, fontWeight: 700, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit" },
   iconBtn: { width: 32, height: 32, borderRadius: 8, border: "1px solid rgb(var(--sl-veil-rgb) / 0.15)", background: "transparent", color: "rgb(var(--sl-cream-rgb) / 0.75)", cursor: "pointer", fontSize: "0.85rem", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center" },
-  iconBtnDanger: { width: 32, height: 32, borderRadius: 8, border: "1px solid rgba(232,118,107,0.45)", background: "transparent", color: "#e8766b", cursor: "pointer", fontSize: "0.85rem", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center" },
-  mini: { padding: "6px 12px", borderRadius: 8, border: "1px solid rgb(var(--sl-gold-rgb) / 0.5)", background: "transparent", color: "#c9964a", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" },
-  miniDanger: { padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(232,118,107,0.45)", background: "transparent", color: "#e8766b", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" },
+  iconBtnDanger: { width: 32, height: 32, borderRadius: 8, border: "1px solid rgba(232,118,107,0.45)", background: "transparent", color: "var(--sl-danger)", cursor: "pointer", fontSize: "0.85rem", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center" },
+  mini: { padding: "6px 12px", borderRadius: 8, border: "1px solid rgb(var(--sl-gold-rgb) / 0.5)", background: "transparent", color: "var(--sl-gold)", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" },
+  miniDanger: { padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(232,118,107,0.45)", background: "transparent", color: "var(--sl-danger)", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" },
   primary: { padding: "10px 16px", minHeight: 40, borderRadius: 9, border: "none", background: GOLD, color: "var(--sl-on-accent)", fontWeight: 800, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit" },
   ghost: { padding: "10px 16px", minHeight: 40, borderRadius: 9, border: "1px solid rgb(var(--sl-veil-rgb) / 0.18)", background: "transparent", color: "rgb(var(--sl-cream-rgb) / 0.72)", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit" },
-  kicker: { fontSize: "0.62rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#c9964a", fontWeight: 700, margin: 0 },
+  kicker: { fontSize: "0.62rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--sl-gold)", fontWeight: 700, margin: 0 },
   input: { width: "100%", padding: "12px 13px", minHeight: 44, borderRadius: 9, boxSizing: "border-box", border: "1px solid rgb(var(--sl-veil-rgb) / 0.2)", background: "rgb(var(--sl-veil-rgb) / 0.05)", color: "var(--sl-cream)", fontSize: "0.9rem", fontFamily: "inherit", marginTop: 10 },
   claseChip: { flex: 1, padding: "10px 0", borderRadius: 9, border: "1px solid rgb(var(--sl-veil-rgb) / 0.18)", background: "transparent", color: "rgb(var(--sl-cream-rgb) / 0.72)", fontWeight: 700, fontSize: "0.82rem", cursor: "pointer", fontFamily: "inherit" },
   claseOn: { background: GOLD, color: "var(--sl-on-accent)", borderColor: GOLD },

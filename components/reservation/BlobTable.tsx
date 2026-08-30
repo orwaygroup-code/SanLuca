@@ -41,15 +41,20 @@ function chairAngles(capacity: number, shape: "round" | "sofa"): number[] {
   );
 }
 
-// Colores por estado
+// Colores por estado.
+//
+// El estado se comunica por el TINTE de la mesa, no por su luminosidad, así que
+// cada tinte se deriva del token de su color —acento, verde, azul— mezclado
+// sobre el panel. Con literales, la mitad del mapa se aclaraba con el tema y la
+// otra mitad se quedaba oscura, y el número de las ocupadas desaparecía.
 const stateColors: Record<TableState, { table: string; chair: string; text: string; border: string }> = {
-  available: { table: "#2c3537", chair: "#222c2e", text: "#f5f1e8",              border: "none"                       },
-  occupied:  { table: "#1e2426", chair: "#1a2022", text: "rgba(255,255,255,0.15)", border: "none"                   },
-  selected:  { table: "#ba843c", chair: "#9a6a2a", text: "#fff",                border: "2px solid #ba843c"          },
-  pair:      { table: "#3d3020", chair: "#2a2016", text: "rgba(186,132,60,0.9)", border: "2px solid rgba(186,132,60,0.7)" },
-  triple:    { table: "#1e3020", chair: "#182618", text: "rgba(100,200,80,0.9)",  border: "2px solid rgba(100,200,80,0.6)"  },
-  quad:      { table: "#1a2040", chair: "#141830", text: "rgba(120,180,255,0.9)", border: "2px solid rgba(80,140,220,0.6)"  },
-  disabled:  { table: "#1e2426", chair: "#1a2022", text: "rgba(255,255,255,0.1)", border: "none"                            },
+  available: { table: "var(--sl-panel2)", chair: "var(--sl-panel2)", text: "var(--sl-cream)",             border: "none" },
+  occupied:  { table: "var(--sl-panel)",  chair: "var(--sl-panel)",  text: "rgb(var(--sl-veil-rgb) / 0.15)", border: "none" },
+  selected:  { table: "var(--sl-gold)",   chair: "var(--sl-gold-deep)", text: "var(--sl-on-accent)",      border: "2px solid var(--sl-gold)" },
+  pair:      { table: "color-mix(in srgb, var(--sl-gold) 24%, var(--sl-panel))", chair: "color-mix(in srgb, var(--sl-gold) 14%, var(--sl-panel))", text: "var(--sl-gold)", border: "2px solid rgb(var(--sl-gold-rgb) / 0.7)" },
+  triple:    { table: "color-mix(in srgb, var(--sl-ok) 24%, var(--sl-panel))",   chair: "color-mix(in srgb, var(--sl-ok) 14%, var(--sl-panel))",   text: "var(--sl-ok)",   border: "2px solid var(--sl-ok)" },
+  quad:      { table: "color-mix(in srgb, var(--sl-info) 24%, var(--sl-panel))", chair: "color-mix(in srgb, var(--sl-info) 14%, var(--sl-panel))", text: "var(--sl-info)", border: "2px solid var(--sl-info)" },
+  disabled:  { table: "var(--sl-panel)",  chair: "var(--sl-panel)",  text: "rgb(var(--sl-veil-rgb) / 0.1)",  border: "none" },
 };
 
 export function BlobTable({ tableNum, capacity, cx, cy, state, onClick, shape = "round", fill, sub, forceClickable }: BlobTableProps) {
@@ -137,7 +142,7 @@ export function BlobTable({ tableNum, capacity, cx, cy, state, onClick, shape = 
               position: "absolute",
               width: 12, height: 12,
               top: b.top, left: b.left,
-              borderColor: "#ba843c",
+              borderColor: "var(--sl-gold)",
               borderStyle: "solid",
               borderWidth: b.bw,
               pointerEvents: "none",

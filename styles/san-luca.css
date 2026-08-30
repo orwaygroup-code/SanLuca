@@ -686,17 +686,17 @@ textarea::placeholder {
 }
 
 .dash-new-btn:hover {
-  background: #a8722f;
+  background: var(--sl-gold);
 }
 
 .dash-new-btn--disabled {
-  background: #4a3a1a;
+  background: rgb(var(--sl-gold-rgb) / 0.28);
   color: rgb(var(--sl-cream-rgb) / 0.3);
   cursor: not-allowed;
 }
 
 .dash-new-btn--disabled:hover {
-  background: #4a3a1a;
+  background: rgb(var(--sl-gold-rgb) / 0.28);
 }
 
 .dash-divider {
@@ -728,7 +728,7 @@ textarea::placeholder {
 }
 
 .dash-card {
-  background: #1b2224;
+  background: var(--sl-panel);
   border: 1px solid rgba(205, 164, 61, 0.25);
   border-radius: 20px;
   padding: clamp(20px, 2.5vw, 32px);
@@ -948,7 +948,7 @@ textarea::placeholder {
 
 /* Main card */
 .ci-card {
-  background: #1b2224;
+  background: var(--sl-panel);
   border: 1px solid rgba(205, 164, 61, 0.25);
   border-radius: 20px;
   padding: clamp(24px, 4vw, 36px);
@@ -1041,7 +1041,7 @@ textarea::placeholder {
 }
 
 .ci-btn:hover:not(:disabled) {
-  background: #a8722f;
+  background: var(--sl-gold);
 }
 
 .ci-btn:disabled {
@@ -1054,7 +1054,7 @@ textarea::placeholder {
 
 .adm-page {
   min-height: 100vh;
-  background: #151c1e;
+  background: var(--sl-bg);
   padding: clamp(20px, 3vw, 32px) clamp(12px, 3vw, 24px) clamp(40px, 5vw, 60px);
   font-family: var(--font-primary, sans-serif);
 }
@@ -1201,7 +1201,7 @@ textarea::placeholder {
 }
 .adm-clear-btn:hover {
   border-color: rgba(224,85,85,0.6);
-  color: #e05555;
+  color: var(--sl-danger-strong);
 }
 
 /* Date separator */
@@ -1306,7 +1306,7 @@ textarea::placeholder {
 }
 
 .adm-card {
-  background: #1e2628;
+  background: var(--sl-panel);
   border: 1px solid rgb(var(--sl-veil-rgb) / 0.07);
   border-radius: 14px;
   padding: 20px 22px;
@@ -1406,7 +1406,7 @@ textarea::placeholder {
   cursor: pointer;
   transition: background 0.2s, opacity 0.2s;
 }
-.adm-btn-gold:hover:not(:disabled) { background: #a8722f; }
+.adm-btn-gold:hover:not(:disabled) { background: var(--sl-gold); }
 .adm-btn-gold:disabled { opacity: 0.5; cursor: not-allowed; }
 .adm-btn-delete {
   flex: 1;
@@ -1592,13 +1592,13 @@ textarea::placeholder {
   min-height: 100vh;
   display: grid;
   grid-template-columns: 260px 1fr;
-  background: #1c2628;
+  background: var(--sl-panel);
   color: var(--sl-cream);
   font-family: inherit;
   position: relative;
 }
 .crm-shell__aside {
-  background: #22302e;
+  background: var(--sl-panel2);
   padding: 32px 28px;
   display: flex;
   flex-direction: column;
@@ -1818,7 +1818,7 @@ textarea::placeholder {
   gap: clamp(10px, 1.5vw, 14px);
   row-gap: 10px;
   align-items: center;
-  background: #22302e;
+  background: var(--sl-panel2);
   border: 1px solid rgb(var(--sl-veil-rgb) / 0.04);
   border-radius: 14px;
   padding: clamp(12px, 2vw, 16px) clamp(14px, 2vw, 18px);
@@ -1836,7 +1836,7 @@ textarea::placeholder {
   -webkit-overflow-scrolling: touch;
 }
 .crm-marketing-dropbox {
-  background: #22302e;
+  background: var(--sl-panel2);
   border: 1px solid rgb(var(--sl-veil-rgb) / 0.04);
   border-radius: 14px;
   height: clamp(180px, 36vw, 360px);
@@ -1887,7 +1887,7 @@ textarea::placeholder {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  background: #1a2224;
+  background: var(--sl-panel);
   border: 1px solid rgb(var(--sl-gold-rgb) / 0.35);
   border-radius: 10px;
   padding: 8px;
@@ -1928,14 +1928,14 @@ textarea::placeholder {
    CRM paneles (panel/card) — padding fluido con clamp
    ══════════════════════════════════════════════ */
 .crm-panel {
-  background: #22302e;
+  background: var(--sl-panel2);
   border: 1px solid rgb(var(--sl-veil-rgb) / 0.04);
   border-radius: clamp(12px, 1.5vw, 14px);
   padding: clamp(14px, 2.4vw, 20px);
   min-width: 0;
 }
 .crm-card {
-  background: #22302e;
+  background: var(--sl-panel2);
   border: 1px solid rgb(var(--sl-veil-rgb) / 0.04);
   border-radius: clamp(12px, 1.5vw, 14px);
   padding: clamp(14px, 2.4vw, 20px);
@@ -2207,6 +2207,21 @@ select option:checked {
   --sl-gold-rgb:  186 132 60;
   --sl-veil-rgb:  255 255 255;
 
+  /* Variantes del acento. Existen sobre todo por los degradados: una barra que
+     va de un dorado profundo al dorado base necesita las dos paradas ligadas
+     al tema, o se queda mitad dorada y mitad azul. */
+  --sl-gold-soft: #d8a765;
+  --sl-gold-deep: #9a6c2e;
+
+  /* Rojo de aviso. Se conserva el tono exacto que ya tenía en oscuro para no
+     cambiar lo que nadie pidió cambiar; sólo se le da un equivalente legible
+     sobre crema. */
+  --sl-danger:        #e8766b;
+  --sl-danger-strong: #e05555;
+  --sl-danger-hover:  #c85050;
+  --sl-ok:            #5fa15f;
+  --sl-info:          #63aede;
+
   /* Texto sobre el color de acento: en oscuro el acento es claro. */
   --sl-on-accent: #16201f;
 
@@ -2248,6 +2263,13 @@ select option:checked {
   --sl-cream-rgb: 30 58 82;
   --sl-gold-rgb:  61 107 140;
   --sl-veil-rgb:  30 58 82;
+  --sl-gold-soft: #5b8cad;
+  --sl-gold-deep: #2d5270;
+  --sl-danger:        #b3403c;
+  --sl-danger-strong: #a33232;
+  --sl-danger-hover:  #8f2b2b;
+  --sl-ok:            #2f7d55;
+  --sl-info:          #2f6d99;
 
   /* En claro el acento es oscuro: el texto encima va en crema. */
   --sl-on-accent: #f0ebe0;

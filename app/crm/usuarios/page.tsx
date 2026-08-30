@@ -61,8 +61,8 @@ const STATUS_COLOR: Record<string, string> = {
   PENDING_PAYMENT: "#d97706",
   PENDING:     "var(--sl-gold)",
   CONFIRMED:   "#4a9eca",
-  IN_PROGRESS: "#5fa15f",
-  DELAYED:     "#e05555",
+  IN_PROGRESS: "var(--sl-ok)",
+  DELAYED:     "var(--sl-danger-strong)",
   CANCELLED:   "rgb(var(--sl-cream-rgb) / 0.4)",
   COMPLETED:   "rgb(var(--sl-cream-rgb) / 0.5)",
   NO_SHOW:     "#c0392b",
@@ -115,7 +115,7 @@ export default function UsuariosPage() {
               <button key={c} onClick={() => setSource(c)} style={{
                 flex: 1, padding: "8px 0", border: "none", borderRadius: 999, cursor: "pointer", fontFamily: "inherit",
                 background: source === c ? "var(--sl-gold)" : "transparent",
-                color:      source === c ? "#1c2628" : "rgb(var(--sl-cream-rgb) / 0.6)",
+                color:      source === c ? "var(--sl-panel)" : "rgb(var(--sl-cream-rgb) / 0.6)",
                 fontWeight: source === c ? 700 : 500, fontSize: "0.7rem", letterSpacing: "0.06em", textTransform: "uppercase",
               }}>
                 {c === "todos" ? `Todos (${counts.todos})` : c === "web" ? `Web (${counts.web})` : `WA (${counts.whatsapp})`}
@@ -130,7 +130,7 @@ export default function UsuariosPage() {
                   onClick={() => setSelected(selected === u.id ? null : u.id)}
                   style={{
                     ...userItem,
-                    background: selected === u.id ? "#2a3a37" : "#22302e",
+                    background: selected === u.id ? "var(--sl-panel2)" : "var(--sl-panel2)",
                     borderColor: selected === u.id ? "rgb(var(--sl-gold-rgb) / 0.45)" : "rgb(var(--sl-veil-rgb) / 0.04)",
                   }}
                   aria-expanded={selected === u.id}
@@ -204,7 +204,7 @@ function UserDetail({ d }: { d: Detail }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-        <div style={{ width: 92, height: 92, borderRadius: "50%", background: "var(--sl-cream)", color: "#1c2628", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "2.4rem", flexShrink: 0 }}>👤</div>
+        <div style={{ width: 92, height: 92, borderRadius: "50%", background: "var(--sl-cream)", color: "var(--sl-panel)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "2.4rem", flexShrink: 0 }}>👤</div>
         <div style={{ flex: 1 }}>
           <h2 style={{ margin: 0, fontSize: "2rem", color: "var(--sl-cream)", fontWeight: 500, letterSpacing: "0.02em" }}>{d.user.name || "Sin nombre"}</h2>
           <div style={{ marginTop: 8, color: "rgb(var(--sl-cream-rgb) / 0.7)", fontSize: "0.85rem" }}>
@@ -238,7 +238,7 @@ function UserDetail({ d }: { d: Detail }) {
         ) : (
           <div className="crm-detail-grid">
             <div>
-              {d.preferences.sections.map((p, i) => <PrefBar key={p.label} label={p.label} value={p.value} max={d.stats.totalVisits} color={["#4a9eca", "#5fa15f", "#d4b35f"][i] ?? "var(--sl-gold)"} />)}
+              {d.preferences.sections.map((p, i) => <PrefBar key={p.label} label={p.label} value={p.value} max={d.stats.totalVisits} color={["#4a9eca", "var(--sl-ok)", "var(--sl-gold-soft)"][i] ?? "var(--sl-gold)"} />)}
             </div>
             <div>
               {d.preferences.occasions.map((p, i) => <Tag key={p.label} text={`${p.label} ×${p.value}`} color={["var(--sl-gold)", "#c084fc", "#f472b6"][i] ?? "var(--sl-gold)"} />)}
@@ -378,7 +378,7 @@ const statusBadge: React.CSSProperties = {
 };
 
 function Stat({ label, big, sub, accent, bad, small }: { label: string; big: number | string; sub?: string; accent?: boolean; bad?: boolean; small?: boolean }) {
-  const color = bad ? "#c85050" : accent ? "var(--sl-gold)" : "var(--sl-cream)";
+  const color = bad ? "var(--sl-danger-hover)" : accent ? "var(--sl-gold)" : "var(--sl-cream)";
   return (
     <div className="crm-panel">
       <div style={{ color: "rgb(var(--sl-cream-rgb) / 0.55)", fontSize: "0.68rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 600 }}>{label}</div>

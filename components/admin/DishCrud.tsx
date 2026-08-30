@@ -171,21 +171,21 @@ export function DishCrud({ isExtra }: { isExtra: boolean }) {
                     {row.active
                       ? <Switch on={row.available} onClick={() => toggleAvailable(row)} labelOn="Mostrar" labelOff="Oculto" />
                       : row.archivedAt
-                        ? <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "#c9a24a", border: "1px solid rgba(201,162,74,0.5)", borderRadius: 999, padding: "3px 10px", whiteSpace: "nowrap" }}>Archivado</span>
-                        : <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "#e8766b", border: "1px solid rgba(232,118,107,0.5)", borderRadius: 999, padding: "3px 10px", whiteSpace: "nowrap" }}>Eliminado</span>}
+                        ? <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--sl-gold-soft)", border: "1px solid rgba(201,162,74,0.5)", borderRadius: 999, padding: "3px 10px", whiteSpace: "nowrap" }}>Archivado</span>
+                        : <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--sl-danger)", border: "1px solid rgba(232,118,107,0.5)", borderRadius: 999, padding: "3px 10px", whiteSpace: "nowrap" }}>Eliminado</span>}
                   </td>
                   <td style={S.td}>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       {row.active ? (
                         <>
                           <button style={S.miniBtn} onClick={() => setEditTarget(row)}>Editar</button>
-                          <button style={{ ...S.miniBtn, borderColor: "rgba(201,162,74,0.35)", color: "#c9a24a" }} onClick={() => archiveDish(row)}>Archivar</button>
-                          <button style={{ ...S.miniBtn, borderColor: "rgba(232,118,107,0.4)", color: "#e8766b" }} onClick={() => eliminarDish(row)}>Eliminar</button>
+                          <button style={{ ...S.miniBtn, borderColor: "rgba(201,162,74,0.35)", color: "var(--sl-gold-soft)" }} onClick={() => archiveDish(row)}>Archivar</button>
+                          <button style={{ ...S.miniBtn, borderColor: "rgba(232,118,107,0.4)", color: "var(--sl-danger)" }} onClick={() => eliminarDish(row)}>Eliminar</button>
                         </>
                       ) : row.archivedAt ? (
                         <>
                           <button style={S.miniBtn} onClick={() => restoreDish(row)}>Restaurar</button>
-                          <button style={{ ...S.miniBtn, borderColor: "rgba(232,118,107,0.4)", color: "#e8766b" }} onClick={() => eliminarDish(row)}>Eliminar</button>
+                          <button style={{ ...S.miniBtn, borderColor: "rgba(232,118,107,0.4)", color: "var(--sl-danger)" }} onClick={() => eliminarDish(row)}>Eliminar</button>
                         </>
                       ) : (
                         <button style={S.miniBtn} onClick={() => restoreDish(row)}>Restaurar</button>
@@ -379,7 +379,7 @@ export function DishFormModal({ mode, isExtra, row, preset, onClose, onSaved }: 
           <span style={{ color: "rgb(var(--sl-cream-rgb) / 0.8)", fontSize: "0.85rem" }}>Mostrar en el menú público</span>
           <Switch on={available} onClick={() => setAvailable((v) => !v)} labelOn="Mostrar" labelOff="Oculto" />
         </div>
-        {error && <p style={{ color: "#e8766b", fontSize: "0.82rem", margin: 0 }}>⚠ {error}</p>}
+        {error && <p style={{ color: "var(--sl-danger)", fontSize: "0.82rem", margin: 0 }}>⚠ {error}</p>}
         <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
           <button style={S.ghostBtn} onClick={onClose}>Cancelar</button>
           <button style={{ ...S.primaryBtn, flex: 1, opacity: canSave ? 1 : 0.5 }} onClick={submit} disabled={!canSave}>{saving ? "Guardando…" : mode === "create" ? "Crear" : "Guardar"}</button>
@@ -403,7 +403,7 @@ function Switch({ on, onClick, labelOn, labelOff }: { on: boolean; onClick: () =
       <span style={{ width: 40, height: 22, borderRadius: 999, background: on ? "var(--sl-gold)" : "rgb(var(--sl-veil-rgb) / 0.15)", position: "relative", transition: "background .15s", flexShrink: 0 }}>
         <span style={{ position: "absolute", top: 2, left: on ? 20 : 2, width: 18, height: 18, borderRadius: 999, background: "var(--sl-cream)", transition: "left .15s" }} />
       </span>
-      <span style={{ fontSize: "0.75rem", color: on ? "#c9964a" : "rgb(var(--sl-cream-rgb) / 0.55)", fontWeight: 600 }}>{on ? labelOn : labelOff}</span>
+      <span style={{ fontSize: "0.75rem", color: on ? "var(--sl-gold)" : "rgb(var(--sl-cream-rgb) / 0.55)", fontWeight: 600 }}>{on ? labelOn : labelOff}</span>
     </button>
   );
 }
@@ -430,8 +430,8 @@ const S: Record<string, React.CSSProperties> = {
   primaryBtn: { padding: "12px 18px", minHeight: 44, borderRadius: 9, border: "none", background: "var(--sl-gold)", color: "var(--sl-on-accent)", fontWeight: 800, fontSize: "0.8rem", letterSpacing: "0.04em", cursor: "pointer", fontFamily: "inherit" },
   ghostBtn: { flex: 1, padding: "12px 0", minHeight: 44, borderRadius: 9, border: "1px solid rgb(var(--sl-veil-rgb) / 0.18)", background: "transparent", color: "rgb(var(--sl-cream-rgb) / 0.72)", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit" },
   ghostBtnAuto: { padding: "0 16px", minHeight: 44, borderRadius: 9, border: "1px solid rgb(var(--sl-veil-rgb) / 0.18)", background: "transparent", color: "rgb(var(--sl-cream-rgb) / 0.72)", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" },
-  miniBtn: { padding: "9px 14px", minHeight: 40, borderRadius: 8, border: "1px solid rgb(var(--sl-gold-rgb) / 0.5)", background: "transparent", color: "#c9964a", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" },
-  kicker: { fontSize: "0.62rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#c9964a", fontWeight: 700, margin: 0 },
+  miniBtn: { padding: "9px 14px", minHeight: 40, borderRadius: 8, border: "1px solid rgb(var(--sl-gold-rgb) / 0.5)", background: "transparent", color: "var(--sl-gold)", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" },
+  kicker: { fontSize: "0.62rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--sl-gold)", fontWeight: 700, margin: 0 },
   label: { display: "block", fontSize: "0.62rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgb(var(--sl-cream-rgb) / 0.62)", fontWeight: 700, marginBottom: 5 },
   input: { width: "100%", padding: "12px 13px", minHeight: 44, borderRadius: 9, boxSizing: "border-box", border: "1px solid rgb(var(--sl-veil-rgb) / 0.2)", background: "rgb(var(--sl-veil-rgb) / 0.05)", color: "var(--sl-cream)", fontSize: "0.9rem", fontFamily: "inherit" },
 };

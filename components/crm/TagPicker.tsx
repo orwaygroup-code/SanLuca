@@ -248,7 +248,7 @@ export function TagPicker({
               width: "100%",
               padding: "7px 10px",
               background: "var(--sl-gold)",
-              color: "#1c2628",
+              color: "var(--sl-panel)",
               border: "none",
               borderRadius: 6,
               fontSize: "0.8rem",
@@ -263,7 +263,7 @@ export function TagPicker({
       )}
 
       {err && (
-        <div style={{ marginTop: 8, color: "#e05555", fontSize: "0.75rem" }}>⚠ {err}</div>
+        <div style={{ marginTop: 8, color: "var(--sl-danger-strong)", fontSize: "0.75rem" }}>⚠ {err}</div>
       )}
     </div>
   );

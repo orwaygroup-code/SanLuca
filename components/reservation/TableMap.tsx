@@ -19,24 +19,24 @@ export function TableMap({ data, guests, selection, onSelect }: Props) {
   const legend = (
     <div style={{ display: "flex", gap: 20, flexWrap: "wrap", marginTop: 10, justifyContent: "center" }}>
       {[
-        { bg: "#2c3537", border: "none",                              label: "Disponible" },
+        { bg: "var(--sl-panel2)", border: "none",                              label: "Disponible" },
         guests >= 5 && guests < TRIPLE_MIN_GUESTS
-          ? { bg: "#3d3020", border: "1px solid rgba(186,132,60,0.6)", label: "Par combinable" }
+          ? { bg: "color-mix(in srgb, var(--sl-gold) 24%, var(--sl-panel))", border: "1px solid rgb(var(--sl-gold-rgb) / 0.6)", label: "Par combinable" }
           : null,
         guests >= TRIPLE_MIN_GUESTS && guests < QUAD_MIN_GUESTS
-          ? { bg: "#1e3020", border: "1px solid rgba(100,200,80,0.6)", label: "Triple combinable" }
+          ? { bg: "color-mix(in srgb, var(--sl-ok) 24%, var(--sl-panel))", border: "1px solid var(--sl-ok)", label: "Triple combinable" }
           : null,
         guests >= QUAD_MIN_GUESTS
-          ? { bg: "#1a2040", border: "1px solid rgba(80,140,220,0.6)", label: "Cuádruple combinable" }
+          ? { bg: "color-mix(in srgb, var(--sl-info) 24%, var(--sl-panel))", border: "1px solid var(--sl-info)", label: "Cuádruple combinable" }
           : null,
-        { bg: "#ba843c", border: "none",                              label: "Seleccionada" },
-        { bg: "#1e2426", border: "none",                              label: "Ocupada" },
+        { bg: "var(--sl-gold)", border: "none",                              label: "Seleccionada" },
+        { bg: "var(--sl-panel)", border: "none",                              label: "Ocupada" },
       ].filter(Boolean).map((item) => {
         const l = item!;
         return (
           <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <div style={{ width: 14, height: 14, borderRadius: 4, background: l.bg, border: l.border, flexShrink: 0 }} />
-            <span style={{ fontSize: "0.68rem", color: "rgba(245,241,232,0.45)" }}>{l.label}</span>
+            <span style={{ fontSize: "0.68rem", color: "rgb(var(--sl-cream-rgb) / 0.45)" }}>{l.label}</span>
           </div>
         );
       })}

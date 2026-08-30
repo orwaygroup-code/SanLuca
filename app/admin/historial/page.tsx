@@ -35,9 +35,9 @@ const STATUS_COLOR: Record<string, string> = {
   PENDING_PAYMENT: "#d97706",
   PENDING:     "var(--sl-gold)",
   CONFIRMED:   "#4a9eca",
-  IN_PROGRESS: "#5fa15f",
-  DELAYED:     "#e05555",
-  CANCELLED:   "#c85050",
+  IN_PROGRESS: "var(--sl-ok)",
+  DELAYED:     "var(--sl-danger-strong)",
+  CANCELLED:   "var(--sl-danger-hover)",
   NO_SHOW:     "#c0392b",
   COMPLETED:   "rgb(var(--sl-cream-rgb) / 0.5)",
 };
@@ -209,7 +209,7 @@ export default function HistorialPage() {
 }
 
 const btnDanger: React.CSSProperties = {
-  padding: "6px 12px", background: "#c85050", border: "none", borderRadius: 6,
+  padding: "6px 12px", background: "var(--sl-danger-hover)", border: "none", borderRadius: 6,
   color: "#fff", fontSize: "0.7rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", letterSpacing: "0.06em",
 };
 const btnGhost: React.CSSProperties = {

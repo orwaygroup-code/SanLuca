@@ -177,7 +177,7 @@ export default function TagsAdminPage() {
       </div>
 
       {error && (
-        <div style={{ background: "rgba(224,85,85,0.12)", color: "#e05555", padding: "10px 14px", borderRadius: 8, marginBottom: 16, fontSize: "0.88rem" }}>
+        <div style={{ background: "rgba(224,85,85,0.12)", color: "var(--sl-danger-strong)", padding: "10px 14px", borderRadius: 8, marginBottom: 16, fontSize: "0.88rem" }}>
           ⚠ {error}
         </div>
       )}
@@ -207,7 +207,7 @@ export default function TagsAdminPage() {
                     fontWeight: active ? 700 : 500,
                     letterSpacing: "0.04em",
                     background: active ? "var(--sl-gold)" : "transparent",
-                    color: active ? "#1c2628" : "rgb(var(--sl-cream-rgb) / 0.6)",
+                    color: active ? "var(--sl-panel)" : "rgb(var(--sl-cream-rgb) / 0.6)",
                   }}
                 >
                   {label}
@@ -267,7 +267,7 @@ export default function TagsAdminPage() {
                   )}
                 </td>
                 <td style={td}>
-                  <span style={{ fontSize: "0.78rem", color: t.isActive ? "#5fa15f" : "#e05555" }}>
+                  <span style={{ fontSize: "0.78rem", color: t.isActive ? "var(--sl-ok)" : "var(--sl-danger-strong)" }}>
                     {t.isActive ? "Activo" : "Inactivo"}
                   </span>
                 </td>
@@ -338,7 +338,7 @@ const ctrl: React.CSSProperties = {
 };
 const th:   React.CSSProperties = { textAlign: "left", padding: "12px 14px", fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "rgb(var(--sl-cream-rgb) / 0.5)", borderBottom: "1px solid rgb(var(--sl-veil-rgb) / 0.08)" };
 const td:   React.CSSProperties = { padding: "10px 14px", borderBottom: "1px solid rgb(var(--sl-veil-rgb) / 0.04)", color: "rgb(var(--sl-cream-rgb) / 0.9)", verticalAlign: "middle" };
-const primaryBtn: React.CSSProperties = { padding: "9px 16px", background: "var(--sl-gold)", color: "#1c2628", border: "none", borderRadius: 6, fontWeight: 700, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" };
+const primaryBtn: React.CSSProperties = { padding: "9px 16px", background: "var(--sl-gold)", color: "var(--sl-panel)", border: "none", borderRadius: 6, fontWeight: 700, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" };
 const ghostBtn:   React.CSSProperties = { padding: "5px 11px", background: "transparent", border: "1px solid rgb(var(--sl-gold-rgb) / 0.4)", color: "var(--sl-gold)", borderRadius: 4, fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit" };
-const smallBtn:   React.CSSProperties = { padding: "5px 11px", background: "var(--sl-gold)", color: "#1c2628", border: "none", borderRadius: 4, fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" };
-const dangerBtn:  React.CSSProperties = { padding: "5px 11px", background: "transparent", border: "1px solid rgba(224,85,85,0.45)", color: "#e05555", borderRadius: 4, fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit" };
+const smallBtn:   React.CSSProperties = { padding: "5px 11px", background: "var(--sl-gold)", color: "var(--sl-panel)", border: "none", borderRadius: 4, fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" };
+const dangerBtn:  React.CSSProperties = { padding: "5px 11px", background: "transparent", border: "1px solid rgba(224,85,85,0.45)", color: "var(--sl-danger-strong)", borderRadius: 4, fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit" };

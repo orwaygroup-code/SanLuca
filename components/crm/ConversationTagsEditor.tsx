@@ -163,7 +163,7 @@ export function ConversationTagsEditor({
         </div>
       </div>
       {err && (
-        <div style={{ marginTop: 6, color: "#e05555", fontSize: "0.75rem" }}>⚠ {err}</div>
+        <div style={{ marginTop: 6, color: "var(--sl-danger-strong)", fontSize: "0.75rem" }}>⚠ {err}</div>
       )}
     </div>
   );

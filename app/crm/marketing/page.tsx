@@ -104,7 +104,7 @@ export default function MarketingPage() {
                             <div style={{ ...progressFill, width: `${pct}%` }} />
                           </div>
                           {c.failedCount > 0 && (
-                            <div style={{ color: "#e05555", fontSize: "0.7rem", marginTop: 2 }}>
+                            <div style={{ color: "var(--sl-danger-strong)", fontSize: "0.7rem", marginTop: 2 }}>
                               {c.failedCount} con error
                             </div>
                           )}
@@ -191,7 +191,7 @@ const statBox: React.CSSProperties = {
 
 const primaryBtn: React.CSSProperties = {
   background: "var(--sl-gold)",
-  color: "#1c2628",
+  color: "var(--sl-panel)",
   padding: "10px 20px",
   borderRadius: 999,
   fontWeight: 700,

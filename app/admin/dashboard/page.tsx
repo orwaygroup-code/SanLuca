@@ -304,7 +304,7 @@ function BarChart({ data, format }: { data: { label: string; value: number }[]; 
         <div key={d.label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ color: C.dim, fontSize: "0.76rem", width: 130, textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.label}</span>
           <div style={{ flex: 1, background: "rgb(var(--sl-veil-rgb) / 0.05)", borderRadius: 6, overflow: "hidden", height: 22 }}>
-            <div style={{ width: `${(d.value / max) * 100}%`, height: "100%", background: "linear-gradient(90deg,#9a6c2e,var(--sl-gold))", minWidth: d.value > 0 ? 3 : 0 }} />
+            <div style={{ width: `${(d.value / max) * 100}%`, height: "100%", background: "linear-gradient(90deg,var(--sl-gold-deep),var(--sl-gold))", minWidth: d.value > 0 ? 3 : 0 }} />
           </div>
           <span style={{ color: C.cream, fontSize: "0.78rem", width: 100, textAlign: "right", fontWeight: 600 }}>{format(d.value)}</span>
         </div>
@@ -339,7 +339,7 @@ const S: Record<string, React.CSSProperties> = {
   shiftGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14, marginBottom: 18 },
   shiftCard: { background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, padding: "18px 20px" },
   occTrack: { height: 8, borderRadius: 6, background: "rgb(var(--sl-veil-rgb) / 0.06)", overflow: "hidden" },
-  occFill: { height: "100%", background: "linear-gradient(90deg,#9a6c2e,var(--sl-gold))", borderRadius: 6 },
+  occFill: { height: "100%", background: "linear-gradient(90deg,var(--sl-gold-deep),var(--sl-gold))", borderRadius: 6 },
   topPill: { color: C.cream, fontSize: "0.76rem", fontWeight: 600, background: "rgb(var(--sl-gold-rgb) / 0.12)", border: `1px solid ${C.border}`, borderRadius: 999, padding: "3px 10px" },
   corteRow: { display: "flex", gap: 10, flexWrap: "wrap" },
   corte: { textAlign: "left", minWidth: 170, padding: "12px 14px", borderRadius: 12, border: `1px solid ${C.line}`, background: "rgb(var(--sl-veil-rgb) / 0.02)", cursor: "pointer", fontFamily: "inherit" },

@@ -168,7 +168,7 @@ export default function FechasEspecialesPage() {
           <button type="submit" disabled={creating} style={{
             padding: "10px 20px",
             background: "var(--sl-gold)",
-            color: "#0a1112",
+            color: "var(--sl-bg)",
             border: "none",
             borderRadius: 8,
             fontWeight: 700,
@@ -181,7 +181,7 @@ export default function FechasEspecialesPage() {
             {creating ? "Agregando..." : "Agregar"}
           </button>
           {error && (
-            <div style={{ gridColumn: "1 / -1", color: "#c85050", fontSize: "0.8rem" }}>⚠ {error}</div>
+            <div style={{ gridColumn: "1 / -1", color: "var(--sl-danger-hover)", fontSize: "0.8rem" }}>⚠ {error}</div>
           )}
         </form>
 
@@ -260,13 +260,13 @@ export default function FechasEspecialesPage() {
                   <div style={{ display: "flex", gap: 6 }}>
                     {isEditing ? (
                       <>
-                        <button onClick={() => saveEdit(it.id)} style={iconBtn("#5fa15f")}>Guardar</button>
+                        <button onClick={() => saveEdit(it.id)} style={iconBtn("var(--sl-ok)")}>Guardar</button>
                         <button onClick={() => { setEditId(null); setEditDraft(null); }} style={iconBtn("#888")}>Cancelar</button>
                       </>
                     ) : (
                       <>
                         <button onClick={() => { setEditId(it.id); setEditDraft({ label: it.label, amount: it.amount, month: it.month, day: it.day }); }} style={iconBtn("var(--sl-gold)")}>Editar</button>
-                        <button onClick={() => remove(it.id)} style={iconBtn("#c85050")}>Eliminar</button>
+                        <button onClick={() => remove(it.id)} style={iconBtn("var(--sl-danger-hover)")}>Eliminar</button>
                       </>
                     )}
                   </div>
@@ -306,9 +306,9 @@ function pillBtn(active: boolean): React.CSSProperties {
   return {
     padding: "6px 14px",
     borderRadius: 999,
-    border: `1px solid ${active ? "#5fa15f" : "rgb(var(--sl-veil-rgb) / 0.2)"}`,
+    border: `1px solid ${active ? "var(--sl-ok)" : "rgb(var(--sl-veil-rgb) / 0.2)"}`,
     background: active ? "rgba(95,161,95,0.15)" : "transparent",
-    color: active ? "#5fa15f" : "rgb(var(--sl-cream-rgb) / 0.5)",
+    color: active ? "var(--sl-ok)" : "rgb(var(--sl-cream-rgb) / 0.5)",
     fontSize: "0.7rem",
     fontWeight: 600,
     cursor: "pointer",

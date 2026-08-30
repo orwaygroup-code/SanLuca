@@ -200,7 +200,7 @@ function pill(active: boolean): React.CSSProperties {
     borderRadius: 999,
     border: "1px solid rgb(var(--sl-veil-rgb) / 0.08)",
     background: active ? "var(--sl-gold)" : "transparent",
-    color: active ? "#1c2628" : "rgb(var(--sl-cream-rgb) / 0.75)",
+    color: active ? "var(--sl-panel)" : "rgb(var(--sl-cream-rgb) / 0.75)",
     fontSize: "0.78rem",
     fontWeight: active ? 700 : 500,
     cursor: "pointer",
@@ -231,7 +231,7 @@ function StatCard({ label, value, growth, icon, mock }: { label: string; value: 
         {mock ? (
           <div style={{ marginTop: 6, color: "rgb(var(--sl-cream-rgb) / 0.4)", fontSize: "0.7rem" }}>Pendiente de fuente</div>
         ) : growth !== undefined ? (
-          <div style={{ marginTop: 6, color: positive ? "#5fa15f" : "#c85050", fontSize: "0.78rem" }}>
+          <div style={{ marginTop: 6, color: positive ? "var(--sl-ok)" : "var(--sl-danger-hover)", fontSize: "0.78rem" }}>
             {positive ? "↑" : "↓"} {Math.abs(growth)}% crecimiento
           </div>
         ) : null}
@@ -277,7 +277,7 @@ function Chart({ data }: { data: ChartBar[] }) {
                     height: barH,
                     background: t === 0
                       ? "rgb(var(--sl-cream-rgb) / 0.06)"
-                      : "linear-gradient(180deg, #d09a52 0%, var(--sl-gold) 100%)",
+                      : "linear-gradient(180deg, var(--sl-gold-soft) 0%, var(--sl-gold) 100%)",
                     borderRadius: "4px 4px 0 0",
                     transition: "height 0.4s ease",
                   }}
@@ -349,7 +349,7 @@ function Donut({ conv, wa }: { conv?: Dashboard["conversion"]; wa?: Dashboard["w
       <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: "0.72rem", color: "rgb(var(--sl-cream-rgb) / 0.55)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "2px 10px" }}>
           <span style={{ color: "var(--sl-gold)", fontWeight: 600 }}>General</span>
-          <span>Total: <b style={{ color: "var(--sl-cream)" }}>{conv?.total ?? 0}</b> · OK: <b style={{ color: "var(--sl-gold)" }}>{conv?.successful ?? 0}</b> · Canc: <b style={{ color: "#c85050" }}>{conv?.cancelled ?? 0}</b></span>
+          <span>Total: <b style={{ color: "var(--sl-cream)" }}>{conv?.total ?? 0}</b> · OK: <b style={{ color: "var(--sl-gold)" }}>{conv?.successful ?? 0}</b> · Canc: <b style={{ color: "var(--sl-danger-hover)" }}>{conv?.cancelled ?? 0}</b></span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "2px 10px" }}>
           <span style={{ color: "#25d366", fontWeight: 600 }}>WhatsApp</span>

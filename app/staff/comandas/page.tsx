@@ -204,7 +204,7 @@ export default function MeseroComandasPage() {
             <button key={c.id} onClick={() => { dismissPayAlert(); router.push(`/staff/comandas/${c.id}?back=/staff/comandas`); }}
               style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, textAlign: "left", background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: "11px 13px", cursor: "pointer", fontFamily: "inherit" }}>
               <span style={{ color: C.cream, fontWeight: 700, fontSize: "0.9rem" }}>{comandaLabel(c)}</span>
-              <span style={{ color: "#e8766b", fontSize: "0.78rem", fontWeight: 700 }}>{formatMXN(Number(c.total))}</span>
+              <span style={{ color: "var(--sl-danger)", fontSize: "0.78rem", fontWeight: 700 }}>{formatMXN(Number(c.total))}</span>
             </button>
           ))}
         </div>
