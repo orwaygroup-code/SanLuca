@@ -71,11 +71,12 @@ export function InstallButton() {
 
 const fab: React.CSSProperties = {
   position: "fixed",
-  // Esquina IZQUIERDA a propósito: la derecha ya la ocupan el flotante de
-  // WhatsApp en las públicas (bottom 28 / right 28) y la campana de
-  // notificaciones en staff (bottom 16 / right 16). Con este botón también a la
-  // derecha los tres se encimaban.
-  left: "16px",
+  // A la izquierda de la campana de notificaciones, que vive en right 16 y
+  // mide 50 px: 16 + 50 + 12 de separación = 78. Ambos anclados abajo, así
+  // que quedan alineados por su base.
+  // (El flotante de WhatsApp no entra en juego: este botón solo se monta en
+  // /staff, /admin y /crm — ver APP_PREFIXES — y aquel es de las públicas.)
+  right: "78px",
   bottom: "max(16px, env(safe-area-inset-bottom))",
   zIndex: 50, // debajo de modales (80) y toasts (100)
   display: "inline-flex",
