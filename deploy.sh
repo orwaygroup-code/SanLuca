@@ -6,6 +6,23 @@ set -euo pipefail
 APP_DIR="/var/www/sanluca"
 PM2_NAME="sanluca"
 
+# Este script se ejecuta a sí mismo desde una copia fuera del repo.
+#
+# Más abajo hay un `git pull` que puede reescribir este mismo archivo, y bash
+# lee los scripts de forma perezosa, por desplazamiento de bytes: si el archivo
+# cambia de tamaño a media ejecución, bash sigue leyendo desde un offset que
+# ahora cae en mitad de otra instrucción. Copiarse y re-ejecutarse elimina el
+# problema de raíz.
+if [ "${DEPLOY_REEXEC:-}" != "1" ]; then
+  SELF_COPY="$(mktemp /tmp/sanluca-deploy.XXXXXX.sh)"
+  cp "$0" "$SELF_COPY"
+  export DEPLOY_REEXEC=1
+  bash "$SELF_COPY" "$@"
+  STATUS=$?
+  rm -f "$SELF_COPY"
+  exit $STATUS
+fi
+
 cd "$APP_DIR"
 
 log() { echo -e "\n\033[1;33m▶ $*\033[0m"; }
