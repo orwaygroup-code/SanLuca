@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getStaffSession } from "@/lib/staff-auth-server";
-import { prepAreaToTarget } from "@/lib/comandaRules";
+import { prepAreaToTarget, resolveReprintAuthorizer, REPRINT_AUTHORIZER_ROLES } from "@/lib/comandaRules";
+import { verifySupervisorPin } from "@/lib/staff";
 import { TENANT, COMANDA_INCLUDE } from "@/lib/comanda";
 import type { ApiResponse } from "@/types";
 
@@ -12,18 +13,32 @@ function parseId(raw: string): number | null {
 
 /**
  * POST /api/comandas/:id/reprint-kitchen { itemIds:number[] } — reimprime a cocina/barra
- * productos YA enviados. Acción de MANAGER (el botón solo le aparece a él). Agrupa por área
+ * productos YA enviados. La autoriza un Capitán o Manager, en sesión o con su PIN. Agrupa por área
  * y crea un ComandaPrint KITCHEN_REPRINT por destino, con bandera de reimpresión (banner).
  */
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   const s = await getStaffSession(request);
   if (!s) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 401 });
-  if (s.role !== "MANAGER") return NextResponse.json<ApiResponse>({ success: false, error: "Solo un manager puede reimprimir a cocina" }, { status: 403 });
 
   const id = parseId(params.id);
   if (!id) return NextResponse.json<ApiResponse>({ success: false, error: "ID inválido" }, { status: 400 });
 
   const body = await request.json().catch(() => ({}));
+
+  // Misma jerarquía que la reimpresión del ticket: la autoriza un Capitán o un
+  // Manager, en sesión o con su PIN. Antes era sólo MANAGER en sesión, lo que
+  // dejaba a la caja sin salida cuando el manager no estaba en el piso.
+  const authPin = typeof body?.authPin === "string" ? body.authPin.trim() : "";
+  const auth = resolveReprintAuthorizer({
+    operatorRole: s.role,
+    operatorStaffId: s.staffId,
+    pinProvided: authPin.length > 0,
+    pinAuthorizedId: authPin
+      ? await verifySupervisorPin(authPin, { tenantId: TENANT, roles: [...REPRINT_AUTHORIZER_ROLES] })
+      : null,
+  });
+  if (!auth.ok) return NextResponse.json<ApiResponse>({ success: false, error: auth.error }, { status: auth.status });
+
   const itemIds: number[] = Array.isArray(body?.itemIds) ? body.itemIds.filter((n: unknown) => Number.isInteger(n)) : [];
   if (itemIds.length === 0) return NextResponse.json<ApiResponse>({ success: false, error: "Elige al menos un producto" }, { status: 400 });
 
@@ -66,7 +81,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         items:   areaItems,
       };
       return prisma.comandaPrint.create({
-        data: { tenantId: TENANT, comandaId: id, type: "KITCHEN_REPRINT", target: prepAreaToTarget(area), executedById: s.staffId, status: "PENDING", payload },
+        data: { tenantId: TENANT, comandaId: id, type: "KITCHEN_REPRINT", target: prepAreaToTarget(area), executedById: s.staffId, authorizedById: auth.authorizedById, status: "PENDING", payload },
       });
     }),
   );

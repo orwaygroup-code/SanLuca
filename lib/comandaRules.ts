@@ -126,3 +126,50 @@ export function buildSplits(
     ) / 100,
   }));
 }
+
+/** Roles que pueden AUTORIZAR una reimpresión tecleando su PIN. */
+export const REPRINT_AUTHORIZER_ROLES = ["CAPTAIN", "MANAGER"] as const;
+
+/** ¿Este rol reimprime sin que nadie más lo autorice? */
+export function isReprintAuthorizer(role: string | null | undefined): boolean {
+  // ADMIN entra por el realm sl_session (Ricardo desde /admin); CAPTAIN y
+  // MANAGER por sl_staff con PIN.
+  return role === "CAPTAIN" || role === "MANAGER" || role === "ADMIN";
+}
+
+export type ReprintAuth =
+  | { ok: true; authorizedById: number }
+  | { ok: false; error: string; status: 403 };
+
+/**
+ * Quién queda registrado como autorizador de una reimpresión.
+ *
+ * Dos vías, y sólo dos: el supervisor que tiene la sesión abierta, o cualquier
+ * miembro de la caja acompañado del PIN de un Capitán o Manager. La segunda
+ * existe porque quien está frente a la impresora es el cajero, y obligarlo a
+ * cerrar sesión para que un supervisor autorice un papel es la clase de
+ * fricción que acaba en que nadie reimprima.
+ *
+ * Vive aquí, y no dentro de cada endpoint, porque la usan la reimpresión del
+ * ticket y la de cocina. Una regla de jerarquía repetida en dos sitios es una
+ * regla que tarde o temprano deja de coincidir consigo misma.
+ */
+export function resolveReprintAuthorizer(args: {
+  operatorRole: string | null | undefined;
+  operatorStaffId: number;
+  /** Si se mandó PIN: el staffId que devolvió la verificación, o null si no era válido. */
+  pinAuthorizedId?: number | null;
+  /** Si el cliente mandó un PIN, aunque fuera incorrecto. */
+  pinProvided?: boolean;
+}): ReprintAuth {
+  if (isReprintAuthorizer(args.operatorRole)) {
+    return { ok: true, authorizedById: args.operatorStaffId };
+  }
+  if (!args.pinProvided) {
+    return { ok: false, status: 403, error: "La reimpresión la autoriza un Capitán o Manager." };
+  }
+  if (args.pinAuthorizedId == null) {
+    return { ok: false, status: 403, error: "PIN incorrecto o sin permiso para autorizar la reimpresión." };
+  }
+  return { ok: true, authorizedById: args.pinAuthorizedId };
+}

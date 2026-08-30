@@ -93,6 +93,8 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   const [hasSession, setHasSession] = useState(false);
   // Reimpresión a cocina (solo manager): modal con selección de productos ya enviados.
   const [reprintOpen, setReprintOpen] = useState(false);
+  // PIN del supervisor que autoriza, cuando quien opera no lo es.
+  const [reprintPin, setReprintPin] = useState("");
   const [reprintSel, setReprintSel] = useState<Set<number>>(new Set());
   // Multi-selección de productos para acciones en lote (cancelar / mover / descuento).
   const [sel, setSel] = useState<Set<number>>(new Set());
@@ -248,12 +250,15 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   }, [push]);
 
   const sendToKitchen = () => post(`/api/comandas/${id}/send-to-kitchen`, undefined, "Enviado a cocina/barra");
-  const doPrint = (authorizationReason?: string) => {
+  const doPrint = (authorizationReason?: string, authPin?: string) => {
     const matrixUnits = matrixItemsWithQty.map((it) => ({ itemId: it.id, quantity: it.remainingQty }));
     const splitsPayload = buildSplitsPayload(splits, matrixUnits);
     const body: Record<string, unknown> = {};
     if (splitsPayload) body.splits = splitsPayload;
     if (authorizationReason) body.authorizationReason = authorizationReason;
+    // Sólo va cuando quien opera no es supervisor: el servidor lo valida contra
+    // los PINs de Capitán y Manager del tenant.
+    if (authPin) body.authPin = authPin;
     return post(`/api/comandas/${id}/print`, body, "Ticket impreso");
   };
   // Mesero imprime el ticket y BLOQUEA la comanda: imprime el ticket del cliente y la
@@ -313,8 +318,12 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   const toggleReprint = (itemId: number) => setReprintSel((s) => { const n = new Set(s); if (n.has(itemId)) n.delete(itemId); else n.add(itemId); return n; });
   const doReprint = async () => {
     if (reprintSel.size === 0) return;
-    const ok = await post(`/api/comandas/${id}/reprint-kitchen`, { itemIds: [...reprintSel] }, "Reimpresión enviada a cocina");
-    if (ok) { setReprintOpen(false); setReprintSel(new Set()); }
+    const ok = await post(
+      `/api/comandas/${id}/reprint-kitchen`,
+      { itemIds: [...reprintSel], ...(reprintPin ? { authPin: reprintPin } : {}) },
+      "Reimpresión enviada a cocina",
+    );
+    if (ok) { setReprintOpen(false); setReprintSel(new Set()); setReprintPin(""); }
   };
 
   // Multi-selección: alternar, limpiar y cancelar en lote (un solo PIN para todo el set).
@@ -732,10 +741,11 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
           <section data-tour="caja" style={caja.wrap}>
             <div style={caja.label}>Caja</div>
 
-            {/* Reimpresión a cocina: solo manager, con productos enviados y ANTES de imprimir la
-                cuenta (tras imprimir, la UI queda solo en Cobrar). */}
-            {isManager && !isPaid && !alreadyPrinted && liveItems.some((i) => i.status !== "PENDING") && (
-              <button style={caja.reprint} onClick={() => { setReprintSel(new Set()); setReprintOpen(true); }} disabled={busy}>
+            {/* Reimpresión a cocina: con productos enviados y ANTES de imprimir la cuenta
+                (tras imprimir, la UI queda solo en Cobrar). La autoriza un Capitán o
+                Manager; si quien opera no lo es, el modal le pide el PIN. */}
+            {!isPaid && !alreadyPrinted && liveItems.some((i) => i.status !== "PENDING") && (
+              <button style={caja.reprint} onClick={() => { setReprintSel(new Set()); setReprintPin(""); setReprintOpen(true); }} disabled={busy}>
                 <Icon name="printer" size={15} /> Reimprimir productos a cocina
               </button>
             )}
@@ -751,12 +761,14 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
                 <div style={{ ...caja.callout, color: C.green, borderColor: `color-mix(in srgb, ${C.green} 45%, transparent)`, background: `color-mix(in srgb, ${C.green} 12%, transparent)` }}>
                   Cuenta saldada y sellada — solo lectura.
                 </div>
-                {/* Reimprimir el ticket del cliente aun estando pagada (supervisor, con motivo). */}
-                {isSupervisor && (
-                  <div style={caja.primaryRow}>
-                    <button style={caja.secondary} onClick={() => setReprint(true)} disabled={busy}><Icon name="printer" size={16} />Reimprimir ticket</button>
-                  </div>
-                )}
+                {/* Reimprimir el ticket del cliente aun estando pagada, con motivo para
+                    auditoría. Visible para toda la caja: si quien opera no es Capitán o
+                    Manager, el modal le pide el PIN de uno. Antes sólo aparecía si el
+                    supervisor tenía la sesión abierta, así que en la práctica el cajero
+                    no tenía botón. */}
+                <div style={caja.primaryRow}>
+                  <button style={caja.secondary} onClick={() => setReprint(true)} disabled={busy}><Icon name="printer" size={16} />Reimprimir ticket</button>
+                </div>
                 {isManager ? (
                   <>
                     <div style={caja.subLabel}>Más acciones</div>
@@ -992,8 +1004,11 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
         title="Reimprimir ticket"
         label="Motivo de la reimpresión (auditoría)"
         confirmLabel="Reimprimir"
+        // Al supervisor en sesión no se le pide PIN: ya está identificado. Al
+        // cajero sí, y es el PIN de quien autoriza, no el suyo.
+        requirePin={!isSupervisor}
         busy={busy}
-        onConfirm={async (reason) => { setReprint(false); await doPrint(reason); }}
+        onConfirm={async (reason, pin) => { setReprint(false); await doPrint(reason, pin); }}
         onCancel={() => setReprint(false)}
       />
 
@@ -1079,9 +1094,36 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
                   );
                 })}
               </div>
+              {/* El supervisor en sesión ya está identificado; al resto de la caja se
+                  le pide el PIN de quien autoriza. */}
+              {!isSupervisor && (
+                <div style={{ marginTop: 12 }}>
+                  <label style={{ ...rp.sub, display: "block", marginBottom: 6 }}>PIN de supervisor (Capitán/Manager)</label>
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={4}
+                    placeholder="••••"
+                    value={reprintPin}
+                    onChange={(e) => setReprintPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    style={{
+                      width: "100%", boxSizing: "border-box", padding: "11px 12px", minHeight: 44,
+                      borderRadius: 8, border: `1px solid ${C.line}`, background: "var(--sl-panel2)",
+                      color: C.cream, fontFamily: "inherit", fontSize: "1.1rem",
+                      letterSpacing: "0.5em", textAlign: "center",
+                    }}
+                  />
+                </div>
+              )}
               <div style={rp.actions}>
                 <button style={btn.ghost} onClick={() => setReprintOpen(false)}>Cancelar</button>
-                <button style={btn.primary} disabled={reprintSel.size === 0 || busy} onClick={doReprint}>Reimprimir ({reprintSel.size})</button>
+                <button
+                  style={btn.primary}
+                  disabled={reprintSel.size === 0 || busy || (!isSupervisor && !/^\d{4}$/.test(reprintPin))}
+                  onClick={doReprint}
+                >
+                  Reimprimir ({reprintSel.size})
+                </button>
               </div>
             </div>
           </div>

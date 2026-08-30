@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolveActor, isSupervisor } from "@/lib/dualAuth";
-import { buildSplits, type SplitInput } from "@/lib/comandaRules";
+import { verifySupervisorPin } from "@/lib/staff";
+import { buildSplits, resolveReprintAuthorizer, REPRINT_AUTHORIZER_ROLES, type SplitInput } from "@/lib/comandaRules";
 import { validateSplits } from "@/lib/splitBill";
 import { TENANT, COMANDA_INCLUDE } from "@/lib/comanda";
 import { FISCAL, FACTURA_URL } from "@/lib/fiscal";
@@ -75,6 +76,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const supervisor = isSupervisor(actor);
   const isOwnerWaiter = actor.realm === "staff" && actor.role === "WAITER" && comanda.waiterId === actor.staffId;
   let printType: "CUSTOMER_FINAL" | "CUSTOMER_REPRINT";
+  // Quién autoriza la reimpresión: el supervisor en sesión, o el que tecleó su
+  // PIN. Se guarda aparte de executedById para que la auditoría distinga quién
+  // imprimió de quién lo permitió.
+  let reprintAuthorizedById: number | null = null;
   if (!alreadyPrinted) {
     const canFirst = isOwnerWaiter || actor.role === "OPERATION" || supervisor;
     if (!canFirst) {
@@ -82,9 +87,27 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     }
     printType = "CUSTOMER_FINAL";
   } else {
-    if (!supervisor) {
-      return NextResponse.json<ApiResponse>({ success: false, error: "La reimpresión la autoriza un Capitán/Manager/Admin" }, { status: 403 });
-    }
+    // Reimpresión. La autoriza un Capitán o Manager por una de dos vías: o es
+    // quien tiene la sesión abierta, o teclea su PIN sin cambiar de usuario.
+    //
+    // La segunda existe porque quien está frente a la impresora es el cajero
+    // (OPERATION). Exigirle que cierre sesión para que un supervisor entre a
+    // autorizar un papel es la clase de fricción que termina en que nadie
+    // reimprime y se resuelve a mano. Es el mismo override que ya usan
+    // descuentos, reapertura, traspasos y cancelaciones.
+    const authPin = typeof body?.authPin === "string" ? body.authPin.trim() : "";
+    const auth = resolveReprintAuthorizer({
+      // isSupervisor y isReprintAuthorizer cubren el mismo conjunto
+      // (ADMIN, CAPTAIN, MANAGER), así que basta con pasar el rol tal cual.
+      operatorRole: actor.role,
+      operatorStaffId: actor.staffId,
+      pinProvided: authPin.length > 0,
+      pinAuthorizedId: authPin
+        ? await verifySupervisorPin(authPin, { tenantId: TENANT, roles: [...REPRINT_AUTHORIZER_ROLES] })
+        : null,
+    });
+    if (!auth.ok) return NextResponse.json<ApiResponse>({ success: false, error: auth.error }, { status: auth.status });
+    reprintAuthorizedById = auth.authorizedById;
     if (!authorizationReason || !authorizationReason.trim()) {
       return NextResponse.json<ApiResponse>({ success: false, error: "authorizationReason es obligatorio para reimprimir" }, { status: 400 });
     }
@@ -124,7 +147,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     type: printType,
     target: "CAJA" as const,
     executedById: actor.staffId,
-    authorizedById: isReprint ? actor.staffId : null,
+    authorizedById: isReprint ? reprintAuthorizedById : null,
     authorizationReason: isReprint ? authorizationReason : null,
   };
 
