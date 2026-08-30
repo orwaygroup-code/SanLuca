@@ -18,8 +18,32 @@ export async function GET(request: NextRequest) {
   const s = await getStaffSession(request);
   if (!s) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 401 });
 
+  // Periodo = TURNO DE CAJA abierto, no el día natural.
+  //
+  // Antes se cortaba a medianoche de México. Los turnos aquí cruzan la
+  // medianoche (abren por la tarde y cierran de madrugada), así que la cartera
+  // del mesero y la liquidación de caja contaban conjuntos distintos de la
+  // MISMA jornada: el 30/08, de sus seis cuentas del turno 29, la cartera veía
+  // una sola —$840 frente a los $8,023.80 de la liquidación— porque las otras
+  // cinco cerraron antes de medianoche en hora local. De ahí los reclamos de
+  // "ventas que no son mías" y "propina de más": dos pantallas midiendo
+  // periodos incompatibles.
+  //
+  // Sin turno abierto se conserva el día natural, que es lo razonable cuando
+  // el mesero consulta fuera de servicio.
+  const openSession = await prisma.cashSession.findFirst({
+    where: { tenantId: TENANT, status: "OPEN" },
+    select: { id: true, openedAt: true },
+    orderBy: { openedAt: "desc" },
+  });
+
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: MX_TZ }).format(new Date());
-  const todayStart = new Date(`${today}T00:00:00.000-06:00`);
+  const todayStart = openSession?.openedAt ?? new Date(`${today}T00:00:00.000-06:00`);
+  // Las ventas se atan al turno por su id (igual que loadWaiterBase), no por
+  // fecha: una cuenta abierta antes del turno pero cobrada dentro le pertenece.
+  const salesScope = openSession
+    ? { cashSessionId: openSession.id }
+    : { closedAt: { gte: todayStart } };
 
   const [credits, tipAgg, cashRows, settings, salesAgg] = await Promise.all([
     prisma.waiterCredit.findMany({
@@ -39,7 +63,7 @@ export async function GET(request: NextRequest) {
     prisma.restaurantSettings.findUnique({ where: { tenantId: TENANT }, select: { tipPolicy: true } }),
     prisma.comanda.aggregate({
       // Base del punto: ventas PAGADAS del mesero hoy (excluye las marcadas sin punto).
-      where: { tenantId: TENANT, waiterId: s.staffId, status: "PAID", excludeTipPoint: false, closedAt: { gte: todayStart } },
+      where: { tenantId: TENANT, waiterId: s.staffId, status: "PAID", excludeTipPoint: false, ...salesScope },
       _sum: { total: true },
     }),
   ]);
