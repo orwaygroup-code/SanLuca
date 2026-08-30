@@ -534,7 +534,7 @@ function PlatosInsignia({
                 transition: "background 0.5s ease",
             }}
         >
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 @media (max-width: 640px) {
                     .podium-grid {
                         grid-template-columns: 1fr !important;
@@ -553,7 +553,7 @@ function PlatosInsignia({
                         gap: 1.5rem !important;
                     }
                 }
-            `}</style>
+            ` }} />
             <div
                 className="insignia-header"
                 style={{
