@@ -4,6 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "@/components/staff/types";
 import { DateRangeBar, dateFilterQuery, DEFAULT_FILTER, type DateFilter } from "@/components/admin/DateRangeBar";
 import { RP, money, tbl, PageHead } from "@/components/admin/reportsUi";
+import { ExportReportModal } from "@/components/admin/ExportReportModal";
+import { dialogAlert } from "@/components/ui/DialogHost";
+import type { ReportData, ReportKpis, ReportShift } from "@/lib/reportExport";
 
 /**
  * Reportes de venta (agregados). Flujo: primero se elige el rango de fechas, luego se
@@ -11,15 +14,13 @@ import { RP, money, tbl, PageHead } from "@/components/admin/reportsUi";
  * (KPIs, byShift, bySection, topDishes, byCarta). Solo lectura. ADMIN (lo guarda el layout).
  */
 
-interface Kpis { sales: number; taxCollected: number; tips: number; comandas: number; guests: number; avgTicket: number }
-interface Shift { shift: string; label: string; window: string; sales: number; comandas: number; guests: number; avgTicket: number; occupancy: number; topDish: { name: string; qty: number } | null }
-interface Reports {
-  kpis: Kpis;
-  byShift: Shift[];
-  bySection: { section: string; sales: number; comandas: number }[];
-  topDishes: { name: string; qty: number; revenue: number; comandas: number }[];
-  byCarta: { carta: string; qty: number; revenue: number; comandas: number; dishes: { name: string; qty: number; revenue: number; comandas: number }[] }[];
-}
+// Los tipos viven en lib/reportExport junto a los generadores de ticket, hoja
+// de cálculo y PDF. Compartirlos —en vez de declararlos aquí por separado—
+// garantiza que lo exportado siga el mismo contrato que lo mostrado: si la
+// forma del reporte cambia, ambos lados fallan a la vez en compilación.
+type Kpis = ReportKpis;
+type Shift = ReportShift;
+type Reports = ReportData;
 
 type Sub = "todo" | "producto" | "secciones" | "menus";
 const SUBS: { key: Sub; label: string }[] = [
@@ -29,11 +30,21 @@ const SUBS: { key: Sub; label: string }[] = [
   { key: "secciones", label: "Por zona" },  // zona física del restaurante (Salón, Terraza…)
 ];
 
+/** Etiqueta legible del rango, para encabezar lo exportado y nombrar el archivo. */
+function rangeLabel(f: DateFilter): string {
+  if (f.mode === "preset") {
+    return f.range === "today" ? "Hoy" : f.range === "7d" ? "Últimos 7 días" : "Últimos 30 días";
+  }
+  if (f.from && f.to && f.from !== f.to) return `${f.from} a ${f.to}`;
+  return f.from || f.to || "Rango personalizado";
+}
+
 export default function ReportesPage() {
   const [filter, setFilter] = useState<DateFilter>(DEFAULT_FILTER);
   const [sub, setSub] = useState<Sub>("todo");
   const [data, setData] = useState<Reports | null>(null);
   const [loading, setLoading] = useState(true);
+  const [exportOpen, setExportOpen] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -50,7 +61,28 @@ export default function ReportesPage() {
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
         <DateRangeBar value={filter} onChange={setFilter} />
+        <button
+          onClick={() => setExportOpen(true)}
+          disabled={loading || !data}
+          title={!data ? "No hay datos que exportar" : "Exportar este reporte"}
+          style={{
+            padding: "9px 16px", borderRadius: 9, cursor: loading || !data ? "default" : "pointer",
+            fontWeight: 700, fontSize: "0.83rem", fontFamily: "inherit",
+            border: `1px solid ${RP.gold}`, background: "transparent", color: RP.gold,
+            opacity: loading || !data ? 0.45 : 1,
+          }}
+        >
+          Exportar reporte
+        </button>
       </div>
+
+      <ExportReportModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        data={data}
+        rangeLabel={rangeLabel(filter)}
+        onDone={(msg) => { void dialogAlert(msg, "Exportar reporte"); }}
+      />
 
       <div style={{ display: "flex", gap: 8, marginBottom: 18, flexWrap: "wrap" }}>
         {SUBS.map((s) => (
