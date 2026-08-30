@@ -78,6 +78,9 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   const [linkPick, setLinkPick] = useState(false); // #4 selector "ligar a empleado" abierto
   const [emps, setEmps] = useState<{ id: number; fullName: string; role: string }[]>([]);
   const [selEmp, setSelEmp] = useState("");
+  // #4 Aprobación del empleado con su NIP tecleado AQUÍ, en la terminal.
+  const [approvePinMode, setApprovePinMode] = useState(false);
+  const [approvePin, setApprovePin] = useState("");
   const [currentCourse, setCurrentCourse] = useState(0); // "tiempo" al que se agregan nuevos platillos (0 = Sin tiempo)
   const [tourOpen, setTourOpen] = useState(false);
   const autoTourDone = useRef(false);
@@ -385,6 +388,22 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
     setBusy(false);
     if (r.ok) { setComanda(r.data!); setLinkPick(false); setSelEmp(""); push(employeeId ? "Cuenta ligada al empleado" : "Cuenta desligada", "success"); }
     else push(r.error ?? "No se pudo ligar", "error");
+  };
+
+  // #4 Aprobar la cuenta ligada con el NIP del empleado, en esta misma terminal.
+  // El endpoint siempre soportó las dos vías —su Cartera o la terminal—; aquí
+  // faltaba exponer la segunda, y sin ella la cajera dependía de que la persona
+  // sacara su teléfono aunque estuviera parada enfrente.
+  const doApproveEmployee = async () => {
+    setBusy(true);
+    const r = await apiFetch<Comanda>(`/api/comandas/${id}/employee-approve`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pin: approvePin }),
+    });
+    setBusy(false);
+    if (r.ok) {
+      setComanda(r.data!); setApprovePinMode(false); setApprovePin("");
+      push("Cuenta aprobada por el empleado", "success");
+    } else push(r.error ?? "NIP incorrecto", "error");
   };
 
   // Vaciar borrador: borra TODOS los platillos aún no enviados (status PENDING).
@@ -809,8 +828,39 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
                     <button style={caja.more} onClick={() => { setLinkPick(false); setSelEmp(""); }} disabled={busy}>Cancelar</button>
                   </div>
                 )}
+                {/* Las DOS vías de aprobación, a la vista. La cuenta ya aparece
+                    en la cartera del empleado sin necesidad de aviso; lo que
+                    faltaba era poder teclear su NIP aquí, en la terminal,
+                    cuando la persona está parada frente a la caja. */}
                 {c.chargedEmployeeId != null && c.employeeChargeStatus !== "APPROVED" && (
-                  <div style={{ color: C.faint, fontSize: "0.74rem", marginTop: 6 }}>El empleado debe aprobarla en su cartera antes de cobrarla a crédito.</div>
+                  <div style={{ marginTop: 8 }}>
+                    <div style={{ color: C.faint, fontSize: "0.74rem" }}>
+                      Debe aprobarla antes de cobrarla a crédito: desde su app, o con su NIP aquí mismo.
+                    </div>
+                    {!approvePinMode ? (
+                      <button style={{ ...caja.more, marginTop: 8 }} onClick={() => setApprovePinMode(true)} disabled={busy}>
+                        Aprobar con NIP aquí
+                      </button>
+                    ) : (
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 8 }}>
+                        <input
+                          type="password"
+                          inputMode="numeric"
+                          autoComplete="off"
+                          autoFocus
+                          placeholder="NIP"
+                          value={approvePin}
+                          onChange={(e) => setApprovePin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                          onKeyDown={(e) => { if (e.key === "Enter" && approvePin.length === 4 && !busy) doApproveEmployee(); }}
+                          style={{ ...fld.input, width: 110, letterSpacing: "0.35em", textAlign: "center" }}
+                        />
+                        <button style={caja.primary} onClick={doApproveEmployee} disabled={busy || approvePin.length !== 4}>
+                          {busy ? "Aprobando…" : "Aprobar"}
+                        </button>
+                        <button style={caja.more} onClick={() => { setApprovePinMode(false); setApprovePin(""); }} disabled={busy}>Cancelar</button>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             )}
