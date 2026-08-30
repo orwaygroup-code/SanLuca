@@ -7,6 +7,7 @@ import { C, StaffHeader, Spinner, useStaffLogout } from "@/components/staff/ui";
 import { CapitanBoard } from "@/components/staff/CapitanBoard";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { StaffRail } from "@/components/staff/StaffRail";
+import { useSession } from "@/lib/session-client";
 import { Tour, type TourStep } from "@/components/staff/Tour";
 
 /** Tutorial guiado de la vista Capitán. */
@@ -29,20 +30,17 @@ export default function CapitanPage() {
   const allowed = staff && (staff.role === "CAPTAIN" || staff.role === "MANAGER");
   // ¿Este MANAGER además tiene acceso al panel /admin (User ADMIN ligado)? Solo entonces
   // se muestra "Panel": DAVID (#3) es MANAGER SIN puente admin y el botón lo atascaba.
-  const [hasAdmin, setHasAdmin] = useState(false);
+  // Del contexto de sesión que ya monta el layout raíz, en vez de un fetch
+  // propio: se resuelve de inmediato, así el drawer abre directamente con el
+  // menú correcto en lugar de mostrar el de staff mientras llegaba la
+  // respuesta.
+  const { user } = useSession();
+  const hasAdmin = staff?.role === "MANAGER" && (user?.role === "ADMIN" || user?.role === "HOSTES");
 
   useEffect(() => {
     if (!loading && !staff) { router.replace("/staff/login?next=/staff/capitan"); return; }
     if (staff && !allowed) { router.replace("/staff/login"); return; }
   }, [loading, staff, allowed, router]);
-
-  useEffect(() => {
-    if (staff?.role !== "MANAGER") { setHasAdmin(false); return; }
-    fetch("/api/auth/me", { credentials: "same-origin" })
-      .then((r) => r.json())
-      .then((d) => setHasAdmin(!!(d?.authenticated && (d.user?.role === "ADMIN" || d.user?.role === "HOSTES"))))
-      .catch(() => setHasAdmin(false));
-  }, [staff?.role]);
 
   // Auto-abrir el tutorial la primera vez (una vez por dispositivo).
   useEffect(() => {

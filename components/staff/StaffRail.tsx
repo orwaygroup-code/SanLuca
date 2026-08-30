@@ -3,6 +3,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { C, ROLE_LABEL } from "./ui";
+import { useSession } from "@/lib/session-client";
 import { Icon, type IconName } from "./icons";
 
 /**
@@ -30,6 +31,10 @@ export function StaffRail({
   role?: string;
 }) {
   const router = useRouter();
+  // Acceso real al panel: sale del contexto de sesión que ya monta el layout
+  // raíz, así que no cuesta una petición extra ni tarda en resolverse.
+  const { user } = useSession();
+  const hasAdminBridge = user?.role === "ADMIN" || user?.role === "HOSTES";
   // En Operación cambia de pestaña; fuera de ella, regresa a Operación.
   const goTab = (t: OperTab) => { if (onTab) onTab(t); else router.push("/staff/operacion"); };
 
@@ -37,8 +42,11 @@ export function StaffRail({
     <nav style={rail.root}>
       <div style={rail.mark}>SL</div>
 
-      {/* Volver al Panel admin — solo managers (vienen de /admin y no deben quedar atrapados en caja) */}
-      {role === "MANAGER" && (
+      {/* Volver al Panel admin. Se exige acceso REAL, no sólo el rol: un
+          MANAGER sin usuario ADMIN ligado rebota en el guardia de /admin y
+          acaba de vuelta en una vista de staff, que es justo lo que parecía
+          "el Panel te manda a caja". */}
+      {role === "MANAGER" && hasAdminBridge && (
         <>
           <RailItem sm icon="chevron" label="Panel" onClick={() => router.push("/admin/dashboard")} />
           <div style={rail.div} />
