@@ -76,6 +76,12 @@ export function OrwayCredit({
         alignItems: "center",
         padding: "18px 16px",
         background: background ?? C.bg,
+        // Pegajoso al borde inferior del contenedor con scroll: en los paneles
+        // largos queda siempre visible como pie. Sigue en el flujo —no es una
+        // capa sobrepuesta— y no suma alto al documento.
+        position: "sticky",
+        bottom: 0,
+        zIndex: 5,
       }}
     >
       {content}

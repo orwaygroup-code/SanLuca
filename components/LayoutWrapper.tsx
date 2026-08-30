@@ -30,11 +30,20 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
     return (
         <>
             {!isAuth && <Navbar />}
-            <main>{children}</main>
             {/* El Footer público ya lleva el crédito incrustado; /admin y /crm
-                lo montan dentro de su propio shell. Queda esta barra para
-                /staff, /login y /checkin, que no tienen ni Footer ni shell. */}
-            {isAuth && !hasShell && <OrwayCredit variant="bar" />}
+                lo montan dentro de su propio shell. Aquí se resuelve el resto
+                —/staff, /login y /checkin— con el patrón de pie pegajoso:
+                columna de 100vh y contenido en flex:1, para que en pantallas
+                cortas como el login de staff el crédito quede al fondo de la
+                vista en lugar de caer bajo el pliegue. */}
+            {isAuth && !hasShell ? (
+                <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+                    <main style={{ flex: 1, minHeight: 0 }}>{children}</main>
+                    <OrwayCredit variant="bar" />
+                </div>
+            ) : (
+                <main>{children}</main>
+            )}
             {!isAuth && <Footer />}
             {!isAuth && <WhatsAppFloat />}
             {showAcceptModal && <AcceptTermsModal />}
