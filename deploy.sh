@@ -146,8 +146,13 @@ ok "PM2 reiniciado"
 log "Verificando el commit en servicio"
 SERVED=""
 for _ in $(seq 1 20); do
+  # El `|| true` no es decorativo: con `set -e` una asignación por sustitución
+  # hereda el estado de salida de lo que hay dentro, y `pipefail` lo propaga
+  # desde curl. Mientras la app arranca, curl falla con "conexión rechazada" —
+  # y sin esto el script moría en el PRIMER intento, antes de reintentar,
+  # dejando el deploy sin verificar y sin decir por qué.
   SERVED="$(curl -fsS --max-time 3 http://127.0.0.1:3000/api/version 2>/dev/null \
-            | sed -n 's/.*"commit":"\([^"]*\)".*/\1/p')"
+            | sed -n 's/.*"commit":"\([^"]*\)".*/\1/p')" || true
   [ -n "$SERVED" ] && break
   sleep 1
 done
