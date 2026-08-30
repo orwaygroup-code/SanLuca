@@ -68,6 +68,14 @@ export function subHasRows(d: ReportData, sub: ReportSub): boolean {
 // ─────────────────────────────────────────── ticket de caja ──
 // Impresora térmica: 42 columnas, sin tablas anchas.
 const W = 42;
+
+/**
+ * El mismo ancho, expuesto para quien encola la impresión: el trabajo lleva el
+ * dato para que el puente pueda centrar el bloque si la impresora de caja es
+ * más ancha (48 columnas es lo habitual). Con el ancho escrito en dos lados,
+ * basta cambiar uno para que el reporte salga descuadrado.
+ */
+export const TICKET_COLS = W;
 const line = (ch = "-") => ch.repeat(W);
 const center = (s: string) => " ".repeat(Math.max(0, Math.floor((W - s.length) / 2))) + s;
 /** Etiqueta a la izquierda, valor pegado a la derecha, en 42 columnas. */

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/dualAuth";
 import { enqueueMessage } from "@/lib/comanda";
+import { TICKET_COLS } from "@/lib/reportExport";
 import type { ApiResponse } from "@/types";
 
 /**
@@ -36,7 +37,13 @@ export async function POST(request: NextRequest) {
   }
 
   const staff = await prisma.staff.findUnique({ where: { id: a.staffId }, select: { fullName: true } });
-  const id = await enqueueMessage({ staffId: a.staffId, area: "CAJA", text, fromName: staff?.fullName ?? null });
+  // pre: el reporte llega con sus columnas ya alineadas y trae su propio
+  // encabezado. cols: el ancho en el que se armó, para que el puente lo centre
+  // si la impresora es más ancha.
+  const id = await enqueueMessage({
+    staffId: a.staffId, area: "CAJA", text, fromName: staff?.fullName ?? null,
+    pre: true, cols: TICKET_COLS,
+  });
 
   return NextResponse.json<ApiResponse>({ success: true, data: { id } });
 }

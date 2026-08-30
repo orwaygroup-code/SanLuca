@@ -46,7 +46,18 @@ export async function enqueueDrawerKick(
  * Devuelve el id del ComandaPrint creado.
  */
 export async function enqueueMessage(
-  args: { staffId: number; area: "COCINA" | "BARRA" | "CAJA"; text: string; fromName?: string | null },
+  args: {
+    staffId: number; area: "COCINA" | "BARRA" | "CAJA"; text: string; fromName?: string | null;
+    /**
+     * El texto ya viene formateado y debe imprimirse tal cual: columnas
+     * alineadas con espacios, centrados y separadores. Sin esto, el puente lo
+     * pasa por su ajuste de palabras, que colapsa los saltos de línea y deja
+     * un reporte de ventas hecho una sopa de palabras.
+     */
+    pre?: boolean;
+    /** Ancho en el que se formateó, para centrar el bloque en impresoras más anchas. */
+    cols?: number;
+  },
   db: Db = prisma,
 ): Promise<number> {
   const print = await db.comandaPrint.create({
@@ -57,7 +68,11 @@ export async function enqueueMessage(
       target: args.area,
       executedById: args.staffId,
       status: "PENDING",
-      payload: { kind: "message", area: args.area, text: args.text, from: args.fromName ?? null, time: new Date().toISOString() },
+      payload: {
+        kind: "message", area: args.area, text: args.text,
+        from: args.fromName ?? null, time: new Date().toISOString(),
+        ...(args.pre ? { pre: true, cols: args.cols ?? null } : {}),
+      },
     },
     select: { id: true },
   });

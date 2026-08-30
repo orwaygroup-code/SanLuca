@@ -105,10 +105,40 @@ function renderKitchenCancel(p, w) {
   return o;
 }
 
+// Texto que YA viene formateado (reportes de venta): respeta los saltos de
+// línea y los espacios de alineación. Sólo parte los renglones que no caben, y
+// por caracter, para no descolocar las columnas.
+//
+// Existe porque wrap() hace split(/\s+/): rearma el texto llenando renglones y
+// se lleva por delante los saltos de línea, el centrado y la separación entre
+// columna y columna. Para un aviso a cocina eso da igual; para un reporte de
+// ventas lo convierte en una sopa de palabras.
+function wrapPre(s, w) {
+  const out = [];
+  for (const raw of ascii(s).replace(/\r/g, "").split("\n")) {
+    if (raw.length <= w) { out.push(raw); continue; }
+    for (let i = 0; i < raw.length; i += w) out.push(raw.slice(i, i + w));
+  }
+  return out;
+}
+
 // Mensaje libre a un área (p.kind === "message"). Lo manda el staff desde la comanda para
 // avisar algo a cocina/barra/caja por la impresora del área elegida.
 function renderMessage(p, w) {
   let o = INIT;
+
+  // p.pre = el texto llega listo para imprimir y trae su propio encabezado, así
+  // que no se le antepone el de MENSAJE ni se le toca el formato. p.cols es el
+  // ancho en el que se armó: si la impresora es más ancha, el bloque entero se
+  // sangra para que quede centrado en el papel en vez de pegado a la izquierda.
+  if (p.pre) {
+    const cols = Number(p.cols) > 0 ? Number(p.cols) : w;
+    const pad = " ".repeat(Math.max(0, Math.floor((w - cols) / 2)));
+    for (const ln of wrapPre(p.text || "", w - pad.length)) o += pad + ln + "\n";
+    o += rule(w) + CUT;
+    return o;
+  }
+
   o += BOLD_ON + BIG_ON + center("** MENSAJE **", Math.floor(w / 2)) + BIG_OFF + BOLD_OFF + "\n";
   if (p.area) o += BOLD_ON + center(ascii(p.area), w) + BOLD_OFF + "\n";
   if (p.from) o += center("De: " + ascii(p.from), w) + "\n";
