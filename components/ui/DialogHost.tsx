@@ -39,7 +39,16 @@ export function dialogPrompt(message: string, opts?: { title?: string; placehold
   return open({ kind: "prompt", message, ...opts }) as Promise<string | null>;
 }
 
-const C = { bg: "#16201f", panel: "#1a2628", gold: "#ba843c", cream: "#f5f1e8", dim: "rgba(245,241,232,0.62)", border: "rgba(186,132,60,0.3)", line: "rgba(255,255,255,0.08)", red: "#e0574f" };
+const C = {
+  bg: "var(--sl-bg)",
+  panel: "var(--sl-panel)",
+  gold: "var(--sl-gold)",
+  cream: "var(--sl-cream)",
+  dim: "var(--sl-dim)",
+  border: "var(--sl-border)",
+  line: "var(--sl-line)",
+  red: "var(--sl-red)",
+};
 
 export function DialogHost() {
   const [req, setReq] = useState<Req | null>(null);

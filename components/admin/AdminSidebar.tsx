@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
 import { C } from "@/components/staff/ui";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 /**
  * Sidebar lateral unificado del panel admin (realm sl_session ADMIN/HOSTES).
@@ -251,11 +252,12 @@ export function AdminSidebar({ userName, onLogout, onNavigate }: AdminSidebarPro
       </nav>
 
       {/* Footer fijo abajo */}
-      <div style={{ flexShrink: 0, padding: "12px 14px 16px", borderTop: `1px solid ${C.line}` }}>
+      <div style={{ flexShrink: 0, padding: "12px 14px 16px", borderTop: `1px solid ${C.line}`, display: "flex", alignItems: "center", gap: 8 }}>
+        <ThemeToggle size={44} />
         <button
           onClick={onLogout}
           style={{
-            width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
             minHeight: 44, padding: "10px 12px", background: "transparent", border: "1px solid rgba(255,255,255,0.15)",
             borderRadius: 10, color: C.dim, fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit",
           }}

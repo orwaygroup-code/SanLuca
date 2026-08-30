@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { useStaffSession } from "@/lib/staff-session-client";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 const ROLE_HOME: Record<string, string> = {
   MANAGER:   "/staff/capitan",   // manager vía PIN = vista supervisora sl_staff (Ricardo usa /admin con sl_session)
@@ -106,6 +107,7 @@ function StaffLoginInner() {
   return (
     <div style={styles.page}>
       <div style={styles.card}>
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 4 }}><ThemeToggle size={34} /></div>
         <div style={styles.brand}>SAN LUCA</div>
         <h1 style={styles.title}>Acceso de personal</h1>
         <p style={styles.subtitle}>Ingresa tu usuario y PIN de 4 dígitos.</p>
@@ -177,28 +179,28 @@ const styles: Record<string, React.CSSProperties> = {
     // desbordaría justo el alto del crédito y, con el scroll bloqueado, ese
     // sobrante quedaría cortado e inalcanzable.
     minHeight: "100%", display: "flex", alignItems: "center", justifyContent: "center",
-    background: "#16201f", padding: 20,
+    background: "var(--sl-bg)", padding: 20,
   },
   card: {
-    width: "100%", maxWidth: 380, background: "#1a2628",
-    border: "1px solid rgba(186,132,60,0.25)", borderRadius: 18,
+    width: "100%", maxWidth: 380, background: "var(--sl-panel)",
+    border: "1px solid var(--sl-border)", borderRadius: 18,
     padding: "34px 30px", boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
   },
-  brand: { fontSize: "0.7rem", letterSpacing: "0.4em", color: "#ba843c", fontWeight: 800, textAlign: "center" },
-  title: { margin: "14px 0 0", fontSize: "1.25rem", color: "#f5f1e8", fontWeight: 700, textAlign: "center" },
-  subtitle: { margin: "6px 0 0", fontSize: "0.82rem", color: "rgba(245,241,232,0.68)", textAlign: "center" },
+  brand: { fontSize: "0.7rem", letterSpacing: "0.4em", color: "var(--sl-gold)", fontWeight: 800, textAlign: "center" },
+  title: { margin: "14px 0 0", fontSize: "1.25rem", color: "var(--sl-cream)", fontWeight: 700, textAlign: "center" },
+  subtitle: { margin: "6px 0 0", fontSize: "0.82rem", color: "var(--sl-dim)", textAlign: "center" },
   label: {
     display: "block", fontSize: "0.64rem", letterSpacing: "0.16em", textTransform: "uppercase",
-    color: "rgba(245,241,232,0.62)", fontWeight: 700, marginBottom: 6,
+    color: "var(--sl-dim)", fontWeight: 700, marginBottom: 6,
   },
   input: {
     width: "100%", padding: "12px 14px", minHeight: 48, borderRadius: 10, boxSizing: "border-box",
-    border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.05)",
-    color: "#f5f1e8", fontSize: "0.95rem", fontFamily: "inherit",
+    border: "1px solid rgba(255,255,255,0.2)", background: "var(--sl-panel2)",
+    color: "var(--sl-cream)", fontSize: "0.95rem", fontFamily: "inherit",
   },
   error: { margin: 0, color: "#e8766b", fontSize: "0.84rem", fontWeight: 600 },
   button: {
-    padding: "14px 0", minHeight: 48, borderRadius: 10, border: "none", background: "#ba843c",
+    padding: "14px 0", minHeight: 48, borderRadius: 10, border: "none", background: "var(--sl-gold)",
     color: "#16201f", fontWeight: 800, fontSize: "0.9rem", letterSpacing: "0.05em",
     textTransform: "uppercase", fontFamily: "inherit",
   },

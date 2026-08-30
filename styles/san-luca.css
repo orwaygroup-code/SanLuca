@@ -2167,3 +2167,53 @@ select option:checked {
     scroll-behavior: auto !important;
   }
 }
+
+/* ══════════════════════════════════════════════
+   TEMA DEL SISTEMA — claro / oscuro
+   ══════════════════════════════════════════════
+   Los nombres son ROLES, no colores literales: "gold" es el acento y "cream"
+   el texto principal. En oscuro son dorado y crema; en claro, el azul y el
+   azul profundo de la carta de brunch del sitio público, que es el positivo
+   de la identidad de San Luca.
+
+   Se exponen como variables CSS para que las paletas de JS (components/staff/ui,
+   admin/reportsUi y las locales de cada pantalla) apunten a var(--sl-*) sin
+   reescribir cada estilo en línea: cambiar el atributo data-sl-theme en <html>
+   repinta todo el sistema.                                                    */
+
+:root,
+:root[data-sl-theme="dark"] {
+  --sl-bg:     #16201f;
+  --sl-panel:  #1a2628;
+  --sl-panel2: #1f2d2c;
+  --sl-gold:   #ba843c;
+  --sl-cream:  #f5f1e8;
+  --sl-dim:    rgba(245, 241, 232, 0.68);
+  --sl-faint:  rgba(245, 241, 232, 0.5);
+  --sl-border: rgba(186, 132, 60, 0.3);
+  --sl-line:   rgba(255, 255, 255, 0.1);
+  --sl-green:  #3f9d6f;
+  --sl-red:    #d9534f;
+  --sl-blue:   #4a82c4;
+  --sl-amber:  #d8a13a;
+  /* Texto sobre el color de acento: en oscuro el acento es claro. */
+  --sl-on-accent: #16201f;
+}
+
+:root[data-sl-theme="light"] {
+  --sl-bg:     #f0ebe0;
+  --sl-panel:  #e8e1d4;
+  --sl-panel2: #ddd5c6;
+  --sl-gold:   #3d6b8c;
+  --sl-cream:  #1e3a52;
+  --sl-dim:    rgba(30, 58, 82, 0.66);
+  --sl-faint:  rgba(30, 58, 82, 0.45);
+  --sl-border: rgba(61, 107, 140, 0.35);
+  --sl-line:   rgba(30, 58, 82, 0.12);
+  --sl-green:  #2f7d55;
+  --sl-red:    #b3403c;
+  --sl-blue:   #3d6b8c;
+  --sl-amber:  #a8761f;
+  /* En claro el acento es oscuro: el texto encima va en crema. */
+  --sl-on-accent: #f0ebe0;
+}

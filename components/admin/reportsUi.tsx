@@ -7,9 +7,16 @@ import React from "react";
  */
 
 export const RP = {
-  gold: "#ba843c", cream: "#f5f1e8", dim: "rgba(245,241,232,0.62)", faint: "rgba(245,241,232,0.4)",
-  border: "rgba(186,132,60,0.22)", line: "rgba(255,255,255,0.08)", panel: "#1a2628", bg: "#141d1e",
-  green: "#3f9d6f", red: "#e0776b",
+  gold: "var(--sl-gold)",
+  cream: "var(--sl-cream)",
+  dim: "var(--sl-dim)",
+  faint: "var(--sl-faint)",
+  border: "var(--sl-border)",
+  line: "var(--sl-line)",
+  panel: "var(--sl-panel)",
+  bg: "var(--sl-bg)",
+  green: "var(--sl-green)",
+  red: "var(--sl-red)",
 };
 
 export const money = (n: number | string) =>

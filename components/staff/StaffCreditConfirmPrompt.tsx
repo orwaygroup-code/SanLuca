@@ -5,7 +5,18 @@ import { useStaffSession } from "@/lib/staff-session-client";
 
 interface Confirm { id: number; amount: number; label: string; createdAt: string }
 
-const C = { bg: "#16201f", panel: "#1a2628", gold: "#ba843c", cream: "#f5f1e8", dim: "rgba(245,241,232,0.62)", faint: "rgba(245,241,232,0.42)", border: "rgba(186,132,60,0.3)", line: "rgba(255,255,255,0.08)", green: "#5aa06e", red: "#e0574f" };
+const C = {
+  bg: "var(--sl-bg)",
+  panel: "var(--sl-panel)",
+  gold: "var(--sl-gold)",
+  cream: "var(--sl-cream)",
+  dim: "var(--sl-dim)",
+  faint: "var(--sl-faint)",
+  border: "var(--sl-border)",
+  line: "var(--sl-line)",
+  green: "var(--sl-green)",
+  red: "var(--sl-red)",
+};
 
 /**
  * Aviso global en la tablet del empleado: cuando caja le manda un "Confirmar crédito", aparece

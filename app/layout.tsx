@@ -18,6 +18,7 @@ import { SessionProvider } from "@/lib/session-client";
 import { PwaRegister } from "@/components/PwaRegister";
 import { SplashScreen } from "@/components/SplashScreen";
 import { NoZoom } from "@/components/NoZoom";
+import { THEME_BOOTSTRAP } from "@/components/ui/ThemeToggle";
 import { InstallButton } from "@/components/InstallButton";
 import { StaffNotifications } from "@/components/staff/StaffNotifications";
 import { StaffCreditConfirmPrompt } from "@/components/staff/StaffCreditConfirmPrompt";
@@ -73,6 +74,9 @@ export default function RootLayout({
   return (
     <html lang="es">
       <head>
+        {/* Antes del primer pintado: sin esto el sistema parpadea en oscuro
+            antes de aplicar el tema guardado. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
         {/* Google Font para texto script */}
         <link
           href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap"

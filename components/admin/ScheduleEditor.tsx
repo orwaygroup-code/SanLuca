@@ -27,9 +27,15 @@ import {
 const DIAS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 
 const C = {
-  gold: "#ba843c", cream: "#f5f1e8", dim: "rgba(245,241,232,0.6)",
-  faint: "rgba(245,241,232,0.4)", green: "#4caf50", red: "#e05555",
-  panel: "#1a2628", border: "rgba(186,132,60,0.22)", line: "rgba(255,255,255,0.08)",
+  gold: "var(--sl-gold)",
+  cream: "var(--sl-cream)",
+  dim: "var(--sl-dim)",
+  faint: "var(--sl-faint)",
+  green: "var(--sl-green)",
+  red: "var(--sl-red)",
+  panel: "var(--sl-panel)",
+  border: "var(--sl-border)",
+  line: "var(--sl-line)",
 };
 
 const S: Record<string, React.CSSProperties> = {

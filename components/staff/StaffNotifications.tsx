@@ -10,7 +10,17 @@ const CLEAR_KEY = "sl_notif_cleared_at";
 
 interface Notif { id: number; type: string; title: string; body: string; url: string | null; createdAt: string }
 
-const C = { bg: "#16201f", panel: "#1a2628", gold: "#ba843c", cream: "#f5f1e8", dim: "rgba(245,241,232,0.62)", faint: "rgba(245,241,232,0.42)", border: "rgba(186,132,60,0.3)", line: "rgba(255,255,255,0.08)", red: "#e0574f" };
+const C = {
+  bg: "var(--sl-bg)",
+  panel: "var(--sl-panel)",
+  gold: "var(--sl-gold)",
+  cream: "var(--sl-cream)",
+  dim: "var(--sl-dim)",
+  faint: "var(--sl-faint)",
+  border: "var(--sl-border)",
+  line: "var(--sl-line)",
+  red: "var(--sl-red)",
+};
 
 function urlB64ToUint8Array(base64: string): Uint8Array {
   const pad = "=".repeat((4 - (base64.length % 4)) % 4);

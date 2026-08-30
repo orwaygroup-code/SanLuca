@@ -154,7 +154,16 @@ export default function AdminComandasAuditPage() {
   );
 }
 
-const C = { bg: "#16201f", panel: "#1a2628", gold: "#ba843c", cream: "#f5f1e8", dim: "rgba(245,241,232,0.6)", faint: "rgba(245,241,232,0.42)", border: "rgba(186,132,60,0.22)", line: "rgba(255,255,255,0.08)" };
+const C = {
+  bg: "var(--sl-bg)",
+  panel: "var(--sl-panel)",
+  gold: "var(--sl-gold)",
+  cream: "var(--sl-cream)",
+  dim: "var(--sl-dim)",
+  faint: "var(--sl-faint)",
+  border: "var(--sl-border)",
+  line: "var(--sl-line)",
+};
 
 const S: Record<string, React.CSSProperties> = {
   page: { minHeight: "100vh", background: C.bg },

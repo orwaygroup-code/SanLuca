@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { buildTotalLines, formatMXN, type ComandaMoney } from "@/lib/displayTotals";
 import { dialogConfirm } from "@/components/ui/DialogHost";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 /**
  * Refresco EN VIVO: llama `fn` cada `ms` mientras `active`. Usa un ref para no
@@ -49,19 +50,19 @@ export function useIsPhone(maxWidth = 640) {
 // 4.5:1 para texto normal. No bajar estas alphas: las tablets se usan también
 // bajo luz de día (terraza 8–13 h) donde el gris débil desaparece.
 export const C = {
-  bg: "#16201f",
-  panel: "#1a2628",
-  panel2: "#1f2d2c",
-  gold: "#ba843c",
-  cream: "#f5f1e8",
-  dim: "rgba(245,241,232,0.68)",
-  faint: "rgba(245,241,232,0.55)",
-  border: "rgba(186,132,60,0.3)",
-  line: "rgba(255,255,255,0.1)",
-  green: "#3f9d6f",
-  red: "#d9534f",
-  blue: "#4a82c4",
-  amber: "#d8a13a",
+  bg: "var(--sl-bg)",
+  panel: "var(--sl-panel)",
+  panel2: "var(--sl-panel2)",
+  gold: "var(--sl-gold)",
+  cream: "var(--sl-cream)",
+  dim: "var(--sl-dim)",
+  faint: "var(--sl-faint)",
+  border: "var(--sl-border)",
+  line: "var(--sl-line)",
+  green: "var(--sl-green)",
+  red: "var(--sl-red)",
+  blue: "var(--sl-blue)",
+  amber: "var(--sl-amber)",
 };
 
 export const ROLE_LABEL: Record<string, string> = {
@@ -118,6 +119,7 @@ export function StaffHeader(props: {
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "flex-end", marginLeft: "auto" }}>
         {props.right}
+        <ThemeToggle />
         {props.userName && (
           <div style={{ textAlign: "right", lineHeight: 1.2 }}>
             <div style={{ color: C.cream, fontSize: "0.82rem", fontWeight: 600 }}>{props.userName}</div>

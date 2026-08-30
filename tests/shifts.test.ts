@@ -132,3 +132,31 @@ test("parseHm y formatHm son inversos", () => {
   assert.equal(formatHm(480), "08:00");
   assert.equal(formatHm(1439), "23:59");
 });
+
+// ── Tolerancia de cierre del turno de restaurante ───────────────────
+// El servicio de comida se alarga hasta las 3 o 4 de la mañana. La tolerancia
+// para cerrar ese corte es el INICIO del brunch: hasta entonces sigue siendo
+// su turno y no debe reclamarse el cierre.
+
+test("una venta a las 3am sigue perteneciendo al turno de comida de la noche", () => {
+  const s = resolveShift(mx("2026-08-28T03:30:00"));
+  assert.equal(s.key, "cena");
+  assert.equal(s.start.toISOString(), mx("2026-08-27T13:00:00").toISOString());
+  // La tolerancia termina justo cuando abre el brunch.
+  assert.equal(s.end.toISOString(), mx("2026-08-28T08:00:00").toISOString());
+});
+
+test("a las 4am el turno en curso es el mismo con el que se abrió el corte", () => {
+  // El aviso de cierre compara el inicio del turno actual contra el del corte:
+  // mientras coincidan, no se reclama nada.
+  const alAbrir = resolveShift(mx("2026-08-27T20:00:00"));
+  const alas4 = resolveShift(mx("2026-08-28T04:00:00"));
+  assert.equal(alas4.start.getTime(), alAbrir.start.getTime());
+});
+
+test("pasadas las 08:00 el turno ya cambió y el corte de la noche va tarde", () => {
+  const alAbrir = resolveShift(mx("2026-08-27T20:00:00"));
+  const alas9 = resolveShift(mx("2026-08-28T09:00:00"));
+  assert.equal(alas9.key, "brunch");
+  assert.ok(alas9.start.getTime() > alAbrir.start.getTime());
+});
