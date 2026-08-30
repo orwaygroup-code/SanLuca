@@ -81,6 +81,7 @@ export default function ReportesPage() {
         onClose={() => setExportOpen(false)}
         data={data}
         rangeLabel={rangeLabel(filter)}
+        sub={sub}
         onDone={(msg) => { void dialogAlert(msg, "Exportar reporte"); }}
       />
 

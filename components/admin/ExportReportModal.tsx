@@ -8,13 +8,18 @@ import {
   reportToCsv,
   reportToPrintableHtml,
   reportFileName,
+  subHasRows,
+  SUB_LABEL,
   type ReportData,
+  type ReportSub,
 } from "@/lib/reportExport";
 
 /**
  * Exportar el reporte de ventas en los tres formatos que se usan en el
- * restaurante. Los tres parten del MISMO objeto ya cargado en pantalla, así
- * que lo exportado coincide con lo que se está viendo.
+ * restaurante. Se exporta la SUB-VISTA seleccionada —Resumen, Por producto,
+ * Por sección del menú o Por zona— y no el reporte entero: volcar todo es
+ * material de control de almacén para compaginar inventario con venta, no lo
+ * que se consulta desde esta pantalla.
  *
  *  - Caja: encola un ticket de 42 columnas en la impresora térmica.
  *  - Hoja de cálculo: CSV, sin dependencias y abre en Excel y en Sheets.
@@ -27,7 +32,7 @@ type Kind = "caja" | "hoja" | "pdf";
 
 const OPCIONES: { kind: Kind; title: string; desc: string; icon: string }[] = [
   { kind: "caja", title: "Imprimir en caja", desc: "Sale por la impresora de la caja, en formato ticket.", icon: "🖶" },
-  { kind: "hoja", title: "Crear hoja de cálculo", desc: "Archivo CSV con el desglose completo. Abre en Excel o Sheets.", icon: "▦" },
+  { kind: "hoja", title: "Crear hoja de cálculo", desc: "Archivo CSV de esta vista. Abre en Excel o Sheets.", icon: "▦" },
   { kind: "pdf", title: "PDF", desc: "Abre el documento y elige «Guardar como PDF» al imprimir.", icon: "⎙" },
 ];
 
@@ -48,12 +53,13 @@ function download(content: string, filename: string, mime: string) {
 }
 
 export function ExportReportModal({
-  open, onClose, data, rangeLabel, onDone,
+  open, onClose, data, rangeLabel, sub, onDone,
 }: {
   open: boolean;
   onClose: () => void;
   data: ReportData | null;
   rangeLabel: string;
+  sub: ReportSub;
   onDone?: (msg: string, kind: "success" | "error") => void;
 }) {
   const [busy, setBusy] = useState<Kind | null>(null);
@@ -65,7 +71,7 @@ export function ExportReportModal({
     setBusy(kind);
     try {
       if (kind === "hoja") {
-        download(reportToCsv(data, rangeLabel), reportFileName(rangeLabel, "csv"), "text/csv;charset=utf-8");
+        download(reportToCsv(data, rangeLabel, sub), reportFileName(rangeLabel, "csv", sub), "text/csv;charset=utf-8");
         onDone?.("Hoja de cálculo descargada", "success");
         onClose();
       } else if (kind === "pdf") {
@@ -75,7 +81,7 @@ export function ExportReportModal({
           onDone?.("El navegador bloqueó la ventana. Permite las ventanas emergentes de este sitio.", "error");
           return;
         }
-        w.document.write(reportToPrintableHtml(data, rangeLabel));
+        w.document.write(reportToPrintableHtml(data, rangeLabel, sub));
         w.document.close();
         // Se espera a que cargue tipografías y estilos; imprimir antes saca
         // una hoja a medio formatear.
@@ -85,7 +91,7 @@ export function ExportReportModal({
         const r = await apiFetch<{ id: number }>("/api/admin/reports/print", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: reportToTicketText(data, rangeLabel) }),
+          body: JSON.stringify({ text: reportToTicketText(data, rangeLabel, sub) }),
         });
         if (r.ok) { onDone?.("Reporte enviado a la impresora de caja", "success"); onClose(); }
         else onDone?.(r.error ?? "No se pudo enviar a la impresora", "error");
@@ -107,10 +113,16 @@ export function ExportReportModal({
         style={{ width: "min(460px, 100%)", background: RP.panel, border: `1px solid ${RP.border}`, borderRadius: 14, padding: 20, boxShadow: "0 18px 60px rgba(0,0,0,0.55)" }}
       >
         <div style={{ fontSize: "1rem", fontWeight: 800, color: RP.cream }}>Exportar reporte</div>
-        <div style={{ fontSize: "0.8rem", color: RP.dim, marginTop: 4, marginBottom: 16 }}>{rangeLabel}</div>
+        {/* Se nombra la vista, no sólo el rango: se exporta lo que está en
+            pantalla, así que conviene que quede claro qué va a salir. */}
+        <div style={{ fontSize: "0.8rem", color: RP.dim, marginTop: 4, marginBottom: 16 }}>
+          {SUB_LABEL[sub]} · {rangeLabel}
+        </div>
 
-        {!data ? (
-          <div style={{ color: RP.dim, fontSize: "0.86rem" }}>No hay datos que exportar en este rango.</div>
+        {!data || !subHasRows(data, sub) ? (
+          <div style={{ color: RP.dim, fontSize: "0.86rem" }}>
+            «{SUB_LABEL[sub]}» no tiene datos en este rango. Cambia de vista o de fechas.
+          </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {OPCIONES.map((o) => (
