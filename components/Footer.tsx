@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { colors, fonts } from "@/config/theme";
 import { useTranslation } from "@/lib/i18n";
+import { OrwayCredit } from "@/components/OrwayCredit";
 
 function FooterColumn({
   title,
@@ -232,13 +233,18 @@ export default function Footer() {
         >
           <span
             style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 7,
+              flexWrap: "wrap",
               fontFamily: fonts.primary,
               fontSize: "0.7rem",
               fontWeight: 400,
               color: "rgba(245,241,232,0.2)",
             }}
           >
-            © 2026 San Luca Ristorante | {t.footer.developedBy}
+            © 2026 San Luca Ristorante |
+            <OrwayCredit variant="inline" color="rgba(245,241,232,0.45)" />
           </span>
           <div style={{ display: "flex", gap: 20 }}>
             <SocialLink label="Instagram" />

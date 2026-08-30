@@ -5,6 +5,7 @@ import Navbar from "./Navbar";
 import Footer from "./Footer";
 import { WhatsAppFloat } from "./WhatsAppFloat";
 import { AcceptTermsModal } from "./AcceptTermsModal";
+import { OrwayCredit } from "./OrwayCredit";
 
 const BARE_PATHS = ["/login"];
 const BARE_PREFIXES = ["/checkin/", "/admin", "/crm", "/staff"];
@@ -23,6 +24,10 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
         <>
             {!isAuth && <Navbar />}
             <main>{children}</main>
+            {/* El Footer público ya lleva el crédito incrustado; en /staff,
+                /admin, /crm, /login y /checkin no hay Footer, así que va como
+                barra propia para que la leyenda salga en toda la app. */}
+            {isAuth && <OrwayCredit variant="bar" />}
             {!isAuth && <Footer />}
             {!isAuth && <WhatsAppFloat />}
             {showAcceptModal && <AcceptTermsModal />}
