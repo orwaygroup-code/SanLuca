@@ -106,7 +106,7 @@ export default function FechasEspecialesPage() {
   const daysInMonth = new Date(2024, form.month, 0).getDate();
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0a1112", color: "#f5f1e8", padding: "32px 20px", fontFamily: "inherit" }}>
+    <div style={{ minHeight: "100vh", background: "var(--sl-bg)", color: "#f5f1e8", padding: "32px 20px", fontFamily: "inherit" }}>
       <div style={{ maxWidth: 920, margin: "0 auto" }}>
 
         {/* Header */}
@@ -124,7 +124,7 @@ export default function FechasEspecialesPage() {
 
         {/* Crear */}
         <form onSubmit={handleCreate} className="adm-special-form" style={{
-          background: "#161e20",
+          background: "var(--sl-panel)",
           border: "1px solid rgba(186,132,60,0.25)",
           borderRadius: 12,
           padding: "20px",
@@ -196,7 +196,7 @@ export default function FechasEspecialesPage() {
               const isEditing = editId === it.id;
               return (
                 <div key={it.id} className="adm-special-row" style={{
-                  background: "#161e20",
+                  background: "var(--sl-panel)",
                   border: `1px solid ${it.isActive ? "rgba(186,132,60,0.3)" : "rgba(255,255,255,0.08)"}`,
                   borderRadius: 10,
                   padding: "14px 18px",

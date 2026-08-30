@@ -116,7 +116,7 @@ export function ConversationTagsEditor({
   }
 
   return (
-    <div style={{ padding: "10px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "#1f2b29" }}>
+    <div style={{ padding: "10px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "var(--sl-panel2)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", position: "relative" }}>
         <span style={{ fontSize: "0.7rem", color: "rgba(245,241,232,0.5)", textTransform: "uppercase", letterSpacing: "0.08em", marginRight: 4 }}>
           Tags

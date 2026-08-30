@@ -117,7 +117,7 @@ export function DatePicker({ value, onChange, min, disabledDow = [], placeholder
           position: "absolute",
           top: "calc(100% + 6px)",
           left: 0,
-          background: "#161e20",
+          background: "var(--sl-panel)",
           border: "1px solid rgba(186,132,60,0.4)",
           borderRadius: 12,
           zIndex: 9999,

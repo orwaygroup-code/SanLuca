@@ -142,5 +142,5 @@ const fm: Record<string, React.CSSProperties> = {
   legDot: { width: 12, height: 12, borderRadius: 4, flexShrink: 0 },
   areas: { display: "flex", gap: 8, flexWrap: "wrap" },
   area: { padding: "9px 16px", borderRadius: 999, border: `1px solid ${C.border}`, background: "transparent", color: C.dim, fontWeight: 700, fontSize: "0.82rem", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" },
-  areaOn: { background: C.gold, color: "#16201f", borderColor: C.gold },
+  areaOn: { background: C.gold, color: "var(--sl-on-accent)", borderColor: C.gold },
 };

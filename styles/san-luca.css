@@ -2217,3 +2217,19 @@ select option:checked {
   /* En claro el acento es oscuro: el texto encima va en crema. */
   --sl-on-accent: #f0ebe0;
 }
+
+/* Superficies que se mantienen OSCURAS en ambos temas: la barra lateral de caja
+   y el menú del panel. Son el ancla visual del sistema y no se aclaran.
+   Su texto no puede seguir a --sl-cream, que en modo claro es azul profundo y
+   desaparecería sobre el negro — por eso llevan su propia escala fija. */
+:root {
+  --sl-ink:          #111817;
+  --sl-on-ink:       #f5f1e8;
+  --sl-on-ink-dim:   rgba(245, 241, 232, 0.68);
+  --sl-on-ink-faint: rgba(245, 241, 232, 0.5);
+  --sl-ink-line:     rgba(255, 255, 255, 0.1);
+  /* El acento tambien se congela aqui: el azul del modo claro no lee sobre
+     negro. Sobre estas superficies el dorado sigue siendo el acento. */
+  --sl-ink-accent:    #ba843c;
+  --sl-on-ink-accent: #16201f;
+}

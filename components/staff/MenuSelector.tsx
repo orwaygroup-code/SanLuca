@@ -394,7 +394,7 @@ function OrderPanel({ items, onRemove, busy, onClose }: {
 
 // #6/#7 badges sobre la tarjeta del platillo (visibles al mesero al ordenar).
 const badgeFalta: React.CSSProperties = { background: "#c0392b", color: "#fff", fontSize: "0.62rem", fontWeight: 800, letterSpacing: "0.03em", padding: "3px 6px", borderRadius: 6 };
-const badge101: React.CSSProperties = { background: C.gold, color: "#16201f", fontSize: "0.62rem", fontWeight: 800, letterSpacing: "0.03em", padding: "3px 6px", borderRadius: 6 };
+const badge101: React.CSSProperties = { background: C.gold, color: "var(--sl-on-accent)", fontSize: "0.62rem", fontWeight: 800, letterSpacing: "0.03em", padding: "3px 6px", borderRadius: 6 };
 
 const s: Record<string, React.CSSProperties> = {
   root: { position: "fixed", inset: 0, zIndex: 90, background: C.bg, display: "flex", flexDirection: "column" },
@@ -407,7 +407,7 @@ const s: Record<string, React.CSSProperties> = {
   panel: { width: 328, height: "100%", flexShrink: 0, borderLeft: `1px solid ${C.border}`, background: C.panel, display: "flex", flexDirection: "column" },
   panelHead: { display: "flex", alignItems: "center", gap: 10, padding: "14px 16px", borderBottom: `1px solid ${C.line}` },
   panelTitle: { color: C.cream, fontWeight: 800, fontSize: "0.95rem" },
-  panelCount: { minWidth: 24, height: 24, padding: "0 7px", borderRadius: 999, background: C.gold, color: "#16201f", fontWeight: 800, fontSize: "0.78rem", display: "inline-flex", alignItems: "center", justifyContent: "center" },
+  panelCount: { minWidth: 24, height: 24, padding: "0 7px", borderRadius: 999, background: C.gold, color: "var(--sl-on-accent)", fontWeight: 800, fontSize: "0.78rem", display: "inline-flex", alignItems: "center", justifyContent: "center" },
   panelClose: { marginLeft: "auto", width: 36, height: 36, borderRadius: 9, border: "none", background: "transparent", color: C.dim, fontSize: "1.4rem", cursor: "pointer", lineHeight: 1 },
   panelBody: { flex: 1, overflowY: "auto", padding: "12px 14px" },
   panelEmpty: { color: C.faint, fontSize: "0.82rem", textAlign: "center", padding: "32px 12px", lineHeight: 1.6 },
@@ -423,7 +423,7 @@ const s: Record<string, React.CSSProperties> = {
 
   fab: {
     position: "fixed", bottom: 20, right: 16, zIndex: 94, minHeight: 48, padding: "0 20px", borderRadius: 999,
-    border: "none", background: C.gold, color: "#16201f", fontWeight: 800, fontSize: "0.9rem", cursor: "pointer",
+    border: "none", background: C.gold, color: "var(--sl-on-accent)", fontWeight: 800, fontSize: "0.9rem", cursor: "pointer",
     boxShadow: "0 12px 32px rgba(0,0,0,0.5)", fontFamily: "inherit",
   },
   panelScrim: { position: "fixed", inset: 0, zIndex: 96, background: "rgba(0,0,0,0.55)" },
@@ -451,7 +451,7 @@ const s: Record<string, React.CSSProperties> = {
     flex: 1, minHeight: 46, borderRadius: 12, border: `1px solid ${C.line}`, background: "transparent",
     color: C.dim, fontWeight: 800, fontSize: "0.98rem", cursor: "pointer", fontFamily: "inherit",
   },
-  turnoTabOn: { background: C.gold, color: "#16201f", borderColor: C.gold },
+  turnoTabOn: { background: C.gold, color: "var(--sl-on-accent)", borderColor: C.gold },
   claseRow: { display: "flex", gap: 8, padding: "6px 16px 4px" },
   claseTab: {
     flex: 1, minHeight: 48, borderRadius: 12, border: `1px solid ${C.line}`, background: "transparent",
@@ -511,7 +511,7 @@ const s: Record<string, React.CSSProperties> = {
     flex: 1, minHeight: 44, borderRadius: 10, border: `1px solid ${C.line}`, background: "transparent",
     color: C.dim, fontWeight: 700, fontSize: "0.95rem", cursor: "pointer", fontFamily: "inherit",
   },
-  quickOn: { background: C.gold, color: "#16201f", borderColor: C.gold },
+  quickOn: { background: C.gold, color: "var(--sl-on-accent)", borderColor: C.gold },
   qtyHint: { color: C.faint, fontSize: "0.72rem", textAlign: "center", marginTop: 8 },
   qtyRow: { display: "flex", alignItems: "center", gap: 16, justifyContent: "center" },
   qtyBtn: {

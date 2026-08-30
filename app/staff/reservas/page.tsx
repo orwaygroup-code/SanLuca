@@ -283,7 +283,7 @@ const chip: React.CSSProperties = {
   minHeight: 40, padding: "0 14px", borderRadius: 999, border: `1px solid ${C.line}`, background: "transparent",
   color: C.dim, fontWeight: 700, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit",
 };
-const chipOn: React.CSSProperties = { background: C.gold, color: "#16201f", borderColor: C.gold };
+const chipOn: React.CSSProperties = { background: C.gold, color: "var(--sl-on-accent)", borderColor: C.gold };
 
 const miniOutline: React.CSSProperties = {
   padding: "7px 11px", borderRadius: 8, border: `1px solid ${C.line}`, background: "transparent",

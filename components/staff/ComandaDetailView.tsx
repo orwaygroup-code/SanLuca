@@ -811,7 +811,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
                 {c.chargedEmployeeId ? (
                   <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                     <span style={{ color: C.cream, fontWeight: 700 }}>{c.chargedEmployee?.fullName ?? "Empleado"}</span>
-                    <span style={{ fontSize: "0.7rem", fontWeight: 800, padding: "3px 9px", borderRadius: 6, color: "#16201f", background: c.employeeChargeStatus === "APPROVED" ? "#5aa06e" : "#e0b054" }}>
+                    <span style={{ fontSize: "0.7rem", fontWeight: 800, padding: "3px 9px", borderRadius: 6, color: "var(--sl-on-accent)", background: c.employeeChargeStatus === "APPROVED" ? "#5aa06e" : "#e0b054" }}>
                       {c.employeeChargeStatus === "APPROVED" ? "APROBADA" : "POR APROBAR"}
                     </span>
                     {editable && <button style={caja.more} onClick={() => doLink(null)} disabled={busy}>Desligar</button>}
@@ -1143,7 +1143,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
         <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
           {([["COCINA", "Cocina"], ["BARRA", "Barra"], ["CAJA", "Caja"]] as const).map(([val, lbl]) => (
             <button key={val} onClick={() => setMsgArea(val)}
-              style={{ ...btn.ghost, flex: 1, ...(msgArea === val ? { background: C.gold, color: "#16201f", borderColor: C.gold, fontWeight: 800 } : {}) }}>
+              style={{ ...btn.ghost, flex: 1, ...(msgArea === val ? { background: C.gold, color: "var(--sl-on-accent)", borderColor: C.gold, fontWeight: 800 } : {}) }}>
               {lbl}
             </button>
           ))}
@@ -1199,7 +1199,7 @@ const page: Record<string, React.CSSProperties> = {
   commentAdd: { marginTop: 6, padding: 0, background: "transparent", border: "none", color: C.gold, fontSize: "0.74rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", textAlign: "left" },
   commentEdit: { padding: 0, background: "transparent", border: "none", color: C.faint, fontSize: "0.7rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 },
   commentInput: { flex: 1, minWidth: 0, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.cream, fontSize: "0.8rem", padding: "6px 10px", fontFamily: "inherit" },
-  commentSave: { padding: "6px 12px", borderRadius: 8, border: "none", background: C.gold, color: "#16201f", fontWeight: 800, fontSize: "0.76rem", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" },
+  commentSave: { padding: "6px 12px", borderRadius: 8, border: "none", background: C.gold, color: "var(--sl-on-accent)", fontWeight: 800, fontSize: "0.76rem", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" },
   commentCancel: { width: 30, height: 30, borderRadius: 8, border: `1px solid ${C.border}`, background: "transparent", color: C.dim, fontSize: "0.9rem", cursor: "pointer", flexShrink: 0, lineHeight: 1 },
   batchBar: { display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", padding: "12px 16px", marginBottom: 14, borderRadius: 12, border: `1px solid ${C.gold}`, background: "rgba(186,132,60,0.10)" },
   batchBtn: { padding: "8px 14px", borderRadius: 9, border: `1px solid ${C.border}`, background: "transparent", color: C.cream, fontWeight: 700, fontSize: "0.82rem", cursor: "pointer", fontFamily: "inherit" },

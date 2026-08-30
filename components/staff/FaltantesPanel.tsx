@@ -195,7 +195,7 @@ const ui: Record<string, React.CSSProperties> = {
   head: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", margin: "8px 0 16px" },
   h1: { margin: 0, fontSize: "1.15rem", fontWeight: 800, color: C.cream },
   tab: { padding: "8px 14px", borderRadius: 9, border: `1px solid ${C.border}`, background: "transparent", color: C.dim, fontWeight: 700, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit" },
-  tabOn: { background: C.gold, color: "#16201f", borderColor: C.gold },
+  tabOn: { background: C.gold, color: "var(--sl-on-accent)", borderColor: C.gold },
   card: { background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px", marginBottom: 16 },
   lbl: { display: "block", color: C.faint, fontSize: "0.74rem", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8, fontWeight: 700 },
   matchRow: { display: "flex", alignItems: "center", gap: 10, background: "rgba(0,0,0,0.16)", border: `1px solid ${C.border}`, borderRadius: 9, padding: "8px 11px" },
@@ -204,6 +204,6 @@ const ui: Record<string, React.CSSProperties> = {
   faltaRow: { display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderTop: `1px solid ${C.line}` },
   chip: { display: "inline-flex", alignItems: "center", gap: 6, background: "color-mix(in srgb, #ba843c 14%, transparent)", border: `1px solid ${C.gold}`, color: C.cream, borderRadius: 999, padding: "6px 12px", fontSize: "0.84rem", fontWeight: 700 },
   chipX: { background: "transparent", border: "none", color: C.gold, fontWeight: 800, cursor: "pointer", fontSize: "1rem", lineHeight: 1, padding: 0 },
-  smallGold: { padding: "6px 12px", borderRadius: 8, border: "none", background: C.gold, color: "#16201f", fontWeight: 800, fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" },
+  smallGold: { padding: "6px 12px", borderRadius: 8, border: "none", background: C.gold, color: "var(--sl-on-accent)", fontWeight: 800, fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" },
   smallGhost: { padding: "6px 12px", borderRadius: 8, border: `1px solid ${C.border}`, background: "transparent", color: C.dim, fontWeight: 700, fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" },
 };

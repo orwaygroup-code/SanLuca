@@ -87,7 +87,7 @@ const fab: React.CSSProperties = {
   borderRadius: 999,
   border: "1px solid #d9b25a",
   background: "#ba843c",
-  color: "#16201f",
+  color: "var(--sl-on-accent)",
   fontSize: "0.82rem",
   fontWeight: 800,
   fontFamily: "inherit",

@@ -79,7 +79,7 @@ export default function HistorialVentaPage() {
         <form onSubmit={(e) => { e.preventDefault(); load(); }} style={{ display: "flex", gap: 6 }}>
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Folio, mesero o nombre…"
             style={{ padding: "7px 11px", borderRadius: 8, border: `1px solid ${RP.border}`, background: RP.panel, color: RP.cream, fontFamily: "inherit", fontSize: "0.82rem", minWidth: 210 }} />
-          <button type="submit" style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: RP.gold, color: "#16201f", fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>Buscar</button>
+          <button type="submit" style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: RP.gold, color: "var(--sl-on-accent)", fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>Buscar</button>
         </form>
         <ExportButton onClick={() => setExportOpen(true)} disabled={loading || !resp || resp.rows.length === 0} />
       </div>

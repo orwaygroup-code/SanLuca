@@ -147,7 +147,7 @@ export function StaffNotifications() {
             <span style={{ color: C.cream, fontWeight: 800, fontSize: "0.9rem" }}>Notificaciones</span>
             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
               {perm !== "granted" && perm !== "unsupported" && (
-                <button onClick={askPermission} style={{ background: C.gold, color: "#16201f", border: "none", borderRadius: 8, padding: "5px 10px", fontWeight: 800, fontSize: "0.7rem", cursor: "pointer", fontFamily: "inherit" }}>Activar</button>
+                <button onClick={askPermission} style={{ background: C.gold, color: "var(--sl-on-accent)", border: "none", borderRadius: 8, padding: "5px 10px", fontWeight: 800, fontSize: "0.7rem", cursor: "pointer", fontFamily: "inherit" }}>Activar</button>
               )}
               {visible.length > 0 && (
                 <button onClick={clearAll} style={{ background: "transparent", border: `1px solid ${C.border}`, color: C.dim, borderRadius: 8, padding: "5px 10px", fontWeight: 700, fontSize: "0.7rem", cursor: "pointer", fontFamily: "inherit" }}>Limpiar</button>

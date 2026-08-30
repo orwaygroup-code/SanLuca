@@ -3,7 +3,6 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
-import { C } from "@/components/staff/ui";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 /**
@@ -136,8 +135,8 @@ function NavItem({ link, active, onNavigate }: { link: NavLink; active: boolean;
   const [hover, setHover] = useState(false);
   // Activo = relleno dorado con tinta oscura (como el riel de /staff); sin franja
   // lateral (el estándar de diseño prohíbe el border-left > 1px como estructura).
-  const bg = active ? C.gold : hover ? "rgba(255,255,255,0.05)" : "transparent";
-  const color = active ? "#16201f" : hover ? C.cream : C.dim;
+  const bg = active ? "var(--sl-ink-accent)" : hover ? "rgba(255,255,255,0.05)" : "transparent";
+  const color = active ? "#16201f" : hover ? "var(--sl-on-ink)" : "var(--sl-on-ink-dim)";
   return (
     <Link
       href={link.href}
@@ -169,16 +168,16 @@ export function AdminSidebar({ userName, onLogout, onNavigate }: AdminSidebarPro
     <aside
       style={{
         height: "100vh", display: "flex", flexDirection: "column",
-        background: "#111817", borderRight: `1px solid ${C.line}`, width: "100%",
+        background: "var(--sl-ink)", borderRight: `1px solid var(--sl-ink-line)`, width: "100%",
       }}
     >
       {/* Header fijo arriba: marca SL + usuario (identidad unificada con /staff) */}
-      <div style={{ flexShrink: 0, padding: "18px 16px 16px", borderBottom: `1px solid ${C.line}` }}>
+      <div style={{ flexShrink: 0, padding: "18px 16px 16px", borderBottom: `1px solid var(--sl-ink-line)` }}>
         <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-          <div style={{ width: 38, height: 38, borderRadius: 10, background: C.gold, color: "#16201f", display: "grid", placeItems: "center", fontWeight: 900, letterSpacing: "0.02em" }}>SL</div>
+          <div style={{ width: 38, height: 38, borderRadius: 10, background: "var(--sl-ink-accent)", color: "var(--sl-on-ink-accent)", display: "grid", placeItems: "center", fontWeight: 900, letterSpacing: "0.02em" }}>SL</div>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: "0.62rem", letterSpacing: "0.22em", color: C.gold, fontWeight: 800 }}>PANEL · ADMIN</div>
-            {userName && <div style={{ fontSize: "0.78rem", color: C.dim, fontWeight: 600, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{userName}</div>}
+            <div style={{ fontSize: "0.62rem", letterSpacing: "0.22em", color: "var(--sl-ink-accent)", fontWeight: 800 }}>PANEL · ADMIN</div>
+            {userName && <div style={{ fontSize: "0.78rem", color: "var(--sl-on-ink-dim)", fontWeight: 600, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{userName}</div>}
           </div>
         </div>
       </div>
@@ -187,7 +186,7 @@ export function AdminSidebar({ userName, onLogout, onNavigate }: AdminSidebarPro
       <nav style={{ flex: 1, overflowY: "auto", padding: "14px 10px", display: "flex", flexDirection: "column", gap: 16 }}>
         {GROUPS.map((g) => (
           <div key={g.title}>
-            <div style={{ padding: "0 6px 6px", fontSize: "0.62rem", letterSpacing: "0.16em", textTransform: "uppercase", color: C.faint, fontWeight: 700 }}>
+            <div style={{ padding: "0 6px 6px", fontSize: "0.62rem", letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--sl-on-ink-faint)", fontWeight: 700 }}>
               {g.title}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
@@ -207,7 +206,7 @@ export function AdminSidebar({ userName, onLogout, onNavigate }: AdminSidebarPro
             style={{
               display: "flex", alignItems: "center", gap: 11, width: "100%",
               minHeight: 44, padding: "9px 13px", borderRadius: 10, border: "none",
-              background: "transparent", color: cajaOpen || pathname.startsWith("/admin/caja") ? C.cream : C.dim, cursor: "pointer",
+              background: "transparent", color: cajaOpen || pathname.startsWith("/admin/caja") ? "var(--sl-on-ink)" : "var(--sl-on-ink-dim)", cursor: "pointer",
               fontFamily: "inherit", fontSize: "0.82rem", fontWeight: 700, letterSpacing: "0.01em",
             }}
           >
@@ -233,7 +232,7 @@ export function AdminSidebar({ userName, onLogout, onNavigate }: AdminSidebarPro
             style={{
               display: "flex", alignItems: "center", gap: 11, width: "100%",
               minHeight: 44, padding: "9px 13px", borderRadius: 10, border: "none",
-              background: "transparent", color: crmOpen ? C.cream : C.dim, cursor: "pointer",
+              background: "transparent", color: crmOpen ? "var(--sl-on-ink)" : "var(--sl-on-ink-dim)", cursor: "pointer",
               fontFamily: "inherit", fontSize: "0.82rem", fontWeight: 700, letterSpacing: "0.01em",
             }}
           >
@@ -252,14 +251,14 @@ export function AdminSidebar({ userName, onLogout, onNavigate }: AdminSidebarPro
       </nav>
 
       {/* Footer fijo abajo */}
-      <div style={{ flexShrink: 0, padding: "12px 14px 16px", borderTop: `1px solid ${C.line}`, display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{ flexShrink: 0, padding: "12px 14px 16px", borderTop: `1px solid var(--sl-ink-line)`, display: "flex", alignItems: "center", gap: 8 }}>
         <ThemeToggle size={44} />
         <button
           onClick={onLogout}
           style={{
             flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
             minHeight: 44, padding: "10px 12px", background: "transparent", border: "1px solid rgba(255,255,255,0.15)",
-            borderRadius: 10, color: C.dim, fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit",
+            borderRadius: 10, color: "var(--sl-on-ink-dim)", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit",
           }}
         >
           <Icon name="logout" /> Cerrar sesión

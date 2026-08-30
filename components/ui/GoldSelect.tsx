@@ -86,7 +86,7 @@ export function GoldSelect({ value, onChange, options, placeholder = "Selecciona
           top: "calc(100% + 6px)",
           left: 0,
           right: 0,
-          background: "#161e20",
+          background: "var(--sl-panel)",
           border: "1px solid rgba(186,132,60,0.4)",
           borderRadius: 10,
           zIndex: 9999,

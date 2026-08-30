@@ -411,13 +411,13 @@ function Switch({ on, onClick, labelOn, labelOff }: { on: boolean; onClick: () =
 function Overlay({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background: "#1a2628", border: "1px solid rgba(186,132,60,0.25)", borderRadius: 16, width: "100%", maxWidth: 480, maxHeight: "calc(100vh - 32px)", overflowY: "auto", padding: "26px 24px" }}>{children}</div>
+      <div style={{ background: "var(--sl-panel)", border: "1px solid rgba(186,132,60,0.25)", borderRadius: 16, width: "100%", maxWidth: 480, maxHeight: "calc(100vh - 32px)", overflowY: "auto", padding: "26px 24px" }}>{children}</div>
     </div>
   );
 }
 
 const S: Record<string, React.CSSProperties> = {
-  page: { minHeight: "100vh", background: "#16201f", padding: "0 0 40px", color: "#f5f1e8", fontFamily: "inherit" },
+  page: { minHeight: "100vh", background: "var(--sl-bg)", padding: "0 0 40px", color: "#f5f1e8", fontFamily: "inherit" },
   header: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, padding: "20px 20px 0", margin: "0 0 14px" },
   h1: { fontSize: "1.1rem", fontWeight: 800, letterSpacing: "0.08em", margin: 0 },
   hint: { color: "rgba(245,241,232,0.66)", fontSize: "0.82rem", lineHeight: 1.5, padding: "0 20px", margin: "0 0 14px", maxWidth: 720 },
@@ -427,7 +427,7 @@ const S: Record<string, React.CSSProperties> = {
   th: { textAlign: "left", padding: "10px 20px", fontSize: "0.62rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(245,241,232,0.58)", borderBottom: "1px solid rgba(255,255,255,0.1)", whiteSpace: "nowrap" },
   td: { padding: "10px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)", verticalAlign: "middle" },
   empty: { textAlign: "center", color: "rgba(245,241,232,0.62)", marginTop: 60 },
-  primaryBtn: { padding: "12px 18px", minHeight: 44, borderRadius: 9, border: "none", background: "#ba843c", color: "#16201f", fontWeight: 800, fontSize: "0.8rem", letterSpacing: "0.04em", cursor: "pointer", fontFamily: "inherit" },
+  primaryBtn: { padding: "12px 18px", minHeight: 44, borderRadius: 9, border: "none", background: "var(--sl-gold)", color: "var(--sl-on-accent)", fontWeight: 800, fontSize: "0.8rem", letterSpacing: "0.04em", cursor: "pointer", fontFamily: "inherit" },
   ghostBtn: { flex: 1, padding: "12px 0", minHeight: 44, borderRadius: 9, border: "1px solid rgba(255,255,255,0.18)", background: "transparent", color: "rgba(245,241,232,0.72)", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit" },
   ghostBtnAuto: { padding: "0 16px", minHeight: 44, borderRadius: 9, border: "1px solid rgba(255,255,255,0.18)", background: "transparent", color: "rgba(245,241,232,0.72)", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" },
   miniBtn: { padding: "9px 14px", minHeight: 40, borderRadius: 8, border: "1px solid rgba(186,132,60,0.5)", background: "transparent", color: "#c9964a", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" },

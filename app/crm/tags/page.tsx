@@ -189,7 +189,7 @@ export default function TagsAdminPage() {
             {tags.length} tag{tags.length !== 1 ? "s" : ""}
           </span>
           {/* Filtro por source — tags con al menos 1 asignación con ese source */}
-          <div style={{ display: "flex", background: "#22302e", borderRadius: 999, padding: 3 }}>
+          <div style={{ display: "flex", background: "var(--sl-panel2)", borderRadius: 999, padding: 3 }}>
             {(["ALL", "MANUAL", "AUTO_RULE", "AUTO_LLM"] as const).map((k) => {
               const label = k === "ALL" ? "Todos" : k === "MANUAL" ? "👤 Manual" : k === "AUTO_RULE" ? "⚙️ Reglas" : "🤖 LLM";
               const active = sourceFilter === k;

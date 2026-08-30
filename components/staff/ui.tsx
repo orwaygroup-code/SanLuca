@@ -426,7 +426,7 @@ const mS: Record<string, React.CSSProperties> = {
 // fallaba (3.3:1). Danger usa rojo profundo para que el blanco sí pase (5.5:1).
 // minHeight 44 = target táctil para tablets en servicio.
 export const btn: Record<string, React.CSSProperties> = {
-  primary: { padding: "12px 20px", minHeight: 44, borderRadius: 10, border: "none", background: C.gold, color: "#16201f", fontWeight: 800, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" },
+  primary: { padding: "12px 20px", minHeight: 44, borderRadius: 10, border: "none", background: C.gold, color: "var(--sl-on-accent)", fontWeight: 800, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" },
   ghost: { padding: "12px 20px", minHeight: 44, borderRadius: 10, border: `1px solid rgba(255,255,255,0.18)`, background: "transparent", color: C.dim, fontWeight: 600, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" },
   danger: { padding: "12px 20px", minHeight: 44, borderRadius: 10, border: "none", background: "#b23730", color: "#fff", fontWeight: 700, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" },
 };

@@ -377,7 +377,7 @@ const shell: React.CSSProperties = {
   display: "flex",
   height: "calc(100vh - 180px)",
   minHeight: 400,
-  background: "#22302e",
+  background: "var(--sl-panel2)",
   borderRadius: 16,
   border: "1px solid rgba(255,255,255,0.05)",
   overflow: "hidden",
@@ -402,7 +402,7 @@ const threadCol: React.CSSProperties = {
 const searchInput: React.CSSProperties = {
   width: "100%",
   padding: "9px 12px",
-  background: "#1c2628",
+  background: "var(--sl-panel)",
   border: "1px solid rgba(255,255,255,0.08)",
   borderRadius: 8,
   color: "#f5f1e8",
@@ -471,7 +471,7 @@ const threadHeader: React.CSSProperties = {
   gap: 12,
   padding: "14px 20px",
   borderBottom: "1px solid rgba(255,255,255,0.06)",
-  background: "#22302e",
+  background: "var(--sl-panel2)",
   flexShrink: 0,
 };
 
@@ -485,7 +485,7 @@ const messagesArea: React.CSSProperties = {
 
 const bubbleIn: React.CSSProperties = {
   maxWidth: "72%",
-  background: "#1c2628",
+  background: "var(--sl-panel)",
   border: "1px solid rgba(255,255,255,0.07)",
   borderRadius: "4px 16px 16px 16px",
   padding: "8px 12px",

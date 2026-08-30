@@ -769,7 +769,7 @@ export function DiscountModal({ open, comandaId, itemId, itemName, itemIds, onCl
             <button
               key={t}
               onClick={() => setType(t)}
-              style={{ ...btn.ghost, flex: 1, ...(type === t ? { background: C.gold, color: "#16201f", borderColor: C.gold, fontWeight: 800 } : {}) }}
+              style={{ ...btn.ghost, flex: 1, ...(type === t ? { background: C.gold, color: "var(--sl-on-accent)", borderColor: C.gold, fontWeight: 800 } : {}) }}
             >{t === "PERCENT" ? "Porcentaje %" : "Monto fijo $"}</button>
           ))}
         </div>

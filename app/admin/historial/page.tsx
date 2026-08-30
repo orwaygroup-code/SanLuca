@@ -98,7 +98,7 @@ export default function HistorialPage() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0a1112", color: "#f5f1e8", padding: "32px 20px", fontFamily: "inherit" }}>
+    <div style={{ minHeight: "100vh", background: "var(--sl-bg)", color: "#f5f1e8", padding: "32px 20px", fontFamily: "inherit" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28, flexWrap: "wrap", gap: 12 }}>
@@ -136,7 +136,7 @@ export default function HistorialPage() {
           <input
             className="adm-historial-search"
             value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar nombre o teléfono"
-            style={{ padding: "10px 14px", background: "#161e20", border: "1px solid rgba(186,132,60,0.25)", borderRadius: 8, color: "#f5f1e8", fontFamily: "inherit", fontSize: "0.82rem" }}
+            style={{ padding: "10px 14px", background: "var(--sl-panel)", border: "1px solid rgba(186,132,60,0.25)", borderRadius: 8, color: "#f5f1e8", fontFamily: "inherit", fontSize: "0.82rem" }}
           />
         </div>
 
@@ -144,7 +144,7 @@ export default function HistorialPage() {
         {loading ? (
           <p style={{ textAlign: "center", color: "rgba(245,241,232,0.4)", padding: 40 }}>Cargando…</p>
         ) : filtered.length === 0 ? (
-          <div style={{ background: "#161e20", border: "1px solid rgba(255,255,255,0.04)", borderRadius: 12, padding: 60, textAlign: "center", color: "rgba(245,241,232,0.4)" }}>
+          <div style={{ background: "var(--sl-panel)", border: "1px solid rgba(255,255,255,0.04)", borderRadius: 12, padding: 60, textAlign: "center", color: "rgba(245,241,232,0.4)" }}>
             No hay reservas en este filtro
           </div>
         ) : (
@@ -154,7 +154,7 @@ export default function HistorialPage() {
               const color = STATUS_COLOR[r.status];
               return (
                 <div key={r.id} className="adm-historial-row" style={{
-                  background: "#161e20",
+                  background: "var(--sl-panel)",
                   border: `1px solid rgba(255,255,255,0.04)`,
                   borderLeft: `3px solid ${color}`,
                   borderRadius: 10,

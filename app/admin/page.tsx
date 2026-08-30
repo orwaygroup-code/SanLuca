@@ -668,7 +668,7 @@ function NoteIsland({ guestName, note, onClose }: { guestName: string; note: str
             <div
                 onClick={(e) => e.stopPropagation()}
                 style={{
-                    background: "#22302e",
+                    background: "var(--sl-panel2)",
                     border: "1px solid rgba(186,132,60,0.4)",
                     borderRadius: 16,
                     padding: "28px 30px 26px",

@@ -113,7 +113,7 @@ export function TagPicker({
         position: "absolute",
         zIndex: 50,
         marginTop: 4,
-        background: "#1c2628",
+        background: "var(--sl-panel)",
         border: "1px solid rgba(186,132,60,0.35)",
         borderRadius: 8,
         padding: 10,
@@ -135,7 +135,7 @@ export function TagPicker({
         style={{
           width: "100%",
           padding: "7px 10px",
-          background: "#22302e",
+          background: "var(--sl-panel2)",
           border: "1px solid rgba(255,255,255,0.08)",
           borderRadius: 6,
           color: "#f5f1e8",

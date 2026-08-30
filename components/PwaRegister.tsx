@@ -83,7 +83,7 @@ export function PwaRegister() {
 
 const banner: React.CSSProperties = {
   position: "fixed", left: "50%", bottom: 16, transform: "translateX(-50%)", zIndex: 9999,
-  background: "#ba843c", color: "#16201f", border: "none", borderRadius: 999,
+  background: "var(--sl-gold)", color: "var(--sl-on-accent)", border: "none", borderRadius: 999,
   padding: "11px 20px", fontWeight: 800, fontSize: "0.86rem", cursor: "pointer",
   boxShadow: "0 6px 24px rgba(0,0,0,0.5)", fontFamily: "inherit", maxWidth: "92vw", whiteSpace: "nowrap",
   // El icono es ahora un SVG y necesita alinearse con el texto: como emoji

@@ -223,7 +223,7 @@ const muted: React.CSSProperties = {
 };
 
 const emptyWrap: React.CSSProperties = {
-  background: "#22302e",
+  background: "var(--sl-panel2)",
   border: "1px solid rgba(255,255,255,0.05)",
   borderRadius: 16,
   padding: "60px 24px",
@@ -234,7 +234,7 @@ const emptyWrap: React.CSSProperties = {
 };
 
 const tableWrap: React.CSSProperties = {
-  background: "#22302e",
+  background: "var(--sl-panel2)",
   border: "1px solid rgba(255,255,255,0.05)",
   borderRadius: 14,
   overflow: "hidden",

@@ -19,8 +19,8 @@ export function AdminNav({ userName, onLogout }: { userName?: string; onLogout: 
   const pathname = usePathname();
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "12px 20px", borderBottom: "1px solid rgba(255,255,255,0.08)", background: "#131c1b" }}>
-      <span style={{ fontSize: "0.7rem", letterSpacing: "0.3em", color: "#ba843c", fontWeight: 800, marginRight: 8 }}>SAN LUCA · ADMIN</span>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "12px 20px", borderBottom: "1px solid rgba(255,255,255,0.08)", background: "var(--sl-ink)" }}>
+      <span style={{ fontSize: "0.7rem", letterSpacing: "0.3em", color: "var(--sl-ink-accent)", fontWeight: 800, marginRight: 8 }}>SAN LUCA · ADMIN</span>
       {LINKS.map((l) => {
         const active = pathname === l.href;
         return (
@@ -30,8 +30,8 @@ export function AdminNav({ userName, onLogout }: { userName?: string; onLogout: 
             style={{
               padding: "7px 13px", borderRadius: 8, fontSize: "0.76rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
               background: active ? "rgba(186,132,60,0.85)" : "rgba(186,132,60,0.10)",
-              border: `1px solid ${active ? "#ba843c" : "rgba(186,132,60,0.30)"}`,
-              color: active ? "#fff" : "#ba843c", letterSpacing: "0.04em",
+              border: `1px solid ${active ? "var(--sl-ink-accent)" : "rgba(186,132,60,0.30)"}`,
+              color: active ? "#fff" : "var(--sl-ink-accent)", letterSpacing: "0.04em",
             }}
           >
             {l.label}

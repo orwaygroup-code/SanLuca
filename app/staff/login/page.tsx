@@ -201,7 +201,7 @@ const styles: Record<string, React.CSSProperties> = {
   error: { margin: 0, color: "#e8766b", fontSize: "0.84rem", fontWeight: 600 },
   button: {
     padding: "14px 0", minHeight: 48, borderRadius: 10, border: "none", background: "var(--sl-gold)",
-    color: "#16201f", fontWeight: 800, fontSize: "0.9rem", letterSpacing: "0.05em",
+    color: "var(--sl-on-accent)", fontWeight: 800, fontSize: "0.9rem", letterSpacing: "0.05em",
     textTransform: "uppercase", fontFamily: "inherit",
   },
 };

@@ -122,5 +122,5 @@ const brandLuca: React.CSSProperties = { fontSize: "1.6rem", fontWeight: 500, le
 const nav: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 4 };
 const loading: React.CSSProperties = {
   minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
-  background: "#1c2628", color: "rgba(245,241,232,0.6)", fontFamily: "inherit",
+  background: "var(--sl-panel)", color: "rgba(245,241,232,0.6)", fontFamily: "inherit",
 };

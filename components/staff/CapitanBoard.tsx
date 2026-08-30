@@ -313,7 +313,7 @@ const mini: React.CSSProperties = {
 const vw: Record<string, React.CSSProperties> = {
   wrap: { display: "inline-flex", gap: 3, padding: 3, background: "rgba(0,0,0,0.25)", border: `1px solid ${C.border}`, borderRadius: 999 },
   btn: { padding: "7px 14px", borderRadius: 999, border: "none", background: "transparent", color: C.dim, fontWeight: 700, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" },
-  on: { background: C.gold, color: "#16201f" },
+  on: { background: C.gold, color: "var(--sl-on-accent)" },
 };
 
 const pd: Record<string, React.CSSProperties> = {

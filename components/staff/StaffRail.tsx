@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import { C, ROLE_LABEL } from "./ui";
+import { ROLE_LABEL } from "./ui";
 import { useSession } from "@/lib/session-client";
 import { Icon, type IconName } from "./icons";
 
@@ -103,7 +103,7 @@ function RailItem({ icon, label, active, count, danger, sm, dataTour, onClick }:
         <Icon name={icon} size={sm ? 18 : 22} />
         {count ? <span style={rail.cnt}>{count}</span> : null}
       </span>
-      <span style={{ ...rail.tx, ...(sm ? rail.txSm : {}), ...(active ? { color: "#16201f" } : {}) }}>{label}</span>
+      <span style={{ ...rail.tx, ...(sm ? rail.txSm : {}), ...(active ? { color: "var(--sl-on-ink-accent)" } : {}) }}>{label}</span>
     </button>
   );
 }
@@ -111,31 +111,31 @@ function RailItem({ icon, label, active, count, danger, sm, dataTour, onClick }:
 const rail: Record<string, React.CSSProperties> = {
   root: {
     gridArea: "rail", position: "sticky", top: 0, height: "100vh", zIndex: 30,
-    background: "#111817", borderRight: `1px solid ${C.line}`,
+    background: "var(--sl-ink)", borderRight: `1px solid var(--sl-ink-line)`,
     display: "flex", flexDirection: "column", alignItems: "stretch",
     padding: "14px 10px", gap: 4, overflowY: "auto",
   },
   mark: {
-    margin: "2px auto 12px", width: 46, height: 46, borderRadius: 13, background: C.gold,
-    color: "#16201f", display: "grid", placeItems: "center", fontWeight: 900, fontSize: "1.05rem", letterSpacing: "0.02em",
+    margin: "2px auto 12px", width: 46, height: 46, borderRadius: 13, background: "var(--sl-ink-accent)",
+    color: "var(--sl-on-ink-accent)", display: "grid", placeItems: "center", fontWeight: 900, fontSize: "1.05rem", letterSpacing: "0.02em",
   },
   group: { display: "flex", flexDirection: "column", gap: 4 },
   btn: {
     position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 5,
-    padding: "11px 4px", border: "none", borderRadius: 13, background: "transparent", color: C.dim,
+    padding: "11px 4px", border: "none", borderRadius: 13, background: "transparent", color: "var(--sl-on-ink-dim)",
     fontFamily: "inherit", cursor: "pointer", minHeight: 62,
   },
   btnSm: { minHeight: 52 },
-  btnOn: { background: C.gold, color: "#16201f" },
+  btnOn: { background: "var(--sl-ink-accent)", color: "var(--sl-on-ink-accent)" },
   tx: { fontSize: "0.61rem", fontWeight: 800, letterSpacing: "0.03em" },
-  txSm: { fontSize: "0.56rem", color: C.faint, fontWeight: 700 },
+  txSm: { fontSize: "0.56rem", color: "var(--sl-on-ink-faint)", fontWeight: 700 },
   cnt: {
-    position: "absolute", top: -8, right: -12, background: "#e0b054", color: "#16201f",
+    position: "absolute", top: -8, right: -12, background: "#e0b054", color: "var(--sl-ink)",
     fontSize: "0.58rem", fontWeight: 900, borderRadius: 999, padding: "0 5px", minWidth: 17, lineHeight: "16px", textAlign: "center",
   },
-  div: { height: 1, background: C.line, margin: "9px 8px" },
+  div: { height: 1, background: "var(--sl-ink-line)", margin: "9px 8px" },
   grow: { flex: 1, minHeight: 12 },
   user: { textAlign: "center", padding: "6px 2px 2px", lineHeight: 1.2 },
-  userName: { color: C.cream, fontSize: "0.72rem", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
-  userRole: { color: C.faint, fontSize: "0.56rem", marginTop: 2 },
+  userName: { color: "var(--sl-on-ink)", fontSize: "0.72rem", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  userRole: { color: "var(--sl-on-ink-faint)", fontSize: "0.56rem", marginTop: 2 },
 };

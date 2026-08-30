@@ -332,7 +332,7 @@ const nc: Record<string, React.CSSProperties> = {
     background: "transparent", color: C.cream, cursor: "pointer", fontFamily: "inherit",
     display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2,
   },
-  chipOn: { background: C.gold, color: "#16201f", borderColor: C.gold },
+  chipOn: { background: C.gold, color: "var(--sl-on-accent)", borderColor: C.gold },
 };
 
 const page: Record<string, React.CSSProperties> = {

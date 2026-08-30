@@ -110,7 +110,7 @@ export default function UsuariosPage() {
             />
           </div>
 
-          <div style={{ display: "flex", background: "#22302e", borderRadius: 999, padding: 4, marginBottom: 12 }}>
+          <div style={{ display: "flex", background: "var(--sl-panel2)", borderRadius: 999, padding: 4, marginBottom: 12 }}>
             {(["todos", "web", "whatsapp"] as const).map((c) => (
               <button key={c} onClick={() => setSource(c)} style={{
                 flex: 1, padding: "8px 0", border: "none", borderRadius: 999, cursor: "pointer", fontFamily: "inherit",

@@ -408,7 +408,7 @@ const previewLabel: React.CSSProperties = {
 };
 
 const section: React.CSSProperties = {
-  background: "#22302e",
+  background: "var(--sl-panel2)",
   border: "1px solid rgba(255,255,255,0.05)",
   borderRadius: 14,
   padding: "18px 20px",
