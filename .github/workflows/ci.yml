@@ -1,0 +1,64 @@
+name: CI
+
+# Se dispara en todo push y en cada pull request. Existían 8 archivos de
+# pruebas en tests/ que nadie ejecutaba: una regresión en la lógica de caja o
+# de totales llegaba a producción en silencio y semanas después parecía que
+# "se había perdido" una función.
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+
+    # Postgres real: el build de Next consulta la base al prerenderizar las
+    # páginas del menú (Collecting page data). Sin base, el build falla aquí
+    # aunque el código esté bien.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: sanluca_test
+          POSTGRES_USER: sanluca
+          POSTGRES_PASSWORD: sanluca
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U sanluca -d sanluca_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://sanluca:sanluca@localhost:5432/sanluca_test?schema=public
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node 20 para igualar el runtime del VPS, no el de la máquina de quien
+      # desarrolla (hoy, Node 24 en local).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Generar cliente de Prisma
+        run: npx prisma generate
+
+      # Primero las pruebas: son segundos y dan el diagnóstico más preciso.
+      - name: Pruebas
+        run: npm test
+
+      - name: Verificación de tipos
+        run: npx tsc --noEmit
+
+      - name: Sincronizar esquema en la base de pruebas
+        run: npx prisma db push --skip-generate
+
+      - name: Build de producción
+        run: npm run build

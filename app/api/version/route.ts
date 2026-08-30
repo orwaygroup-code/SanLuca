@@ -16,6 +16,24 @@ try {
   /* en dev o si no existe el archivo, queda "dev" */
 }
 
+/**
+ * Commit desplegado. Lo escribe deploy.sh junto al BUILD_ID.
+ *
+ * El BUILD_ID cambia en cada build pero no dice QUÉ código corre. Sin este
+ * dato, saber si producción tiene lo que está en main exige entrar por SSH —
+ * y esa fricción es la razón de que varias veces se diera por perdida una
+ * función que en realidad estaba mergeada pero sin desplegar.
+ */
+let COMMIT = "desconocido";
+try {
+  COMMIT = readFileSync(join(process.cwd(), ".next", "COMMIT_SHA"), "utf8").trim() || COMMIT;
+} catch {
+  /* en dev no existe */
+}
+
 export async function GET() {
-  return NextResponse.json({ build: BUILD }, { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json(
+    { build: BUILD, commit: COMMIT },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }

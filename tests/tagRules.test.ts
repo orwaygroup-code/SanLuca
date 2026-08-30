@@ -104,7 +104,13 @@ function makeMock(fx: Fixture) {
 }
 
 const days = (n: number) => n * 86400000;
-const now  = new Date("2026-05-20T12:00:00Z");
+
+// Reloj real, no una fecha fija. Las reglas de tags (lib/tagRules.ts) evalúan
+// contra `new Date()`, así que un `now` congelado sólo coincide mientras el
+// calendario esté cerca de esa fecha: con "2026-05-20" la prueba de Inactivo
+// empezó a fallar sola ~90 días después, sin que nadie tocara el código.
+// Construyendo los fixtures relativos al presente, la suite es estable.
+const now  = new Date();
 
 // ─── VIP ────────────────────────────────────────────────────────────
 
