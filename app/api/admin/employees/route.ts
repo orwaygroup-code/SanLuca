@@ -4,6 +4,7 @@ import { requireAdminSession } from "@/lib/dualAuth";
 import { staffCreateSchema } from "@/lib/validations";
 import { resolvePin, PinConflictError } from "@/lib/staff";
 import { TENANT } from "@/lib/comanda";
+import { syncAdminBridge } from "@/lib/adminBridge";
 import type { ApiResponse } from "@/types";
 
 /**
@@ -73,7 +74,10 @@ export async function POST(request: NextRequest) {
       },
       select: PUBLIC_SELECT,
     });
-    return NextResponse.json<ApiResponse>({ success: true, data: { ...created, pin } }, { status: 201 });
+    // Un MANAGER recién dado de alta obtiene el acceso al panel en el acto: el
+    // puesto y los privilegios dejan de ir por separado.
+    const bridge = await syncAdminBridge(created.id, role, { username: created.username, fullName });
+    return NextResponse.json<ApiResponse>({ success: true, data: { ...created, pin, bridge } }, { status: 201 });
   } catch (e) {
     if (e instanceof PinConflictError) {
       return NextResponse.json<ApiResponse>({ success: false, error: "PIN_TAKEN" }, { status: 409 });

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/dualAuth";
 import { staffUpdateSchema } from "@/lib/validations";
 import { TENANT } from "@/lib/comanda";
+import { syncAdminBridge } from "@/lib/adminBridge";
 import type { ApiResponse } from "@/types";
 
 const PUBLIC_SELECT = {
@@ -52,7 +53,15 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       data,
       select: PUBLIC_SELECT,
     });
-    return NextResponse.json<ApiResponse>({ success: true, data: updated });
+    // El puesto y los privilegios se mueven juntos: promover a MANAGER concede
+    // el panel, y cualquier otro puesto lo revoca. Antes había que recordar
+    // correr un script a mano, así que el rol mostrado y el acceso real podían
+    // no coincidir durante semanas.
+    const bridge = await syncAdminBridge(updated.id, updated.role, {
+      username: updated.username,
+      fullName: updated.fullName,
+    });
+    return NextResponse.json<ApiResponse>({ success: true, data: { ...updated, bridge } });
   } catch (e) {
     const isUnique = e instanceof Error && e.message.includes("Unique constraint");
     return NextResponse.json<ApiResponse>(
