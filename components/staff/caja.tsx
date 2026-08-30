@@ -433,6 +433,31 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
     else onError(r.error ?? "No se pudo cobrar a crédito");
   };
 
+  // #1 Descuento de empleado, automático. Al elegir a la persona se aplica el
+  // porcentaje configurado en Ajustes, de modo que el saldo que se cobra en
+  // caja —y el que se manda a su tablet— ya venga descontado. Antes había que
+  // aplicarlo a mano desde el modal de descuentos y se olvidaba.
+  const pickStaffCreditEmployee = async (employeeId: number) => {
+    setScEmp(employeeId); setScPinMode(false); setScPin(""); setScSearch("");
+    if (!comanda) return;
+    setScBusy(true);
+    const r = await apiFetch<Comanda>(`/api/comandas/${comanda.id}/employee-discount`, { method: "POST" });
+    setScBusy(false);
+    if (r.ok && r.data) setComanda(r.data);
+    else if (r.error) onError(r.error);
+  };
+
+  // Al cambiar de empleado o cerrar el desplegable se retira el descuento: si
+  // la cuenta termina cobrándose por otra vía, no debe quedarse con él puesto.
+  const clearStaffCreditEmployee = async () => {
+    setScEmp(null); setScPinMode(false); setScPin("");
+    if (!comanda) return;
+    setScBusy(true);
+    const r = await apiFetch<Comanda>(`/api/comandas/${comanda.id}/employee-discount`, { method: "DELETE" });
+    setScBusy(false);
+    if (r.ok && r.data) setComanda(r.data);
+  };
+
   // Mandar la confirmación a la TABLET del empleado. La cuenta queda pendiente hasta que confirme.
   const requestStaffCredit = async () => {
     if (!comanda || scEmp == null) return;
@@ -459,6 +484,11 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
         <>
           <div style={{ background: C.panel2, border: `1px solid ${C.line}`, borderRadius: 12, padding: "12px 14px" }}>
             <div style={{ ...kv, color: C.dim }}><span>{comanda.folio} · {comandaLabel(comanda)}</span><span>Total {formatMXN(total)}</span></div>
+            {Number(comanda.discountTotal) > 0 && (
+              <div style={{ ...kv, color: C.green, fontSize: "0.78rem" }}>
+                <span>Descuento aplicado</span><span>−{formatMXN(Number(comanda.discountTotal))}</span>
+              </div>
+            )}
             {paidBefore > 0 && <div style={{ ...kv, color: C.faint, fontSize: "0.78rem" }}><span>Pagado antes</span><span>{formatMXN(paidBefore)}</span></div>}
             <div style={{ ...kv, color: C.cream, fontWeight: 800 }}><span>Saldo por cobrar</span><span>{formatMXN(remaining)}</span></div>
           </div>
@@ -538,7 +568,7 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
                             <div style={{ color: C.faint, fontSize: "0.68rem", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 800, marginBottom: 5 }}>{label}</div>
                             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                               {list.map((w) => (
-                                <button key={w.id} onClick={() => { setScEmp(w.id); setScPinMode(false); setScPin(""); setScSearch(""); }}
+                                <button key={w.id} onClick={() => pickStaffCreditEmployee(w.id)}
                                   style={{ display: "block", width: "100%", textAlign: "left", background: "rgba(0,0,0,0.16)", border: `1px solid ${C.border}`, borderRadius: 9, padding: "10px 12px", color: C.cream, fontFamily: "inherit", fontSize: "0.86rem", cursor: "pointer" }}>
                                   {w.fullName}
                                 </button>
@@ -553,7 +583,7 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
                   <div>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                       <span style={{ color: C.cream, fontWeight: 800 }}>{waiters.find((w) => w.id === scEmp)?.fullName ?? "Empleado"} · {formatMXN(remaining)}</span>
-                      <button onClick={() => { setScEmp(null); setScPinMode(false); setScPin(""); }} style={{ background: "transparent", border: "none", color: C.gold, fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit" }}>cambiar</button>
+                      <button onClick={clearStaffCreditEmployee} style={{ background: "transparent", border: "none", color: C.gold, fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit" }}>cambiar</button>
                     </div>
                     {!scPinMode ? (
                       <div style={{ display: "flex", gap: 10 }}>
