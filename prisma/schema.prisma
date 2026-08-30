@@ -1217,6 +1217,10 @@ model RestaurantSettings {
   taxRate     Decimal  @default(0.16) @db.Decimal(5, 4)
   tipPolicy   Json? // política default de reparto de propinas: { areas: [{ name, percent }] }
   employeeDiscountPercent Decimal @default(50) @db.Decimal(5, 2) // #5 descuento a empleados (% configurable)
+  // Horario por día y turnos de servicio: { days: [{dow, closed, open, close}],
+  // shifts: [{key, name, start}] }. Antes estaba escrito en duro en
+  // lib/shifts.ts. Null = se usa DEFAULT_SCHEDULE.
+  schedule Json?
   updatedAt   DateTime @updatedAt
   updatedById Int?
   updatedBy   Staff?   @relation(fields: [updatedById], references: [id])

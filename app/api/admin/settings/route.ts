@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { resolveActor, requireAdminOrStaffManager } from "@/lib/dualAuth";
 import { TENANT } from "@/lib/comanda";
 import { normalizePolicy } from "@/lib/tips";
+import { validateSchedule, slugKey, parseHm, type ScheduleConfig } from "@/lib/shifts";
 import type { ApiResponse } from "@/types";
 
 /** Crea la fila de settings del tenant si no existe (IVA 16% activo por default). */
@@ -45,6 +46,22 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json<ApiResponse>({ success: false, error: "employeeDiscountPercent inválido (0 ≤ x ≤ 100)" }, { status: 400 });
     }
     data.employeeDiscountPercent = ep;
+  }
+  // Horario por día y turnos de servicio. Se valida aquí y no sólo en la
+  // pantalla: un horario incoherente deja ventas sin turno asignado, y eso
+  // rompe cortes y reportes en silencio.
+  if (body.schedule !== undefined) {
+    const cfg = body.schedule as ScheduleConfig;
+    const errs = validateSchedule(cfg);
+    if (errs.length) {
+      return NextResponse.json<ApiResponse>({ success: false, error: errs.join(" ") }, { status: 400 });
+    }
+    // Las claves se conservan al renombrar y sólo se generan para turnos
+    // nuevos: las comandas ya guardadas apuntan a la clave, no al nombre.
+    const shifts = cfg.shifts
+      .map((s) => ({ key: s.key || slugKey(s.name), name: s.name.trim(), start: s.start.trim() }))
+      .sort((a, b) => (parseHm(a.start) ?? 0) - (parseHm(b.start) ?? 0));
+    data.schedule = { days: cfg.days, shifts } as unknown as Prisma.InputJsonValue;
   }
 
   await ensureSettings();

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/session-client";
+import { ScheduleEditor } from "@/components/admin/ScheduleEditor";
 
 interface TipArea { name: string; percent: number }
 interface TipPolicyJson { pointPercent?: number; areas?: TipArea[] }
@@ -210,6 +211,8 @@ export default function AdminSettingsPage() {
             </div>
           </div>
         </section>
+
+        <ScheduleEditor />
       </main>
     </div>
   );

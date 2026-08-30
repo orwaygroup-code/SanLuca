@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getStaffSession } from "@/lib/staff-auth-server";
-import { getShiftWindow } from "@/lib/shifts";
+import { getShiftWindow } from "@/lib/schedule";
 import { formatFolio } from "@/lib/comandaRules";
 import { TENANT, ACTIVE_STATUSES, COMANDA_INCLUDE, isUniqueViolation, uniqueViolationTarget } from "@/lib/comanda";
 import type { ApiResponse } from "@/types";
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     if (!w) return NextResponse.json<ApiResponse>({ success: false, error: "Mesero no encontrado o inactivo" }, { status: 404 });
   }
 
-  const shift = getShiftWindow(new Date()).name;
+  const shift = (await getShiftWindow(new Date())).key;
   const year = mxYear();
 
   // Cuentas PARA LLEVAR (sin mesa): el "mesero" es el de sistema "Llevar" → ese 7% (punto)

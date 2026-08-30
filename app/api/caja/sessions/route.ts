@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireCashier } from "@/lib/dualAuth";
 import { verifySupervisorPin } from "@/lib/staff";
 import { TENANT, isUniqueViolation, enqueueDrawerKick } from "@/lib/comanda";
-import { getShiftWindow } from "@/lib/shifts";
+import { getShiftWindow } from "@/lib/schedule";
 import { getOpenSession, nextCashFolio, CASH_SESSION_INCLUDE } from "@/lib/caja";
 import { notify } from "@/lib/notify";
 import type { ApiResponse } from "@/types";
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const shift = getShiftWindow(new Date()).name;
+  const shift = (await getShiftWindow(new Date())).key;
   for (let attempt = 0; attempt < 6; attempt++) {
     try {
       const created = await prisma.cashSession.create({

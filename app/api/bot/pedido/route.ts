@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getShiftWindow } from "@/lib/shifts";
+import { getShiftWindow } from "@/lib/schedule";
 import { formatFolio } from "@/lib/comandaRules";
 import { lineTotal as calcLineTotal } from "@/lib/comandaTotals";
 import { TENANT, COMANDA_INCLUDE, recalcComandaTotals, isUniqueViolation } from "@/lib/comanda";
@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
 
   const pickupNote = formatPickup(fecha, hora); // "4 ago · 2:00 PM" — para mostrarle a Perla.
 
-  const shift = getShiftWindow(new Date()).name;
+  const shift = (await getShiftWindow(new Date())).key;
   const year = mxYear();
   let seq = (await prisma.comanda.count({ where: { tenantId: TENANT, folio: { startsWith: `COM-${year}-` } } })) + 1;
 
