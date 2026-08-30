@@ -12,6 +12,28 @@ import { apiFetch, type Comanda, type TableStatus } from "@/components/staff/typ
 import { Tour, type TourStep } from "@/components/staff/Tour";
 import { FaltantesPanel } from "@/components/staff/FaltantesPanel";
 
+/**
+ * Icono del panel 86/101, partido por la mitad:
+ *   izquierda — producto agotado (86): media circunferencia atenuada y tachada.
+ *   derecha   — producto insignia (101): estrella.
+ * Hereda currentColor para invertirse solo cuando el botón está activo.
+ */
+function EightySixStarIcon() {
+  return (
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      {/* mitad izquierda rellena tenue: el producto que ya no hay */}
+      <path d="M12 3.2a8.8 8.8 0 0 0 0 17.6z" fill="currentColor" opacity="0.16" />
+      {/* tachado del 86 */}
+      <path d="M6.4 8.4 10.6 15" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      {/* divisoria entre ambas mitades */}
+      <path d="M12 2.6v18.8" stroke="currentColor" strokeWidth="1.1" opacity="0.55" />
+      {/* estrella del 101 */}
+      <path d="m16.9 8.35 1.02 2.07 2.28.33-1.65 1.61.39 2.28-2.04-1.08-2.04 1.08.39-2.28-1.65-1.61 2.28-.33z" fill="currentColor" />
+      <circle cx="12" cy="12" r="8.8" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
 /** Tutorial guiado de la vista Mesero (mis comandas). */
 const MESERO_TOUR: TourStep[] = [
   { title: "Tus comandas", body: "Aquí ves solo las mesas y cuentas que TÚ tienes abiertas. Toca cualquiera para capturar platillos, cambiar cantidades o mandar a cocina/barra." },
@@ -105,17 +127,26 @@ export default function MeseroComandasPage() {
         userName={staff.fullName}
         onLogout={logout}
         right={
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          // flexWrap: en un celular estos controles no caben en una fila y antes
+          // se salían del ancho de la pantalla. El encabezado ya envolvía, pero
+          // este grupo interno no, así que formaba un bloque indivisible más
+          // ancho que el viewport.
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end", minWidth: 0 }}>
             <ModeSwitch role={staff.role} />
-            {/* Faltantes (86) y Priorizar (101): cambian SOLO el cuerpo, sin salir de la vista del mesero. */}
-            {(["86", "101"] as const).map((k) => {
-              const on = panelView === k;
+            {/* Un solo botón para 86 y 101. Tener dos era redundante: el panel
+                que abren ya trae su propio conmutador entre ambas secciones,
+                así que la elección se hacía dos veces. Unificarlos libera
+                espacio en la barra, que es lo que faltaba en móvil. */}
+            {(() => {
+              const on = panelView !== null;
               return (
-                <button key={k} onClick={() => setPanelView(on ? null : k)} aria-pressed={on}
-                  title={k === "86" ? "Faltantes (86)" : "Priorizar (101)"} aria-label={k === "86" ? "Faltantes 86" : "Priorizar 101"}
-                  style={{ height: 40, padding: "0 13px", borderRadius: 999, border: `1px solid ${on ? C.gold : C.border}`, background: on ? C.gold : "transparent", color: on ? "#16201f" : C.gold, fontWeight: 800, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" }}>{k}</button>
+                <button onClick={() => setPanelView(on ? null : "86")} aria-pressed={on}
+                  title="Faltantes (86) y Priorizar (101)" aria-label="Faltantes y priorizar"
+                  style={{ width: 40, height: 40, display: "grid", placeItems: "center", borderRadius: 999, border: `1px solid ${on ? C.gold : C.border}`, background: on ? C.gold : "transparent", color: on ? "#16201f" : C.gold, cursor: "pointer", fontFamily: "inherit", padding: 0 }}>
+                  <EightySixStarIcon />
+                </button>
               );
-            })}
+            })()}
             <button onClick={() => router.push("/staff/wallet")} title="Mi saldo" aria-label="Mi saldo"
               style={{ width: 40, height: 40, borderRadius: 999, border: `1px solid ${C.border}`, background: "transparent", color: C.gold, fontWeight: 800, fontSize: "1rem", cursor: "pointer" }}>$</button>
             <button onClick={() => setTourOpen(true)} title="Tutorial" aria-label="Abrir tutorial"
