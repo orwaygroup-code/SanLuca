@@ -51,9 +51,28 @@ export async function listReservations(p: ListParams): Promise<SvcResult> {
     const end = new Date(`${p.date}T23:59:59.999-06:00`);
     where.date = { gte: start, lte: end };
   } else {
-    const nowMx = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Mexico_City" }));
-    const dateMx = `${nowMx.getFullYear()}-${String(nowMx.getMonth() + 1).padStart(2, "0")}-${String(nowMx.getDate()).padStart(2, "0")}`;
-    where.date = { gte: new Date(`${dateMx}T00:00:00.000-06:00`) };
+    // Desde el inicio del TURNO abierto, no desde la medianoche del calendario.
+    //
+    // El servicio cruza la medianoche: el turno abre por la tarde y cierra de
+    // madrugada. Con el corte a las 00:00 la lista se vaciaba a media jornada
+    // y la hostess perdía de vista las reservas que estaba atendiendo. Medido
+    // el 30/08 a las 05:29 de México: cero reservas visibles con el corte por
+    // calendario, cuatro con el corte por turno.
+    //
+    // Sin turno abierto se conserva la medianoche, que es lo razonable al
+    // consultar fuera de servicio.
+    const open = await prisma.cashSession.findFirst({
+      where: { status: "OPEN" },
+      select: { openedAt: true },
+      orderBy: { openedAt: "desc" },
+    });
+    let floor = open?.openedAt;
+    if (!floor) {
+      const nowMx = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Mexico_City" }));
+      const dateMx = `${nowMx.getFullYear()}-${String(nowMx.getMonth() + 1).padStart(2, "0")}-${String(nowMx.getDate()).padStart(2, "0")}`;
+      floor = new Date(`${dateMx}T00:00:00.000-06:00`);
+    }
+    where.date = { gte: floor };
   }
   if (p.search) {
     where.OR = [
