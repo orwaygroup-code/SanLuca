@@ -4,6 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "@/components/staff/types";
 import { DateRangeBar, dateFilterQuery, DEFAULT_FILTER, type DateFilter } from "@/components/admin/DateRangeBar";
 import { RP, money, shiftLabel, methodLabel, fmtDateTime, tbl, Chip, PageHead } from "@/components/admin/reportsUi";
+import { ExportModal, ExportButton } from "@/components/admin/ExportModal";
+import { dialogAlert } from "@/components/ui/DialogHost";
+import { tableToTicketText, tableToCsv, tableToPrintableHtml, tableFileName, type TableExport } from "@/lib/reportExport";
 
 /**
  * Historial de venta: TODAS las cuentas pagadas por fecha de cobro (versión histórica).
@@ -21,6 +24,41 @@ export default function HistorialVentaPage() {
   const [q, setQ] = useState("");
   const [resp, setResp] = useState<Resp | null>(null);
   const [loading, setLoading] = useState(true);
+  const [exportOpen, setExportOpen] = useState(false);
+
+  /** Las MISMAS columnas de la tabla, para que lo exportado sea lo que se ve. */
+  const tableData = (): TableExport => ({
+    title: "Historial de venta",
+    rangeLabel: `${resp?.label ?? ""}${q.trim() ? ` · búsqueda «${q.trim()}»` : ""}`,
+    summary: [
+      { label: "Cuentas", value: String(resp?.count ?? 0) },
+      { label: "Total cobrado", value: money(resp?.salesTotal ?? 0) },
+    ],
+    columns: [
+      { key: "folio", label: "Folio" },
+      { key: "fecha", label: "Fecha" },
+      { key: "turno", label: "Turno" },
+      { key: "mesa", label: "Mesa · Sección" },
+      { key: "mesero", label: "Mesero" },
+      { key: "guests", label: "Comensales", num: true },
+      { key: "items", label: "Items", num: true },
+      { key: "tip", label: "Propina", num: true },
+      { key: "total", label: "Total", num: true },
+      { key: "pago", label: "Pago" },
+    ],
+    rows: (resp?.rows ?? []).map((r) => ({
+      folio: r.folio,
+      fecha: fmtDateTime(r.closedAt),
+      turno: shiftLabel(r.shift),
+      mesa: `${r.table} · ${r.section}`,
+      mesero: r.waiter,
+      guests: r.guests,
+      items: r.items,
+      tip: r.tip,
+      total: r.total,
+      pago: r.methods.map((m) => methodLabel(m)).join(", ") || "—",
+    })),
+  });
 
   const load = useCallback(() => {
     setLoading(true);
@@ -43,7 +81,22 @@ export default function HistorialVentaPage() {
             style={{ padding: "7px 11px", borderRadius: 8, border: `1px solid ${RP.border}`, background: RP.panel, color: RP.cream, fontFamily: "inherit", fontSize: "0.82rem", minWidth: 210 }} />
           <button type="submit" style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: RP.gold, color: "#16201f", fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>Buscar</button>
         </form>
+        <ExportButton onClick={() => setExportOpen(true)} disabled={loading || !resp || resp.rows.length === 0} />
       </div>
+
+      <ExportModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        subtitle={`Historial de venta · ${resp?.label ?? ""}${q.trim() ? ` · «${q.trim()}»` : ""}`}
+        hasRows={!!resp && resp.rows.length > 0}
+        onDone={(msg) => { void dialogAlert(msg, "Exportar"); }}
+        producers={{
+          ticket: () => tableToTicketText(tableData()),
+          csv: () => tableToCsv(tableData()),
+          html: () => tableToPrintableHtml(tableData()),
+          fileName: (ext) => tableFileName("historial-de-venta", resp?.label ?? "rango", ext),
+        }}
+      />
 
       {loading ? (
         <p style={{ color: RP.dim }}>Cargando…</p>

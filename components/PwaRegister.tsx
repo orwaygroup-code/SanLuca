@@ -62,7 +62,21 @@ export function PwaRegister() {
   if (!updateReady) return null;
   return (
     <button onClick={() => window.location.reload()} style={banner} aria-label="Actualizar a la nueva versión">
-      🔄 Nueva versión disponible · toca para actualizar
+      {/* SVG en vez de emoji: los emoji los dibuja cada sistema operativo con
+          su propia tipografía —tamaño, color y trazo distintos en iOS, Android
+          y Windows— y rompían la estética del aviso. Este hereda currentColor
+          y el grosor del resto de los iconos. */}
+      <svg
+        width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"
+        aria-hidden="true" style={{ flexShrink: 0 }}
+      >
+        <path d="M3 12a9 9 0 0 1 15.2-6.5L21 8" />
+        <path d="M21 3v5h-5" />
+        <path d="M21 12a9 9 0 0 1-15.2 6.5L3 16" />
+        <path d="M3 21v-5h5" />
+      </svg>
+      Nueva versión disponible · toca para actualizar
     </button>
   );
 }
@@ -72,4 +86,7 @@ const banner: React.CSSProperties = {
   background: "#ba843c", color: "#16201f", border: "none", borderRadius: 999,
   padding: "11px 20px", fontWeight: 800, fontSize: "0.86rem", cursor: "pointer",
   boxShadow: "0 6px 24px rgba(0,0,0,0.5)", fontFamily: "inherit", maxWidth: "92vw", whiteSpace: "nowrap",
+  // El icono es ahora un SVG y necesita alinearse con el texto: como emoji
+  // quedaba centrado por la línea base de la fuente.
+  display: "inline-flex", alignItems: "center", gap: 8,
 };

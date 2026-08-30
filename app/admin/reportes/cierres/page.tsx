@@ -3,6 +3,9 @@
 import { Fragment, useCallback, useEffect, useState, type CSSProperties } from "react";
 import { apiFetch } from "@/components/staff/types";
 import { DateRangeBar, dateFilterQuery, DEFAULT_FILTER, type DateFilter } from "@/components/admin/DateRangeBar";
+import { ExportModal, ExportButton } from "@/components/admin/ExportModal";
+import { dialogAlert } from "@/components/ui/DialogHost";
+import { tableToTicketText, tableToCsv, tableToPrintableHtml, tableFileName, type TableExport } from "@/lib/reportExport";
 import { RP, money, shiftLabel, fmtDateTime, tbl, Chip, PageHead } from "@/components/admin/reportsUi";
 
 /**
@@ -39,6 +42,53 @@ export default function CierresPage() {
   const [filter, setFilter] = useState<DateFilter>({ ...DEFAULT_FILTER, mode: "preset", range: "7d" });
   const [resp, setResp] = useState<Resp | null>(null);
   const [loading, setLoading] = useState(true);
+  const [exportOpen, setExportOpen] = useState(false);
+
+  /** Las MISMAS columnas del arqueo que se ven en pantalla. */
+  const tableData = (): TableExport => ({
+    title: "Cierres de turno",
+    rangeLabel: resp?.label ?? "",
+    summary: [
+      { label: "Cortes", value: String(resp?.count ?? 0) },
+      { label: "Ventas del periodo", value: money(resp?.salesTotal ?? 0) },
+    ],
+    columns: [
+      { key: "folio", label: "Folio" },
+      { key: "turno", label: "Turno" },
+      { key: "estado", label: "Estado" },
+      { key: "apertura", label: "Apertura" },
+      { key: "cierre", label: "Cierre" },
+      { key: "fondo", label: "Fondo", num: true },
+      { key: "esperado", label: "Esperado ef.", num: true },
+      { key: "contado", label: "Contado ef.", num: true },
+      { key: "tarjeta", label: "Tarjeta", num: true },
+      { key: "dif", label: "Diferencia", num: true },
+      { key: "ventas", label: "Ventas", num: true },
+      { key: "cuentas", label: "Cuentas", num: true },
+      { key: "propinas", label: "Propinas", num: true },
+      { key: "abrio", label: "Abrió" },
+      { key: "cerro", label: "Cerró" },
+    ],
+    rows: (resp?.rows ?? []).map((r) => ({
+      folio: r.folio,
+      turno: shiftLabel(r.shift),
+      estado: r.status,
+      apertura: fmtDateTime(r.openedAt),
+      cierre: fmtDateTime(r.closedAt),
+      fondo: r.openingFloat,
+      // Un corte abierto todavía no tiene arqueo: se deja vacío en vez de un 0
+      // que se leería como "contaron cero".
+      esperado: r.expectedCash ?? "",
+      contado: r.countedCash ?? "",
+      tarjeta: r.countedCard ?? "",
+      dif: r.difference ?? "",
+      ventas: r.sales,
+      cuentas: r.comandas,
+      propinas: r.tips,
+      abrio: r.openedBy,
+      cerro: r.closedBy ?? "",
+    })),
+  });
   // "Ver más" por corte: expande una fila con el detalle (métodos de pago + top productos).
   const [openId, setOpenId] = useState<number | null>(null);
   const [detail, setDetail] = useState<Record<number, CorteDetail | null>>({});
@@ -70,9 +120,24 @@ export default function CierresPage() {
     <div style={{ padding: 24, maxWidth: 1250, margin: "0 auto" }}>
       <PageHead title="Historial de cierres de turno" subtitle="Cada corte de caja por fecha de apertura. Solo lectura." />
 
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: 16, display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", justifyContent: "space-between" }}>
         <DateRangeBar value={filter} onChange={setFilter} />
+        <ExportButton onClick={() => setExportOpen(true)} disabled={loading || !resp || resp.rows.length === 0} />
       </div>
+
+      <ExportModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        subtitle={`Cierres de turno · ${resp?.label ?? ""}`}
+        hasRows={!!resp && resp.rows.length > 0}
+        onDone={(msg) => { void dialogAlert(msg, "Exportar"); }}
+        producers={{
+          ticket: () => tableToTicketText(tableData()),
+          csv: () => tableToCsv(tableData()),
+          html: () => tableToPrintableHtml(tableData()),
+          fileName: (ext) => tableFileName("cierres-de-turno", resp?.label ?? "rango", ext),
+        }}
+      />
 
       {loading ? (
         <p style={{ color: RP.dim }}>Cargando…</p>

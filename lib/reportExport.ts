@@ -24,22 +24,28 @@ export interface ReportShift {
   topDish: { name: string; qty: number } | null;
 }
 export interface ReportDish { name: string; qty: number; revenue: number; comandas: number }
+export interface ReportWaiter {
+  waiter: string; sales: number; comandas: number; guests: number; avgTicket: number;
+  dishes: ReportDish[];
+}
 export interface ReportData {
   kpis: ReportKpis;
   byShift: ReportShift[];
   bySection: { section: string; sales: number; comandas: number }[];
+  byWaiter: ReportWaiter[];
   topDishes: ReportDish[];
   byCarta: { carta: string; qty: number; revenue: number; comandas: number; dishes: ReportDish[] }[];
 }
 
 /** Las mismas sub-vistas de la pantalla de reportes. */
-export type ReportSub = "todo" | "producto" | "menus" | "secciones";
+export type ReportSub = "todo" | "producto" | "menus" | "secciones" | "meseros";
 
 export const SUB_LABEL: Record<ReportSub, string> = {
   todo: "Resumen",
   producto: "Por producto",
   menus: "Por sección del menú",
   secciones: "Por zona",
+  meseros: "Por mesero",
 };
 
 const mx = (n: number) =>
@@ -55,6 +61,7 @@ export function subHasRows(d: ReportData, sub: ReportSub): boolean {
   if (sub === "todo") return d.byShift.length > 0 || d.kpis.comandas > 0;
   if (sub === "producto") return d.topDishes.length > 0;
   if (sub === "menus") return d.byCarta.length > 0;
+  if (sub === "meseros") return d.byWaiter.length > 0;
   return d.bySection.length > 0;
 }
 
@@ -102,6 +109,16 @@ export function reportToTicketText(d: ReportData, rangeLabel: string, sub: Repor
     for (const c of d.byCarta) {
       out.push(kv(c.carta, mx(c.revenue)));
       out.push(`  ${c.qty} vendidos · ${c.comandas} comandas`);
+    }
+  } else if (sub === "meseros") {
+    for (const w of d.byWaiter) {
+      out.push(kv(w.waiter, mx(w.sales)));
+      out.push(`  ${w.comandas} cuentas · ${w.guests} comensales`);
+      out.push(`  ticket prom. ${mx(w.avgTicket)}`);
+      // Sólo lo más vendido por cada uno: el detalle completo cabe en la hoja
+      // de cálculo, no en un ticket de 42 columnas.
+      for (const p of w.dishes.slice(0, 5)) out.push(kv(`   ${p.qty}x ${p.name}`, mx(p.revenue)));
+      if (w.dishes.length > 5) out.push(`     ...y ${w.dishes.length - 5} productos mas`);
     }
   } else {
     for (const s of d.bySection) {
@@ -159,6 +176,12 @@ export function reportToCsv(d: ReportData, rangeLabel: string, sub: ReportSub): 
       out.push(row(c.carta, "(total de la seccion)", c.qty, c.comandas, c.revenue));
       for (const p of c.dishes) out.push(row(c.carta, p.name, p.qty, p.comandas, p.revenue));
     }
+  } else if (sub === "meseros") {
+    out.push(row("Mesero", "Producto", "Cantidad", "Comandas", "Importe", "Comensales", "Ticket promedio"));
+    for (const w of d.byWaiter) {
+      out.push(row(w.waiter, "(total del mesero)", "", w.comandas, w.sales, w.guests, w.avgTicket));
+      for (const p of w.dishes) out.push(row(w.waiter, p.name, p.qty, p.comandas, p.revenue, "", ""));
+    }
   } else {
     out.push(row("Zona", "Cuentas", "Ventas"));
     for (const s of d.bySection) out.push(row(s.section, s.comandas, s.sales));
@@ -206,6 +229,14 @@ function bodyFor(d: ReportData, sub: ReportSub): string {
       .map((c) => `<h2>${h(c.carta)} · ${mx(c.revenue)}</h2>${table(
         ["Producto", "Cantidad", "Comandas", "Importe"],
         c.dishes.map((p) => [p.name, p.qty, p.comandas, mx(p.revenue)]))}`)
+      .join("");
+  }
+  if (sub === "meseros") {
+    return d.byWaiter
+      .map((w) => `<h2>${h(w.waiter)} · ${mx(w.sales)}</h2>
+        <div class="sub">${w.comandas} cuentas · ${w.guests} comensales · ticket prom. ${mx(w.avgTicket)}</div>
+        ${table(["Producto", "Cantidad", "Comandas", "Importe"],
+          w.dishes.map((p) => [p.name, p.qty, p.comandas, mx(p.revenue)]))}`)
       .join("");
   }
   return table(["Zona", "Cuentas", "Ventas"],
@@ -257,4 +288,113 @@ export function reportFileName(rangeLabel: string, ext: string, sub: ReportSub):
       .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   const day = new Date().toISOString().slice(0, 10);
   return `sanluca-${slug(SUB_LABEL[sub]) || "reporte"}-${slug(rangeLabel) || "rango"}-${day}.${ext}`;
+}
+
+// ═══════════════════════════════════ exportación de tablas ══
+/**
+ * Exportación genérica para pantallas que muestran una tabla —Historial de
+ * venta, Cierres de turno— sin duplicar los tres generadores por cada una.
+ * Reciben las columnas y filas que ya tienen en pantalla, de modo que vale la
+ * misma regla: se exporta lo que se está viendo, con sus filtros aplicados.
+ */
+export interface ExportColumn { key: string; label: string; num?: boolean }
+export interface TableExport {
+  title: string;
+  rangeLabel: string;
+  columns: ExportColumn[];
+  rows: Record<string, string | number>[];
+  /** Totales o KPIs que encabezan lo exportado. */
+  summary?: { label: string; value: string }[];
+}
+
+export function tableToTicketText(t: TableExport): string {
+  const out: string[] = [];
+  out.push(center("SAN LUCA RISTORANTE"));
+  out.push(center(t.title.toUpperCase()));
+  out.push(center(t.rangeLabel));
+  out.push(center(stamp()));
+  out.push(line("="));
+
+  for (const s of t.summary ?? []) out.push(kv(s.label, s.value));
+  if (t.summary?.length) out.push(line());
+
+  // El ticket mide 42 columnas: una tabla de ocho no cabe. Cada fila se
+  // imprime como bloque —primera columna de título, el resto en pares— que es
+  // legible en papel angosto.
+  const [first, ...rest] = t.columns;
+  const LIMIT = 40;
+  for (const r of t.rows.slice(0, LIMIT)) {
+    out.push(String(r[first.key] ?? ""));
+    for (const c of rest) {
+      const v = r[c.key];
+      if (v === "" || v === undefined || v === null) continue;
+      out.push(kv(`  ${c.label}`, String(v)));
+    }
+    out.push("");
+  }
+  if (t.rows.length > LIMIT) out.push(`...y ${t.rows.length - LIMIT} registros mas`);
+
+  out.push(line("="));
+  out.push(center("Documento informativo"));
+  out.push(center("No es comprobante fiscal"));
+  return out.join("\n");
+}
+
+export function tableToCsv(t: TableExport): string {
+  const out: string[] = [];
+  out.push("sep=,");
+  out.push(row(`San Luca Ristorante — ${t.title}`));
+  out.push(row("Rango", t.rangeLabel));
+  out.push(row("Generado", stamp()));
+  out.push("");
+  for (const s of t.summary ?? []) out.push(row(s.label, s.value));
+  if (t.summary?.length) out.push("");
+  out.push(row(...t.columns.map((c) => c.label)));
+  for (const r of t.rows) out.push(row(...t.columns.map((c) => r[c.key] ?? "")));
+  return out.join("\r\n");
+}
+
+export function tableToPrintableHtml(t: TableExport): string {
+  const sum = (t.summary ?? [])
+    .map((s) => `<div class="kpi"><span>${h(s.label)}</span><b>${h(s.value)}</b></div>`)
+    .join("");
+  const th = t.columns.map((c) => `<th${c.num ? ' class="n"' : ""}>${h(c.label)}</th>`).join("");
+  const tr = t.rows
+    .map((r) => `<tr>${t.columns.map((c) => `<td${c.num ? ' class="n"' : ""}>${h(String(r[c.key] ?? ""))}</td>`).join("")}</tr>`)
+    .join("");
+
+  return `<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<title>${h(t.title)} — ${h(t.rangeLabel)}</title>
+<style>
+  @page { margin: 12mm; }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #16201f; margin: 0; font-size: 10px; }
+  h1 { font-size: 16px; margin: 0 0 2px; }
+  .sub { color: #666; font-size: 10px; margin-bottom: 12px; }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin-bottom: 12px; }
+  .kpi { border: 1px solid #ddd; border-radius: 6px; padding: 6px 8px; }
+  .kpi b { display: block; font-size: 13px; margin-top: 2px; }
+  .kpi span { font-size: 8px; text-transform: uppercase; letter-spacing: .06em; color: #666; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 3px 5px; border-bottom: 1px solid #e5e5e5; text-align: left; }
+  th { background: #f4f4f4; font-size: 8px; text-transform: uppercase; letter-spacing: .05em; }
+  td.n, th.n { text-align: right; }
+  tbody tr { break-inside: avoid; }
+  footer { margin-top: 14px; color: #888; font-size: 9px; }
+</style></head><body>
+<h1>San Luca Ristorante — ${h(t.title)}</h1>
+<div class="sub">${h(t.rangeLabel)} · generado ${h(stamp())}</div>
+${sum ? `<div class="kpis">${sum}</div>` : ""}
+<table><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table>
+<footer>Documento informativo. No es un comprobante fiscal.</footer>
+</body></html>`;
+}
+
+/** Nombre de archivo para las exportaciones de tabla. */
+export function tableFileName(title: string, rangeLabel: string, ext: string): string {
+  const slug = (s: string) =>
+    s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const day = new Date().toISOString().slice(0, 10);
+  return `sanluca-${slug(title) || "reporte"}-${slug(rangeLabel) || "rango"}-${day}.${ext}`;
 }

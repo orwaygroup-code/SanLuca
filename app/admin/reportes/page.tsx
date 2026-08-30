@@ -6,7 +6,7 @@ import { DateRangeBar, dateFilterQuery, DEFAULT_FILTER, type DateFilter } from "
 import { RP, money, tbl, PageHead } from "@/components/admin/reportsUi";
 import { ExportReportModal } from "@/components/admin/ExportReportModal";
 import { dialogAlert } from "@/components/ui/DialogHost";
-import type { ReportData, ReportKpis, ReportShift } from "@/lib/reportExport";
+import type { ReportData, ReportKpis, ReportShift, ReportSub } from "@/lib/reportExport";
 
 /**
  * Reportes de venta (agregados). Flujo: primero se elige el rango de fechas, luego se
@@ -22,12 +22,13 @@ type Kpis = ReportKpis;
 type Shift = ReportShift;
 type Reports = ReportData;
 
-type Sub = "todo" | "producto" | "secciones" | "menus";
+type Sub = ReportSub;
 const SUBS: { key: Sub; label: string }[] = [
   { key: "todo", label: "Todo" },
   { key: "producto", label: "Por producto" },
   { key: "menus", label: "Por sección" },   // carta del menú (Vinos, Destilados…) con desglose de productos
   { key: "secciones", label: "Por zona" },  // zona física del restaurante (Salón, Terraza…)
+  { key: "meseros", label: "Por mesero" },  // ventas de cada mesero con el detalle de lo que vendió
 ];
 
 /** Etiqueta legible del rango, para encabezar lo exportado y nombrar el archivo. */
@@ -107,6 +108,8 @@ export default function ReportesPage() {
         <ProductoView rows={data.topDishes} />
       ) : sub === "menus" ? (
         <MenusView rows={data.byCarta} />
+      ) : sub === "meseros" ? (
+        <MeserosView rows={data.byWaiter} />
       ) : (
         <ZonaView rows={data.bySection} />
       )}
@@ -229,6 +232,60 @@ function QtyComandasTable({ nameHead, rows }: { nameHead: string; rows: { name: 
 
 function ProductoView({ rows }: { rows: Reports["topDishes"] }) {
   return <QtyComandasTable nameHead="Producto" rows={rows} />;
+}
+
+// Por mesero: cuánto vendió cada uno y, al desplegar, QUÉ vendió. Misma
+// mecánica que "Por sección del menú" — la lista se lee de un vistazo y el
+// detalle sólo aparece cuando se pide.
+function MeserosView({ rows }: { rows: Reports["byWaiter"] }) {
+  const [open, setOpen] = useState<string | null>(rows.length === 1 ? rows[0].waiter : null);
+  if (rows.length === 0) return <p style={{ color: RP.dim }}>Sin datos en este rango.</p>;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {rows.map((w) => {
+        const isOpen = open === w.waiter;
+        return (
+          <div key={w.waiter} style={{ border: `1px solid ${RP.line}`, borderRadius: 12, overflow: "hidden", background: RP.panel }}>
+            <button onClick={() => setOpen(isOpen ? null : w.waiter)}
+              style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", padding: "13px 16px", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ color: RP.faint, display: "inline-block", transform: isOpen ? "rotate(90deg)" : "none", transition: "transform .15s" }}>▸</span>
+                <b style={{ color: RP.cream, fontSize: "0.95rem" }}>{w.waiter}</b>
+              </span>
+              <span style={{ display: "flex", gap: 16, alignItems: "baseline", color: RP.dim, fontSize: "0.82rem", flexWrap: "wrap" }}>
+                <span>{w.comandas} cuentas</span>
+                <span>{w.guests} comensales</span>
+                <span>ticket {money(w.avgTicket)}</span>
+                <b style={{ color: RP.gold, fontSize: "0.9rem" }}>{money(w.sales)}</b>
+                <span style={{ color: RP.faint }}>{isOpen ? "ocultar" : "ver más"}</span>
+              </span>
+            </button>
+            {isOpen && (
+              <div style={{ borderTop: `1px solid ${RP.line}` }}>
+                <div style={tbl.wrap}>
+                  <table style={tbl.table}>
+                    <thead><tr>{["Producto", "Cantidad", "Comandas", "Importe"].map((hd, i) => (
+                      <th key={hd} style={{ ...tbl.th, ...(i >= 1 ? tbl.num : {}) }}>{hd}</th>
+                    ))}</tr></thead>
+                    <tbody>
+                      {w.dishes.map((p) => (
+                        <tr key={p.name}>
+                          <td style={tbl.td}>{p.name}</td>
+                          <td style={{ ...tbl.td, ...tbl.num }}>{p.qty}</td>
+                          <td style={{ ...tbl.td, ...tbl.num }}>{p.comandas}</td>
+                          <td style={{ ...tbl.td, ...tbl.num }}>{money(p.revenue)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function ZonaView({ rows }: { rows: Reports["bySection"] }) {
