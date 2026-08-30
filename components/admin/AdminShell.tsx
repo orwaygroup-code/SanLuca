@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useSession } from "@/lib/session-client";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { C } from "@/components/staff/ui";
+import { OrwayCredit } from "@/components/OrwayCredit";
 
 /**
  * Shell (client) de TODAS las páginas /admin/*: sidebar unificado + guard de
@@ -57,7 +58,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     return (
       <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", height: "100vh", background: C.bg }}>
         <AdminSidebar userName={session.user.name} onLogout={logout} />
-        <main style={{ height: "100vh", overflowY: "auto" }}>{children}</main>
+        <main style={{ height: "100vh", overflowY: "auto" }}>
+          {children}
+          <OrwayCredit />
+        </main>
       </div>
     );
   }
@@ -93,7 +97,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      <main style={{ flex: 1, overflowY: "auto" }}>{children}</main>
+      <main style={{ flex: 1, overflowY: "auto" }}>
+        {children}
+        <OrwayCredit />
+      </main>
     </div>
   );
 }

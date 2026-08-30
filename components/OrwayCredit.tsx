@@ -2,9 +2,13 @@
 
 import { fonts } from "@/config/theme";
 import { useTranslation } from "@/lib/i18n";
+import { C } from "@/components/staff/ui";
+
+const ORWAY_URL = "https://orwaygroup.com/";
 
 /**
- * Crédito de autoría — "Desarrollado por OrwayGroup" + isologo.
+ * Crédito de autoría — "Desarrollado por OrwayGroup" + isologo, enlazado al
+ * sitio de ORWAY.
  *
  * La leyenda sale del diccionario i18n (`footer.developedBy`), así que ya
  * viene traducida a es/en/de/ja/zh sin trabajo extra.
@@ -12,24 +16,32 @@ import { useTranslation } from "@/lib/i18n";
  * Dos variantes:
  *   inline → se incrusta en la barra inferior del Footer público, que ya
  *            tiene su propio color y separadores.
- *   bar    → barra propia para las secciones sin Footer (/staff, /admin,
- *            /crm, /login, /checkin). Colores en gris medio a propósito:
- *            se leen igual sobre fondo claro y oscuro, y esas secciones no
- *            comparten paleta con el sitio público.
+ *   bar    → barra al final del contenido. Usa `C.bg`, el MISMO fondo de los
+ *            paneles de staff/admin/crm, sin borde ni relleno propio, para que
+ *            se lea como parte del panel y no como una etiqueta sobrepuesta.
+ *
+ * Importante: en /admin y /crm esta barra va DENTRO del <main> del shell, no
+ * después. Si se cuelga fuera, suma alto al documento por encima del 100vh del
+ * shell y el drawer del menú de hamburguesa deja de cubrir la pantalla completa.
  */
 export function OrwayCredit({
   variant = "bar",
   color,
+  background,
 }: {
   variant?: "bar" | "inline";
   color?: string;
+  background?: string;
 }) {
   const { t } = useTranslation();
 
-  const tone = color ?? "rgba(128,128,128,0.85)";
+  const tone = color ?? C.dim;
 
   const content = (
-    <span
+    <a
+      href={ORWAY_URL}
+      target="_blank"
+      rel="noopener noreferrer"
       style={{
         display: "inline-flex",
         alignItems: "center",
@@ -39,6 +51,7 @@ export function OrwayCredit({
         fontWeight: 400,
         color: tone,
         lineHeight: 1,
+        textDecoration: "none",
       }}
     >
       {/* isologo: viewBox 77.35 x 60.81 → se mantiene la proporción 1.27:1 */}
@@ -50,7 +63,7 @@ export function OrwayCredit({
         style={{ display: "block", height: 13, width: "auto", flexShrink: 0 }}
       />
       {t.footer.developedBy}
-    </span>
+    </a>
   );
 
   if (variant === "inline") return content;
@@ -61,8 +74,8 @@ export function OrwayCredit({
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        padding: "14px 16px",
-        borderTop: "1px solid rgba(128,128,128,0.18)",
+        padding: "18px 16px",
+        background: background ?? C.bg,
       }}
     >
       {content}

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "@/lib/session-client";
+import { OrwayCredit } from "@/components/OrwayCredit";
 
 const NAV = [
   { label: "Inicio",        href: "/crm" },
@@ -84,7 +85,10 @@ export function CrmShell({ children }: { children: React.ReactNode }) {
           ))}
         </div>
       </aside>
-      <main className="crm-shell__main">{children}</main>
+      <main className="crm-shell__main">
+        {children}
+        <OrwayCredit background="transparent" />
+      </main>
     </div>
   );
 }
