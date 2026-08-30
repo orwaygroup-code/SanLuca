@@ -37,8 +37,8 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
                 cortas como el login de staff el crédito quede al fondo de la
                 vista en lugar de caer bajo el pliegue. */}
             {isAuth && !hasShell ? (
-                <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-                    <main style={{ flex: 1, minHeight: 0 }}>{children}</main>
+                <div style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
+                    <main style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>{children}</main>
                     <OrwayCredit variant="bar" />
                 </div>
             ) : (

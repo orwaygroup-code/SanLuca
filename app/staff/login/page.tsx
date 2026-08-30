@@ -19,6 +19,14 @@ const ERROR_MSG: Record<string, string> = {
 };
 
 function StaffLoginInner() {
+  // Pantalla de una sola vista: la tarjeta de acceso y el crédito caben en el
+  // alto disponible, así que se bloquea el scroll para que no "rebote" al
+  // teclear el PIN en móvil. Se limita a esta ruta — se quita al desmontar.
+  useEffect(() => {
+    document.body.classList.add("no-scroll");
+    return () => document.body.classList.remove("no-scroll");
+  }, []);
+
   const router = useRouter();
   const params = useSearchParams();
   const { staff, loading: sessionLoading } = useStaffSession();
@@ -164,7 +172,11 @@ export default function StaffLoginPage() {
 
 const styles: Record<string, React.CSSProperties> = {
   page: {
-    minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
+    // 100% y no 100vh: LayoutWrapper monta esta ruta en una columna de 100vh
+    // donde el crédito de ORWAY es una fila propia. Con 100vh la tarjeta
+    // desbordaría justo el alto del crédito y, con el scroll bloqueado, ese
+    // sobrante quedaría cortado e inalcanzable.
+    minHeight: "100%", display: "flex", alignItems: "center", justifyContent: "center",
     background: "#16201f", padding: 20,
   },
   card: {

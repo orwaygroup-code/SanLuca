@@ -17,6 +17,7 @@ import { LanguageProvider } from "@/lib/i18n";
 import { SessionProvider } from "@/lib/session-client";
 import { PwaRegister } from "@/components/PwaRegister";
 import { SplashScreen } from "@/components/SplashScreen";
+import { NoZoom } from "@/components/NoZoom";
 import { InstallButton } from "@/components/InstallButton";
 import { StaffNotifications } from "@/components/staff/StaffNotifications";
 import { StaffCreditConfirmPrompt } from "@/components/staff/StaffCreditConfirmPrompt";
@@ -46,7 +47,13 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 5,
+  // Zoom deshabilitado en toda la app: es una PWA de operación (comandas,
+  // cocina, caja) y el pellizco accidental sobre una pantalla táctil
+  // desalinea la vista a media comanda. Complemento en CSS
+  // (touch-action) y en NoZoom para el doble toque y el pellizco de iOS.
+  minimumScale: 1,
+  maximumScale: 1,
+  userScalable: false,
   themeColor: "#1a2224",
 };
 
@@ -66,6 +73,7 @@ export default function RootLayout({
       </head>
       <body>
         <SplashScreen />
+        <NoZoom />
         <PwaRegister />
         <InstallButton />
         <StaffNotifications />

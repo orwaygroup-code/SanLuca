@@ -76,6 +76,16 @@ body {
   color: var(--color-dark);
   background-color: var(--color-cream);
   overflow-x: hidden;
+  /* Corta el zoom por doble toque en táctiles. El pellizco se bloquea en el
+     viewport (app/layout.tsx) y, para iOS, en components/NoZoom.tsx. */
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Bloqueo de scroll para pantallas de una sola vista (login de staff). */
+body.no-scroll {
+  overflow: hidden;
 }
 
 ::selection {

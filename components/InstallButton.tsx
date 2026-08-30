@@ -71,8 +71,12 @@ export function InstallButton() {
 
 const fab: React.CSSProperties = {
   position: "fixed",
-  right: "16px",
-  bottom: "16px",
+  // Esquina IZQUIERDA a propósito: la derecha ya la ocupan el flotante de
+  // WhatsApp en las públicas (bottom 28 / right 28) y la campana de
+  // notificaciones en staff (bottom 16 / right 16). Con este botón también a la
+  // derecha los tres se encimaban.
+  left: "16px",
+  bottom: "max(16px, env(safe-area-inset-bottom))",
   zIndex: 50, // debajo de modales (80) y toasts (100)
   display: "inline-flex",
   alignItems: "center",
