@@ -90,8 +90,14 @@ export async function POST(request: NextRequest) {
     // canal: "whatsapp" | "instagram" | "messenger" (lo manda n8n). Ausente = whatsapp (compat).
     const channel = String(canal || "whatsapp").toLowerCase();
 
-    console.log('[BOT_RESERVATION] body recibido:', JSON.stringify(body));
-    console.log('[BOT_RESERVATION] zona raw:', zona, '| tipo:', typeof zona);
+    // Resumen sin datos personales: `titular` y `celular` identifican al
+    // comensal, y estos registros quedan en disco del servidor vía PM2. Se
+    // conserva `zona` porque es una preferencia de sala, no un dato del cliente.
+    console.log(
+        `[BOT_RESERVATION] body recibido: personas=${personas ?? "-"}` +
+        ` zona=${JSON.stringify(zona) ?? "-"} fecha=${fecha ?? "-"} hora=${hora ?? "-"}` +
+        ` canal=${channel} notas=${notes ? "sí" : "no"}`
+    );
 
     if (!titular || !celular || !personas || !fecha || !hora) {
         return NextResponse.json({ success: false, error: "Faltan datos: titular, celular, personas, fecha, hora" }, { status: 400 });

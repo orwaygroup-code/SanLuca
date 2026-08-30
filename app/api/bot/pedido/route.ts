@@ -86,7 +86,13 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
   const { titular, celular, productos, notas, fecha, hora, plataforma, wa_phone } = body || {};
 
-  console.log("[BOT_PEDIDO] body recibido:", JSON.stringify(body));
+  // Resumen sin datos personales: `titular`, `celular` y `wa_phone` identifican
+  // al comensal, y estos registros quedan en disco del servidor vía PM2.
+  console.log(
+    `[BOT_PEDIDO] body recibido: productos=${Array.isArray(productos) ? productos.length : 0}` +
+    ` fecha=${fecha ?? "-"} hora=${hora ?? "-"} plataforma=${plataforma ?? "-"}` +
+    ` notas=${notas ? "sí" : "no"}`
+  );
 
   const name = typeof titular === "string" ? titular.trim() : "";
   if (!name) return NextResponse.json<ApiResponse>({ success: false, error: "Falta el nombre (titular)" }, { status: 400 });

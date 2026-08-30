@@ -2,7 +2,36 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+/**
+ * El seed crea el menú con `create`, no con `upsert`: ni MenuCategory.name ni
+ * Dish tienen clave natural única, así que no hay contra qué reconciliar.
+ * Ejecutarlo sobre una base que ya tiene menú duplicaba todo (37 categorías y
+ * ~306 platillos por corrida). Se resuelve limpiando el menú antes de sembrar
+ * —lo que hace la corrida idempotente— y blindando el borrado para que no
+ * pueda ocurrir contra la base de producción.
+ */
+async function assertLocalDatabase() {
+  const url = process.env.DATABASE_URL ?? "";
+  const host = url.match(/@([^:/?]+)/)?.[1] ?? "";
+  const isLocal = ["localhost", "127.0.0.1", "postgres", "::1"].includes(host);
+
+  if (process.env.NODE_ENV === "production" || !isLocal) {
+    throw new Error(
+      `Este seed borra y reescribe el menú completo. Se detiene porque DATABASE_URL ` +
+      `no apunta a una base local (host: "${host || "desconocido"}"). Si de verdad ` +
+      `necesitas sembrar ahí, hazlo a mano y con respaldo previo.`
+    );
+  }
+}
+
 async function main() {
+  await assertLocalDatabase();
+
+  // Idempotencia: el menú se reconstruye desde cero en cada corrida.
+  // El orden importa — Dish referencia a MenuCategory.
+  await prisma.dish.deleteMany();
+  await prisma.menuCategory.deleteMany();
+
   // ── COMIDA: Clásica ──────────────────────────
   const antipasti = await prisma.menuCategory.create({ data: { name: "Antipasti", position: 1 } });
   const paste = await prisma.menuCategory.create({ data: { name: "Paste", position: 2 } });

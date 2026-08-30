@@ -24,6 +24,14 @@ import { StaffCreditConfirmPrompt } from "@/components/staff/StaffCreditConfirmP
 import { DialogHost } from "@/components/ui/DialogHost";
 
 export const metadata: Metadata = {
+  // Base para resolver og:image y twitter:image. Sin esto Next las resuelve
+  // contra http://localhost:3000 y la vista previa al compartir el sitio en
+  // WhatsApp o redes queda sin imagen. Se fuerza https: el dominio sirve por
+  // TLS y una URL http en la etiqueta rompe la previsualización.
+  metadataBase: new URL(
+    (process.env.NEXT_PUBLIC_APP_URL ?? "https://sanlucaristorante.com")
+      .replace(/^http:\/\//, "https://")
+  ),
   title: "San Luca Ristorante — Auténtica Cocina Italiana",
   description:
     "Restaurante italiano premium en Aguascalientes. Cocina artesanal con ingredientes frescos y recetas de tres generaciones.",
