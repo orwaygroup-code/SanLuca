@@ -11,28 +11,7 @@ import {
 import { apiFetch, type Comanda, type TableStatus } from "@/components/staff/types";
 import { Tour, type TourStep } from "@/components/staff/Tour";
 import { FaltantesPanel } from "@/components/staff/FaltantesPanel";
-
-/**
- * Icono del panel 86/101, partido por la mitad:
- *   izquierda — producto agotado (86): media circunferencia atenuada y tachada.
- *   derecha   — producto insignia (101): estrella.
- * Hereda currentColor para invertirse solo cuando el botón está activo.
- */
-function EightySixStarIcon() {
-  return (
-    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      {/* mitad izquierda rellena tenue: el producto que ya no hay */}
-      <path d="M12 3.2a8.8 8.8 0 0 0 0 17.6z" fill="currentColor" opacity="0.16" />
-      {/* tachado del 86 */}
-      <path d="M6.4 8.4 10.6 15" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      {/* divisoria entre ambas mitades */}
-      <path d="M12 2.6v18.8" stroke="currentColor" strokeWidth="1.1" opacity="0.55" />
-      {/* estrella del 101 */}
-      <path d="m16.9 8.35 1.02 2.07 2.28.33-1.65 1.61.39 2.28-2.04-1.08-2.04 1.08.39-2.28-1.65-1.61 2.28-.33z" fill="currentColor" />
-      <circle cx="12" cy="12" r="8.8" stroke="currentColor" strokeWidth="1.5" />
-    </svg>
-  );
-}
+import { Icon } from "@/components/staff/icons";
 
 /** Tutorial guiado de la vista Mesero (mis comandas). */
 const MESERO_TOUR: TourStep[] = [
@@ -143,7 +122,7 @@ export default function MeseroComandasPage() {
                 <button onClick={() => setPanelView(on ? null : "86")} aria-pressed={on}
                   title="Faltantes (86) y Priorizar (101)" aria-label="Faltantes y priorizar"
                   style={{ width: 40, height: 40, display: "grid", placeItems: "center", borderRadius: 999, border: `1px solid ${on ? C.gold : C.border}`, background: on ? C.gold : "transparent", color: on ? "#16201f" : C.gold, cursor: "pointer", fontFamily: "inherit", padding: 0 }}>
-                  <EightySixStarIcon />
+                  <Icon name="faltantes101" size={21} />
                 </button>
               );
             })()}

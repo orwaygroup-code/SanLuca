@@ -6,6 +6,7 @@ import { useSession } from "@/lib/session-client";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { C } from "@/components/staff/ui";
 import { OrwayCredit } from "@/components/OrwayCredit";
+import { dialogConfirm } from "@/components/ui/DialogHost";
 
 /**
  * Shell (client) de TODAS las páginas /admin/*: sidebar unificado + guard de
@@ -48,6 +49,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   // Cierra AMBAS sesiones: sl_session (email/puente) y sl_staff (PIN), y manda al
   // login por PIN.
   const logout = async () => {
+    const ok = await dialogConfirm("Tendrás que volver a entrar con tu PIN.", {
+      title: "¿Cerrar sesión?",
+      confirmLabel: "Sí, salir",
+      danger: true,
+    });
+    if (!ok) return;
     await session.logout().catch(() => {});
     await fetch("/api/auth/staff/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
     router.replace("/staff/login");

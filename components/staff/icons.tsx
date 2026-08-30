@@ -31,6 +31,16 @@ const GLYPH: Record<string, React.ReactNode> = {
   alert: <><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></>,
   // #7 Panel 101: el número "101" dentro de una pastilla.
   n101: <><rect x="1.5" y="6" width="21" height="12" rx="3.5" /><text x="12" y="15.4" textAnchor="middle" fontSize={8.6} fontWeight={800} fill="currentColor" stroke="none" fontFamily="system-ui, sans-serif">101</text></>,
+  // Panel 86 + 101 en un solo glifo, partido por la mitad: a la izquierda el
+  // producto agotado (86, tachado); a la derecha el producto insignia (101,
+  // estrella). Un único botón abre el panel, que ya trae su propio conmutador
+  // entre ambas secciones.
+  faltantes101: <>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 3.1v17.8" opacity="0.55" />
+    <path d="m6.7 8.7 4.1 6.3" />
+    <path d="m16.6 8.7 1 2.02 2.22.33-1.61 1.56.38 2.21-1.99-1.05-1.99 1.05.38-2.21-1.61-1.56 2.22-.33z" />
+  </>,
 };
 
 export type IconName = keyof typeof GLYPH;

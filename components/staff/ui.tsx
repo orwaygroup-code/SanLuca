@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { buildTotalLines, formatMXN, type ComandaMoney } from "@/lib/displayTotals";
+import { dialogConfirm } from "@/components/ui/DialogHost";
 
 /**
  * Refresco EN VIVO: llama `fn` cada `ms` mientras `active`. Usa un ref para no
@@ -359,9 +360,23 @@ export function EmptyState({ text }: { text: string }) {
 }
 
 /** Logout que limpia la cookie sl_staff y manda al login. */
+/**
+ * Cerrar sesión, con confirmación.
+ *
+ * "Salir" convive con los botones de operación y un toque accidental obligaba
+ * a volver a teclear el PIN a media comanda. La confirmación va aquí, dentro
+ * del hook, para que la hereden todas las pantallas que ya lo usan sin tocar
+ * ninguna: el diálogo se dibuja en el DialogHost del layout raíz.
+ */
 export function useStaffLogout() {
   const router = useRouter();
   return useCallback(async () => {
+    const ok = await dialogConfirm("Tendrás que volver a entrar con tu PIN.", {
+      title: "¿Cerrar sesión?",
+      confirmLabel: "Sí, salir",
+      danger: true,
+    });
+    if (!ok) return;
     await fetch("/api/auth/staff/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
     router.replace("/staff/login");
   }, [router]);
