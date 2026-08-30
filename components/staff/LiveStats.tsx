@@ -102,7 +102,7 @@ function Bars({ data }: { data: { label: string; value: number }[] }) {
             <span style={{ color: C.dim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.label}</span>
             <span style={{ color: C.cream, fontWeight: 700, whiteSpace: "nowrap" }}>{formatMXN(d.value)}</span>
           </div>
-          <div style={{ height: 8, background: "rgba(255,255,255,0.06)", borderRadius: 4, overflow: "hidden" }}>
+          <div style={{ height: 8, background: "rgb(var(--sl-veil-rgb) / 0.06)", borderRadius: 4, overflow: "hidden" }}>
             <div style={{ height: "100%", width: `${(d.value / max) * 100}%`, background: C.gold, borderRadius: 4, transition: "width .4s ease" }} />
           </div>
         </div>

@@ -28,12 +28,12 @@ export function GuestsPicker({ value, onChange, onLargeGroup, largeGroupLabel }:
                 padding: "7px 4px 6px",
                 borderRadius: 8,
                 border: isSelected
-                  ? "1px solid #ba843c"
-                  : "1px solid rgba(186,132,60,0.18)",
+                  ? "1px solid var(--sl-gold)"
+                  : "1px solid rgb(var(--sl-gold-rgb) / 0.18)",
                 background: isSelected
-                  ? "rgba(186,132,60,0.16)"
-                  : "rgba(186,132,60,0.04)",
-                color: isSelected ? "#ba843c" : "rgba(245,241,232,0.45)",
+                  ? "rgb(var(--sl-gold-rgb) / 0.16)"
+                  : "rgb(var(--sl-gold-rgb) / 0.04)",
+                color: isSelected ? "var(--sl-gold)" : "rgb(var(--sl-cream-rgb) / 0.45)",
                 fontSize: "0.95rem",
                 fontWeight: isSelected ? 800 : 400,
                 cursor: "pointer",
@@ -46,16 +46,16 @@ export function GuestsPicker({ value, onChange, onLargeGroup, largeGroupLabel }:
               }}
               onMouseEnter={(e) => {
                 if (!isSelected) {
-                  e.currentTarget.style.background = "rgba(186,132,60,0.09)";
-                  e.currentTarget.style.borderColor = "rgba(186,132,60,0.4)";
-                  e.currentTarget.style.color = "rgba(245,241,232,0.7)";
+                  e.currentTarget.style.background = "rgb(var(--sl-gold-rgb) / 0.09)";
+                  e.currentTarget.style.borderColor = "rgb(var(--sl-gold-rgb) / 0.4)";
+                  e.currentTarget.style.color = "rgb(var(--sl-cream-rgb) / 0.7)";
                 }
               }}
               onMouseLeave={(e) => {
                 if (!isSelected) {
-                  e.currentTarget.style.background = "rgba(186,132,60,0.04)";
-                  e.currentTarget.style.borderColor = "rgba(186,132,60,0.18)";
-                  e.currentTarget.style.color = "rgba(245,241,232,0.45)";
+                  e.currentTarget.style.background = "rgb(var(--sl-gold-rgb) / 0.04)";
+                  e.currentTarget.style.borderColor = "rgb(var(--sl-gold-rgb) / 0.18)";
+                  e.currentTarget.style.color = "rgb(var(--sl-cream-rgb) / 0.45)";
                 }
               }}
             >
@@ -77,9 +77,9 @@ export function GuestsPicker({ value, onChange, onLargeGroup, largeGroupLabel }:
           style={{
             padding: "9px 14px",
             borderRadius: 8,
-            border: "1px solid rgba(186,132,60,0.25)",
-            background: "rgba(186,132,60,0.06)",
-            color: "rgba(186,132,60,0.8)",
+            border: "1px solid rgb(var(--sl-gold-rgb) / 0.25)",
+            background: "rgb(var(--sl-gold-rgb) / 0.06)",
+            color: "rgb(var(--sl-gold-rgb) / 0.8)",
             fontSize: "0.7rem",
             fontWeight: 600,
             cursor: "pointer",
@@ -88,14 +88,14 @@ export function GuestsPicker({ value, onChange, onLargeGroup, largeGroupLabel }:
             transition: "all 0.15s",
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = "rgba(186,132,60,0.12)";
-            e.currentTarget.style.borderColor = "rgba(186,132,60,0.5)";
-            e.currentTarget.style.color = "#ba843c";
+            e.currentTarget.style.background = "rgb(var(--sl-gold-rgb) / 0.12)";
+            e.currentTarget.style.borderColor = "rgb(var(--sl-gold-rgb) / 0.5)";
+            e.currentTarget.style.color = "var(--sl-gold)";
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = "rgba(186,132,60,0.06)";
-            e.currentTarget.style.borderColor = "rgba(186,132,60,0.25)";
-            e.currentTarget.style.color = "rgba(186,132,60,0.8)";
+            e.currentTarget.style.background = "rgb(var(--sl-gold-rgb) / 0.06)";
+            e.currentTarget.style.borderColor = "rgb(var(--sl-gold-rgb) / 0.25)";
+            e.currentTarget.style.color = "rgb(var(--sl-gold-rgb) / 0.8)";
           }}
         >
           {largeGroupLabel ?? "16 o más · Reservar área completa"}

@@ -93,7 +93,7 @@ export default function ReportesPage() {
               padding: "8px 15px", borderRadius: 9, cursor: "pointer", fontWeight: 700, fontSize: "0.83rem", fontFamily: "inherit",
               border: `1px solid ${sub === s.key ? RP.gold : RP.border}`,
               background: sub === s.key ? RP.gold : "transparent",
-              color: sub === s.key ? "#16201f" : RP.dim,
+              color: sub === s.key ? "var(--sl-on-accent)" : RP.dim,
             }}>{s.label}</button>
         ))}
       </div>

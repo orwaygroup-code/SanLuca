@@ -274,7 +274,7 @@ function Line({ k, v, strong, good, amber }: { k: string; v: string; strong?: bo
 const s: Record<string, React.CSSProperties> = {
   banner: {
     display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12,
-    background: "color-mix(in srgb, #ba843c 10%, #1a2628)", border: "1px solid", borderRadius: 14, padding: "14px 16px",
+    background: "color-mix(in srgb, var(--sl-gold) 10%, var(--sl-panel))", border: "1px solid", borderRadius: 14, padding: "14px 16px",
   },
   bannerLabel: { color: C.gold, fontWeight: 800, fontSize: "0.72rem", letterSpacing: "0.1em", textTransform: "uppercase" },
   bannerHint: { color: C.faint, fontSize: "0.74rem", marginTop: 3, maxWidth: 340 },

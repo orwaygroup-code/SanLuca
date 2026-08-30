@@ -53,10 +53,10 @@ export function GoldSelect({ value, onChange, options, placeholder = "Selecciona
         style={{
           width: "100%",
           padding: "10px 14px",
-          background: disabled ? "rgba(255,255,255,0.03)" : open ? "rgba(186,132,60,0.1)" : "rgba(186,132,60,0.06)",
-          border: `1px solid ${open ? "#ba843c" : disabled ? "rgba(255,255,255,0.08)" : "rgba(186,132,60,0.3)"}`,
+          background: disabled ? "rgb(var(--sl-veil-rgb) / 0.03)" : open ? "rgb(var(--sl-gold-rgb) / 0.1)" : "rgb(var(--sl-gold-rgb) / 0.06)",
+          border: `1px solid ${open ? "var(--sl-gold)" : disabled ? "rgb(var(--sl-veil-rgb) / 0.08)" : "rgb(var(--sl-gold-rgb) / 0.3)"}`,
           borderRadius: 8,
-          color: disabled ? "rgba(245,241,232,0.2)" : selected ? "#f5f1e8" : "rgba(245,241,232,0.35)",
+          color: disabled ? "rgb(var(--sl-cream-rgb) / 0.2)" : selected ? "var(--sl-cream)" : "rgb(var(--sl-cream-rgb) / 0.35)",
           fontSize: "0.85rem",
           fontFamily: "inherit",
           textAlign: "left",
@@ -72,7 +72,7 @@ export function GoldSelect({ value, onChange, options, placeholder = "Selecciona
         <span>{selected ? selected.label : placeholder}</span>
         <span style={{
           fontSize: "0.65rem",
-          color: disabled ? "rgba(186,132,60,0.25)" : "#ba843c",
+          color: disabled ? "rgb(var(--sl-gold-rgb) / 0.25)" : "var(--sl-gold)",
           transition: "transform 0.18s",
           transform: open ? "rotate(180deg)" : "none",
           flexShrink: 0,
@@ -87,7 +87,7 @@ export function GoldSelect({ value, onChange, options, placeholder = "Selecciona
           left: 0,
           right: 0,
           background: "var(--sl-panel)",
-          border: "1px solid rgba(186,132,60,0.4)",
+          border: "1px solid rgb(var(--sl-gold-rgb) / 0.4)",
           borderRadius: 10,
           zIndex: 9999,
           maxHeight: 268,
@@ -102,10 +102,10 @@ export function GoldSelect({ value, onChange, options, placeholder = "Selecciona
                   fontSize: "0.58rem",
                   letterSpacing: "0.22em",
                   textTransform: "uppercase",
-                  color: "#ba843c",
+                  color: "var(--sl-gold)",
                   fontWeight: 700,
                   opacity: 0.85,
-                  borderBottom: "1px solid rgba(186,132,60,0.12)",
+                  borderBottom: "1px solid rgb(var(--sl-gold-rgb) / 0.12)",
                   marginBottom: 2,
                 }}>
                   {name}
@@ -121,9 +121,9 @@ export function GoldSelect({ value, onChange, options, placeholder = "Selecciona
                     style={{
                       width: "100%",
                       padding: "9px 14px",
-                      background: isSelected ? "rgba(186,132,60,0.14)" : "transparent",
+                      background: isSelected ? "rgb(var(--sl-gold-rgb) / 0.14)" : "transparent",
                       border: "none",
-                      color: isSelected ? "#ba843c" : "rgba(245,241,232,0.7)",
+                      color: isSelected ? "var(--sl-gold)" : "rgb(var(--sl-cream-rgb) / 0.7)",
                       fontSize: "0.85rem",
                       fontFamily: "inherit",
                       textAlign: "left",
@@ -134,11 +134,11 @@ export function GoldSelect({ value, onChange, options, placeholder = "Selecciona
                       justifyContent: "space-between",
                       transition: "background 0.12s",
                     }}
-                    onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = "rgba(186,132,60,0.07)"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = isSelected ? "rgba(186,132,60,0.14)" : "transparent"; }}
+                    onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = "rgb(var(--sl-gold-rgb) / 0.07)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = isSelected ? "rgb(var(--sl-gold-rgb) / 0.14)" : "transparent"; }}
                   >
                     <span>{opt.label}</span>
-                    {isSelected && <span style={{ fontSize: "0.6rem", color: "#ba843c", flexShrink: 0 }}>✓</span>}
+                    {isSelected && <span style={{ fontSize: "0.6rem", color: "var(--sl-gold)", flexShrink: 0 }}>✓</span>}
                   </button>
                 );
               })}

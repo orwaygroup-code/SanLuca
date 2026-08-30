@@ -136,13 +136,13 @@ const box: Record<string, React.CSSProperties> = {
   body: { color: C.dim, fontSize: "0.9rem", lineHeight: 1.55, margin: "6px 0 0" },
   task: {
     marginTop: 12, padding: "10px 12px", borderRadius: 10,
-    background: "color-mix(in srgb, #ba843c 12%, transparent)", border: `1px solid ${C.border}`,
+    background: "color-mix(in srgb, var(--sl-gold) 12%, transparent)", border: `1px solid ${C.border}`,
     color: C.cream, fontSize: "0.86rem", lineHeight: 1.45,
   },
   taskTag: { color: C.gold, fontWeight: 800, marginRight: 4 },
   dots: { display: "flex", gap: 6, justifyContent: "center", margin: "14px 0 12px" },
-  dot: { width: 7, height: 7, borderRadius: 999, background: "rgba(245,241,232,0.22)" },
+  dot: { width: 7, height: 7, borderRadius: 999, background: "rgb(var(--sl-cream-rgb) / 0.22)" },
   dotOn: { background: C.gold, transform: "scale(1.25)" },
-  dotDone: { background: "rgba(186,132,60,0.5)" },
+  dotDone: { background: "rgb(var(--sl-gold-rgb) / 0.5)" },
   actions: { display: "flex", gap: 10 },
 };

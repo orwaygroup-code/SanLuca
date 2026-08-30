@@ -163,7 +163,7 @@ export function StaffNotifications() {
             visible.map((n) => {
               const isNew = new Date(n.createdAt).getTime() > lastSeen;
               return (
-                <button key={n.id} onClick={() => { if (n.url) window.location.href = n.url; }} style={{ display: "block", width: "100%", textAlign: "left", background: isNew ? "rgba(186,132,60,0.08)" : "transparent", border: "none", borderBottom: `1px solid ${C.line}`, padding: "11px 14px", cursor: n.url ? "pointer" : "default", fontFamily: "inherit" }}>
+                <button key={n.id} onClick={() => { if (n.url) window.location.href = n.url; }} style={{ display: "block", width: "100%", textAlign: "left", background: isNew ? "rgb(var(--sl-gold-rgb) / 0.08)" : "transparent", border: "none", borderBottom: `1px solid ${C.line}`, padding: "11px 14px", cursor: n.url ? "pointer" : "default", fontFamily: "inherit" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     {isNew && <span style={{ color: C.gold, fontWeight: 900, fontSize: "1rem", lineHeight: 1, flexShrink: 0 }}>✳</span>}
                     <span style={{ color: C.cream, fontWeight: 700, fontSize: "0.84rem", flex: 1, minWidth: 0 }}>{n.title}</span>

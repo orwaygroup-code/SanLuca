@@ -15,11 +15,11 @@ const OCCASION_CONFIG: Record<string, { emoji: string; color: string; bg: string
     "Aniversario":       { emoji: "🥂", color: "#c084fc", bg: "rgba(192,132,252,0.10)", border: "rgba(192,132,252,0.45)" },
     "Cena de negocios":  { emoji: "💼", color: "#60a5fa", bg: "rgba(96,165,250,0.10)",  border: "rgba(96,165,250,0.45)"  },
     "Pedida de mano":    { emoji: "💍", color: "#f59e0b", bg: "rgba(245,158,11,0.10)",  border: "rgba(245,158,11,0.45)"  },
-    "Otro":              { emoji: "✨", color: "#ba843c", bg: "rgba(186,132,60,0.10)",  border: "rgba(186,132,60,0.45)"  },
+    "Otro":              { emoji: "✨", color: "var(--sl-gold)", bg: "rgb(var(--sl-gold-rgb) / 0.10)",  border: "rgb(var(--sl-gold-rgb) / 0.45)"  },
 };
 
 function getOccasionConfig(occasion: string) {
-    return OCCASION_CONFIG[occasion] ?? { emoji: "✨", color: "#ba843c", bg: "rgba(186,132,60,0.10)", border: "rgba(186,132,60,0.45)" };
+    return OCCASION_CONFIG[occasion] ?? { emoji: "✨", color: "var(--sl-gold)", bg: "rgb(var(--sl-gold-rgb) / 0.10)", border: "rgb(var(--sl-gold-rgb) / 0.45)" };
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -40,8 +40,8 @@ const STATUS_COLOR: Record<string, string> = {
     CONFIRMED:   "#63aede",
     IN_PROGRESS: "#5cbf60",
     DELAYED:     "#e8766b",
-    CANCELLED:   "rgba(255,255,255,0.6)",
-    COMPLETED:   "rgba(255,255,255,0.55)",
+    CANCELLED:   "rgb(var(--sl-veil-rgb) / 0.6)",
+    COMPLETED:   "rgb(var(--sl-veil-rgb) / 0.55)",
     NO_SHOW:     "#d95f4a",
 };
 
@@ -50,9 +50,9 @@ const STATUS_GROUPS: { key: string; label: string; color: string }[] = [
     { key: "DELAYED",     label: "RETRASO",              color: "#e8766b" },
     { key: "PENDING",     label: "PENDIENTES",           color: "#c9964a" },
     { key: "CONFIRMED",   label: "CONFIRMADAS",          color: "#63aede" },
-    { key: "COMPLETED",   label: "COMPLETADAS",          color: "rgba(255,255,255,0.55)" },
+    { key: "COMPLETED",   label: "COMPLETADAS",          color: "rgb(var(--sl-veil-rgb) / 0.55)" },
     { key: "NO_SHOW",     label: "NO SE PRESENTARON",    color: "#d95f4a" },
-    { key: "CANCELLED",   label: "CANCELADAS",           color: "rgba(255,255,255,0.5)" },
+    { key: "CANCELLED",   label: "CANCELADAS",           color: "rgb(var(--sl-veil-rgb) / 0.5)" },
 ];
 
 const DELETABLE_STATUSES  = ["CANCELLED", "NO_SHOW", "COMPLETED"];
@@ -319,7 +319,7 @@ export default function AdminPage() {
             <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginBottom: 8 }}>
                 <button
                     onClick={() => setShowNewModal(true)}
-                    style={{ padding: "9px 16px", background: "rgba(186,132,60,0.85)", border: "1px solid #ba843c", borderRadius: 8, color: "#fff", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em", fontFamily: "inherit" }}
+                    style={{ padding: "9px 16px", background: "rgb(var(--sl-gold-rgb) / 0.85)", border: "1px solid var(--sl-gold)", borderRadius: 8, color: "#fff", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em", fontFamily: "inherit" }}
                 >
                     + Nueva reserva
                 </button>
@@ -353,8 +353,7 @@ export default function AdminPage() {
                 <input
                     className="adm-date-input"
                     type="date"
-                    value={date}
-                    style={{ colorScheme: "dark" }}
+                    value={date}
                     onChange={(e) => setDate(e.target.value)}
                 />
 
@@ -483,22 +482,22 @@ export default function AdminPage() {
                                                             <div style={{
                                                                 display: "flex", alignItems: "center", gap: 10,
                                                                 padding: "8px 12px",
-                                                                background: "rgba(186,132,60,0.10)",
-                                                                border: "1px solid rgba(186,132,60,0.45)",
+                                                                background: "rgb(var(--sl-gold-rgb) / 0.10)",
+                                                                border: "1px solid rgb(var(--sl-gold-rgb) / 0.45)",
                                                                 borderRadius: 10,
                                                                 marginTop: 4,
                                                             }}>
                                                                 <span style={{ fontSize: "1.1rem", lineHeight: 1 }}>💳</span>
                                                                 <div style={{ flex: 1 }}>
-                                                                    <p style={{ margin: 0, fontSize: "0.58rem", letterSpacing: "0.18em", textTransform: "uppercase", color: "#ba843c", fontWeight: 700, opacity: 0.75 }}>
+                                                                    <p style={{ margin: 0, fontSize: "0.58rem", letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--sl-gold)", fontWeight: 700, opacity: 0.75 }}>
                                                                         Apartado fecha especial
                                                                     </p>
-                                                                    <p style={{ margin: "1px 0 0", fontSize: "0.78rem", color: "#f5f1e8", fontWeight: 600 }}>
+                                                                    <p style={{ margin: "1px 0 0", fontSize: "0.78rem", color: "var(--sl-cream)", fontWeight: 600 }}>
                                                                         {r.amountPaid && Number(r.amountPaid) > 0 && (
                                                                             <>Pagado: <b style={{ color: "#5fa15f" }}>${Number(r.amountPaid).toFixed(0)}</b></>
                                                                         )}
                                                                         {r.creditUsed && r.creditUsed > 0 && (
-                                                                            <> · Crédito: <b style={{ color: "#ba843c" }}>${r.creditUsed.toFixed(0)}</b></>
+                                                                            <> · Crédito: <b style={{ color: "var(--sl-gold)" }}>${r.creditUsed.toFixed(0)}</b></>
                                                                         )}
                                                                         {r.status === "PENDING_PAYMENT" && (
                                                                             <span style={{ color: "#d97706" }}>Esperando confirmación de pago</span>
@@ -525,8 +524,8 @@ export default function AdminPage() {
                                                                         onClick={() => setNoteTarget(r)}
                                                                         style={{
                                                                             background: "transparent",
-                                                                            border: "1px solid rgba(186,132,60,0.5)",
-                                                                            color: "#ba843c",
+                                                                            border: "1px solid rgb(var(--sl-gold-rgb) / 0.5)",
+                                                                            color: "var(--sl-gold)",
                                                                             padding: "2px 10px",
                                                                             borderRadius: 999,
                                                                             fontSize: "0.7rem",
@@ -539,7 +538,7 @@ export default function AdminPage() {
                                                                         Ver más…
                                                                     </button>
                                                                 ) : (
-                                                                    <span className="adm-row-val" style={{ color: "rgba(245,241,232,0.6)" }}>—</span>
+                                                                    <span className="adm-row-val" style={{ color: "rgb(var(--sl-cream-rgb) / 0.6)" }}>—</span>
                                                                 )}
                                                             </div>
                                                         </div>
@@ -557,7 +556,7 @@ export default function AdminPage() {
                                                                 <button
                                                                     className="adm-btn-outline"
                                                                     onClick={() => setEditTarget(r)}
-                                                                    style={{ borderColor: "rgba(186,132,60,0.5)", color: "#ba843c" }}
+                                                                    style={{ borderColor: "rgb(var(--sl-gold-rgb) / 0.5)", color: "var(--sl-gold)" }}
                                                                 >
                                                                     Editar
                                                                 </button>
@@ -669,7 +668,7 @@ function NoteIsland({ guestName, note, onClose }: { guestName: string; note: str
                 onClick={(e) => e.stopPropagation()}
                 style={{
                     background: "var(--sl-panel2)",
-                    border: "1px solid rgba(186,132,60,0.4)",
+                    border: "1px solid rgb(var(--sl-gold-rgb) / 0.4)",
                     borderRadius: 16,
                     padding: "28px 30px 26px",
                     maxWidth: 480,
@@ -677,7 +676,7 @@ function NoteIsland({ guestName, note, onClose }: { guestName: string; note: str
                     maxHeight: "70vh",
                     overflowY: "auto",
                     boxShadow: "0 24px 64px rgba(0,0,0,0.55)",
-                    color: "#f5f1e8",
+                    color: "var(--sl-cream)",
                     fontFamily: "inherit",
                     position: "relative",
                 }}
@@ -692,7 +691,7 @@ function NoteIsland({ guestName, note, onClose }: { guestName: string; note: str
                         right: 12,
                         background: "transparent",
                         border: "none",
-                        color: "rgba(245,241,232,0.5)",
+                        color: "rgb(var(--sl-cream-rgb) / 0.5)",
                         fontSize: "1.4rem",
                         cursor: "pointer",
                         lineHeight: 1,
@@ -702,10 +701,10 @@ function NoteIsland({ guestName, note, onClose }: { guestName: string; note: str
                 >
                     ✕
                 </button>
-                <div style={{ fontSize: "0.65rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#ba843c", fontWeight: 700, marginBottom: 6 }}>
+                <div style={{ fontSize: "0.65rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--sl-gold)", fontWeight: 700, marginBottom: 6 }}>
                     Nota de reserva
                 </div>
-                <div style={{ fontSize: "0.85rem", color: "rgba(245,241,232,0.6)", marginBottom: 16 }}>
+                <div style={{ fontSize: "0.85rem", color: "rgb(var(--sl-cream-rgb) / 0.6)", marginBottom: 16 }}>
                     {guestName}
                 </div>
                 <p style={{ margin: 0, fontSize: "0.95rem", lineHeight: 1.55, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>

@@ -106,17 +106,17 @@ export default function FechasEspecialesPage() {
   const daysInMonth = new Date(2024, form.month, 0).getDate();
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--sl-bg)", color: "#f5f1e8", padding: "32px 20px", fontFamily: "inherit" }}>
+    <div style={{ minHeight: "100vh", background: "var(--sl-bg)", color: "var(--sl-cream)", padding: "32px 20px", fontFamily: "inherit" }}>
       <div style={{ maxWidth: 920, margin: "0 auto" }}>
 
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
           <div>
-            <Link href="/admin" style={{ color: "rgba(186,132,60,0.8)", fontSize: "0.75rem", textDecoration: "none", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+            <Link href="/admin" style={{ color: "rgb(var(--sl-gold-rgb) / 0.8)", fontSize: "0.75rem", textDecoration: "none", letterSpacing: "0.08em", textTransform: "uppercase" }}>
               ← Panel admin
             </Link>
             <h1 style={{ margin: "6px 0 0", fontSize: "1.6rem", letterSpacing: "0.05em" }}>Fechas Especiales</h1>
-            <p style={{ margin: "4px 0 0", color: "rgba(245,241,232,0.55)", fontSize: "0.82rem" }}>
+            <p style={{ margin: "4px 0 0", color: "rgb(var(--sl-cream-rgb) / 0.55)", fontSize: "0.82rem" }}>
               Días con cobro anticipado por reserva. Las fechas se aplican cada año.
             </p>
           </div>
@@ -125,7 +125,7 @@ export default function FechasEspecialesPage() {
         {/* Crear */}
         <form onSubmit={handleCreate} className="adm-special-form" style={{
           background: "var(--sl-panel)",
-          border: "1px solid rgba(186,132,60,0.25)",
+          border: "1px solid rgb(var(--sl-gold-rgb) / 0.25)",
           borderRadius: 12,
           padding: "20px",
           marginBottom: 24,
@@ -167,7 +167,7 @@ export default function FechasEspecialesPage() {
           </div>
           <button type="submit" disabled={creating} style={{
             padding: "10px 20px",
-            background: "#ba843c",
+            background: "var(--sl-gold)",
             color: "#0a1112",
             border: "none",
             borderRadius: 8,
@@ -187,9 +187,9 @@ export default function FechasEspecialesPage() {
 
         {/* Lista */}
         {loading ? (
-          <div style={{ color: "rgba(245,241,232,0.5)", textAlign: "center", padding: "40px 0" }}>Cargando…</div>
+          <div style={{ color: "rgb(var(--sl-cream-rgb) / 0.5)", textAlign: "center", padding: "40px 0" }}>Cargando…</div>
         ) : items.length === 0 ? (
-          <div style={{ color: "rgba(245,241,232,0.5)", textAlign: "center", padding: "40px 0" }}>No hay fechas especiales registradas.</div>
+          <div style={{ color: "rgb(var(--sl-cream-rgb) / 0.5)", textAlign: "center", padding: "40px 0" }}>No hay fechas especiales registradas.</div>
         ) : (
           <div className="crm-table-wrap" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {items.map((it) => {
@@ -197,16 +197,16 @@ export default function FechasEspecialesPage() {
               return (
                 <div key={it.id} className="adm-special-row" style={{
                   background: "var(--sl-panel)",
-                  border: `1px solid ${it.isActive ? "rgba(186,132,60,0.3)" : "rgba(255,255,255,0.08)"}`,
+                  border: `1px solid ${it.isActive ? "rgb(var(--sl-gold-rgb) / 0.3)" : "rgb(var(--sl-veil-rgb) / 0.08)"}`,
                   borderRadius: 10,
                   padding: "14px 18px",
                   opacity: it.isActive ? 1 : 0.55,
                 }}>
                   <div style={{
                     fontSize: "0.75rem",
-                    color: "#ba843c",
+                    color: "var(--sl-gold)",
                     fontWeight: 700,
-                    background: "rgba(186,132,60,0.12)",
+                    background: "rgb(var(--sl-gold-rgb) / 0.12)",
                     padding: "6px 10px",
                     borderRadius: 6,
                     minWidth: 92,
@@ -251,7 +251,7 @@ export default function FechasEspecialesPage() {
                         style={{ ...inputStyle, padding: "6px 10px", width: 90 }}
                       />
                     ) : (
-                      <div style={{ color: "#ba843c", fontWeight: 700 }}>${it.amount.toFixed(0)} MXN</div>
+                      <div style={{ color: "var(--sl-gold)", fontWeight: 700 }}>${it.amount.toFixed(0)} MXN</div>
                     )}
                   </div>
                   <button onClick={() => toggleActive(it)} style={pillBtn(it.isActive)}>
@@ -265,7 +265,7 @@ export default function FechasEspecialesPage() {
                       </>
                     ) : (
                       <>
-                        <button onClick={() => { setEditId(it.id); setEditDraft({ label: it.label, amount: it.amount, month: it.month, day: it.day }); }} style={iconBtn("#ba843c")}>Editar</button>
+                        <button onClick={() => { setEditId(it.id); setEditDraft({ label: it.label, amount: it.amount, month: it.month, day: it.day }); }} style={iconBtn("var(--sl-gold)")}>Editar</button>
                         <button onClick={() => remove(it.id)} style={iconBtn("#c85050")}>Eliminar</button>
                       </>
                     )}
@@ -285,17 +285,17 @@ const labelStyle: React.CSSProperties = {
   fontSize: "0.62rem",
   letterSpacing: "0.16em",
   textTransform: "uppercase",
-  color: "rgba(186,132,60,0.75)",
+  color: "rgb(var(--sl-gold-rgb) / 0.75)",
   marginBottom: 6,
   fontWeight: 700,
 };
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
-  background: "rgba(186,132,60,0.06)",
-  border: "1px solid rgba(186,132,60,0.3)",
+  background: "rgb(var(--sl-gold-rgb) / 0.06)",
+  border: "1px solid rgb(var(--sl-gold-rgb) / 0.3)",
   borderRadius: 8,
-  color: "#f5f1e8",
+  color: "var(--sl-cream)",
   padding: "10px 12px",
   fontSize: "0.85rem",
   fontFamily: "inherit",
@@ -306,9 +306,9 @@ function pillBtn(active: boolean): React.CSSProperties {
   return {
     padding: "6px 14px",
     borderRadius: 999,
-    border: `1px solid ${active ? "#5fa15f" : "rgba(255,255,255,0.2)"}`,
+    border: `1px solid ${active ? "#5fa15f" : "rgb(var(--sl-veil-rgb) / 0.2)"}`,
     background: active ? "rgba(95,161,95,0.15)" : "transparent",
-    color: active ? "#5fa15f" : "rgba(245,241,232,0.5)",
+    color: active ? "#5fa15f" : "rgb(var(--sl-cream-rgb) / 0.5)",
     fontSize: "0.7rem",
     fontWeight: 600,
     cursor: "pointer",

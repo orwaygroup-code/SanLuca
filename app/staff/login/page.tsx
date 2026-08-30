@@ -195,7 +195,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   input: {
     width: "100%", padding: "12px 14px", minHeight: 48, borderRadius: 10, boxSizing: "border-box",
-    border: "1px solid rgba(255,255,255,0.2)", background: "var(--sl-panel2)",
+    border: "1px solid rgb(var(--sl-veil-rgb) / 0.2)", background: "var(--sl-panel2)",
     color: "var(--sl-cream)", fontSize: "0.95rem", fontFamily: "inherit",
   },
   error: { margin: 0, color: "#e8766b", fontSize: "0.84rem", fontWeight: 600 },

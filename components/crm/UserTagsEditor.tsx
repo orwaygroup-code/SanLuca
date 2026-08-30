@@ -111,9 +111,9 @@ export function UserTagsEditor({
   }
 
   return (
-    <div style={{ padding: "10px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "var(--sl-panel)" }}>
+    <div style={{ padding: "10px 20px", borderBottom: "1px solid rgb(var(--sl-veil-rgb) / 0.06)", background: "var(--sl-panel)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", position: "relative" }}>
-        <span style={{ fontSize: "0.7rem", color: "rgba(245,241,232,0.5)", textTransform: "uppercase", letterSpacing: "0.08em", marginRight: 4 }}>
+        <span style={{ fontSize: "0.7rem", color: "rgb(var(--sl-cream-rgb) / 0.5)", textTransform: "uppercase", letterSpacing: "0.08em", marginRight: 4 }}>
           Cliente
         </span>
 
@@ -134,9 +134,9 @@ export function UserTagsEditor({
             style={{
               padding: "2px 9px",
               borderRadius: 999,
-              border: "1px dashed rgba(186,132,60,0.5)",
+              border: "1px dashed rgb(var(--sl-gold-rgb) / 0.5)",
               background: "transparent",
-              color: "#ba843c",
+              color: "var(--sl-gold)",
               fontSize: "0.72rem",
               fontWeight: 600,
               cursor: "pointer",

@@ -143,7 +143,7 @@ export default function MeserosPage() {
                 return (
                   <div key={w.waiterId} style={S.card}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <div style={{ ...S.rank, color: i < 3 ? "#16201f" : C.cream, background: i < 3 ? MEDAL[i] : "rgba(255,255,255,0.06)" }}>{i + 1}</div>
+                      <div style={{ ...S.rank, color: i < 3 ? "var(--sl-on-accent)" : C.cream, background: i < 3 ? MEDAL[i] : "rgb(var(--sl-veil-rgb) / 0.06)" }}>{i + 1}</div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
                           <span style={{ color: C.cream, fontWeight: 800, fontSize: "1.02rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{w.name}</span>
@@ -224,12 +224,12 @@ const S: Record<string, React.CSSProperties> = {
   chip: { padding: "6px 12px", borderRadius: 999, border: `1px solid ${C.border}`, background: "transparent", color: C.dim, fontWeight: 700, fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit" },
   chipOn: { background: C.gold, color: "var(--sl-on-accent)", borderColor: C.gold },
   check: { display: "inline-flex", alignItems: "center", gap: 7, padding: "6px 12px 6px 8px", borderRadius: 999, border: `1px solid ${C.border}`, background: "transparent", color: C.dim, fontWeight: 700, fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit" },
-  checkOn: { color: C.cream, borderColor: "rgba(186,132,60,0.5)" },
+  checkOn: { color: C.cream, borderColor: "rgb(var(--sl-gold-rgb) / 0.5)" },
   box: { width: 16, height: 16, borderRadius: 4, border: `1px solid ${C.border}`, display: "grid", placeItems: "center", fontSize: "0.7rem", color: "var(--sl-on-accent)", lineHeight: 1 },
   boxOn: { background: C.gold, borderColor: C.gold },
   card: { background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, padding: "14px 16px" },
   rank: { width: 34, height: 34, borderRadius: 999, display: "grid", placeItems: "center", fontWeight: 800, fontSize: "0.95rem", flexShrink: 0 },
-  barTrack: { height: 7, borderRadius: 999, background: "rgba(255,255,255,0.07)", overflow: "hidden", marginTop: 7 },
+  barTrack: { height: 7, borderRadius: 999, background: "rgb(var(--sl-veil-rgb) / 0.07)", overflow: "hidden", marginTop: 7 },
   barFill: { height: "100%", borderRadius: 999, background: `linear-gradient(90deg, ${C.gold}, #d8a765)` },
   metrics: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(90px, 1fr))", gap: 10, marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.line}` },
 };

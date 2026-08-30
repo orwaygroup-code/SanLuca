@@ -59,12 +59,12 @@ const STATUS_LABEL: Record<string, string> = {
 };
 const STATUS_COLOR: Record<string, string> = {
   PENDING_PAYMENT: "#d97706",
-  PENDING:     "#ba843c",
+  PENDING:     "var(--sl-gold)",
   CONFIRMED:   "#4a9eca",
   IN_PROGRESS: "#5fa15f",
   DELAYED:     "#e05555",
-  CANCELLED:   "rgba(245,241,232,0.4)",
-  COMPLETED:   "rgba(245,241,232,0.5)",
+  CANCELLED:   "rgb(var(--sl-cream-rgb) / 0.4)",
+  COMPLETED:   "rgb(var(--sl-cream-rgb) / 0.5)",
   NO_SHOW:     "#c0392b",
 };
 
@@ -103,10 +103,10 @@ export default function UsuariosPage() {
         {/* Sidebar list */}
         <div>
           <div style={{ position: "relative", marginBottom: 14 }}>
-            <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "rgba(245,241,232,0.4)" }}>🔍</span>
+            <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "rgb(var(--sl-cream-rgb) / 0.4)" }}>🔍</span>
             <input
               value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar"
-              style={{ width: "100%", padding: "12px 14px 12px 38px", background: "transparent", border: "1px solid rgba(245,241,232,0.18)", borderRadius: 999, color: "#f5f1e8", fontFamily: "inherit", fontSize: "0.85rem" }}
+              style={{ width: "100%", padding: "12px 14px 12px 38px", background: "transparent", border: "1px solid rgb(var(--sl-cream-rgb) / 0.18)", borderRadius: 999, color: "var(--sl-cream)", fontFamily: "inherit", fontSize: "0.85rem" }}
             />
           </div>
 
@@ -114,8 +114,8 @@ export default function UsuariosPage() {
             {(["todos", "web", "whatsapp"] as const).map((c) => (
               <button key={c} onClick={() => setSource(c)} style={{
                 flex: 1, padding: "8px 0", border: "none", borderRadius: 999, cursor: "pointer", fontFamily: "inherit",
-                background: source === c ? "#ba843c" : "transparent",
-                color:      source === c ? "#1c2628" : "rgba(245,241,232,0.6)",
+                background: source === c ? "var(--sl-gold)" : "transparent",
+                color:      source === c ? "#1c2628" : "rgb(var(--sl-cream-rgb) / 0.6)",
                 fontWeight: source === c ? 700 : 500, fontSize: "0.7rem", letterSpacing: "0.06em", textTransform: "uppercase",
               }}>
                 {c === "todos" ? `Todos (${counts.todos})` : c === "web" ? `Web (${counts.web})` : `WA (${counts.whatsapp})`}
@@ -131,24 +131,24 @@ export default function UsuariosPage() {
                   style={{
                     ...userItem,
                     background: selected === u.id ? "#2a3a37" : "#22302e",
-                    borderColor: selected === u.id ? "rgba(186,132,60,0.45)" : "rgba(255,255,255,0.04)",
+                    borderColor: selected === u.id ? "rgb(var(--sl-gold-rgb) / 0.45)" : "rgb(var(--sl-veil-rgb) / 0.04)",
                   }}
                   aria-expanded={selected === u.id}
                 >
                   <div style={{ flex: 1, textAlign: "left" }}>
-                    <div style={{ fontSize: "0.9rem", fontWeight: 600, color: "#f5f1e8", display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ fontSize: "0.9rem", fontWeight: 600, color: "var(--sl-cream)", display: "flex", alignItems: "center", gap: 8 }}>
                       {u.name || "Sin nombre"}
                       {u.role !== "CUSTOMER" && (
-                        <span style={{ fontSize: "0.55rem", padding: "2px 6px", border: "1px solid #ba843c", color: "#ba843c", borderRadius: 4, letterSpacing: "0.08em" }}>
+                        <span style={{ fontSize: "0.55rem", padding: "2px 6px", border: "1px solid var(--sl-gold)", color: "var(--sl-gold)", borderRadius: 4, letterSpacing: "0.08em" }}>
                           {u.role}
                         </span>
                       )}
                     </div>
-                    <div style={{ fontSize: "0.72rem", color: "rgba(245,241,232,0.5)", marginTop: 2 }}>
+                    <div style={{ fontSize: "0.72rem", color: "rgb(var(--sl-cream-rgb) / 0.5)", marginTop: 2 }}>
                       {u.visits} reserva{u.visits === 1 ? "" : "s"} creada{u.visits === 1 ? "" : "s"}
                     </div>
                   </div>
-                  <span style={{ color: "#ba843c", fontSize: "0.85rem", lineHeight: 1 }}>
+                  <span style={{ color: "var(--sl-gold)", fontSize: "0.85rem", lineHeight: 1 }}>
                     {selected === u.id ? "▾" : "▸"}
                   </span>
                 </button>
@@ -162,14 +162,14 @@ export default function UsuariosPage() {
               </Fragment>
             ))}
             {users.length === 0 && (
-              <p style={{ color: "rgba(245,241,232,0.4)", textAlign: "center", padding: 24 }}>Sin usuarios</p>
+              <p style={{ color: "rgb(var(--sl-cream-rgb) / 0.4)", textAlign: "center", padding: 24 }}>Sin usuarios</p>
             )}
           </div>
         </div>
 
         {/* Detail sidebar (solo desktop ≥48em) */}
         <div className="crm-users-detail-desktop">
-          {detail ? <UserDetail d={detail} /> : <div style={{ color: "rgba(245,241,232,0.4)" }}>Selecciona un usuario</div>}
+          {detail ? <UserDetail d={detail} /> : <div style={{ color: "rgb(var(--sl-cream-rgb) / 0.4)" }}>Selecciona un usuario</div>}
         </div>
       </div>
     </>
@@ -204,19 +204,19 @@ function UserDetail({ d }: { d: Detail }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-        <div style={{ width: 92, height: 92, borderRadius: "50%", background: "#f5f1e8", color: "#1c2628", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "2.4rem", flexShrink: 0 }}>👤</div>
+        <div style={{ width: 92, height: 92, borderRadius: "50%", background: "var(--sl-cream)", color: "#1c2628", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "2.4rem", flexShrink: 0 }}>👤</div>
         <div style={{ flex: 1 }}>
-          <h2 style={{ margin: 0, fontSize: "2rem", color: "#f5f1e8", fontWeight: 500, letterSpacing: "0.02em" }}>{d.user.name || "Sin nombre"}</h2>
-          <div style={{ marginTop: 8, color: "rgba(245,241,232,0.7)", fontSize: "0.85rem" }}>
+          <h2 style={{ margin: 0, fontSize: "2rem", color: "var(--sl-cream)", fontWeight: 500, letterSpacing: "0.02em" }}>{d.user.name || "Sin nombre"}</h2>
+          <div style={{ marginTop: 8, color: "rgb(var(--sl-cream-rgb) / 0.7)", fontSize: "0.85rem" }}>
             📞 {d.user.phone || "—"} &nbsp;&nbsp; ✉ {d.user.email}
           </div>
-          <div style={{ marginTop: 4, color: "rgba(186,132,60,0.85)", fontSize: "0.78rem" }}>
+          <div style={{ marginTop: 4, color: "rgb(var(--sl-gold-rgb) / 0.85)", fontSize: "0.78rem" }}>
             🗓 Cliente desde {new Date(d.user.createdAt).toLocaleDateString("es-MX", { month: "long", year: "numeric" })}
           </div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end" }}>
-          <span style={{ ...badgePill, color: "#ba843c", borderColor: "#ba843c", textTransform: "uppercase" }}>{d.user.source}</span>
-          <span style={{ ...badgePill, color: "rgba(245,241,232,0.6)", borderColor: "rgba(245,241,232,0.25)", textTransform: "uppercase", fontSize: "0.6rem" }}>{d.user.login}</span>
+          <span style={{ ...badgePill, color: "var(--sl-gold)", borderColor: "var(--sl-gold)", textTransform: "uppercase" }}>{d.user.source}</span>
+          <span style={{ ...badgePill, color: "rgb(var(--sl-cream-rgb) / 0.6)", borderColor: "rgb(var(--sl-cream-rgb) / 0.25)", textTransform: "uppercase", fontSize: "0.6rem" }}>{d.user.login}</span>
         </div>
       </div>
 
@@ -238,10 +238,10 @@ function UserDetail({ d }: { d: Detail }) {
         ) : (
           <div className="crm-detail-grid">
             <div>
-              {d.preferences.sections.map((p, i) => <PrefBar key={p.label} label={p.label} value={p.value} max={d.stats.totalVisits} color={["#4a9eca", "#5fa15f", "#d4b35f"][i] ?? "#ba843c"} />)}
+              {d.preferences.sections.map((p, i) => <PrefBar key={p.label} label={p.label} value={p.value} max={d.stats.totalVisits} color={["#4a9eca", "#5fa15f", "#d4b35f"][i] ?? "var(--sl-gold)"} />)}
             </div>
             <div>
-              {d.preferences.occasions.map((p, i) => <Tag key={p.label} text={`${p.label} ×${p.value}`} color={["#ba843c", "#c084fc", "#f472b6"][i] ?? "#ba843c"} />)}
+              {d.preferences.occasions.map((p, i) => <Tag key={p.label} text={`${p.label} ×${p.value}`} color={["var(--sl-gold)", "#c084fc", "#f472b6"][i] ?? "var(--sl-gold)"} />)}
             </div>
           </div>
         )}
@@ -257,12 +257,12 @@ function UserDetail({ d }: { d: Detail }) {
           }}
           aria-expanded={reservasOpen}
         >
-          <span style={{ color: "rgba(245,241,232,0.55)", fontSize: "0.7rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+          <span style={{ color: "rgb(var(--sl-cream-rgb) / 0.55)", fontSize: "0.7rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
             Reservas ({d.reservations.length})
           </span>
           <span style={{
             fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase",
-            color: "#ba843c", display: "flex", alignItems: "center", gap: 6,
+            color: "var(--sl-gold)", display: "flex", alignItems: "center", gap: 6,
           }}>
             {reservasOpen ? "Ocultar ▾" : `Ver reservas ▸`}
           </span>
@@ -274,9 +274,9 @@ function UserDetail({ d }: { d: Detail }) {
               {(["todas", "activas", "completadas", "canceladas"] as const).map((f) => (
                 <button key={f} onClick={() => setFilter(f)} style={{
                   padding: "6px 14px", borderRadius: 999, border: "1px solid",
-                  background:  filter === f ? "rgba(186,132,60,0.18)" : "transparent",
-                  borderColor: filter === f ? "#ba843c"               : "rgba(245,241,232,0.18)",
-                  color:       filter === f ? "#ba843c"               : "rgba(245,241,232,0.6)",
+                  background:  filter === f ? "rgb(var(--sl-gold-rgb) / 0.18)" : "transparent",
+                  borderColor: filter === f ? "var(--sl-gold)"               : "rgb(var(--sl-cream-rgb) / 0.18)",
+                  color:       filter === f ? "var(--sl-gold)"               : "rgb(var(--sl-cream-rgb) / 0.6)",
                   fontSize: "0.7rem", letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer", fontFamily: "inherit", fontWeight: 600,
                 }}>
                   {f}
@@ -302,7 +302,7 @@ function UserDetail({ d }: { d: Detail }) {
 
 function ReservationCard({ r, expanded, onToggle }: { r: Reservation; expanded: boolean; onToggle: () => void }) {
   const date  = new Date(r.date);
-  const color = STATUS_COLOR[r.status] ?? "#ba843c";
+  const color = STATUS_COLOR[r.status] ?? "var(--sl-gold)";
   const tablesLabel = r.tables.length === 0
     ? "Sin asignar"
     : r.tables.map((n) => `M${n}`).join(" + ");
@@ -310,14 +310,14 @@ function ReservationCard({ r, expanded, onToggle }: { r: Reservation; expanded: 
   return (
     <div style={{
       background: "rgba(28,38,40,0.6)",
-      border: `1px solid ${expanded ? color : "rgba(255,255,255,0.04)"}`,
+      border: `1px solid ${expanded ? color : "rgb(var(--sl-veil-rgb) / 0.04)"}`,
       borderRadius: 10,
       transition: "border-color 0.2s",
     }}>
       <button onClick={onToggle} style={{
         width: "100%", padding: "12px 16px", display: "grid",
         gridTemplateColumns: "auto 1fr auto auto auto", alignItems: "center", gap: 14,
-        background: "transparent", border: "none", color: "#f5f1e8", textAlign: "left",
+        background: "transparent", border: "none", color: "var(--sl-cream)", textAlign: "left",
         cursor: "pointer", fontFamily: "inherit",
       }}>
         <span style={{ ...statusDot, background: color }} />
@@ -325,19 +325,19 @@ function ReservationCard({ r, expanded, onToggle }: { r: Reservation; expanded: 
           <div style={{ fontSize: "0.88rem", fontWeight: 600, textTransform: "capitalize" }}>
             {date.toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
           </div>
-          <div style={{ fontSize: "0.72rem", color: "rgba(245,241,232,0.5)", marginTop: 2 }}>
+          <div style={{ fontSize: "0.72rem", color: "rgb(var(--sl-cream-rgb) / 0.5)", marginTop: 2 }}>
             {date.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })} · {r.guests} pers · {r.sectionPreference ?? "—"}
           </div>
         </div>
         <span style={{ ...statusBadge, color, borderColor: color }}>{STATUS_LABEL[r.status] ?? r.status}</span>
         {r.requiresPayment && (
-          <span style={{ fontSize: "0.68rem", color: "#ba843c", letterSpacing: "0.06em" }}>💳 ${r.amountPaid.toFixed(0)}</span>
+          <span style={{ fontSize: "0.68rem", color: "var(--sl-gold)", letterSpacing: "0.06em" }}>💳 ${r.amountPaid.toFixed(0)}</span>
         )}
-        <span style={{ color: "rgba(245,241,232,0.4)", fontSize: "0.75rem" }}>{expanded ? "▾" : "▸"}</span>
+        <span style={{ color: "rgb(var(--sl-cream-rgb) / 0.4)", fontSize: "0.75rem" }}>{expanded ? "▾" : "▸"}</span>
       </button>
 
       {expanded && (
-        <div className="crm-fields-grid" style={{ borderTop: "1px solid rgba(255,255,255,0.05)", padding: "14px 16px" }}>
+        <div className="crm-fields-grid" style={{ borderTop: "1px solid rgb(var(--sl-veil-rgb) / 0.05)", padding: "14px 16px" }}>
           <Field label="Titular reserva"  v={r.guestName} />
           <Field label="Tel. reserva"     v={r.guestPhone} />
           <Field label="Mesa(s)"          v={`${tablesLabel}${r.tableSection ? ` · ${r.tableSection}` : ""}`} />
@@ -365,8 +365,8 @@ function ReservationCard({ r, expanded, onToggle }: { r: Reservation; expanded: 
 function Field({ label, v, full }: { label: string; v: string; full?: boolean }) {
   return (
     <div style={{ gridColumn: full ? "1 / -1" : "auto" }}>
-      <div style={{ fontSize: "0.6rem", letterSpacing: "0.18em", color: "rgba(245,241,232,0.45)", textTransform: "uppercase", fontWeight: 700, marginBottom: 2 }}>{label}</div>
-      <div style={{ fontSize: "0.82rem", color: "rgba(245,241,232,0.9)" }}>{v}</div>
+      <div style={{ fontSize: "0.6rem", letterSpacing: "0.18em", color: "rgb(var(--sl-cream-rgb) / 0.45)", textTransform: "uppercase", fontWeight: 700, marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: "0.82rem", color: "rgb(var(--sl-cream-rgb) / 0.9)" }}>{v}</div>
     </div>
   );
 }
@@ -378,12 +378,12 @@ const statusBadge: React.CSSProperties = {
 };
 
 function Stat({ label, big, sub, accent, bad, small }: { label: string; big: number | string; sub?: string; accent?: boolean; bad?: boolean; small?: boolean }) {
-  const color = bad ? "#c85050" : accent ? "#ba843c" : "#f5f1e8";
+  const color = bad ? "#c85050" : accent ? "var(--sl-gold)" : "var(--sl-cream)";
   return (
     <div className="crm-panel">
-      <div style={{ color: "rgba(245,241,232,0.55)", fontSize: "0.68rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 600 }}>{label}</div>
+      <div style={{ color: "rgb(var(--sl-cream-rgb) / 0.55)", fontSize: "0.68rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 600 }}>{label}</div>
       <div style={{ fontSize: small ? "1.4rem" : "2.2rem", fontWeight: 600, marginTop: 6, color }}>{big}</div>
-      {sub && <div style={{ marginTop: 4, fontSize: "0.7rem", color: "rgba(245,241,232,0.45)" }}>{sub}</div>}
+      {sub && <div style={{ marginTop: 4, fontSize: "0.7rem", color: "rgb(var(--sl-cream-rgb) / 0.45)" }}>{sub}</div>}
     </div>
   );
 }
@@ -391,7 +391,7 @@ function Stat({ label, big, sub, accent, bad, small }: { label: string; big: num
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="crm-panel">
-      <div style={{ color: "rgba(245,241,232,0.55)", fontSize: "0.7rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, marginBottom: 14 }}>{title}</div>
+      <div style={{ color: "rgb(var(--sl-cream-rgb) / 0.55)", fontSize: "0.7rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, marginBottom: 14 }}>{title}</div>
       {children}
     </div>
   );
@@ -402,10 +402,10 @@ function PrefBar({ label, value, max, color }: { label: string; value: number; m
   return (
     <div style={{ marginBottom: 10 }}>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem", marginBottom: 4 }}>
-        <span style={{ color: "rgba(245,241,232,0.85)" }}>{label}</span>
-        <span style={{ color: "rgba(245,241,232,0.5)" }}>{pct}%</span>
+        <span style={{ color: "rgb(var(--sl-cream-rgb) / 0.85)" }}>{label}</span>
+        <span style={{ color: "rgb(var(--sl-cream-rgb) / 0.5)" }}>{pct}%</span>
       </div>
-      <div style={{ height: 6, background: "rgba(255,255,255,0.08)", borderRadius: 999, overflow: "hidden" }}>
+      <div style={{ height: 6, background: "rgb(var(--sl-veil-rgb) / 0.08)", borderRadius: 999, overflow: "hidden" }}>
         <div style={{ width: `${pct}%`, height: "100%", background: color }} />
       </div>
     </div>
@@ -431,4 +431,4 @@ const userItem: React.CSSProperties = {
 const badgePill: React.CSSProperties = {
   padding: "6px 16px", border: "1px solid", borderRadius: 999, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.06em",
 };
-const muted: React.CSSProperties = { color: "rgba(245,241,232,0.4)", fontSize: "0.8rem", margin: 0 };
+const muted: React.CSSProperties = { color: "rgb(var(--sl-cream-rgb) / 0.4)", fontSize: "0.8rem", margin: 0 };

@@ -69,7 +69,7 @@ export function CrmShell({ children }: { children: React.ReactNode }) {
           href="/admin"
           style={{
             display: "block", padding: "8px 0", marginBottom: 16, fontSize: "0.8rem", fontWeight: 700,
-            letterSpacing: "0.04em", textTransform: "uppercase", color: "rgba(245,241,232,0.55)", textDecoration: "none",
+            letterSpacing: "0.04em", textTransform: "uppercase", color: "rgb(var(--sl-cream-rgb) / 0.55)", textDecoration: "none",
           }}
         >
           ← Panel
@@ -104,10 +104,10 @@ function NavLink({ href, label, active }: { href: string; label: string; active:
         fontWeight: 600,
         letterSpacing: "0.04em",
         textTransform: "uppercase",
-        color: active ? "#ba843c" : "rgba(245,241,232,0.7)",
+        color: active ? "var(--sl-gold)" : "rgb(var(--sl-cream-rgb) / 0.7)",
         textDecoration: active ? "underline" : "none",
         textUnderlineOffset: 4,
-        textDecorationColor: "#ba843c",
+        textDecorationColor: "var(--sl-gold)",
         transition: "color 0.18s",
       }}
     >
@@ -122,5 +122,5 @@ const brandLuca: React.CSSProperties = { fontSize: "1.6rem", fontWeight: 500, le
 const nav: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 4 };
 const loading: React.CSSProperties = {
   minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
-  background: "var(--sl-panel)", color: "rgba(245,241,232,0.6)", fontFamily: "inherit",
+  background: "var(--sl-panel)", color: "rgb(var(--sl-cream-rgb) / 0.6)", fontFamily: "inherit",
 };

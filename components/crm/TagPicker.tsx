@@ -114,7 +114,7 @@ export function TagPicker({
         zIndex: 50,
         marginTop: 4,
         background: "var(--sl-panel)",
-        border: "1px solid rgba(186,132,60,0.35)",
+        border: "1px solid rgb(var(--sl-gold-rgb) / 0.35)",
         borderRadius: 8,
         padding: 10,
         width: 280,
@@ -136,9 +136,9 @@ export function TagPicker({
           width: "100%",
           padding: "7px 10px",
           background: "var(--sl-panel2)",
-          border: "1px solid rgba(255,255,255,0.08)",
+          border: "1px solid rgb(var(--sl-veil-rgb) / 0.08)",
           borderRadius: 6,
-          color: "#f5f1e8",
+          color: "var(--sl-cream)",
           fontFamily: "inherit",
           fontSize: "0.85rem",
           outline: "none",
@@ -159,9 +159,9 @@ export function TagPicker({
         }}
       >
         {loading ? (
-          <p style={{ color: "rgba(245,241,232,0.4)", fontSize: "0.78rem", padding: 6, margin: 0 }}>Cargando…</p>
+          <p style={{ color: "rgb(var(--sl-cream-rgb) / 0.4)", fontSize: "0.78rem", padding: 6, margin: 0 }}>Cargando…</p>
         ) : filtered.length === 0 && !showCreate ? (
-          <p style={{ color: "rgba(245,241,232,0.4)", fontSize: "0.78rem", padding: 6, margin: 0 }}>
+          <p style={{ color: "rgb(var(--sl-cream-rgb) / 0.4)", fontSize: "0.78rem", padding: 6, margin: 0 }}>
             {available.length === 0 ? "No hay tags disponibles." : "Sin coincidencias."}
           </p>
         ) : (
@@ -181,13 +181,13 @@ export function TagPicker({
                   background: "transparent",
                   border: "none",
                   borderRadius: 4,
-                  color: "#f5f1e8",
+                  color: "var(--sl-cream)",
                   cursor: "pointer",
                   textAlign: "left",
                   fontFamily: "inherit",
                   fontSize: "0.83rem",
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(245,241,232,0.05)")}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "rgb(var(--sl-cream-rgb) / 0.05)")}
                 onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
               >
                 <span
@@ -213,10 +213,10 @@ export function TagPicker({
           style={{
             marginTop: 8,
             paddingTop: 8,
-            borderTop: "1px solid rgba(255,255,255,0.06)",
+            borderTop: "1px solid rgb(var(--sl-veil-rgb) / 0.06)",
           }}
         >
-          <div style={{ fontSize: "0.72rem", color: "rgba(245,241,232,0.5)", marginBottom: 6 }}>
+          <div style={{ fontSize: "0.72rem", color: "rgb(var(--sl-cream-rgb) / 0.5)", marginBottom: 6 }}>
             Color para el tag nuevo:
           </div>
           <div style={{ display: "flex", gap: 5, marginBottom: 8, flexWrap: "wrap" }}>
@@ -247,7 +247,7 @@ export function TagPicker({
             style={{
               width: "100%",
               padding: "7px 10px",
-              background: "#ba843c",
+              background: "var(--sl-gold)",
               color: "#1c2628",
               border: "none",
               borderRadius: 6,

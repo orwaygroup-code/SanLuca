@@ -46,7 +46,7 @@ export function TagMultiSelector({
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", minHeight: 32 }}>
         {selected.length === 0 && (
-          <span style={{ color: "rgba(245,241,232,0.4)", fontSize: "0.8rem" }}>
+          <span style={{ color: "rgb(var(--sl-cream-rgb) / 0.4)", fontSize: "0.8rem" }}>
             Sin tags seleccionados — la campaña no enviará a nadie.
           </span>
         )}
@@ -99,8 +99,8 @@ export function TagMultiSelector({
 
 const addBtn: React.CSSProperties = {
   background: "transparent",
-  border: "1px dashed rgba(186,132,60,0.5)",
-  color: "#ba843c",
+  border: "1px dashed rgb(var(--sl-gold-rgb) / 0.5)",
+  color: "var(--sl-gold)",
   fontFamily: "inherit",
   fontSize: "0.78rem",
   fontWeight: 600,

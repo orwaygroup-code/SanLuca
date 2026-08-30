@@ -16,11 +16,11 @@ import type { TableStatus } from "@/components/staff/types";
  * con reservas (datos vacíos + renderTable de comandas).
  */
 const FILL: Record<string, { table: string; chair: string; text: string; border: string }> = {
-  FREE:             { table: "#2c3537", chair: "#222c2e", text: "rgba(245,241,232,0.5)", border: "none" },
-  OPEN:             { table: "color-mix(in srgb, #4a82c4 32%, #1e2426)", chair: "#1a2022", text: "#f5f1e8", border: "2px solid #4a82c4" },
-  IN_SERVICE:       { table: "color-mix(in srgb, #3f9d6f 32%, #1e2426)", chair: "#1a2022", text: "#f5f1e8", border: "2px solid #3f9d6f" },
-  AWAITING_PAYMENT: { table: "color-mix(in srgb, #d8a13a 34%, #1e2426)", chair: "#1a2022", text: "#f5f1e8", border: "2px solid #d8a13a" },
-  PARTIALLY_PAID:   { table: "color-mix(in srgb, #d8a13a 34%, #1e2426)", chair: "#1a2022", text: "#f5f1e8", border: "2px solid #d8a13a" },
+  FREE:             { table: "#2c3537", chair: "#222c2e", text: "rgb(var(--sl-cream-rgb) / 0.5)", border: "none" },
+  OPEN:             { table: "color-mix(in srgb, #4a82c4 32%, #1e2426)", chair: "#1a2022", text: "var(--sl-cream)", border: "2px solid #4a82c4" },
+  IN_SERVICE:       { table: "color-mix(in srgb, #3f9d6f 32%, #1e2426)", chair: "#1a2022", text: "var(--sl-cream)", border: "2px solid #3f9d6f" },
+  AWAITING_PAYMENT: { table: "color-mix(in srgb, #d8a13a 34%, #1e2426)", chair: "#1a2022", text: "var(--sl-cream)", border: "2px solid #d8a13a" },
+  PARTIALLY_PAID:   { table: "color-mix(in srgb, #d8a13a 34%, #1e2426)", chair: "#1a2022", text: "var(--sl-cream)", border: "2px solid #d8a13a" },
 };
 const fillOf = (s: string) => FILL[s] ?? FILL.FREE;
 

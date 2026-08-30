@@ -318,7 +318,7 @@ const vw: Record<string, React.CSSProperties> = {
 
 const pd: Record<string, React.CSSProperties> = {
   toggle: { display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: "12px 16px", borderRadius: 12, border: `1px solid ${C.border}`, background: C.panel, color: C.dim, fontWeight: 700, fontSize: "0.82rem", cursor: "pointer", fontFamily: "inherit" },
-  row: { display: "flex", alignItems: "center", gap: 14, rowGap: 4, flexWrap: "wrap", width: "100%", padding: "10px 16px", borderRadius: 10, border: `1px solid ${C.line}`, background: "rgba(255,255,255,0.02)", boxSizing: "border-box" },
+  row: { display: "flex", alignItems: "center", gap: 14, rowGap: 4, flexWrap: "wrap", width: "100%", padding: "10px 16px", borderRadius: 10, border: `1px solid ${C.line}`, background: "rgb(var(--sl-veil-rgb) / 0.02)", boxSizing: "border-box" },
   folio: { color: C.gold, fontWeight: 800, fontSize: "0.76rem", minWidth: 100, flexShrink: 0 },
   place: { color: C.cream, fontWeight: 600, fontSize: "0.88rem", flex: 1, minWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   meta: { color: C.dim, fontSize: "0.8rem", whiteSpace: "nowrap" },

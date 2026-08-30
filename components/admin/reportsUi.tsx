@@ -40,7 +40,7 @@ export const tbl: Record<string, React.CSSProperties> = {
   th: {
     textAlign: "left", padding: "10px 12px", color: RP.gold, fontWeight: 700, fontSize: "0.7rem",
     letterSpacing: "0.04em", textTransform: "uppercase", borderBottom: `1px solid ${RP.border}`,
-    whiteSpace: "nowrap", background: "rgba(255,255,255,0.02)",
+    whiteSpace: "nowrap", background: "rgb(var(--sl-veil-rgb) / 0.02)",
   },
   td: { padding: "10px 12px", color: RP.cream, borderBottom: `1px solid ${RP.line}`, whiteSpace: "nowrap" },
   num: { textAlign: "right", fontVariantNumeric: "tabular-nums" },

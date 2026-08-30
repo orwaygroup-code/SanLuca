@@ -92,9 +92,9 @@ export const STATUS_COLOR: Record<string, string> = {
   AWAITING_PAYMENT: "#e0b054",
   PARTIALLY_PAID: "#d8a13a",
   PAID: C.dim,
-  MERGED: "rgba(245,241,232,0.5)",
+  MERGED: "rgb(var(--sl-cream-rgb) / 0.5)",
   CANCELLED: "#e8766b",
-  FREE: "rgba(245,241,232,0.5)",
+  FREE: "rgb(var(--sl-cream-rgb) / 0.5)",
 };
 
 // ─────────────────────────────────────────────────────────── StaffHeader ──
@@ -356,7 +356,7 @@ export function EmptyState({ text }: { text: string }) {
   return (
     <div style={{
       padding: "48px 20px", textAlign: "center", color: C.dim, fontSize: "0.9rem",
-      border: `1px dashed rgba(255,255,255,0.16)`, borderRadius: 14, margin: "8px 0",
+      border: `1px dashed rgb(var(--sl-veil-rgb) / 0.16)`, borderRadius: 14, margin: "8px 0",
     }}>{text}</div>
   );
 }
@@ -427,13 +427,13 @@ const mS: Record<string, React.CSSProperties> = {
 // minHeight 44 = target táctil para tablets en servicio.
 export const btn: Record<string, React.CSSProperties> = {
   primary: { padding: "12px 20px", minHeight: 44, borderRadius: 10, border: "none", background: C.gold, color: "var(--sl-on-accent)", fontWeight: 800, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" },
-  ghost: { padding: "12px 20px", minHeight: 44, borderRadius: 10, border: `1px solid rgba(255,255,255,0.18)`, background: "transparent", color: C.dim, fontWeight: 600, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" },
+  ghost: { padding: "12px 20px", minHeight: 44, borderRadius: 10, border: `1px solid rgb(var(--sl-veil-rgb) / 0.18)`, background: "transparent", color: C.dim, fontWeight: 600, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" },
   danger: { padding: "12px 20px", minHeight: 44, borderRadius: 10, border: "none", background: "#b23730", color: "#fff", fontWeight: 700, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" },
 };
 
 export const fld: Record<string, React.CSSProperties> = {
   label: { display: "block", fontSize: "0.64rem", letterSpacing: "0.14em", textTransform: "uppercase", color: C.dim, fontWeight: 700, marginBottom: 6 },
-  input: { width: "100%", padding: "12px 14px", minHeight: 44, borderRadius: 10, boxSizing: "border-box", border: `1px solid rgba(255,255,255,0.18)`, background: "rgba(255,255,255,0.05)", color: C.cream, fontSize: "0.9rem", fontFamily: "inherit" },
+  input: { width: "100%", padding: "12px 14px", minHeight: 44, borderRadius: 10, boxSizing: "border-box", border: `1px solid rgb(var(--sl-veil-rgb) / 0.18)`, background: "rgb(var(--sl-veil-rgb) / 0.05)", color: C.cream, fontSize: "0.9rem", fontFamily: "inherit" },
 };
 
 const tk: Record<string, React.CSSProperties> = {

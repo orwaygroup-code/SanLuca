@@ -121,7 +121,7 @@ export default function MeseroComandasPage() {
               return (
                 <button onClick={() => setPanelView(on ? null : "86")} aria-pressed={on}
                   title="Faltantes (86) y Priorizar (101)" aria-label="Faltantes y priorizar"
-                  style={{ width: 40, height: 40, display: "grid", placeItems: "center", borderRadius: 999, border: `1px solid ${on ? C.gold : C.border}`, background: on ? C.gold : "transparent", color: on ? "#16201f" : C.gold, cursor: "pointer", fontFamily: "inherit", padding: 0 }}>
+                  style={{ width: 40, height: 40, display: "grid", placeItems: "center", borderRadius: 999, border: `1px solid ${on ? C.gold : C.border}`, background: on ? C.gold : "transparent", color: on ? "var(--sl-on-accent)" : C.gold, cursor: "pointer", fontFamily: "inherit", padding: 0 }}>
                   <Icon name="faltantes101" size={21} />
                 </button>
               );

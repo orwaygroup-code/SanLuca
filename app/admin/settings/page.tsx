@@ -123,7 +123,7 @@ export default function AdminSettingsPage() {
               </div>
               <button
                 onClick={() => setTaxEnabled((v) => !v)}
-                style={{ ...S.switch, background: taxEnabled ? C.gold : "rgba(255,255,255,0.15)" }}
+                style={{ ...S.switch, background: taxEnabled ? C.gold : "rgb(var(--sl-veil-rgb) / 0.15)" }}
                 aria-pressed={taxEnabled}
               >
                 <span style={{ ...S.knob, transform: taxEnabled ? "translateX(22px)" : "translateX(2px)" }} />
@@ -240,7 +240,7 @@ const S: Record<string, React.CSSProperties> = {
   switch: { position: "relative", width: 48, height: 26, borderRadius: 999, border: "none", cursor: "pointer", flexShrink: 0, transition: "background 0.15s" },
   knob: { position: "absolute", top: 2, left: 0, width: 22, height: 22, borderRadius: "50%", background: "#fff", transition: "transform 0.15s" },
   label: { display: "block", fontSize: "0.62rem", letterSpacing: "0.14em", textTransform: "uppercase", color: C.faint, fontWeight: 700, marginBottom: 6 },
-  input: { padding: "11px 13px", borderRadius: 9, border: `1px solid ${C.line}`, background: "rgba(255,255,255,0.05)", color: C.cream, fontSize: "0.95rem", fontFamily: "inherit" },
+  input: { padding: "11px 13px", borderRadius: 9, border: `1px solid ${C.line}`, background: "rgb(var(--sl-veil-rgb) / 0.05)", color: C.cream, fontSize: "0.95rem", fontFamily: "inherit" },
   save: { padding: "11px 20px", borderRadius: 9, border: "none", background: C.gold, color: "#fff", fontWeight: 700, fontSize: "0.85rem", fontFamily: "inherit" },
   rm: { width: 34, height: 34, borderRadius: 8, border: "1px solid #e05555", background: "transparent", color: "#e05555", fontSize: "1.1rem", cursor: "pointer", lineHeight: 1, flexShrink: 0 },
   ghost: { padding: "9px 16px", borderRadius: 9, border: `1px solid ${C.line}`, background: "transparent", color: C.dim, fontWeight: 600, fontSize: "0.82rem", fontFamily: "inherit", cursor: "pointer" },

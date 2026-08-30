@@ -12,17 +12,17 @@ export function dateFilterQuery(f: DateFilter): string {
   return `range=${f.range}`;
 }
 
-const P = { gold: "#ba843c", cream: "#f5f1e8", dim: "rgba(245,241,232,0.6)", border: "rgba(186,132,60,0.22)", panel: "#1a2628" };
+const P = { gold: "var(--sl-gold)", cream: "var(--sl-cream)", dim: "rgb(var(--sl-cream-rgb) / 0.6)", border: "rgb(var(--sl-gold-rgb) / 0.22)", panel: "var(--sl-panel)" };
 const RANGES = [{ key: "today", label: "Hoy" }, { key: "7d", label: "7 días" }, { key: "30d", label: "30 días" }];
 
 export function DateRangeBar({ value, onChange }: { value: DateFilter; onChange: (f: DateFilter) => void }) {
   const chip = (on: boolean): React.CSSProperties => ({
     padding: "7px 13px", borderRadius: 8, border: `1px solid ${on ? P.gold : P.border}`, background: on ? P.gold : "transparent",
-    color: on ? "#16201f" : P.dim, fontWeight: 700, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit",
+    color: on ? "var(--sl-on-accent)" : P.dim, fontWeight: 700, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit",
   });
   const dateInput: React.CSSProperties = {
-    padding: "6px 8px", borderRadius: 8, border: `1px solid ${value.mode === "custom" ? P.gold : P.border}`, background: P.panel,
-    color: P.cream, fontFamily: "inherit", fontSize: "0.78rem", colorScheme: "dark",
+    padding: "6px 8px", borderRadius: 8, border: `1px solid ${value.mode === "custom" ? P.gold : P.border}`, background: "var(--sl-field)",
+    color: "var(--sl-on-field)", fontFamily: "inherit", fontSize: "0.78rem", colorScheme: "dark",
   };
   const setPreset = (range: string) => onChange({ mode: "preset", range, from: "", to: "" });
   const setFrom = (from: string) => onChange({ ...value, mode: from ? "custom" : "preset", from });

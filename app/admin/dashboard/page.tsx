@@ -119,7 +119,7 @@ export default function AdminDashboardPage() {
               <div style={{ ...S.panelHead, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
                 <span>Turnos por corte de caja</span>
                 <input type="date" value={cortesDate} onChange={(e) => setCortesDate(e.target.value)}
-                  style={{ background: "transparent", border: `1px solid ${C.line}`, borderRadius: 8, color: C.cream, fontSize: "0.74rem", padding: "5px 8px", fontFamily: "inherit", colorScheme: "dark" }} />
+                  style={{ background: "transparent", border: `1px solid ${C.line}`, borderRadius: 8, color: C.cream, fontSize: "0.74rem", padding: "5px 8px", fontFamily: "inherit" }} />
               </div>
               <div style={{ padding: "14px 18px 18px" }}>
                 {rep.cortes.length === 0 ? (
@@ -303,8 +303,8 @@ function BarChart({ data, format }: { data: { label: string; value: number }[]; 
       {data.map((d) => (
         <div key={d.label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ color: C.dim, fontSize: "0.76rem", width: 130, textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.label}</span>
-          <div style={{ flex: 1, background: "rgba(255,255,255,0.05)", borderRadius: 6, overflow: "hidden", height: 22 }}>
-            <div style={{ width: `${(d.value / max) * 100}%`, height: "100%", background: "linear-gradient(90deg,#9a6c2e,#ba843c)", minWidth: d.value > 0 ? 3 : 0 }} />
+          <div style={{ flex: 1, background: "rgb(var(--sl-veil-rgb) / 0.05)", borderRadius: 6, overflow: "hidden", height: 22 }}>
+            <div style={{ width: `${(d.value / max) * 100}%`, height: "100%", background: "linear-gradient(90deg,#9a6c2e,var(--sl-gold))", minWidth: d.value > 0 ? 3 : 0 }} />
           </div>
           <span style={{ color: C.cream, fontSize: "0.78rem", width: 100, textAlign: "right", fontWeight: 600 }}>{format(d.value)}</span>
         </div>
@@ -338,12 +338,12 @@ const S: Record<string, React.CSSProperties> = {
   kpiValue: { fontWeight: 800, marginTop: 6 },
   shiftGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14, marginBottom: 18 },
   shiftCard: { background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, padding: "18px 20px" },
-  occTrack: { height: 8, borderRadius: 6, background: "rgba(255,255,255,0.06)", overflow: "hidden" },
-  occFill: { height: "100%", background: "linear-gradient(90deg,#9a6c2e,#ba843c)", borderRadius: 6 },
-  topPill: { color: C.cream, fontSize: "0.76rem", fontWeight: 600, background: "rgba(186,132,60,0.12)", border: `1px solid ${C.border}`, borderRadius: 999, padding: "3px 10px" },
+  occTrack: { height: 8, borderRadius: 6, background: "rgb(var(--sl-veil-rgb) / 0.06)", overflow: "hidden" },
+  occFill: { height: "100%", background: "linear-gradient(90deg,#9a6c2e,var(--sl-gold))", borderRadius: 6 },
+  topPill: { color: C.cream, fontSize: "0.76rem", fontWeight: 600, background: "rgb(var(--sl-gold-rgb) / 0.12)", border: `1px solid ${C.border}`, borderRadius: 999, padding: "3px 10px" },
   corteRow: { display: "flex", gap: 10, flexWrap: "wrap" },
-  corte: { textAlign: "left", minWidth: 170, padding: "12px 14px", borderRadius: 12, border: `1px solid ${C.line}`, background: "rgba(255,255,255,0.02)", cursor: "pointer", fontFamily: "inherit" },
-  corteOn: { border: `1.5px solid ${C.gold}`, boxShadow: "0 0 0 3px rgba(186,132,60,0.12)" },
+  corte: { textAlign: "left", minWidth: 170, padding: "12px 14px", borderRadius: 12, border: `1px solid ${C.line}`, background: "rgb(var(--sl-veil-rgb) / 0.02)", cursor: "pointer", fontFamily: "inherit" },
+  corteOn: { border: `1.5px solid ${C.gold}`, boxShadow: "0 0 0 3px rgb(var(--sl-gold-rgb) / 0.12)" },
   panel: { background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden", marginBottom: 16 },
   panelHead: { padding: "12px 18px", borderBottom: `1px solid ${C.line}`, color: C.faint, fontSize: "0.66rem", letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 700 },
   dishRow: { display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: `1px solid ${C.line}`, fontSize: "0.86rem" },
@@ -351,7 +351,7 @@ const S: Record<string, React.CSSProperties> = {
   modal: { background: C.panel, border: `1px solid ${C.border}`, borderRadius: 16, width: "100%", maxWidth: 420, maxHeight: "calc(100vh - 32px)", overflowY: "auto", padding: "20px 22px" },
   close: { width: 34, height: 34, borderRadius: 8, border: `1px solid ${C.line}`, background: "transparent", color: C.dim, fontSize: "0.9rem", cursor: "pointer", flexShrink: 0, fontFamily: "inherit" },
   mkpis: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 16 },
-  mkpi: { background: "rgba(255,255,255,0.03)", border: `1px solid ${C.line}`, borderRadius: 10, padding: "10px 12px" },
+  mkpi: { background: "rgb(var(--sl-veil-rgb) / 0.03)", border: `1px solid ${C.line}`, borderRadius: 10, padding: "10px 12px" },
   mhead: { color: C.faint, fontSize: "0.62rem", letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 700, marginBottom: 6 },
   mrow: { display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: `1px solid ${C.line}`, fontSize: "0.84rem" },
 };

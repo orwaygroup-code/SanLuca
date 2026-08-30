@@ -33,7 +33,7 @@ const STATUS_LABEL: Record<ArcoStatus, string> = {
   REJECTED:    "Rechazada",
 };
 const STATUS_COLOR: Record<ArcoStatus, string> = {
-  IN_PROGRESS: "#ba843c",
+  IN_PROGRESS: "var(--sl-gold)",
   COMPLETED:   "#5fa15f",
   REJECTED:    "#e05555",
 };
@@ -158,7 +158,7 @@ export default function ArcoPage() {
         </div>
       </div>
 
-      {loading && <div style={{ color: "rgba(245,241,232,0.5)", marginTop: 12 }}>Cargando…</div>}
+      {loading && <div style={{ color: "rgb(var(--sl-cream-rgb) / 0.5)", marginTop: 12 }}>Cargando…</div>}
 
       <div style={tableWrap}>
         <table style={table}>
@@ -179,7 +179,7 @@ export default function ArcoPage() {
               <tr
                 key={r.id}
                 onClick={() => setSelected(r)}
-                style={{ ...tr, background: selected?.id === r.id ? "rgba(186,132,60,0.08)" : "transparent" }}
+                style={{ ...tr, background: selected?.id === r.id ? "rgb(var(--sl-gold-rgb) / 0.08)" : "transparent" }}
               >
                 <td style={{ ...td, fontFamily: "ui-monospace, monospace", color: "#d09a52" }}>{r.folio}</td>
                 <td style={td}>{fmt(r.receivedAt)}</td>
@@ -187,7 +187,7 @@ export default function ArcoPage() {
                 <td style={td}>{RIGHT_LABEL[r.rightExercised]}</td>
                 <td style={td}>
                   <div>{r.requesterName ?? "—"}</div>
-                  <div style={{ fontSize: "0.78rem", color: "rgba(245,241,232,0.5)" }}>{r.requesterEmail}</div>
+                  <div style={{ fontSize: "0.78rem", color: "rgb(var(--sl-cream-rgb) / 0.5)" }}>{r.requesterEmail}</div>
                 </td>
                 <td style={td}>
                   <span style={{ ...badge, color: STATUS_COLOR[r.status], borderColor: STATUS_COLOR[r.status] }}>
@@ -200,7 +200,7 @@ export default function ArcoPage() {
             ))}
             {!loading && filtered.length === 0 && (
               <tr>
-                <td colSpan={8} style={{ ...td, textAlign: "center", color: "rgba(245,241,232,0.4)", padding: 32 }}>
+                <td colSpan={8} style={{ ...td, textAlign: "center", color: "rgb(var(--sl-cream-rgb) / 0.4)", padding: 32 }}>
                   Sin solicitudes que coincidan con los filtros.
                 </td>
               </tr>
@@ -223,8 +223,8 @@ export default function ArcoPage() {
 function Stat({ label, value, color }: { label: string; value: number; color?: string }) {
   return (
     <div style={statBox}>
-      <div style={{ fontSize: "1.6rem", fontWeight: 600, color: color ?? "#f5f1e8" }}>{value}</div>
-      <div style={{ fontSize: "0.72rem", color: "rgba(245,241,232,0.5)", textTransform: "uppercase", letterSpacing: "0.1em" }}>{label}</div>
+      <div style={{ fontSize: "1.6rem", fontWeight: 600, color: color ?? "var(--sl-cream)" }}>{value}</div>
+      <div style={{ fontSize: "0.72rem", color: "rgb(var(--sl-cream-rgb) / 0.5)", textTransform: "uppercase", letterSpacing: "0.1em" }}>{label}</div>
     </div>
   );
 }
@@ -248,13 +248,13 @@ function DetailDrawer({
           <h2 style={{ margin: 0, color: "#d09a52", fontFamily: "ui-monospace, monospace" }}>{row.folio}</h2>
           <button onClick={onClose} style={closeBtn}>✕</button>
         </div>
-        <p style={{ margin: "4px 0 18px", color: "rgba(245,241,232,0.55)", fontSize: "0.85rem" }}>
+        <p style={{ margin: "4px 0 18px", color: "rgb(var(--sl-cream-rgb) / 0.55)", fontSize: "0.85rem" }}>
           {CHANNEL_LABEL[row.channel]} · {RIGHT_LABEL[row.rightExercised]} · Recibida {fmt(row.receivedAt)}
         </p>
 
         <DetailField label="Solicitante">
           <div>{row.requesterName ?? "—"}</div>
-          <div style={{ fontSize: "0.85rem", color: "rgba(245,241,232,0.55)" }}>{row.requesterEmail}</div>
+          <div style={{ fontSize: "0.85rem", color: "rgb(var(--sl-cream-rgb) / 0.55)" }}>{row.requesterEmail}</div>
         </DetailField>
 
         <Stage
@@ -329,10 +329,10 @@ function DetailDrawer({
 function DetailField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 14 }}>
-      <div style={{ fontSize: "0.75rem", color: "rgba(245,241,232,0.5)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
+      <div style={{ fontSize: "0.75rem", color: "rgb(var(--sl-cream-rgb) / 0.5)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
         {label}
       </div>
-      <div style={{ color: "#f5f1e8" }}>{children}</div>
+      <div style={{ color: "var(--sl-cream)" }}>{children}</div>
     </div>
   );
 }
@@ -341,8 +341,8 @@ function Stage({ label, at, onMark }: { label: string; at: string | null; onMark
   return (
     <div style={{ marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
       <div>
-        <div style={{ fontSize: "0.85rem", color: "#f5f1e8" }}>{label}</div>
-        <div style={{ fontSize: "0.78rem", color: at ? "#5fa15f" : "rgba(245,241,232,0.4)" }}>
+        <div style={{ fontSize: "0.85rem", color: "var(--sl-cream)" }}>{label}</div>
+        <div style={{ fontSize: "0.78rem", color: at ? "#5fa15f" : "rgb(var(--sl-cream-rgb) / 0.4)" }}>
           {at ? `✓ ${fmt(at)}` : "Pendiente"}
         </div>
       </div>
@@ -388,7 +388,7 @@ function NewRequestModal({ onClose, onCreated }: { onClose: () => void; onCreate
     <div style={drawerOverlay} role="dialog" aria-modal="true">
       <div style={{ ...drawer, maxWidth: 480 }}>
         <h2 style={{ margin: "0 0 16px", color: "#d09a52" }}>Nueva solicitud por correo</h2>
-        <p style={{ margin: "0 0 16px", color: "rgba(245,241,232,0.6)", fontSize: "0.85rem" }}>
+        <p style={{ margin: "0 0 16px", color: "rgb(var(--sl-cream-rgb) / 0.6)", fontSize: "0.85rem" }}>
           Captura una solicitud ARCO recibida en privacidad@sanlucaristorante.com. El folio se asigna automáticamente.
         </p>
         <DetailField label="Derecho ejercido">
@@ -420,23 +420,23 @@ function NewRequestModal({ onClose, onCreated }: { onClose: () => void; onCreate
   );
 }
 
-const page: React.CSSProperties = { padding: "32px 40px", color: "#f5f1e8" };
+const page: React.CSSProperties = { padding: "32px 40px", color: "var(--sl-cream)" };
 const statsRow: React.CSSProperties = { display: "flex", gap: 16, marginBottom: 24, flexWrap: "wrap" };
-const statBox:  React.CSSProperties = { background: "rgba(245,241,232,0.04)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8, padding: "12px 18px", minWidth: 110 };
+const statBox:  React.CSSProperties = { background: "rgb(var(--sl-cream-rgb) / 0.04)", border: "1px solid rgb(var(--sl-veil-rgb) / 0.06)", borderRadius: 8, padding: "12px 18px", minWidth: 110 };
 const filters:  React.CSSProperties = { display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap", alignItems: "flex-end" };
 const filterCol:React.CSSProperties = { display: "flex", flexDirection: "column", gap: 4 };
-const lab:      React.CSSProperties = { fontSize: "0.7rem", color: "rgba(245,241,232,0.5)", textTransform: "uppercase", letterSpacing: "0.08em" };
-const ctrl:     React.CSSProperties = { background: "rgba(245,241,232,0.04)", color: "#f5f1e8", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, padding: "7px 10px", fontSize: "0.88rem", fontFamily: "inherit", minWidth: 140 };
-const tableWrap:React.CSSProperties = { overflowX: "auto", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8 };
+const lab:      React.CSSProperties = { fontSize: "0.7rem", color: "rgb(var(--sl-cream-rgb) / 0.5)", textTransform: "uppercase", letterSpacing: "0.08em" };
+const ctrl:     React.CSSProperties = { background: "rgb(var(--sl-cream-rgb) / 0.04)", color: "var(--sl-cream)", border: "1px solid rgb(var(--sl-veil-rgb) / 0.1)", borderRadius: 6, padding: "7px 10px", fontSize: "0.88rem", fontFamily: "inherit", minWidth: 140 };
+const tableWrap:React.CSSProperties = { overflowX: "auto", border: "1px solid rgb(var(--sl-veil-rgb) / 0.06)", borderRadius: 8 };
 const table:    React.CSSProperties = { width: "100%", borderCollapse: "collapse", fontSize: "0.88rem" };
-const th:       React.CSSProperties = { textAlign: "left", padding: "12px 14px", fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(245,241,232,0.5)", borderBottom: "1px solid rgba(255,255,255,0.08)", whiteSpace: "nowrap" };
+const th:       React.CSSProperties = { textAlign: "left", padding: "12px 14px", fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "rgb(var(--sl-cream-rgb) / 0.5)", borderBottom: "1px solid rgb(var(--sl-veil-rgb) / 0.08)", whiteSpace: "nowrap" };
 const tr:       React.CSSProperties = { cursor: "pointer", transition: "background 0.15s" };
-const td:       React.CSSProperties = { padding: "12px 14px", borderBottom: "1px solid rgba(255,255,255,0.04)", color: "rgba(245,241,232,0.85)", verticalAlign: "top" };
+const td:       React.CSSProperties = { padding: "12px 14px", borderBottom: "1px solid rgb(var(--sl-veil-rgb) / 0.04)", color: "rgb(var(--sl-cream-rgb) / 0.85)", verticalAlign: "top" };
 const badge:    React.CSSProperties = { display: "inline-block", padding: "2px 8px", border: "1px solid", borderRadius: 999, fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.06em" };
 const drawerOverlay: React.CSSProperties = { position: "fixed", inset: 0, background: "rgba(8,12,14,0.7)", display: "flex", justifyContent: "flex-end", zIndex: 999 };
-const drawer:   React.CSSProperties = { width: "min(540px, 100%)", maxWidth: "100%", height: "100vh", overflowY: "auto", background: "var(--sl-panel)", borderLeft: "1px solid rgba(255,255,255,0.06)", padding: "28px 28px 40px", boxSizing: "border-box" };
-const closeBtn: React.CSSProperties = { background: "transparent", border: "none", color: "rgba(245,241,232,0.5)", fontSize: "1.2rem", cursor: "pointer" };
+const drawer:   React.CSSProperties = { width: "min(540px, 100%)", maxWidth: "100%", height: "100vh", overflowY: "auto", background: "var(--sl-panel)", borderLeft: "1px solid rgb(var(--sl-veil-rgb) / 0.06)", padding: "28px 28px 40px", boxSizing: "border-box" };
+const closeBtn: React.CSSProperties = { background: "transparent", border: "none", color: "rgb(var(--sl-cream-rgb) / 0.5)", fontSize: "1.2rem", cursor: "pointer" };
 const textarea: React.CSSProperties = { ...ctrl, width: "100%", boxSizing: "border-box", resize: "vertical", minWidth: 0 };
-const smallBtn: React.CSSProperties = { marginTop: 6, padding: "6px 12px", background: "transparent", border: "1px solid rgba(186,132,60,0.4)", color: "#ba843c", borderRadius: 4, fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit" };
-const primaryBtn:React.CSSProperties = { padding: "8px 16px", background: "#ba843c", border: "none", color: "#1c2628", borderRadius: 6, fontSize: "0.88rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" };
+const smallBtn: React.CSSProperties = { marginTop: 6, padding: "6px 12px", background: "transparent", border: "1px solid rgb(var(--sl-gold-rgb) / 0.4)", color: "var(--sl-gold)", borderRadius: 4, fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit" };
+const primaryBtn:React.CSSProperties = { padding: "8px 16px", background: "var(--sl-gold)", border: "none", color: "#1c2628", borderRadius: 6, fontSize: "0.88rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" };
 const dangerBtn: React.CSSProperties = { padding: "8px 16px", background: "transparent", border: "1px solid #e05555", color: "#e05555", borderRadius: 6, fontSize: "0.88rem", cursor: "pointer", fontFamily: "inherit" };

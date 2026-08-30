@@ -28,8 +28,8 @@ const RES_STATUS_COLOR: Record<string, string> = {
   CONFIRMED:   "#63aede",
   IN_PROGRESS: "#5cbf60",
   DELAYED:     "#e8766b",
-  CANCELLED:   "rgba(255,255,255,0.6)",
-  COMPLETED:   "rgba(255,255,255,0.55)",
+  CANCELLED:   "rgb(var(--sl-veil-rgb) / 0.6)",
+  COMPLETED:   "rgb(var(--sl-veil-rgb) / 0.55)",
   NO_SHOW:     "#d95f4a",
 };
 const DELETABLE = ["CANCELLED", "NO_SHOW", "COMPLETED"];

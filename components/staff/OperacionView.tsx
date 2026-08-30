@@ -699,7 +699,7 @@ function CashMovementModal({ open, onClose, onDone, onError }: {
             key={val}
             onClick={() => setDirection(val)}
             aria-pressed={direction === val}
-            style={{ flex: 1, minHeight: 46, borderRadius: 10, border: `1px solid ${direction === val ? C.gold : C.line}`, background: direction === val ? "color-mix(in srgb, #ba843c 16%, transparent)" : "transparent", color: direction === val ? C.gold : C.dim, fontWeight: 800, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" }}
+            style={{ flex: 1, minHeight: 46, borderRadius: 10, border: `1px solid ${direction === val ? C.gold : C.line}`, background: direction === val ? "color-mix(in srgb, var(--sl-gold) 16%, transparent)" : "transparent", color: direction === val ? C.gold : C.dim, fontWeight: 800, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" }}
           >{lbl}</button>
         ))}
       </div>
@@ -770,7 +770,7 @@ const sh: Record<string, React.CSSProperties> = {
   sectionRow: { display: "flex", alignItems: "center", gap: 12, margin: "22px 0 10px" },
   sectionTx: { fontSize: "0.62rem", letterSpacing: "0.16em", textTransform: "uppercase", fontWeight: 800, whiteSpace: "nowrap" },
   sectionLine: { flex: 1, height: 1, background: C.line },
-  free: { display: "flex", flexWrap: "wrap", gap: 9, alignItems: "center", padding: "13px 16px", border: "1px dashed rgba(255,255,255,0.16)", borderRadius: 14, color: C.faint, fontSize: "0.8rem" },
+  free: { display: "flex", flexWrap: "wrap", gap: 9, alignItems: "center", padding: "13px 16px", border: "1px dashed rgb(var(--sl-veil-rgb) / 0.16)", borderRadius: 14, color: C.faint, fontSize: "0.8rem" },
   fchip: { minWidth: 46, minHeight: 46, borderRadius: 11, border: `1px solid ${C.line}`, background: C.panel, color: C.cream, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" },
 };
 

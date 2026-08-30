@@ -200,8 +200,8 @@ export default function WhatsappPage() {
                 onClick={() => setSelected(c.phone)}
                 style={{
                   ...convItem,
-                  background: selected === c.phone ? "rgba(186,132,60,0.12)" : "transparent",
-                  borderLeft: selected === c.phone ? "3px solid #ba843c" : "3px solid transparent",
+                  background: selected === c.phone ? "rgb(var(--sl-gold-rgb) / 0.12)" : "transparent",
+                  borderLeft: selected === c.phone ? "3px solid var(--sl-gold)" : "3px solid transparent",
                 }}
               >
                 <div style={convAvatar}>{displayName(c).charAt(0).toUpperCase()}</div>
@@ -252,7 +252,7 @@ export default function WhatsappPage() {
                         <TagPill key={t.id} tag={t} size="xs" />
                       ))}
                       {c.tags.length > 3 && (
-                        <span style={{ fontSize: "0.66rem", color: "rgba(245,241,232,0.45)", alignSelf: "center" }}>
+                        <span style={{ fontSize: "0.66rem", color: "rgb(var(--sl-cream-rgb) / 0.45)", alignSelf: "center" }}>
                           +{c.tags.length - 3}
                         </span>
                       )}
@@ -267,12 +267,12 @@ export default function WhatsappPage() {
         {/* ── Hilo derecha ── */}
         <div className="crm-wa-thread" style={threadCol}>
           {!selected ? (
-            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(245,241,232,0.3)", flexDirection: "column", gap: 8 }}>
+            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "rgb(var(--sl-cream-rgb) / 0.3)", flexDirection: "column", gap: 8 }}>
               <span style={{ fontSize: "2rem" }}>💬</span>
               <span style={{ fontSize: "0.85rem" }}>Selecciona una conversación</span>
             </div>
           ) : threadLoad ? (
-            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(245,241,232,0.4)" }}>
+            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "rgb(var(--sl-cream-rgb) / 0.4)" }}>
               Cargando mensajes…
             </div>
           ) : thread ? (
@@ -289,7 +289,7 @@ export default function WhatsappPage() {
                 <div style={convAvatar}>{displayName(thread.conv).charAt(0).toUpperCase()}</div>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>{displayName(thread.conv)}</div>
-                  <div style={{ fontSize: "0.72rem", color: "rgba(245,241,232,0.5)" }}>
+                  <div style={{ fontSize: "0.72rem", color: "rgb(var(--sl-cream-rgb) / 0.5)" }}>
                     {thread.conv.phone}
                     {thread.conv.userName && thread.conv.userName !== thread.conv.phone && ` · ${thread.conv.phone}`}
                     {" "}· {thread.messages.length} mensaje{thread.messages.length !== 1 ? "s" : ""}
@@ -379,14 +379,14 @@ const shell: React.CSSProperties = {
   minHeight: 400,
   background: "var(--sl-panel2)",
   borderRadius: 16,
-  border: "1px solid rgba(255,255,255,0.05)",
+  border: "1px solid rgb(var(--sl-veil-rgb) / 0.05)",
   overflow: "hidden",
 };
 
 const listCol: React.CSSProperties = {
   width: 300,
   flexShrink: 0,
-  borderRight: "1px solid rgba(255,255,255,0.06)",
+  borderRight: "1px solid rgb(var(--sl-veil-rgb) / 0.06)",
   overflowY: "auto",
   display: "flex",
   flexDirection: "column",
@@ -403,9 +403,9 @@ const searchInput: React.CSSProperties = {
   width: "100%",
   padding: "9px 12px",
   background: "var(--sl-panel)",
-  border: "1px solid rgba(255,255,255,0.08)",
+  border: "1px solid rgb(var(--sl-veil-rgb) / 0.08)",
   borderRadius: 8,
-  color: "#f5f1e8",
+  color: "var(--sl-cream)",
   fontFamily: "inherit",
   fontSize: "0.82rem",
   outline: "none",
@@ -429,9 +429,9 @@ const convAvatar: React.CSSProperties = {
   width: 38,
   height: 38,
   borderRadius: "50%",
-  background: "rgba(186,132,60,0.2)",
-  border: "1px solid rgba(186,132,60,0.35)",
-  color: "#ba843c",
+  background: "rgb(var(--sl-gold-rgb) / 0.2)",
+  border: "1px solid rgb(var(--sl-gold-rgb) / 0.35)",
+  color: "var(--sl-gold)",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -443,7 +443,7 @@ const convAvatar: React.CSSProperties = {
 const convName: React.CSSProperties = {
   fontWeight: 600,
   fontSize: "0.85rem",
-  color: "#f5f1e8",
+  color: "var(--sl-cream)",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
@@ -452,13 +452,13 @@ const convName: React.CSSProperties = {
 
 const convTime: React.CSSProperties = {
   fontSize: "0.68rem",
-  color: "rgba(245,241,232,0.4)",
+  color: "rgb(var(--sl-cream-rgb) / 0.4)",
   flexShrink: 0,
 };
 
 const convPreview: React.CSSProperties = {
   fontSize: "0.73rem",
-  color: "rgba(245,241,232,0.45)",
+  color: "rgb(var(--sl-cream-rgb) / 0.45)",
   marginTop: 2,
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -470,7 +470,7 @@ const threadHeader: React.CSSProperties = {
   alignItems: "center",
   gap: 12,
   padding: "14px 20px",
-  borderBottom: "1px solid rgba(255,255,255,0.06)",
+  borderBottom: "1px solid rgb(var(--sl-veil-rgb) / 0.06)",
   background: "var(--sl-panel2)",
   flexShrink: 0,
 };
@@ -486,37 +486,37 @@ const messagesArea: React.CSSProperties = {
 const bubbleIn: React.CSSProperties = {
   maxWidth: "72%",
   background: "var(--sl-panel)",
-  border: "1px solid rgba(255,255,255,0.07)",
+  border: "1px solid rgb(var(--sl-veil-rgb) / 0.07)",
   borderRadius: "4px 16px 16px 16px",
   padding: "8px 12px",
-  color: "#f5f1e8",
+  color: "var(--sl-cream)",
 };
 
 const bubbleOut: React.CSSProperties = {
   maxWidth: "72%",
-  background: "rgba(186,132,60,0.18)",
-  border: "1px solid rgba(186,132,60,0.3)",
+  background: "rgb(var(--sl-gold-rgb) / 0.18)",
+  border: "1px solid rgb(var(--sl-gold-rgb) / 0.3)",
   borderRadius: "16px 4px 16px 16px",
   padding: "8px 12px",
-  color: "#f5f1e8",
+  color: "var(--sl-cream)",
 };
 
 const tsStyle: React.CSSProperties = {
   fontSize: "0.62rem",
-  color: "rgba(245,241,232,0.4)",
+  color: "rgb(var(--sl-cream-rgb) / 0.4)",
   textAlign: "right",
   marginTop: 4,
 };
 
 const dateSep: React.CSSProperties = {
   textAlign: "center",
-  color: "rgba(245,241,232,0.3)",
+  color: "rgb(var(--sl-cream-rgb) / 0.3)",
   fontSize: "0.7rem",
   margin: "12px 0 8px",
 };
 
 const muted: React.CSSProperties = {
-  color: "rgba(245,241,232,0.35)",
+  color: "rgb(var(--sl-cream-rgb) / 0.35)",
   fontSize: "0.78rem",
   padding: 20,
   textAlign: "center",

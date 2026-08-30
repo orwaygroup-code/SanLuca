@@ -237,7 +237,7 @@ export default function NewCampaignPage() {
               </button>
               {preview && (
                 <div style={previewBadge}>
-                  <strong style={{ color: "#ba843c", fontSize: "1.05rem" }}>{preview.estimatedTotal}</strong>
+                  <strong style={{ color: "var(--sl-gold)", fontSize: "1.05rem" }}>{preview.estimatedTotal}</strong>
                   <span style={{ marginLeft: 6 }}>personas serán contactadas</span>
                 </div>
               )}
@@ -245,14 +245,14 @@ export default function NewCampaignPage() {
 
             {preview && preview.sampleTargets.length > 0 && (
               <div style={sampleBox}>
-                <p style={{ margin: "0 0 8px", color: "rgba(245,241,232,0.55)", fontSize: "0.75rem", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                <p style={{ margin: "0 0 8px", color: "rgb(var(--sl-cream-rgb) / 0.55)", fontSize: "0.75rem", letterSpacing: "0.08em", textTransform: "uppercase" }}>
                   Primeros destinatarios
                 </p>
                 <ul style={sampleList}>
                   {preview.sampleTargets.map((t, i) => (
                     <li key={i} style={sampleItem}>
-                      <span style={{ color: "#f5f1e8" }}>{t.name ?? t.phone}</span>
-                      <span style={{ marginLeft: 8, color: "rgba(245,241,232,0.4)", fontSize: "0.75rem" }}>
+                      <span style={{ color: "var(--sl-cream)" }}>{t.name ?? t.phone}</span>
+                      <span style={{ marginLeft: 8, color: "rgb(var(--sl-cream-rgb) / 0.4)", fontSize: "0.75rem" }}>
                         {t.tagNames.join(" · ")}
                       </span>
                     </li>
@@ -271,7 +271,7 @@ export default function NewCampaignPage() {
                   checked={!scheduleEnabled}
                   onChange={() => setScheduleEnabled(false)}
                 />
-                <span style={{ color: "#f5f1e8", fontSize: "0.86rem" }}>Enviar ahora (al crear)</span>
+                <span style={{ color: "var(--sl-cream)", fontSize: "0.86rem" }}>Enviar ahora (al crear)</span>
               </label>
               <label style={radioLine}>
                 <input
@@ -279,14 +279,14 @@ export default function NewCampaignPage() {
                   checked={scheduleEnabled}
                   onChange={() => setScheduleEnabled(true)}
                 />
-                <span style={{ color: "#f5f1e8", fontSize: "0.86rem" }}>Programar fecha y hora</span>
+                <span style={{ color: "var(--sl-cream)", fontSize: "0.86rem" }}>Programar fecha y hora</span>
               </label>
               {scheduleEnabled && (
                 <input
                   type="datetime-local"
                   value={scheduledAt}
                   onChange={(e) => setScheduledAt(e.target.value)}
-                  style={{ ...input, maxWidth: 280, colorScheme: "dark" }}
+                  style={{ ...input, maxWidth: 280 }}
                 />
               )}
             </div>
@@ -355,9 +355,9 @@ function RadioPill({ checked, onClick, label }: { checked: boolean; onClick: () 
       onClick={onClick}
       style={{
         ...pillBase,
-        background: checked ? "#ba843c"           : "transparent",
-        color:      checked ? "#1c2628"           : "rgba(245,241,232,0.7)",
-        border:     checked ? "1px solid #ba843c" : "1px solid rgba(245,241,232,0.18)",
+        background: checked ? "var(--sl-gold)"           : "transparent",
+        color:      checked ? "#1c2628"           : "rgb(var(--sl-cream-rgb) / 0.7)",
+        border:     checked ? "1px solid var(--sl-gold)" : "1px solid rgb(var(--sl-cream-rgb) / 0.18)",
         fontWeight: checked ? 700                 : 500,
       }}
     >
@@ -371,7 +371,7 @@ function RadioPill({ checked, onClick, label }: { checked: boolean; onClick: () 
 const topNav: React.CSSProperties = { marginBottom: 16 };
 
 const backBtn: React.CSSProperties = {
-  color: "rgba(245,241,232,0.55)",
+  color: "rgb(var(--sl-cream-rgb) / 0.55)",
   textDecoration: "none",
   fontSize: "0.82rem",
   fontFamily: "inherit",
@@ -402,14 +402,14 @@ const previewCol: React.CSSProperties = {
 const previewLabel: React.CSSProperties = {
   fontSize: "0.66rem",
   letterSpacing: "0.22em",
-  color: "rgba(245,241,232,0.45)",
+  color: "rgb(var(--sl-cream-rgb) / 0.45)",
   fontWeight: 700,
   margin: 0,
 };
 
 const section: React.CSSProperties = {
   background: "var(--sl-panel2)",
-  border: "1px solid rgba(255,255,255,0.05)",
+  border: "1px solid rgb(var(--sl-veil-rgb) / 0.05)",
   borderRadius: 14,
   padding: "18px 20px",
 };
@@ -418,17 +418,17 @@ const sectionTitle: React.CSSProperties = {
   margin: "0 0 14px",
   fontSize: "0.86rem",
   fontWeight: 600,
-  color: "#f5f1e8",
+  color: "var(--sl-cream)",
   letterSpacing: "0.01em",
 };
 
 const input: React.CSSProperties = {
   width: "100%",
-  background: "rgba(255,255,255,0.04)",
-  border: "1px solid rgba(255,255,255,0.08)",
+  background: "rgb(var(--sl-veil-rgb) / 0.04)",
+  border: "1px solid rgb(var(--sl-veil-rgb) / 0.08)",
   borderRadius: 10,
   padding: "10px 14px",
-  color: "#f5f1e8",
+  color: "var(--sl-cream)",
   fontFamily: "inherit",
   fontSize: "0.88rem",
   outline: "none",
@@ -444,21 +444,21 @@ const select: React.CSSProperties = {
 const labelStyle: React.CSSProperties = {
   display: "block",
   marginBottom: 6,
-  color: "rgba(245,241,232,0.75)",
+  color: "rgb(var(--sl-cream-rgb) / 0.75)",
   fontSize: "0.78rem",
   fontWeight: 500,
 };
 
 const hint: React.CSSProperties = {
   marginTop: 6,
-  color: "rgba(245,241,232,0.4)",
+  color: "rgb(var(--sl-cream-rgb) / 0.4)",
   fontSize: "0.72rem",
   lineHeight: 1.5,
 };
 
 const codeInline: React.CSSProperties = {
-  background: "rgba(186,132,60,0.10)",
-  color: "#ba843c",
+  background: "rgb(var(--sl-gold-rgb) / 0.10)",
+  color: "var(--sl-gold)",
   padding: "1px 6px",
   borderRadius: 4,
   fontFamily: "monospace",
@@ -487,9 +487,9 @@ const pillBase: React.CSSProperties = {
 };
 
 const previewBadge: React.CSSProperties = {
-  background: "rgba(186,132,60,0.10)",
-  border: "1px solid rgba(186,132,60,0.35)",
-  color: "#f5f1e8",
+  background: "rgb(var(--sl-gold-rgb) / 0.10)",
+  border: "1px solid rgb(var(--sl-gold-rgb) / 0.35)",
+  color: "var(--sl-cream)",
   padding: "8px 14px",
   borderRadius: 999,
   fontSize: "0.82rem",
@@ -498,8 +498,8 @@ const previewBadge: React.CSSProperties = {
 const sampleBox: React.CSSProperties = {
   marginTop: 14,
   padding: 12,
-  background: "rgba(255,255,255,0.02)",
-  border: "1px solid rgba(255,255,255,0.04)",
+  background: "rgb(var(--sl-veil-rgb) / 0.02)",
+  border: "1px solid rgb(var(--sl-veil-rgb) / 0.04)",
   borderRadius: 10,
 };
 
@@ -539,7 +539,7 @@ const actionsRow: React.CSSProperties = {
 };
 
 const primaryBtn: React.CSSProperties = {
-  background: "#ba843c",
+  background: "var(--sl-gold)",
   color: "#1c2628",
   padding: "12px 24px",
   borderRadius: 999,
@@ -553,9 +553,9 @@ const primaryBtn: React.CSSProperties = {
 };
 
 const secondaryBtn: React.CSSProperties = {
-  background: "rgba(186,132,60,0.10)",
-  color: "#ba843c",
-  border: "1px solid rgba(186,132,60,0.40)",
+  background: "rgb(var(--sl-gold-rgb) / 0.10)",
+  color: "var(--sl-gold)",
+  border: "1px solid rgb(var(--sl-gold-rgb) / 0.40)",
   padding: "8px 16px",
   borderRadius: 999,
   fontWeight: 600,
@@ -566,8 +566,8 @@ const secondaryBtn: React.CSSProperties = {
 
 const ghostBtn: React.CSSProperties = {
   background: "transparent",
-  color: "rgba(245,241,232,0.55)",
-  border: "1px solid rgba(245,241,232,0.18)",
+  color: "rgb(var(--sl-cream-rgb) / 0.55)",
+  border: "1px solid rgb(var(--sl-cream-rgb) / 0.18)",
   padding: "12px 22px",
   borderRadius: 999,
   fontWeight: 600,
@@ -578,6 +578,6 @@ const ghostBtn: React.CSSProperties = {
 };
 
 const muted: React.CSSProperties = {
-  color: "rgba(245,241,232,0.5)",
+  color: "rgb(var(--sl-cream-rgb) / 0.5)",
   fontSize: "0.85rem",
 };

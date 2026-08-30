@@ -21,8 +21,8 @@ export function LanguageSwitcher({ isDark }: Props) {
     return () => document.removeEventListener("mousedown", onDown);
   }, []);
 
-  const idleColor = isDark ? "rgba(245,241,232,0.6)" : "rgba(30,58,82,0.7)";
-  const peru = "#ba843c";
+  const idleColor = isDark ? "rgb(var(--sl-cream-rgb) / 0.6)" : "rgba(30,58,82,0.7)";
+  const peru = "var(--sl-gold)";
 
   return (
     <div ref={ref} style={{ position: "relative" }}>
@@ -71,7 +71,7 @@ export function LanguageSwitcher({ isDark }: Props) {
             minWidth: 160,
             background: isDark ? "rgba(22,30,32,0.98)" : "rgba(255,253,247,0.98)",
             backdropFilter: "blur(12px)",
-            border: `1px solid ${isDark ? "rgba(186,132,60,0.3)" : "rgba(30,58,82,0.15)"}`,
+            border: `1px solid ${isDark ? "rgb(var(--sl-gold-rgb) / 0.3)" : "rgba(30,58,82,0.15)"}`,
             borderRadius: 10,
             padding: "6px",
             boxShadow: "0 10px 32px rgba(0,0,0,0.35)",
@@ -96,21 +96,21 @@ export function LanguageSwitcher({ isDark }: Props) {
                   justifyContent: "space-between",
                   gap: 12,
                   padding: "8px 12px",
-                  background: isSelected ? "rgba(186,132,60,0.14)" : "transparent",
+                  background: isSelected ? "rgb(var(--sl-gold-rgb) / 0.14)" : "transparent",
                   border: "none",
                   borderRadius: 6,
                   cursor: "pointer",
                   fontFamily: "inherit",
                   fontSize: "0.7rem",
                   letterSpacing: "0.04em",
-                  color: isSelected ? peru : isDark ? "rgba(245,241,232,0.85)" : "rgba(30,58,82,0.85)",
+                  color: isSelected ? peru : isDark ? "rgb(var(--sl-cream-rgb) / 0.85)" : "rgba(30,58,82,0.85)",
                   fontWeight: isSelected ? 700 : 500,
                   transition: "background 0.15s",
                   textAlign: "left",
                   whiteSpace: "nowrap",
                 }}
                 onMouseEnter={(e) => {
-                  if (!isSelected) e.currentTarget.style.background = isDark ? "rgba(186,132,60,0.07)" : "rgba(30,58,82,0.05)";
+                  if (!isSelected) e.currentTarget.style.background = isDark ? "rgb(var(--sl-gold-rgb) / 0.07)" : "rgba(30,58,82,0.05)";
                 }}
                 onMouseLeave={(e) => {
                   if (!isSelected) e.currentTarget.style.background = "transparent";

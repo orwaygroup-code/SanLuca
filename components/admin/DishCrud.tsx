@@ -126,7 +126,7 @@ export function DishCrud({ isExtra }: { isExtra: boolean }) {
   return (
     <div style={S.page}>
       <div style={S.header}>
-        <h1 style={S.h1}><span style={{ color: "#ba843c" }}>{title}</span></h1>
+        <h1 style={S.h1}><span style={{ color: "var(--sl-gold)" }}>{title}</span></h1>
         <button style={S.primaryBtn} onClick={() => setCreateOpen(true)}>+ {isExtra ? "Nuevo extra" : "Nuevo producto"}</button>
       </div>
 
@@ -146,7 +146,7 @@ export function DishCrud({ isExtra }: { isExtra: boolean }) {
         <GoldSelect value={cartaFilter} onChange={setCartaFilter} options={cartaFilterOptions} placeholder="Carta" style={{ minWidth: 200 }} />
         <GoldSelect value={availFilter} onChange={(v) => setAvailFilter(v as "" | "true" | "false")} options={AVAIL_FILTER} placeholder="Visibilidad" style={{ minWidth: 180 }} />
         <input style={S.search} placeholder="Buscar producto…" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && fetchList()} />
-        <label style={{ display: "flex", alignItems: "center", gap: 7, color: "rgba(245,241,232,0.72)", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 7, color: "rgb(var(--sl-cream-rgb) / 0.72)", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
           <input type="checkbox" checked={showDisabled} onChange={(e) => setShowDisabled(e.target.checked)} /> Ver archivados / eliminados
         </label>
       </div>
@@ -160,13 +160,13 @@ export function DishCrud({ isExtra }: { isExtra: boolean }) {
                 <tr key={row.id} style={{ opacity: !row.active ? 0.42 : row.available ? 1 : 0.62 }}>
                   <td style={S.td}><Thumb url={row.imageUrl} name={row.name} /></td>
                   <td style={S.td}>
-                    <div style={{ color: "#f5f1e8", fontWeight: 600 }}>{row.name}</div>
-                    {row.description && <div style={{ color: "rgba(245,241,232,0.5)", fontSize: "0.74rem", maxWidth: 320, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{row.description}</div>}
+                    <div style={{ color: "var(--sl-cream)", fontWeight: 600 }}>{row.name}</div>
+                    {row.description && <div style={{ color: "rgb(var(--sl-cream-rgb) / 0.5)", fontSize: "0.74rem", maxWidth: 320, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{row.description}</div>}
                   </td>
-                  <td style={{ ...S.td, color: "rgba(245,241,232,0.72)", fontSize: "0.8rem" }}>
+                  <td style={{ ...S.td, color: "rgb(var(--sl-cream-rgb) / 0.72)", fontSize: "0.8rem" }}>
                     {row.category?.carta ? `${TURNO_LABEL[row.category.carta.turno]} · ${row.category.carta.name} · ` : ""}{row.category?.name ?? "—"}
                   </td>
-                  <td style={{ ...S.td, color: "#f5f1e8", fontWeight: 700, whiteSpace: "nowrap" }}>{money(row.price)}</td>
+                  <td style={{ ...S.td, color: "var(--sl-cream)", fontWeight: 700, whiteSpace: "nowrap" }}>{money(row.price)}</td>
                   <td style={S.td}>
                     {row.active
                       ? <Switch on={row.available} onClick={() => toggleAvailable(row)} labelOn="Mostrar" labelOff="Oculto" />
@@ -348,7 +348,7 @@ export function DishFormModal({ mode, isExtra, row, preset, onClose, onSaved }: 
           </div>
         )}
 
-        <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "2px 0" }} />
+        <div style={{ borderTop: "1px solid rgb(var(--sl-veil-rgb) / 0.1)", margin: "2px 0" }} />
 
         <div>
           <label style={S.label}>Nombre del producto</label>
@@ -367,16 +367,16 @@ export function DishFormModal({ mode, isExtra, row, preset, onClose, onSaved }: 
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             {imageUrl && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={imageUrl} alt="" style={{ width: 44, height: 44, borderRadius: 8, objectFit: "cover", flexShrink: 0, border: "1px solid rgba(255,255,255,0.15)" }} />
+              <img src={imageUrl} alt="" style={{ width: 44, height: 44, borderRadius: 8, objectFit: "cover", flexShrink: 0, border: "1px solid rgb(var(--sl-veil-rgb) / 0.15)" }} />
             )}
             <input style={{ ...S.input, flex: 1 }} value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="Sube una imagen o pega una ruta/URL" />
             <button type="button" style={S.ghostBtnAuto} onClick={() => fileRef.current?.click()} disabled={uploading}>{uploading ? "Subiendo…" : "Subir"}</button>
             <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" style={{ display: "none" }} onChange={handleFile} />
           </div>
-          <p style={{ color: "rgba(245,241,232,0.5)", fontSize: "0.72rem", margin: "6px 0 0" }}>PNG, JPG, WEBP o GIF (máx 5 MB). Se guarda en el servidor.</p>
+          <p style={{ color: "rgb(var(--sl-cream-rgb) / 0.5)", fontSize: "0.72rem", margin: "6px 0 0" }}>PNG, JPG, WEBP o GIF (máx 5 MB). Se guarda en el servidor.</p>
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 2px" }}>
-          <span style={{ color: "rgba(245,241,232,0.8)", fontSize: "0.85rem" }}>Mostrar en el menú público</span>
+          <span style={{ color: "rgb(var(--sl-cream-rgb) / 0.8)", fontSize: "0.85rem" }}>Mostrar en el menú público</span>
           <Switch on={available} onClick={() => setAvailable((v) => !v)} labelOn="Mostrar" labelOff="Oculto" />
         </div>
         {error && <p style={{ color: "#e8766b", fontSize: "0.82rem", margin: 0 }}>⚠ {error}</p>}
@@ -391,7 +391,7 @@ export function DishFormModal({ mode, isExtra, row, preset, onClose, onSaved }: 
 
 function Thumb({ url, name }: { url: string | null; name: string }) {
   const [failed, setFailed] = useState(false);
-  const box: React.CSSProperties = { width: 42, height: 42, borderRadius: 8, objectFit: "cover", background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(245,241,232,0.5)", fontWeight: 800, fontSize: "0.9rem", flexShrink: 0 };
+  const box: React.CSSProperties = { width: 42, height: 42, borderRadius: 8, objectFit: "cover", background: "rgb(var(--sl-veil-rgb) / 0.06)", display: "flex", alignItems: "center", justifyContent: "center", color: "rgb(var(--sl-cream-rgb) / 0.5)", fontWeight: 800, fontSize: "0.9rem", flexShrink: 0 };
   if (!url || failed) return <div style={box}>{name.slice(0, 1).toUpperCase()}</div>;
   // eslint-disable-next-line @next/next/no-img-element
   return <img src={url} alt={name} style={box} onError={() => setFailed(true)} />;
@@ -400,10 +400,10 @@ function Thumb({ url, name }: { url: string | null; name: string }) {
 function Switch({ on, onClick, labelOn, labelOff }: { on: boolean; onClick: () => void; labelOn: string; labelOff: string }) {
   return (
     <button onClick={onClick} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}>
-      <span style={{ width: 40, height: 22, borderRadius: 999, background: on ? "#ba843c" : "rgba(255,255,255,0.15)", position: "relative", transition: "background .15s", flexShrink: 0 }}>
-        <span style={{ position: "absolute", top: 2, left: on ? 20 : 2, width: 18, height: 18, borderRadius: 999, background: "#f5f1e8", transition: "left .15s" }} />
+      <span style={{ width: 40, height: 22, borderRadius: 999, background: on ? "var(--sl-gold)" : "rgb(var(--sl-veil-rgb) / 0.15)", position: "relative", transition: "background .15s", flexShrink: 0 }}>
+        <span style={{ position: "absolute", top: 2, left: on ? 20 : 2, width: 18, height: 18, borderRadius: 999, background: "var(--sl-cream)", transition: "left .15s" }} />
       </span>
-      <span style={{ fontSize: "0.75rem", color: on ? "#c9964a" : "rgba(245,241,232,0.55)", fontWeight: 600 }}>{on ? labelOn : labelOff}</span>
+      <span style={{ fontSize: "0.75rem", color: on ? "#c9964a" : "rgb(var(--sl-cream-rgb) / 0.55)", fontWeight: 600 }}>{on ? labelOn : labelOff}</span>
     </button>
   );
 }
@@ -411,27 +411,27 @@ function Switch({ on, onClick, labelOn, labelOff }: { on: boolean; onClick: () =
 function Overlay({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background: "var(--sl-panel)", border: "1px solid rgba(186,132,60,0.25)", borderRadius: 16, width: "100%", maxWidth: 480, maxHeight: "calc(100vh - 32px)", overflowY: "auto", padding: "26px 24px" }}>{children}</div>
+      <div style={{ background: "var(--sl-panel)", border: "1px solid rgb(var(--sl-gold-rgb) / 0.25)", borderRadius: 16, width: "100%", maxWidth: 480, maxHeight: "calc(100vh - 32px)", overflowY: "auto", padding: "26px 24px" }}>{children}</div>
     </div>
   );
 }
 
 const S: Record<string, React.CSSProperties> = {
-  page: { minHeight: "100vh", background: "var(--sl-bg)", padding: "0 0 40px", color: "#f5f1e8", fontFamily: "inherit" },
+  page: { minHeight: "100vh", background: "var(--sl-bg)", padding: "0 0 40px", color: "var(--sl-cream)", fontFamily: "inherit" },
   header: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, padding: "20px 20px 0", margin: "0 0 14px" },
   h1: { fontSize: "1.1rem", fontWeight: 800, letterSpacing: "0.08em", margin: 0 },
-  hint: { color: "rgba(245,241,232,0.66)", fontSize: "0.82rem", lineHeight: 1.5, padding: "0 20px", margin: "0 0 14px", maxWidth: 720 },
+  hint: { color: "rgb(var(--sl-cream-rgb) / 0.66)", fontSize: "0.82rem", lineHeight: 1.5, padding: "0 20px", margin: "0 0 14px", maxWidth: 720 },
   filters: { display: "flex", gap: 10, flexWrap: "wrap", padding: "0 20px", marginBottom: 18 },
-  search: { flex: 1, minWidth: 200, padding: "9px 12px", borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.15)", color: "#f5f1e8", fontSize: "0.82rem", fontFamily: "inherit" },
+  search: { flex: 1, minWidth: 200, padding: "9px 12px", borderRadius: 8, background: "rgb(var(--sl-veil-rgb) / 0.05)", border: "1px solid rgb(var(--sl-veil-rgb) / 0.15)", color: "var(--sl-cream)", fontSize: "0.82rem", fontFamily: "inherit" },
   table: { width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" },
-  th: { textAlign: "left", padding: "10px 20px", fontSize: "0.62rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(245,241,232,0.58)", borderBottom: "1px solid rgba(255,255,255,0.1)", whiteSpace: "nowrap" },
-  td: { padding: "10px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)", verticalAlign: "middle" },
-  empty: { textAlign: "center", color: "rgba(245,241,232,0.62)", marginTop: 60 },
+  th: { textAlign: "left", padding: "10px 20px", fontSize: "0.62rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgb(var(--sl-cream-rgb) / 0.58)", borderBottom: "1px solid rgb(var(--sl-veil-rgb) / 0.1)", whiteSpace: "nowrap" },
+  td: { padding: "10px 20px", borderBottom: "1px solid rgb(var(--sl-veil-rgb) / 0.06)", verticalAlign: "middle" },
+  empty: { textAlign: "center", color: "rgb(var(--sl-cream-rgb) / 0.62)", marginTop: 60 },
   primaryBtn: { padding: "12px 18px", minHeight: 44, borderRadius: 9, border: "none", background: "var(--sl-gold)", color: "var(--sl-on-accent)", fontWeight: 800, fontSize: "0.8rem", letterSpacing: "0.04em", cursor: "pointer", fontFamily: "inherit" },
-  ghostBtn: { flex: 1, padding: "12px 0", minHeight: 44, borderRadius: 9, border: "1px solid rgba(255,255,255,0.18)", background: "transparent", color: "rgba(245,241,232,0.72)", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit" },
-  ghostBtnAuto: { padding: "0 16px", minHeight: 44, borderRadius: 9, border: "1px solid rgba(255,255,255,0.18)", background: "transparent", color: "rgba(245,241,232,0.72)", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" },
-  miniBtn: { padding: "9px 14px", minHeight: 40, borderRadius: 8, border: "1px solid rgba(186,132,60,0.5)", background: "transparent", color: "#c9964a", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" },
+  ghostBtn: { flex: 1, padding: "12px 0", minHeight: 44, borderRadius: 9, border: "1px solid rgb(var(--sl-veil-rgb) / 0.18)", background: "transparent", color: "rgb(var(--sl-cream-rgb) / 0.72)", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit" },
+  ghostBtnAuto: { padding: "0 16px", minHeight: 44, borderRadius: 9, border: "1px solid rgb(var(--sl-veil-rgb) / 0.18)", background: "transparent", color: "rgb(var(--sl-cream-rgb) / 0.72)", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" },
+  miniBtn: { padding: "9px 14px", minHeight: 40, borderRadius: 8, border: "1px solid rgb(var(--sl-gold-rgb) / 0.5)", background: "transparent", color: "#c9964a", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" },
   kicker: { fontSize: "0.62rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#c9964a", fontWeight: 700, margin: 0 },
-  label: { display: "block", fontSize: "0.62rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(245,241,232,0.62)", fontWeight: 700, marginBottom: 5 },
-  input: { width: "100%", padding: "12px 13px", minHeight: 44, borderRadius: 9, boxSizing: "border-box", border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.05)", color: "#f5f1e8", fontSize: "0.9rem", fontFamily: "inherit" },
+  label: { display: "block", fontSize: "0.62rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgb(var(--sl-cream-rgb) / 0.62)", fontWeight: 700, marginBottom: 5 },
+  input: { width: "100%", padding: "12px 13px", minHeight: 44, borderRadius: 9, boxSizing: "border-box", border: "1px solid rgb(var(--sl-veil-rgb) / 0.2)", background: "rgb(var(--sl-veil-rgb) / 0.05)", color: "var(--sl-cream)", fontSize: "0.9rem", fontFamily: "inherit" },
 };

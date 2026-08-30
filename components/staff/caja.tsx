@@ -669,7 +669,7 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
             </div>
           )}
           {hasCredit && linkedEmp == null && (
-            <div style={{ border: `1px solid ${C.gold}`, borderRadius: 12, padding: "12px 14px", marginTop: 12, background: "color-mix(in srgb, #ba843c 8%, transparent)" }}>
+            <div style={{ border: `1px solid ${C.gold}`, borderRadius: 12, padding: "12px 14px", marginTop: 12, background: "color-mix(in srgb, var(--sl-gold) 8%, transparent)" }}>
               <div style={{ color: C.gold, fontWeight: 800, fontSize: "0.82rem", marginBottom: 8 }}>Crédito de empleado · lo autoriza el empleado deudor con su PIN</div>
               <label style={fld.label}>Empleado al que se le carga</label>
               <GoldSelect

@@ -178,7 +178,7 @@ export default function CierresPage() {
                     <td style={{ ...tbl.td, ...tbl.num }}>{r.comandas}</td>
                     <td style={tbl.td}>
                       <button onClick={() => toggleDetail(r.id)}
-                        style={{ padding: "5px 10px", borderRadius: 8, border: `1px solid ${isOpen ? RP.gold : RP.border}`, background: isOpen ? RP.gold : "transparent", color: isOpen ? "#16201f" : RP.gold, fontWeight: 700, fontSize: "0.76rem", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+                        style={{ padding: "5px 10px", borderRadius: 8, border: `1px solid ${isOpen ? RP.gold : RP.border}`, background: isOpen ? RP.gold : "transparent", color: isOpen ? "var(--sl-on-accent)" : RP.gold, fontWeight: 700, fontSize: "0.76rem", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
                         {isOpen ? "Ocultar" : "Ver más"}
                       </button>
                     </td>

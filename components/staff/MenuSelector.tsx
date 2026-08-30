@@ -457,14 +457,14 @@ const s: Record<string, React.CSSProperties> = {
     flex: 1, minHeight: 48, borderRadius: 12, border: `1px solid ${C.line}`, background: "transparent",
     color: C.dim, fontWeight: 700, fontSize: "0.92rem", cursor: "pointer", fontFamily: "inherit",
   },
-  claseTabOn: { background: "color-mix(in srgb, #ba843c 16%, transparent)", color: C.gold, borderColor: C.border },
+  claseTabOn: { background: "color-mix(in srgb, var(--sl-gold) 16%, transparent)", color: C.gold, borderColor: C.border },
 
   chips: { display: "flex", gap: 8, overflowX: "auto", padding: "10px 16px", flexWrap: "nowrap" },
   chip: {
     minHeight: 40, padding: "0 16px", borderRadius: 999, border: `1px solid ${C.line}`, background: "transparent",
     color: C.dim, fontWeight: 600, fontSize: "0.82rem", cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit", flexShrink: 0,
   },
-  chipOn: { background: "color-mix(in srgb, #ba843c 16%, transparent)", color: C.gold, borderColor: C.border },
+  chipOn: { background: "color-mix(in srgb, var(--sl-gold) 16%, transparent)", color: C.gold, borderColor: C.border },
 
   grid: {
     flex: 1, overflowY: "auto", display: "grid", gap: 12, alignContent: "start",
@@ -492,7 +492,7 @@ const s: Record<string, React.CSSProperties> = {
 
   flash: {
     position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", zIndex: 95,
-    background: "color-mix(in srgb, #3f9d6f 16%, #1a2628)", border: `1px solid ${C.green}`, color: C.cream,
+    background: "color-mix(in srgb, #3f9d6f 16%, var(--sl-panel))", border: `1px solid ${C.green}`, color: C.cream,
     padding: "12px 20px", borderRadius: 999, fontSize: "0.86rem", fontWeight: 600, boxShadow: "0 12px 32px rgba(0,0,0,0.5)",
   },
 
@@ -502,7 +502,7 @@ const s: Record<string, React.CSSProperties> = {
     borderTop: `1px solid ${C.border}`, borderRadius: "20px 20px 0 0", padding: "10px 20px calc(20px + env(safe-area-inset-bottom))",
     maxWidth: 520, margin: "0 auto", boxShadow: "0 -18px 48px rgba(0,0,0,0.5)",
   },
-  sheetGrip: { width: 40, height: 4, borderRadius: 999, background: "rgba(245,241,232,0.25)", margin: "0 auto 14px" },
+  sheetGrip: { width: 40, height: 4, borderRadius: 999, background: "rgb(var(--sl-cream-rgb) / 0.25)", margin: "0 auto 14px" },
   sheetName: { color: C.cream, fontWeight: 800, fontSize: "1.15rem", lineHeight: 1.2 },
   sheetPrice: { color: C.gold, fontWeight: 700, fontSize: "0.9rem", marginTop: 4 },
 

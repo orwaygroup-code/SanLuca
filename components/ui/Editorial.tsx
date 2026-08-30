@@ -31,7 +31,7 @@ export function Label({
         fontWeight: 800,
         letterSpacing: "0.3em",
         textTransform: "uppercase",
-        color: light ? "rgba(245,241,232,0.35)" : "rgba(28,38,40,0.35)",
+        color: light ? "rgb(var(--sl-cream-rgb) / 0.35)" : "rgba(28,38,40,0.35)",
       }}
     >
       {children}

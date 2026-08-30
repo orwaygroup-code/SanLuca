@@ -25,10 +25,10 @@ export function CrmPageHead({ title, accent, sub }: { title: string; accent: str
         )}
       </div>
       <h1 style={{ margin: 0, fontSize: "clamp(2rem, 4vw, 2.8rem)", fontWeight: 500, letterSpacing: "0.02em" }}>
-        <span style={{ color: "#ba843c" }}>{accent}</span> <span style={{ color: "#f5f1e8" }}>{title}</span>
+        <span style={{ color: "var(--sl-gold)" }}>{accent}</span> <span style={{ color: "var(--sl-cream)" }}>{title}</span>
       </h1>
       {sub && (
-        <p style={{ margin: "6px 0 0", color: "rgba(245,241,232,0.65)", fontSize: "0.85rem", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+        <p style={{ margin: "6px 0 0", color: "rgb(var(--sl-cream-rgb) / 0.65)", fontSize: "0.85rem", letterSpacing: "0.04em", textTransform: "uppercase" }}>
           {sub}
         </p>
       )}
@@ -39,9 +39,9 @@ export function CrmPageHead({ title, accent, sub }: { title: string; accent: str
 const btn: React.CSSProperties = {
   padding: "6px 14px",
   background: "transparent",
-  border: "1px solid rgba(186,132,60,0.35)",
+  border: "1px solid rgb(var(--sl-gold-rgb) / 0.35)",
   borderRadius: 999,
-  color: "#ba843c",
+  color: "var(--sl-gold)",
   fontSize: "0.7rem",
   fontWeight: 600,
   letterSpacing: "0.06em",

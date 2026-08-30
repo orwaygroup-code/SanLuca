@@ -75,7 +75,7 @@ export default function MarketingPage() {
                 return (
                   <tr key={c.id} style={tr}>
                     <td style={td}>
-                      <div style={{ fontWeight: 600, color: "#f5f1e8" }}>{c.name}</div>
+                      <div style={{ fontWeight: 600, color: "var(--sl-cream)" }}>{c.name}</div>
                       <div style={tdSub}>{c.filters.tagIds.length} tag{c.filters.tagIds.length !== 1 ? "s" : ""} · modo {c.filters.mode}</div>
                     </td>
                     <td style={td}>
@@ -97,7 +97,7 @@ export default function MarketingPage() {
                     <td style={td}>
                       {c.totalTargets > 0 ? (
                         <div>
-                          <div style={{ fontSize: "0.78rem", color: "rgba(245,241,232,0.7)" }}>
+                          <div style={{ fontSize: "0.78rem", color: "rgb(var(--sl-cream-rgb) / 0.7)" }}>
                             {c.sentCount} / {c.totalTargets} ({pct}%)
                           </div>
                           <div style={progressBar}>
@@ -144,10 +144,10 @@ function EmptyState() {
   return (
     <div style={emptyWrap}>
       <div style={{ fontSize: "2.4rem", marginBottom: 12 }}>📣</div>
-      <h3 style={{ margin: "0 0 6px", color: "#f5f1e8", fontWeight: 600 }}>
+      <h3 style={{ margin: "0 0 6px", color: "var(--sl-cream)", fontWeight: 600 }}>
         Ninguna campaña aún
       </h3>
-      <p style={{ margin: "0 0 18px", color: "rgba(245,241,232,0.55)", maxWidth: 380, fontSize: "0.86rem", lineHeight: 1.5 }}>
+      <p style={{ margin: "0 0 18px", color: "rgb(var(--sl-cream-rgb) / 0.55)", maxWidth: 380, fontSize: "0.86rem", lineHeight: 1.5 }}>
         Crea tu primera campaña seleccionando un template aprobado por Meta,
         ajustando las variables y eligiendo los tags de los clientes que la recibirán.
       </p>
@@ -161,8 +161,8 @@ function EmptyState() {
 function Stat({ label, value }: { label: string; value: number | string }) {
   return (
     <div style={statBox}>
-      <span style={{ color: "rgba(245,241,232,0.5)", fontSize: "0.66rem", letterSpacing: "0.18em", textTransform: "uppercase" }}>{label}</span>
-      <span style={{ color: "#f5f1e8", fontSize: "1.15rem", fontWeight: 600 }}>{value}</span>
+      <span style={{ color: "rgb(var(--sl-cream-rgb) / 0.5)", fontSize: "0.66rem", letterSpacing: "0.18em", textTransform: "uppercase" }}>{label}</span>
+      <span style={{ color: "var(--sl-cream)", fontSize: "1.15rem", fontWeight: 600 }}>{value}</span>
     </div>
   );
 }
@@ -183,14 +183,14 @@ const statBox: React.CSSProperties = {
   flexDirection: "column",
   gap: 2,
   padding: "8px 14px",
-  background: "rgba(255,255,255,0.03)",
+  background: "rgb(var(--sl-veil-rgb) / 0.03)",
   borderRadius: 10,
-  border: "1px solid rgba(255,255,255,0.05)",
+  border: "1px solid rgb(var(--sl-veil-rgb) / 0.05)",
   minWidth: 76,
 };
 
 const primaryBtn: React.CSSProperties = {
-  background: "#ba843c",
+  background: "var(--sl-gold)",
   color: "#1c2628",
   padding: "10px 20px",
   borderRadius: 999,
@@ -207,8 +207,8 @@ const primaryBtn: React.CSSProperties = {
 
 const secondaryBtn: React.CSSProperties = {
   background: "transparent",
-  color: "rgba(245,241,232,0.55)",
-  border: "1px solid rgba(245,241,232,0.18)",
+  color: "rgb(var(--sl-cream-rgb) / 0.55)",
+  border: "1px solid rgb(var(--sl-cream-rgb) / 0.18)",
   padding: "6px 12px",
   borderRadius: 999,
   fontSize: "0.74rem",
@@ -218,13 +218,13 @@ const secondaryBtn: React.CSSProperties = {
 };
 
 const muted: React.CSSProperties = {
-  color: "rgba(245,241,232,0.5)",
+  color: "rgb(var(--sl-cream-rgb) / 0.5)",
   fontSize: "0.85rem",
 };
 
 const emptyWrap: React.CSSProperties = {
   background: "var(--sl-panel2)",
-  border: "1px solid rgba(255,255,255,0.05)",
+  border: "1px solid rgb(var(--sl-veil-rgb) / 0.05)",
   borderRadius: 16,
   padding: "60px 24px",
   textAlign: "center",
@@ -235,7 +235,7 @@ const emptyWrap: React.CSSProperties = {
 
 const tableWrap: React.CSSProperties = {
   background: "var(--sl-panel2)",
-  border: "1px solid rgba(255,255,255,0.05)",
+  border: "1px solid rgb(var(--sl-veil-rgb) / 0.05)",
   borderRadius: 14,
   overflow: "hidden",
 };
@@ -249,9 +249,9 @@ const table: React.CSSProperties = {
 const th: React.CSSProperties = {
   textAlign: "left",
   padding: "14px 16px",
-  background: "rgba(255,255,255,0.02)",
-  borderBottom: "1px solid rgba(255,255,255,0.06)",
-  color: "rgba(245,241,232,0.55)",
+  background: "rgb(var(--sl-veil-rgb) / 0.02)",
+  borderBottom: "1px solid rgb(var(--sl-veil-rgb) / 0.06)",
+  color: "rgb(var(--sl-cream-rgb) / 0.55)",
   fontWeight: 600,
   fontSize: "0.72rem",
   textTransform: "uppercase",
@@ -259,24 +259,24 @@ const th: React.CSSProperties = {
 };
 
 const tr: React.CSSProperties = {
-  borderBottom: "1px solid rgba(255,255,255,0.04)",
+  borderBottom: "1px solid rgb(var(--sl-veil-rgb) / 0.04)",
 };
 
 const td: React.CSSProperties = {
   padding: "14px 16px",
   verticalAlign: "top",
-  color: "rgba(245,241,232,0.85)",
+  color: "rgb(var(--sl-cream-rgb) / 0.85)",
 };
 
 const tdSub: React.CSSProperties = {
   fontSize: "0.72rem",
-  color: "rgba(245,241,232,0.4)",
+  color: "rgb(var(--sl-cream-rgb) / 0.4)",
   marginTop: 2,
 };
 
 const codeStyle: React.CSSProperties = {
-  background: "rgba(186,132,60,0.10)",
-  color: "#ba843c",
+  background: "rgb(var(--sl-gold-rgb) / 0.10)",
+  color: "var(--sl-gold)",
   padding: "2px 8px",
   borderRadius: 6,
   fontFamily: "monospace",
@@ -297,20 +297,20 @@ const progressBar: React.CSSProperties = {
   marginTop: 4,
   width: 120,
   height: 5,
-  background: "rgba(255,255,255,0.06)",
+  background: "rgb(var(--sl-veil-rgb) / 0.06)",
   borderRadius: 3,
   overflow: "hidden",
 };
 
 const progressFill: React.CSSProperties = {
   height: "100%",
-  background: "#ba843c",
+  background: "var(--sl-gold)",
   transition: "width 0.3s",
 };
 
 const hintFooter: React.CSSProperties = {
   marginTop: 22,
-  color: "rgba(245,241,232,0.4)",
+  color: "rgb(var(--sl-cream-rgb) / 0.4)",
   fontSize: "0.78rem",
   lineHeight: 1.55,
 };

@@ -135,8 +135,8 @@ function NavItem({ link, active, onNavigate }: { link: NavLink; active: boolean;
   const [hover, setHover] = useState(false);
   // Activo = relleno dorado con tinta oscura (como el riel de /staff); sin franja
   // lateral (el estándar de diseño prohíbe el border-left > 1px como estructura).
-  const bg = active ? "var(--sl-ink-accent)" : hover ? "rgba(255,255,255,0.05)" : "transparent";
-  const color = active ? "#16201f" : hover ? "var(--sl-on-ink)" : "var(--sl-on-ink-dim)";
+  const bg = active ? "var(--sl-ink-accent)" : hover ? "rgb(var(--sl-veil-rgb) / 0.05)" : "transparent";
+  const color = active ? "var(--sl-on-ink-accent)" : hover ? "var(--sl-on-ink)" : "var(--sl-on-ink-dim)";
   return (
     <Link
       href={link.href}
@@ -257,7 +257,7 @@ export function AdminSidebar({ userName, onLogout, onNavigate }: AdminSidebarPro
           onClick={onLogout}
           style={{
             flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-            minHeight: 44, padding: "10px 12px", background: "transparent", border: "1px solid rgba(255,255,255,0.15)",
+            minHeight: 44, padding: "10px 12px", background: "transparent", border: "1px solid rgb(var(--sl-veil-rgb) / 0.15)",
             borderRadius: 10, color: "var(--sl-on-ink-dim)", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit",
           }}
         >

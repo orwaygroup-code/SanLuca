@@ -30,11 +30,11 @@ export default function Button({
     padding: "16px 44px",
     background: dark ? (hovered ? colors.brown : colors.peru) : "transparent",
     color: dark ? colors.white : hovered ? colors.peru : colors.cream,
-    border: dark ? "none" : `1.5px solid ${hovered ? colors.peru : "rgba(245,241,232,0.25)"}`,
+    border: dark ? "none" : `1.5px solid ${hovered ? colors.peru : "rgb(var(--sl-cream-rgb) / 0.25)"}`,
     textDecoration: "none",
     transition: "all 0.4s cubic-bezier(.25,.46,.45,.94)",
     transform: hovered ? "translateY(-1px)" : "none",
-    boxShadow: dark && hovered ? "0 8px 28px rgba(186,132,60,0.3)" : "none",
+    boxShadow: dark && hovered ? "0 8px 28px rgb(var(--sl-gold-rgb) / 0.3)" : "none",
     cursor: "pointer",
     ...style,
   };

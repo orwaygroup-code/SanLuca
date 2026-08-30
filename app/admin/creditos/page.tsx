@@ -72,8 +72,8 @@ export default function CreditosPage() {
             onClick={() => setFilter(f)}
             style={{
               padding: "8px 14px", borderRadius: 8, cursor: "pointer", fontWeight: 700,
-              border: "1px solid " + (filter === f ? "#ba843c" : "rgba(255,255,255,0.15)"),
-              background: filter === f ? "rgba(186,132,60,0.16)" : "transparent",
+              border: "1px solid " + (filter === f ? "var(--sl-gold)" : "rgb(var(--sl-veil-rgb) / 0.15)"),
+              background: filter === f ? "rgb(var(--sl-gold-rgb) / 0.16)" : "transparent",
               color: filter === f ? "#d8a13a" : "#bbb",
             }}
           >{f === "OUTSTANDING" ? "Por cobrar" : f === "PAID" ? "Pagadas" : "Todas"}</button>
@@ -87,13 +87,13 @@ export default function CreditosPage() {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {groups.map((g) => (
-            <div key={g.name} style={{ border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, overflow: "hidden" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 16px", background: "rgba(255,255,255,0.03)", fontWeight: 800 }}>
+            <div key={g.name} style={{ border: "1px solid rgb(var(--sl-veil-rgb) / 0.1)", borderRadius: 12, overflow: "hidden" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 16px", background: "rgb(var(--sl-veil-rgb) / 0.03)", fontWeight: 800 }}>
                 <span>{g.name}</span>
                 {g.owed > 0 && <span style={{ color: "#d9534f" }}>Debe {fmt(g.owed)}</span>}
               </div>
               {g.items.map((c) => (
-                <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", borderTop: "1px solid rgba(255,255,255,0.06)", opacity: c.status === "PAID" ? 0.55 : 1 }}>
+                <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", borderTop: "1px solid rgb(var(--sl-veil-rgb) / 0.06)", opacity: c.status === "PAID" ? 0.55 : 1 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 700 }}>{fmt(c.amount)}{c.comanda ? ` · ${c.comanda.folio}` : ""}</div>
                     <div style={{ fontSize: "0.76rem", opacity: 0.6 }}>
@@ -109,7 +109,7 @@ export default function CreditosPage() {
                     </button>
                   ) : (
                     <button onClick={() => setStatus(c.id, "OUTSTANDING")} disabled={busy === c.id}
-                      style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.15)", background: "transparent", color: "#bbb", cursor: "pointer" }}>
+                      style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid rgb(var(--sl-veil-rgb) / 0.15)", background: "transparent", color: "#bbb", cursor: "pointer" }}>
                       Reabrir
                     </button>
                   )}

@@ -182,7 +182,7 @@ function Filters({
         </div>
 
       </div>
-      <div style={{ marginTop: 10, fontSize: "0.7rem", color: "rgba(245,241,232,0.4)" }}>
+      <div style={{ marginTop: 10, fontSize: "0.7rem", color: "rgb(var(--sl-cream-rgb) / 0.4)" }}>
         {period === "month" ? `Mostrando ${MONTHS[parseInt(value.split("-")[1] || "1", 10) - 1] ?? ""} ${value.split("-")[0] ?? ""}` :
          period === "year"  ? `Mostrando todo el año ${value}` :
          period === "week"  ? `Mostrando la semana ${value.replace("-W", " #")}` : ""}
@@ -192,15 +192,15 @@ function Filters({
 }
 
 const fieldBox: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 6 };
-const fieldLabel: React.CSSProperties = { color: "rgba(245,241,232,0.55)", fontSize: "0.65rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 600 };
+const fieldLabel: React.CSSProperties = { color: "rgb(var(--sl-cream-rgb) / 0.55)", fontSize: "0.65rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 600 };
 const pillRow:    React.CSSProperties = { display: "flex", gap: 4, flexWrap: "wrap" };
 function pill(active: boolean): React.CSSProperties {
   return {
     padding: "6px 12px",
     borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.08)",
-    background: active ? "#ba843c" : "transparent",
-    color: active ? "#1c2628" : "rgba(245,241,232,0.75)",
+    border: "1px solid rgb(var(--sl-veil-rgb) / 0.08)",
+    background: active ? "var(--sl-gold)" : "transparent",
+    color: active ? "#1c2628" : "rgb(var(--sl-cream-rgb) / 0.75)",
     fontSize: "0.78rem",
     fontWeight: active ? 700 : 500,
     cursor: "pointer",
@@ -209,12 +209,11 @@ function pill(active: boolean): React.CSSProperties {
 }
 const inputStyle: React.CSSProperties = {
   background: "rgba(0,0,0,0.25)",
-  border: "1px solid rgba(255,255,255,0.08)",
+  border: "1px solid rgb(var(--sl-veil-rgb) / 0.08)",
   borderRadius: 8,
   padding: "7px 10px",
-  color: "#f5f1e8",
-  fontSize: "0.85rem",
-  colorScheme: "dark",
+  color: "var(--sl-cream)",
+  fontSize: "0.85rem",
 };
 
 function StatCard({ label, value, growth, icon, mock }: { label: string; value: number | string; growth?: number; icon: string; mock?: boolean }) {
@@ -223,14 +222,14 @@ function StatCard({ label, value, growth, icon, mock }: { label: string; value: 
     <div className="crm-card">
       <div style={{ fontSize: "2rem", opacity: 0.65 }}>{icon}</div>
       <div style={{ flex: 1 }}>
-        <div style={{ color: "rgba(245,241,232,0.55)", fontSize: "0.7rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 600 }}>
+        <div style={{ color: "rgb(var(--sl-cream-rgb) / 0.55)", fontSize: "0.7rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 600 }}>
           {label}
         </div>
-        <div style={{ fontSize: "2.2rem", fontWeight: 600, marginTop: 4, color: "#f5f1e8" }}>
+        <div style={{ fontSize: "2.2rem", fontWeight: 600, marginTop: 4, color: "var(--sl-cream)" }}>
           {typeof value === "number" ? value.toLocaleString("es-MX") : value}
         </div>
         {mock ? (
-          <div style={{ marginTop: 6, color: "rgba(245,241,232,0.4)", fontSize: "0.7rem" }}>Pendiente de fuente</div>
+          <div style={{ marginTop: 6, color: "rgb(var(--sl-cream-rgb) / 0.4)", fontSize: "0.7rem" }}>Pendiente de fuente</div>
         ) : growth !== undefined ? (
           <div style={{ marginTop: 6, color: positive ? "#5fa15f" : "#c85050", fontSize: "0.78rem" }}>
             {positive ? "↑" : "↓"} {Math.abs(growth)}% crecimiento
@@ -251,11 +250,11 @@ function Chart({ data }: { data: ChartBar[] }) {
     <div className="crm-panel">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
         <div>
-          <div style={{ color: "rgba(245,241,232,0.55)", fontSize: "0.7rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 600 }}>
+          <div style={{ color: "rgb(var(--sl-cream-rgb) / 0.55)", fontSize: "0.7rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 600 }}>
             Reservas del período
           </div>
-          <div style={{ color: "#f5f1e8", fontSize: "1.4rem", fontWeight: 600, marginTop: 4 }}>
-            {total} <span style={{ color: "rgba(245,241,232,0.45)", fontSize: "0.78rem", fontWeight: 400 }}>total</span>
+          <div style={{ color: "var(--sl-cream)", fontSize: "1.4rem", fontWeight: 600, marginTop: 4 }}>
+            {total} <span style={{ color: "rgb(var(--sl-cream-rgb) / 0.45)", fontSize: "0.78rem", fontWeight: 400 }}>total</span>
           </div>
         </div>
       </div>
@@ -269,7 +268,7 @@ function Chart({ data }: { data: ChartBar[] }) {
             const barH = t === 0 ? 3 : Math.max(10, Math.round((t / max) * BAR_AREA));
             return (
               <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%" }}>
-                <div style={{ color: t > 0 ? "#ba843c" : "rgba(245,241,232,0.3)", fontSize: "0.72rem", fontWeight: 600, marginBottom: 4 }}>
+                <div style={{ color: t > 0 ? "var(--sl-gold)" : "rgb(var(--sl-cream-rgb) / 0.3)", fontSize: "0.72rem", fontWeight: 600, marginBottom: 4 }}>
                   {t}
                 </div>
                 <div
@@ -277,20 +276,20 @@ function Chart({ data }: { data: ChartBar[] }) {
                     width: "100%",
                     height: barH,
                     background: t === 0
-                      ? "rgba(245,241,232,0.06)"
-                      : "linear-gradient(180deg, #d09a52 0%, #ba843c 100%)",
+                      ? "rgb(var(--sl-cream-rgb) / 0.06)"
+                      : "linear-gradient(180deg, #d09a52 0%, var(--sl-gold) 100%)",
                     borderRadius: "4px 4px 0 0",
                     transition: "height 0.4s ease",
                   }}
                 />
-                <span style={{ marginTop: 8, color: "rgba(245,241,232,0.55)", fontSize: "0.68rem", textTransform: "uppercase" }}>{d.label}</span>
+                <span style={{ marginTop: 8, color: "rgb(var(--sl-cream-rgb) / 0.55)", fontSize: "0.68rem", textTransform: "uppercase" }}>{d.label}</span>
               </div>
             );
           })}
         </div>
       </div>
       {total === 0 && (
-        <p style={{ marginTop: 14, textAlign: "center", color: "rgba(245,241,232,0.4)", fontSize: "0.78rem" }}>
+        <p style={{ marginTop: 14, textAlign: "center", color: "rgb(var(--sl-cream-rgb) / 0.4)", fontSize: "0.78rem" }}>
           Sin reservas en este período
         </p>
       )}
@@ -307,7 +306,7 @@ function Donut({ conv, wa }: { conv?: Dashboard["conversion"]; wa?: Dashboard["w
   const waDash = (waPct / 100) * c;
   return (
     <div className="crm-panel">
-      <span style={{ color: "rgba(245,241,232,0.55)", fontSize: "0.7rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 600 }}>
+      <span style={{ color: "rgb(var(--sl-cream-rgb) / 0.55)", fontSize: "0.7rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 600 }}>
         Tasa de conversión
       </span>
 
@@ -315,16 +314,16 @@ function Donut({ conv, wa }: { conv?: Dashboard["conversion"]; wa?: Dashboard["w
         {/* Donut general */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
           <svg viewBox="0 0 160 160" style={{ width: "100%", maxWidth: 130, height: "auto" }}>
-            <circle cx="80" cy="80" r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="14" />
+            <circle cx="80" cy="80" r={r} fill="none" stroke="rgb(var(--sl-veil-rgb) / 0.08)" strokeWidth="14" />
             <circle
               cx="80" cy="80" r={r} fill="none"
-              stroke="#ba843c" strokeWidth="14"
+              stroke="var(--sl-gold)" strokeWidth="14"
               strokeDasharray={`${dash} ${c}`} strokeLinecap="round"
               transform="rotate(-90 80 80)"
             />
-            <text x="80" y="88" textAnchor="middle" fill="#f5f1e8" fontSize="22" fontWeight="600">{pct}%</text>
+            <text x="80" y="88" textAnchor="middle" fill="var(--sl-cream)" fontSize="22" fontWeight="600">{pct}%</text>
           </svg>
-          <span style={{ marginTop: 6, fontSize: "0.65rem", color: "rgba(245,241,232,0.55)", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 600 }}>
+          <span style={{ marginTop: 6, fontSize: "0.65rem", color: "rgb(var(--sl-cream-rgb) / 0.55)", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 600 }}>
             General
           </span>
         </div>
@@ -332,29 +331,29 @@ function Donut({ conv, wa }: { conv?: Dashboard["conversion"]; wa?: Dashboard["w
         {/* Donut WhatsApp */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
           <svg viewBox="0 0 160 160" style={{ width: "100%", maxWidth: 130, height: "auto" }}>
-            <circle cx="80" cy="80" r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="14" />
+            <circle cx="80" cy="80" r={r} fill="none" stroke="rgb(var(--sl-veil-rgb) / 0.08)" strokeWidth="14" />
             <circle
               cx="80" cy="80" r={r} fill="none"
               stroke="#25d366" strokeWidth="14"
               strokeDasharray={`${waDash} ${c}`} strokeLinecap="round"
               transform="rotate(-90 80 80)"
             />
-            <text x="80" y="88" textAnchor="middle" fill="#f5f1e8" fontSize="22" fontWeight="600">{waPct}%</text>
+            <text x="80" y="88" textAnchor="middle" fill="var(--sl-cream)" fontSize="22" fontWeight="600">{waPct}%</text>
           </svg>
-          <span style={{ marginTop: 6, fontSize: "0.65rem", color: "rgba(245,241,232,0.55)", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 600 }}>
+          <span style={{ marginTop: 6, fontSize: "0.65rem", color: "rgb(var(--sl-cream-rgb) / 0.55)", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 600 }}>
             WhatsApp
           </span>
         </div>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: "0.72rem", color: "rgba(245,241,232,0.55)" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: "0.72rem", color: "rgb(var(--sl-cream-rgb) / 0.55)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "2px 10px" }}>
-          <span style={{ color: "#ba843c", fontWeight: 600 }}>General</span>
-          <span>Total: <b style={{ color: "#f5f1e8" }}>{conv?.total ?? 0}</b> · OK: <b style={{ color: "#ba843c" }}>{conv?.successful ?? 0}</b> · Canc: <b style={{ color: "#c85050" }}>{conv?.cancelled ?? 0}</b></span>
+          <span style={{ color: "var(--sl-gold)", fontWeight: 600 }}>General</span>
+          <span>Total: <b style={{ color: "var(--sl-cream)" }}>{conv?.total ?? 0}</b> · OK: <b style={{ color: "var(--sl-gold)" }}>{conv?.successful ?? 0}</b> · Canc: <b style={{ color: "#c85050" }}>{conv?.cancelled ?? 0}</b></span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "2px 10px" }}>
           <span style={{ color: "#25d366", fontWeight: 600 }}>WhatsApp</span>
-          <span>Conv: <b style={{ color: "#f5f1e8" }}>{wa?.totalConversations ?? 0}</b> · Reservas: <b style={{ color: "#25d366" }}>{wa?.converted ?? 0}</b></span>
+          <span>Conv: <b style={{ color: "var(--sl-cream)" }}>{wa?.totalConversations ?? 0}</b> · Reservas: <b style={{ color: "#25d366" }}>{wa?.converted ?? 0}</b></span>
         </div>
       </div>
     </div>

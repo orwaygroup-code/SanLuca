@@ -20,7 +20,7 @@ interface Dish {
   categoryId: string; category: { id: string; name: string; cartaId: string | null; carta: CartaRef | null } | null; createdAt: string;
 }
 
-const GOLD = "#ba843c";
+const GOLD = "var(--sl-gold)";
 const money = (n: number) => "$" + Number(n).toFixed(2);
 const TURNO_LABEL: Record<Turno, string> = { COMIDA: "Comida", BRUNCH: "Brunch" };
 const CLASE_LABEL: Record<Clase, string> = { COCINA: "Alimentos", BARRA: "Bebidas" };
@@ -140,7 +140,7 @@ export function MenuEditor() {
           </div>
 
           <div style={X.catHead}>
-            <span style={{ fontWeight: 800, fontSize: "1.05rem", color: "#f5f1e8" }}>Categorías</span>
+            <span style={{ fontWeight: 800, fontSize: "1.05rem", color: "var(--sl-cream)" }}>Categorías</span>
             <button style={X.primary} onClick={() => setNameModal({ kind: "new-cat", initial: "" })}>+ Nueva Categoría</button>
           </div>
 
@@ -153,8 +153,8 @@ export function MenuEditor() {
                   <button onClick={() => setExpanded(isOpen ? null : cat.id)} style={X.catToggle}>
                     <span style={{ color: GOLD, display: "flex" }}><Ico n="fork" s={17} /></span>
                     <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
-                      <span style={{ fontWeight: 800, color: "#f5f1e8", fontSize: "0.98rem" }}>{cat.name}</span>
-                      <span style={{ fontSize: "0.74rem", color: "rgba(245,241,232,0.55)" }}>{catDishes.length} Items · {cat.visible ? "Visible" : "Oculta"}</span>
+                      <span style={{ fontWeight: 800, color: "var(--sl-cream)", fontSize: "0.98rem" }}>{cat.name}</span>
+                      <span style={{ fontSize: "0.74rem", color: "rgb(var(--sl-cream-rgb) / 0.55)" }}>{catDishes.length} Items · {cat.visible ? "Visible" : "Oculta"}</span>
                     </span>
                   </button>
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -170,7 +170,7 @@ export function MenuEditor() {
                       <button key={dsh.id} style={X.dishChip} onClick={() => setDishForm({ mode: "edit", row: dsh })}>
                         <Thumb url={dsh.imageUrl} name={dsh.name} />
                         <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", minWidth: 0 }}>
-                          <span style={{ color: "#f5f1e8", fontWeight: 700, fontSize: "0.8rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 160 }}>{dsh.name}</span>
+                          <span style={{ color: "var(--sl-cream)", fontWeight: 700, fontSize: "0.8rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 160 }}>{dsh.name}</span>
                           <span style={{ color: GOLD, fontSize: "0.72rem" }}>{money(dsh.price)}</span>
                         </span>
                       </button>
@@ -233,7 +233,7 @@ function Ico({ n, s = 16, style }: { n: string; s?: number; style?: React.CSSPro
 
 function Thumb({ url, name }: { url: string | null; name: string }) {
   const [failed, setFailed] = useState(false);
-  const box: React.CSSProperties = { width: 34, height: 34, borderRadius: 7, objectFit: "cover", background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(245,241,232,0.5)", fontWeight: 800, fontSize: "0.8rem", flexShrink: 0 };
+  const box: React.CSSProperties = { width: 34, height: 34, borderRadius: 7, objectFit: "cover", background: "rgb(var(--sl-veil-rgb) / 0.06)", display: "flex", alignItems: "center", justifyContent: "center", color: "rgb(var(--sl-cream-rgb) / 0.5)", fontWeight: 800, fontSize: "0.8rem", flexShrink: 0 };
   if (!url || failed) return <div style={box}>{name.slice(0, 1).toUpperCase()}</div>;
   // eslint-disable-next-line @next/next/no-img-element
   return <img src={url} alt={name} style={box} onError={() => setFailed(true)} />;
@@ -267,7 +267,7 @@ function Confirm({ title, message, onClose, onConfirm }: { title: string; messag
   return (
     <Overlay onClose={onClose}>
       <p style={X.kicker}>{title}</p>
-      <p style={{ color: "rgba(245,241,232,0.82)", fontSize: "0.9rem", lineHeight: 1.5, margin: "8px 0 0" }}>{message}</p>
+      <p style={{ color: "rgb(var(--sl-cream-rgb) / 0.82)", fontSize: "0.9rem", lineHeight: 1.5, margin: "8px 0 0" }}>{message}</p>
       <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
         <button style={X.ghost} onClick={onClose}>Cancelar</button>
         <button style={{ ...X.primary, flex: 1, background: "#e8766b", color: "var(--sl-ink)" }} onClick={onConfirm}>Eliminar</button>
@@ -279,45 +279,45 @@ function Confirm({ title, message, onClose, onConfirm }: { title: string; messag
 function Overlay({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background: "var(--sl-panel)", border: "1px solid rgba(186,132,60,0.25)", borderRadius: 16, width: "100%", maxWidth: 420, padding: "26px 24px" }}>{children}</div>
+      <div style={{ background: "var(--sl-panel)", border: "1px solid rgb(var(--sl-gold-rgb) / 0.25)", borderRadius: 16, width: "100%", maxWidth: 420, padding: "26px 24px" }}>{children}</div>
     </div>
   );
 }
 
 const X: Record<string, React.CSSProperties> = {
-  page: { minHeight: "100vh", background: "var(--sl-bg)", padding: "20px 20px 60px", color: "#f5f1e8", fontFamily: "inherit" },
+  page: { minHeight: "100vh", background: "var(--sl-bg)", padding: "20px 20px 60px", color: "var(--sl-cream)", fontFamily: "inherit" },
   head: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, marginBottom: 22 },
   h1: { fontSize: "1.6rem", fontWeight: 800, margin: 0 },
-  sub: { color: "rgba(245,241,232,0.6)", fontSize: "0.86rem", margin: "4px 0 0" },
-  turnoToggle: { display: "inline-flex", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 10, overflow: "hidden" },
-  turnoBtn: { padding: "9px 18px", background: "transparent", border: "none", color: "rgba(245,241,232,0.6)", fontWeight: 800, fontSize: "0.76rem", letterSpacing: "0.08em", cursor: "pointer", fontFamily: "inherit" },
+  sub: { color: "rgb(var(--sl-cream-rgb) / 0.6)", fontSize: "0.86rem", margin: "4px 0 0" },
+  turnoToggle: { display: "inline-flex", border: "1px solid rgb(var(--sl-veil-rgb) / 0.15)", borderRadius: 10, overflow: "hidden" },
+  turnoBtn: { padding: "9px 18px", background: "transparent", border: "none", color: "rgb(var(--sl-cream-rgb) / 0.6)", fontWeight: 800, fontSize: "0.76rem", letterSpacing: "0.08em", cursor: "pointer", fontFamily: "inherit" },
   turnoOn: { background: GOLD, color: "var(--sl-on-accent)" },
   err: { background: "rgba(232,118,107,0.12)", border: "1px solid rgba(232,118,107,0.4)", color: "#e8766b", borderRadius: 10, padding: "10px 14px", fontSize: "0.84rem", marginBottom: 16, cursor: "pointer" },
   sectionTitle: { color: GOLD, fontWeight: 800, fontSize: "1.05rem", marginBottom: 14 },
-  muted: { color: "rgba(245,241,232,0.55)", fontSize: "0.86rem" },
+  muted: { color: "rgb(var(--sl-cream-rgb) / 0.55)", fontSize: "0.86rem" },
   cardGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 14 },
-  card: { textAlign: "left", display: "flex", flexDirection: "column", gap: 10, padding: "16px 18px", minHeight: 118, borderRadius: 14, border: "1px solid rgba(255,255,255,0.12)", background: "var(--sl-panel)", color: "#f5f1e8", cursor: "pointer", fontFamily: "inherit" },
-  cardOn: { border: `1.5px solid ${GOLD}`, boxShadow: "0 0 0 3px rgba(186,132,60,0.12)" },
+  card: { textAlign: "left", display: "flex", flexDirection: "column", gap: 10, padding: "16px 18px", minHeight: 118, borderRadius: 14, border: "1px solid rgb(var(--sl-veil-rgb) / 0.12)", background: "var(--sl-panel)", color: "var(--sl-cream)", cursor: "pointer", fontFamily: "inherit" },
+  cardOn: { border: `1.5px solid ${GOLD}`, boxShadow: "0 0 0 3px rgb(var(--sl-gold-rgb) / 0.12)" },
   cardAdd: { alignItems: "center", justifyContent: "center", color: GOLD, fontWeight: 800, fontSize: "0.9rem", borderStyle: "dashed" },
   cardName: { fontSize: "1.15rem", fontWeight: 800 },
-  cardMeta: { color: "rgba(245,241,232,0.55)", fontSize: "0.78rem" },
-  principalTag: { fontSize: "0.62rem", fontWeight: 800, color: GOLD, background: "rgba(186,132,60,0.14)", border: `1px solid ${GOLD}`, borderRadius: 999, padding: "2px 8px", whiteSpace: "nowrap" },
-  crumb: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", color: "rgba(245,241,232,0.7)", fontSize: "0.84rem", marginBottom: 14 },
+  cardMeta: { color: "rgb(var(--sl-cream-rgb) / 0.55)", fontSize: "0.78rem" },
+  principalTag: { fontSize: "0.62rem", fontWeight: 800, color: GOLD, background: "rgb(var(--sl-gold-rgb) / 0.14)", border: `1px solid ${GOLD}`, borderRadius: 999, padding: "2px 8px", whiteSpace: "nowrap" },
+  crumb: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", color: "rgb(var(--sl-cream-rgb) / 0.7)", fontSize: "0.84rem", marginBottom: 14 },
   catHead: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 12 },
-  catCard: { background: "var(--sl-panel)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, marginBottom: 10, overflow: "hidden" },
+  catCard: { background: "var(--sl-panel)", border: "1px solid rgb(var(--sl-veil-rgb) / 0.1)", borderRadius: 12, marginBottom: 10, overflow: "hidden" },
   catRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "12px 14px" },
   catToggle: { display: "flex", alignItems: "center", gap: 12, background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", flex: 1, minWidth: 0, textAlign: "left" },
   dishRow: { display: "flex", flexWrap: "wrap", gap: 10, padding: "0 14px 14px" },
-  dishChip: { display: "flex", alignItems: "center", gap: 8, padding: "6px 10px 6px 6px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.03)", cursor: "pointer", fontFamily: "inherit" },
+  dishChip: { display: "flex", alignItems: "center", gap: 8, padding: "6px 10px 6px 6px", borderRadius: 10, border: "1px solid rgb(var(--sl-veil-rgb) / 0.12)", background: "rgb(var(--sl-veil-rgb) / 0.03)", cursor: "pointer", fontFamily: "inherit" },
   addDish: { display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 10, border: `1px dashed ${GOLD}`, background: "transparent", color: GOLD, fontWeight: 700, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit" },
-  iconBtn: { width: 32, height: 32, borderRadius: 8, border: "1px solid rgba(255,255,255,0.15)", background: "transparent", color: "rgba(245,241,232,0.75)", cursor: "pointer", fontSize: "0.85rem", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center" },
+  iconBtn: { width: 32, height: 32, borderRadius: 8, border: "1px solid rgb(var(--sl-veil-rgb) / 0.15)", background: "transparent", color: "rgb(var(--sl-cream-rgb) / 0.75)", cursor: "pointer", fontSize: "0.85rem", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center" },
   iconBtnDanger: { width: 32, height: 32, borderRadius: 8, border: "1px solid rgba(232,118,107,0.45)", background: "transparent", color: "#e8766b", cursor: "pointer", fontSize: "0.85rem", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center" },
-  mini: { padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(186,132,60,0.5)", background: "transparent", color: "#c9964a", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" },
+  mini: { padding: "6px 12px", borderRadius: 8, border: "1px solid rgb(var(--sl-gold-rgb) / 0.5)", background: "transparent", color: "#c9964a", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" },
   miniDanger: { padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(232,118,107,0.45)", background: "transparent", color: "#e8766b", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" },
   primary: { padding: "10px 16px", minHeight: 40, borderRadius: 9, border: "none", background: GOLD, color: "var(--sl-on-accent)", fontWeight: 800, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit" },
-  ghost: { padding: "10px 16px", minHeight: 40, borderRadius: 9, border: "1px solid rgba(255,255,255,0.18)", background: "transparent", color: "rgba(245,241,232,0.72)", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit" },
+  ghost: { padding: "10px 16px", minHeight: 40, borderRadius: 9, border: "1px solid rgb(var(--sl-veil-rgb) / 0.18)", background: "transparent", color: "rgb(var(--sl-cream-rgb) / 0.72)", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit" },
   kicker: { fontSize: "0.62rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#c9964a", fontWeight: 700, margin: 0 },
-  input: { width: "100%", padding: "12px 13px", minHeight: 44, borderRadius: 9, boxSizing: "border-box", border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.05)", color: "#f5f1e8", fontSize: "0.9rem", fontFamily: "inherit", marginTop: 10 },
-  claseChip: { flex: 1, padding: "10px 0", borderRadius: 9, border: "1px solid rgba(255,255,255,0.18)", background: "transparent", color: "rgba(245,241,232,0.72)", fontWeight: 700, fontSize: "0.82rem", cursor: "pointer", fontFamily: "inherit" },
+  input: { width: "100%", padding: "12px 13px", minHeight: 44, borderRadius: 9, boxSizing: "border-box", border: "1px solid rgb(var(--sl-veil-rgb) / 0.2)", background: "rgb(var(--sl-veil-rgb) / 0.05)", color: "var(--sl-cream)", fontSize: "0.9rem", fontFamily: "inherit", marginTop: 10 },
+  claseChip: { flex: 1, padding: "10px 0", borderRadius: 9, border: "1px solid rgb(var(--sl-veil-rgb) / 0.18)", background: "transparent", color: "rgb(var(--sl-cream-rgb) / 0.72)", fontWeight: 700, fontSize: "0.82rem", cursor: "pointer", fontFamily: "inherit" },
   claseOn: { background: GOLD, color: "var(--sl-on-accent)", borderColor: GOLD },
 };

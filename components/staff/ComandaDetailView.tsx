@@ -1071,7 +1071,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
                 ) : reprintable.map((it) => {
                   const on = reprintSel.has(it.id);
                   return (
-                    <label key={it.id} style={{ ...rp.row, borderColor: on ? C.gold : C.line, background: on ? "rgba(186,132,60,0.08)" : "transparent" }}>
+                    <label key={it.id} style={{ ...rp.row, borderColor: on ? C.gold : C.line, background: on ? "rgb(var(--sl-gold-rgb) / 0.08)" : "transparent" }}>
                       <input type="checkbox" checked={on} onChange={() => toggleReprint(it.id)} />
                       <span style={rp.rowName}>{fmtQty(Number(it.quantity))}× {it.dishNameSnapshot}</span>
                       <span style={rp.rowArea}>{it.prepAreaSnapshot === "BARRA" ? "Barra" : "Cocina"}</span>
@@ -1193,7 +1193,7 @@ const page: Record<string, React.CSSProperties> = {
   head: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 },
   panel: { background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden", marginBottom: 14 },
   panelHead: { padding: "12px 18px", borderBottom: `1px solid ${C.line}`, color: C.faint, fontSize: "0.66rem", letterSpacing: "0.16em", textTransform: "uppercase", fontWeight: 700 },
-  courseSep: { padding: "8px 18px", background: "rgba(186,132,60,0.08)", borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.line}`, color: C.gold, fontSize: "0.68rem", letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 700 },
+  courseSep: { padding: "8px 18px", background: "rgb(var(--sl-gold-rgb) / 0.08)", borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.line}`, color: C.gold, fontSize: "0.68rem", letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 700 },
   itemRow: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "12px 18px", borderBottom: `1px solid ${C.line}` },
   cancelX: { width: 30, height: 30, borderRadius: 7, border: `1px solid ${C.red}`, background: "transparent", color: C.red, fontSize: "1.1rem", cursor: "pointer", lineHeight: 1 },
   commentAdd: { marginTop: 6, padding: 0, background: "transparent", border: "none", color: C.gold, fontSize: "0.74rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", textAlign: "left" },
@@ -1201,13 +1201,13 @@ const page: Record<string, React.CSSProperties> = {
   commentInput: { flex: 1, minWidth: 0, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.cream, fontSize: "0.8rem", padding: "6px 10px", fontFamily: "inherit" },
   commentSave: { padding: "6px 12px", borderRadius: 8, border: "none", background: C.gold, color: "var(--sl-on-accent)", fontWeight: 800, fontSize: "0.76rem", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" },
   commentCancel: { width: 30, height: 30, borderRadius: 8, border: `1px solid ${C.border}`, background: "transparent", color: C.dim, fontSize: "0.9rem", cursor: "pointer", flexShrink: 0, lineHeight: 1 },
-  batchBar: { display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", padding: "12px 16px", marginBottom: 14, borderRadius: 12, border: `1px solid ${C.gold}`, background: "rgba(186,132,60,0.10)" },
+  batchBar: { display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", padding: "12px 16px", marginBottom: 14, borderRadius: 12, border: `1px solid ${C.gold}`, background: "rgb(var(--sl-gold-rgb) / 0.10)" },
   batchBtn: { padding: "8px 14px", borderRadius: 9, border: `1px solid ${C.border}`, background: "transparent", color: C.cream, fontWeight: 700, fontSize: "0.82rem", cursor: "pointer", fontFamily: "inherit" },
   batchClear: { padding: "8px 12px", borderRadius: 9, border: "none", background: "transparent", color: C.dim, fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit" },
   discBtn: { width: 30, height: 30, borderRadius: 7, border: `1px solid ${C.gold}`, background: "transparent", color: C.gold, fontSize: "0.92rem", fontWeight: 700, cursor: "pointer", lineHeight: 1 },
   actions: { display: "flex", flexWrap: "wrap", gap: 10, marginTop: 4 },
-  splitHead: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "10px 18px", background: "rgba(255,255,255,0.03)", borderBottom: `1px solid ${C.line}`, fontSize: "0.7rem", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700 },
-  splitHeadDivision: { background: "rgba(186,132,60,0.08)", borderTop: `1px solid ${C.border}` },
+  splitHead: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "10px 18px", background: "rgb(var(--sl-veil-rgb) / 0.03)", borderBottom: `1px solid ${C.line}`, fontSize: "0.7rem", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700 },
+  splitHeadDivision: { background: "rgb(var(--sl-gold-rgb) / 0.08)", borderTop: `1px solid ${C.border}` },
   splitEmpty: { padding: "14px 18px", color: C.faint, fontSize: "0.82rem", borderBottom: `1px solid ${C.line}` },
   splitRemove: { padding: "4px 10px", borderRadius: 7, border: `1px solid ${C.red}`, background: "transparent", color: C.red, fontSize: "0.7rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
 };

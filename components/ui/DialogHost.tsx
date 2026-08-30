@@ -67,7 +67,7 @@ export function DialogHost() {
 
   const btn = (primary: boolean): React.CSSProperties => ({
     padding: "11px 18px", borderRadius: 10, border: primary ? "none" : `1px solid ${C.border}`,
-    background: primary ? (req.danger ? C.red : C.gold) : "transparent", color: primary ? "#16201f" : C.dim,
+    background: primary ? (req.danger ? C.red : C.gold) : "transparent", color: primary ? "var(--sl-on-accent)" : C.dim,
     fontWeight: 800, fontSize: "0.86rem", cursor: "pointer", fontFamily: "inherit",
   });
 

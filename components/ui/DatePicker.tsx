@@ -86,10 +86,10 @@ export function DatePicker({ value, onChange, min, disabledDow = [], placeholder
         style={{
           width: "100%",
           padding: "10px 14px",
-          background: open ? "rgba(186,132,60,0.1)" : "rgba(186,132,60,0.06)",
-          border: `1px solid ${open ? "#ba843c" : "rgba(186,132,60,0.3)"}`,
+          background: open ? "rgb(var(--sl-gold-rgb) / 0.1)" : "rgb(var(--sl-gold-rgb) / 0.06)",
+          border: `1px solid ${open ? "var(--sl-gold)" : "rgb(var(--sl-gold-rgb) / 0.3)"}`,
           borderRadius: 8,
-          color: display ? "#f5f1e8" : "rgba(245,241,232,0.35)",
+          color: display ? "var(--sl-cream)" : "rgb(var(--sl-cream-rgb) / 0.35)",
           fontSize: "0.83rem",
           fontFamily: "inherit",
           textAlign: "left",
@@ -106,7 +106,7 @@ export function DatePicker({ value, onChange, min, disabledDow = [], placeholder
         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {display ?? placeholder}
         </span>
-        <span style={{ fontSize: "0.75rem", color: "#ba843c", flexShrink: 0, transition: "transform 0.18s", transform: open ? "rotate(180deg)" : "none" }}>
+        <span style={{ fontSize: "0.75rem", color: "var(--sl-gold)", flexShrink: 0, transition: "transform 0.18s", transform: open ? "rotate(180deg)" : "none" }}>
           ▾
         </span>
       </button>
@@ -118,7 +118,7 @@ export function DatePicker({ value, onChange, min, disabledDow = [], placeholder
           top: "calc(100% + 6px)",
           left: 0,
           background: "var(--sl-panel)",
-          border: "1px solid rgba(186,132,60,0.4)",
+          border: "1px solid rgb(var(--sl-gold-rgb) / 0.4)",
           borderRadius: 12,
           zIndex: 9999,
           padding: "14px",
@@ -129,14 +129,14 @@ export function DatePicker({ value, onChange, min, disabledDow = [], placeholder
           {/* Month nav */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
             <button type="button" onClick={prevMonth}
-              style={{ background: "none", border: "1px solid rgba(186,132,60,0.25)", borderRadius: 6, color: "#ba843c", width: 28, height: 28, cursor: "pointer", fontSize: "1rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              style={{ background: "none", border: "1px solid rgb(var(--sl-gold-rgb) / 0.25)", borderRadius: 6, color: "var(--sl-gold)", width: 28, height: 28, cursor: "pointer", fontSize: "1rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
               ‹
             </button>
-            <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#f5f1e8", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+            <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--sl-cream)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
               {MONTHS_ES[viewM]} {viewY}
             </span>
             <button type="button" onClick={nextMonth}
-              style={{ background: "none", border: "1px solid rgba(186,132,60,0.25)", borderRadius: 6, color: "#ba843c", width: 28, height: 28, cursor: "pointer", fontSize: "1rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              style={{ background: "none", border: "1px solid rgb(var(--sl-gold-rgb) / 0.25)", borderRadius: 6, color: "var(--sl-gold)", width: 28, height: 28, cursor: "pointer", fontSize: "1rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
               ›
             </button>
           </div>
@@ -144,7 +144,7 @@ export function DatePicker({ value, onChange, min, disabledDow = [], placeholder
           {/* Weekday headers */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, marginBottom: 4 }}>
             {DAYS_ES.map((d) => (
-              <div key={d} style={{ textAlign: "center", fontSize: "0.58rem", color: "rgba(186,132,60,0.55)", fontWeight: 700, letterSpacing: "0.06em", padding: "2px 0" }}>
+              <div key={d} style={{ textAlign: "center", fontSize: "0.58rem", color: "rgb(var(--sl-gold-rgb) / 0.55)", fontWeight: 700, letterSpacing: "0.06em", padding: "2px 0" }}>
                 {d}
               </div>
             ))}
@@ -165,9 +165,9 @@ export function DatePicker({ value, onChange, min, disabledDow = [], placeholder
                   style={{
                     aspectRatio: "1",
                     borderRadius: 6,
-                    border: isT && !sel ? "1px solid rgba(186,132,60,0.45)" : "1px solid transparent",
-                    background: sel ? "#ba843c" : "transparent",
-                    color: dis ? "rgba(245,241,232,0.15)" : sel ? "#fff" : isT ? "#ba843c" : "rgba(245,241,232,0.72)",
+                    border: isT && !sel ? "1px solid rgb(var(--sl-gold-rgb) / 0.45)" : "1px solid transparent",
+                    background: sel ? "var(--sl-gold)" : "transparent",
+                    color: dis ? "rgb(var(--sl-cream-rgb) / 0.15)" : sel ? "#fff" : isT ? "var(--sl-gold)" : "rgb(var(--sl-cream-rgb) / 0.72)",
                     fontSize: "0.78rem",
                     fontWeight: sel ? 700 : 400,
                     cursor: dis ? "not-allowed" : "pointer",
@@ -177,7 +177,7 @@ export function DatePicker({ value, onChange, min, disabledDow = [], placeholder
                     justifyContent: "center",
                     padding: 0,
                   }}
-                  onMouseEnter={(e) => { if (!dis && !sel) e.currentTarget.style.background = "rgba(186,132,60,0.15)"; }}
+                  onMouseEnter={(e) => { if (!dis && !sel) e.currentTarget.style.background = "rgb(var(--sl-gold-rgb) / 0.15)"; }}
                   onMouseLeave={(e) => { if (!sel) e.currentTarget.style.background = "transparent"; }}
                 >
                   {d}

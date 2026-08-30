@@ -20,7 +20,7 @@ interface AuditComanda {
 
 
 const STATUS_LABEL: Record<string, string> = { OPEN: "Abierta", IN_SERVICE: "En servicio", AWAITING_PAYMENT: "Por cobrar", PAID: "Pagada", CANCELLED: "Cancelada" };
-const STATUS_COLOR: Record<string, string> = { OPEN: "#4a82c4", IN_SERVICE: "#3f9d6f", AWAITING_PAYMENT: "#d8a13a", PAID: "rgba(245,241,232,0.5)", CANCELLED: "#d9534f" };
+const STATUS_COLOR: Record<string, string> = { OPEN: "#4a82c4", IN_SERVICE: "#3f9d6f", AWAITING_PAYMENT: "#d8a13a", PAID: "rgb(var(--sl-cream-rgb) / 0.5)", CANCELLED: "#d9534f" };
 const EVENT_META: Record<string, { label: string; color: string }> = {
   PRINT: { label: "Impresión", color: "#4a82c4" },
   REPRINT: { label: "Reimpresión", color: "#d8a13a" },
@@ -35,7 +35,7 @@ const EVENT_META: Record<string, { label: string; color: string }> = {
   TRANSFER: { label: "Traspaso", color: "#4a82c4" },
   REOPEN: { label: "Reapertura", color: "#e0794a" },
 };
-const eventMeta = (kind: string) => EVENT_META[kind] ?? { label: kind, color: "rgba(245,241,232,0.6)" };
+const eventMeta = (kind: string) => EVENT_META[kind] ?? { label: kind, color: "rgb(var(--sl-cream-rgb) / 0.6)" };
 
 function fmt(iso: string): string {
   return new Date(iso).toLocaleString("es-MX", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Mexico_City" });

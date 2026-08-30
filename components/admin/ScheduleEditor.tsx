@@ -43,7 +43,7 @@ const S: Record<string, React.CSSProperties> = {
   head: { padding: "12px 20px", borderBottom: `1px solid ${C.line}`, color: C.faint, fontSize: "0.66rem", letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 700 },
   body: { padding: 20 },
   label: { display: "block", fontSize: "0.62rem", letterSpacing: "0.14em", textTransform: "uppercase", color: C.faint, fontWeight: 700, marginBottom: 8 },
-  input: { padding: "9px 11px", borderRadius: 9, border: `1px solid ${C.line}`, background: "rgba(255,255,255,0.05)", color: C.cream, fontSize: "0.9rem", fontFamily: "inherit" },
+  input: { padding: "9px 11px", borderRadius: 9, border: `1px solid ${C.line}`, background: "rgb(var(--sl-veil-rgb) / 0.05)", color: C.cream, fontSize: "0.9rem", fontFamily: "inherit" },
   row: { display: "flex", gap: 8, alignItems: "center", marginBottom: 8, flexWrap: "wrap" },
   day: { width: 100, color: C.cream, fontSize: "0.85rem", fontWeight: 600 },
   rm: { width: 34, height: 34, borderRadius: 8, border: `1px solid ${C.red}`, background: "transparent", color: C.red, fontSize: "1.1rem", cursor: "pointer", lineHeight: 1, flexShrink: 0 },

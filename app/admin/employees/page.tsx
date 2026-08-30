@@ -15,7 +15,7 @@ interface StaffRow {
 }
 
 const ROLE_LABEL: Record<Role, string> = { WAITER: "Mesero", OPERATION: "Operación", CAPTAIN: "Capitán", MANAGER: "Manager", KITCHEN: "Cocina" };
-const ROLE_COLOR: Record<Role, string> = { WAITER: "#4a9eca", OPERATION: "#b07cd6", CAPTAIN: "#ba843c", MANAGER: "#4caf50", KITCHEN: "#c98a4a" };
+const ROLE_COLOR: Record<Role, string> = { WAITER: "#4a9eca", OPERATION: "#b07cd6", CAPTAIN: "var(--sl-gold)", MANAGER: "#4caf50", KITCHEN: "#c98a4a" };
 const ROLES: Role[] = ["WAITER", "OPERATION", "CAPTAIN", "MANAGER", "KITCHEN"];
 
 const ROLE_OPTIONS: SelectOption[] = ROLES.map((r) => ({ value: r, label: ROLE_LABEL[r] }));
@@ -81,7 +81,7 @@ export default function EmployeesPage() {
   return (
     <div style={S.page}>
       <div style={S.header}>
-        <h1 style={S.h1}><span style={{ color: "#ba843c" }}>EMPLEADOS</span></h1>
+        <h1 style={S.h1}><span style={{ color: "var(--sl-gold)" }}>EMPLEADOS</span></h1>
         <button style={S.primaryBtn} onClick={() => setCreateOpen(true)}>+ Nuevo empleado</button>
       </div>
 
@@ -111,10 +111,10 @@ export default function EmployeesPage() {
               {rows.map((row) => (
                 <tr key={row.id} style={{ opacity: row.active ? 1 : 0.45 }}>
                   <td style={S.td}>{row.fullName}</td>
-                  <td style={{ ...S.td, color: "rgba(245,241,232,0.72)" }}>{row.username}</td>
+                  <td style={{ ...S.td, color: "rgb(var(--sl-cream-rgb) / 0.72)" }}>{row.username}</td>
                   <td style={S.td}><span style={{ ...S.badge, borderColor: ROLE_COLOR[row.role], color: ROLE_COLOR[row.role] }}>{ROLE_LABEL[row.role]}</span></td>
                   <td style={S.td}><span style={{ color: row.active ? "#4caf50" : "#e8766b", fontWeight: 600, fontSize: "0.78rem" }}>{row.active ? "Activo" : "Inactivo"}</span></td>
-                  <td style={{ ...S.td, color: "rgba(245,241,232,0.68)", fontSize: "0.78rem" }}>{fmtDateTime(row.lastLoginAt)}</td>
+                  <td style={{ ...S.td, color: "rgb(var(--sl-cream-rgb) / 0.68)", fontSize: "0.78rem" }}>{fmtDateTime(row.lastLoginAt)}</td>
                   <td style={S.td}>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       <button style={S.miniBtn} onClick={() => setEditTarget(row)}>Editar</button>
@@ -144,9 +144,9 @@ function PinReveal({ fullName, pin, onClose }: { fullName: string; pin: string; 
     <Overlay onClose={onClose}>
       <div style={{ textAlign: "center" }}>
         <p style={S.kicker}>PIN asignado</p>
-        <p style={{ color: "#f5f1e8", margin: "4px 0 0", fontWeight: 700 }}>{fullName}</p>
-        <div style={{ margin: "20px 0", fontSize: "2.6rem", letterSpacing: "0.4em", color: "#ba843c", fontWeight: 800 }}>{pin}</div>
-        <p style={{ color: "rgba(245,241,232,0.72)", fontSize: "0.84rem", margin: 0 }}>Anótalo ahora. No se puede volver a consultar; solo regenerar.</p>
+        <p style={{ color: "var(--sl-cream)", margin: "4px 0 0", fontWeight: 700 }}>{fullName}</p>
+        <div style={{ margin: "20px 0", fontSize: "2.6rem", letterSpacing: "0.4em", color: "var(--sl-gold)", fontWeight: 800 }}>{pin}</div>
+        <p style={{ color: "rgb(var(--sl-cream-rgb) / 0.72)", fontSize: "0.84rem", margin: 0 }}>Anótalo ahora. No se puede volver a consultar; solo regenerar.</p>
         <button style={{ ...S.primaryBtn, marginTop: 22, width: "100%" }} onClick={onClose}>Entendido</button>
       </div>
     </Overlay>
@@ -175,7 +175,7 @@ function PinModal({ row, onClose, onDone }: {
   return (
     <Overlay onClose={onClose}>
       <p style={S.kicker}>Cambiar PIN</p>
-      <p style={{ color: "#f5f1e8", margin: "6px 0 0", fontWeight: 700 }}>{row.fullName}</p>
+      <p style={{ color: "var(--sl-cream)", margin: "6px 0 0", fontWeight: 700 }}>{row.fullName}</p>
       <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 16 }}>
         <div>
           <label style={S.label}>Escribe el nuevo PIN (4 dígitos)</label>
@@ -281,27 +281,27 @@ function mapErr(code?: string): string {
 function Overlay({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background: "var(--sl-panel)", border: "1px solid rgba(186,132,60,0.25)", borderRadius: 16, width: "100%", maxWidth: 440, padding: "26px 24px" }}>{children}</div>
+      <div style={{ background: "var(--sl-panel)", border: "1px solid rgb(var(--sl-gold-rgb) / 0.25)", borderRadius: 16, width: "100%", maxWidth: 440, padding: "26px 24px" }}>{children}</div>
     </div>
   );
 }
 
 const S: Record<string, React.CSSProperties> = {
-  page: { minHeight: "100vh", background: "var(--sl-bg)", padding: "0 0 40px", color: "#f5f1e8", fontFamily: "inherit" },
+  page: { minHeight: "100vh", background: "var(--sl-bg)", padding: "0 0 40px", color: "var(--sl-cream)", fontFamily: "inherit" },
   header: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, padding: "20px 20px 0", margin: "0 0 18px" },
   h1: { fontSize: "1.1rem", fontWeight: 800, letterSpacing: "0.08em", margin: 0 },
   filters: { display: "flex", gap: 10, flexWrap: "wrap", padding: "0 20px", marginBottom: 18 },
-  select: { padding: "9px 12px", borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.15)", color: "#f5f1e8", fontSize: "0.82rem", fontFamily: "inherit" },
-  search: { flex: 1, minWidth: 200, padding: "9px 12px", borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.15)", color: "#f5f1e8", fontSize: "0.82rem", fontFamily: "inherit" },
+  select: { padding: "9px 12px", borderRadius: 8, background: "rgb(var(--sl-veil-rgb) / 0.05)", border: "1px solid rgb(var(--sl-veil-rgb) / 0.15)", color: "var(--sl-cream)", fontSize: "0.82rem", fontFamily: "inherit" },
+  search: { flex: 1, minWidth: 200, padding: "9px 12px", borderRadius: 8, background: "rgb(var(--sl-veil-rgb) / 0.05)", border: "1px solid rgb(var(--sl-veil-rgb) / 0.15)", color: "var(--sl-cream)", fontSize: "0.82rem", fontFamily: "inherit" },
   table: { width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" },
-  th: { textAlign: "left", padding: "10px 20px", fontSize: "0.62rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(245,241,232,0.58)", borderBottom: "1px solid rgba(255,255,255,0.1)", whiteSpace: "nowrap" },
-  td: { padding: "12px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)", verticalAlign: "middle" },
+  th: { textAlign: "left", padding: "10px 20px", fontSize: "0.62rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgb(var(--sl-cream-rgb) / 0.58)", borderBottom: "1px solid rgb(var(--sl-veil-rgb) / 0.1)", whiteSpace: "nowrap" },
+  td: { padding: "12px 20px", borderBottom: "1px solid rgb(var(--sl-veil-rgb) / 0.06)", verticalAlign: "middle" },
   badge: { display: "inline-block", padding: "2px 10px", borderRadius: 999, border: "1px solid", fontSize: "0.72rem", fontWeight: 600 },
-  empty: { textAlign: "center", color: "rgba(245,241,232,0.62)", marginTop: 60 },
+  empty: { textAlign: "center", color: "rgb(var(--sl-cream-rgb) / 0.62)", marginTop: 60 },
   primaryBtn: { padding: "12px 18px", minHeight: 44, borderRadius: 9, border: "none", background: "var(--sl-gold)", color: "var(--sl-on-accent)", fontWeight: 800, fontSize: "0.8rem", letterSpacing: "0.04em", cursor: "pointer", fontFamily: "inherit" },
-  ghostBtn: { flex: 1, padding: "12px 0", minHeight: 44, borderRadius: 9, border: "1px solid rgba(255,255,255,0.18)", background: "transparent", color: "rgba(245,241,232,0.72)", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit" },
-  miniBtn: { padding: "9px 14px", minHeight: 40, borderRadius: 8, border: "1px solid rgba(186,132,60,0.5)", background: "transparent", color: "#c9964a", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" },
+  ghostBtn: { flex: 1, padding: "12px 0", minHeight: 44, borderRadius: 9, border: "1px solid rgb(var(--sl-veil-rgb) / 0.18)", background: "transparent", color: "rgb(var(--sl-cream-rgb) / 0.72)", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit" },
+  miniBtn: { padding: "9px 14px", minHeight: 40, borderRadius: 8, border: "1px solid rgb(var(--sl-gold-rgb) / 0.5)", background: "transparent", color: "#c9964a", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" },
   kicker: { fontSize: "0.62rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#c9964a", fontWeight: 700, margin: 0 },
-  label: { display: "block", fontSize: "0.62rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(245,241,232,0.62)", fontWeight: 700, marginBottom: 5 },
-  input: { width: "100%", padding: "12px 13px", minHeight: 44, borderRadius: 9, boxSizing: "border-box", border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.05)", color: "#f5f1e8", fontSize: "0.9rem", fontFamily: "inherit" },
+  label: { display: "block", fontSize: "0.62rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgb(var(--sl-cream-rgb) / 0.62)", fontWeight: 700, marginBottom: 5 },
+  input: { width: "100%", padding: "12px 13px", minHeight: 44, borderRadius: 9, boxSizing: "border-box", border: "1px solid rgb(var(--sl-veil-rgb) / 0.2)", background: "rgb(var(--sl-veil-rgb) / 0.05)", color: "var(--sl-cream)", fontSize: "0.9rem", fontFamily: "inherit" },
 };

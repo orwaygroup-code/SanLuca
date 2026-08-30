@@ -62,7 +62,7 @@ export function SplitBillModal({ open, divisionNumber, items, busy, onConfirm, o
                   display: "flex", alignItems: "center", gap: 12,
                   padding: "11px 12px", borderRadius: 9, marginBottom: 8,
                   border: `1px solid ${on ? C.gold : C.line}`,
-                  background: on ? "rgba(186,132,60,0.10)" : "transparent",
+                  background: on ? "rgb(var(--sl-gold-rgb) / 0.10)" : "transparent",
                 }}
               >
                 <div style={{ flex: 1, minWidth: 0 }}>

@@ -86,7 +86,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <button
           onClick={() => setDrawerOpen(true)}
           aria-label="Abrir menú"
-          style={{ background: "transparent", border: "1px solid rgba(186,132,60,0.35)", color: "#ba843c", borderRadius: 8, padding: "4px 11px", fontSize: "1.15rem", lineHeight: 1, cursor: "pointer", fontFamily: "inherit" }}
+          style={{ background: "transparent", border: "1px solid rgb(var(--sl-gold-rgb) / 0.35)", color: "var(--sl-gold)", borderRadius: 8, padding: "4px 11px", fontSize: "1.15rem", lineHeight: 1, cursor: "pointer", fontFamily: "inherit" }}
         >
           ☰
         </button>

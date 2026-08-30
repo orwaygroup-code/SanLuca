@@ -57,7 +57,7 @@ export function SectionHead({
             fontSize: "1.05rem",
             fontWeight: 400,
             color: light
-              ? "rgba(245,241,232,0.55)"
+              ? "rgb(var(--sl-cream-rgb) / 0.55)"
               : "rgba(28,38,40,0.5)",
             lineHeight: 1.75,
             margin: 0,

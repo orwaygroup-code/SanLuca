@@ -202,7 +202,7 @@ const ui: Record<string, React.CSSProperties> = {
   col: { background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 14px" },
   colHead: { color: C.gold, fontWeight: 800, fontSize: "0.78rem", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 },
   faltaRow: { display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderTop: `1px solid ${C.line}` },
-  chip: { display: "inline-flex", alignItems: "center", gap: 6, background: "color-mix(in srgb, #ba843c 14%, transparent)", border: `1px solid ${C.gold}`, color: C.cream, borderRadius: 999, padding: "6px 12px", fontSize: "0.84rem", fontWeight: 700 },
+  chip: { display: "inline-flex", alignItems: "center", gap: 6, background: "color-mix(in srgb, var(--sl-gold) 14%, transparent)", border: `1px solid ${C.gold}`, color: C.cream, borderRadius: 999, padding: "6px 12px", fontSize: "0.84rem", fontWeight: 700 },
   chipX: { background: "transparent", border: "none", color: C.gold, fontWeight: 800, cursor: "pointer", fontSize: "1rem", lineHeight: 1, padding: 0 },
   smallGold: { padding: "6px 12px", borderRadius: 8, border: "none", background: C.gold, color: "var(--sl-on-accent)", fontWeight: 800, fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" },
   smallGhost: { padding: "6px 12px", borderRadius: 8, border: `1px solid ${C.border}`, background: "transparent", color: C.dim, fontWeight: 700, fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" },

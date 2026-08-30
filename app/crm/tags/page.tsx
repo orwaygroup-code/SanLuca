@@ -135,12 +135,12 @@ export default function TagsAdminPage() {
   }
 
   return (
-    <div style={{ padding: "32px 40px", color: "#f5f1e8" }}>
+    <div style={{ padding: "32px 40px", color: "var(--sl-cream)" }}>
       <CrmPageHead accent="Catálogo" title="Tags" sub="Etiquetas reusables para segmentación de conversaciones" />
 
       {/* Form: nuevo tag */}
       <div style={panel}>
-        <div style={{ fontSize: "0.78rem", color: "rgba(245,241,232,0.6)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
+        <div style={{ fontSize: "0.78rem", color: "rgb(var(--sl-cream-rgb) / 0.6)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
           Nuevo tag
         </div>
         <div style={{ display: "grid", gap: 10, gridTemplateColumns: "1fr 2fr auto", alignItems: "end" }}>
@@ -185,7 +185,7 @@ export default function TagsAdminPage() {
       {/* Filtros */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <span style={{ fontSize: "0.78rem", color: "rgba(245,241,232,0.5)" }}>
+          <span style={{ fontSize: "0.78rem", color: "rgb(var(--sl-cream-rgb) / 0.5)" }}>
             {tags.length} tag{tags.length !== 1 ? "s" : ""}
           </span>
           {/* Filtro por source — tags con al menos 1 asignación con ese source */}
@@ -206,8 +206,8 @@ export default function TagsAdminPage() {
                     fontSize: "0.7rem",
                     fontWeight: active ? 700 : 500,
                     letterSpacing: "0.04em",
-                    background: active ? "#ba843c" : "transparent",
-                    color: active ? "#1c2628" : "rgba(245,241,232,0.6)",
+                    background: active ? "var(--sl-gold)" : "transparent",
+                    color: active ? "#1c2628" : "rgb(var(--sl-cream-rgb) / 0.6)",
                   }}
                 >
                   {label}
@@ -216,14 +216,14 @@ export default function TagsAdminPage() {
             })}
           </div>
         </div>
-        <label style={{ fontSize: "0.82rem", color: "rgba(245,241,232,0.7)", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+        <label style={{ fontSize: "0.82rem", color: "rgb(var(--sl-cream-rgb) / 0.7)", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
           <input type="checkbox" checked={includeInactive} onChange={(e) => setII(e.target.checked)} />
           Mostrar inactivos
         </label>
       </div>
 
       {/* Tabla */}
-      <div style={{ overflowX: "auto", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8 }}>
+      <div style={{ overflowX: "auto", border: "1px solid rgb(var(--sl-veil-rgb) / 0.06)", borderRadius: 8 }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem" }}>
           <thead>
             <tr>
@@ -236,10 +236,10 @@ export default function TagsAdminPage() {
           </thead>
           <tbody>
             {loading && (
-              <tr><td colSpan={5} style={{ ...td, textAlign: "center", color: "rgba(245,241,232,0.4)", padding: 28 }}>Cargando…</td></tr>
+              <tr><td colSpan={5} style={{ ...td, textAlign: "center", color: "rgb(var(--sl-cream-rgb) / 0.4)", padding: 28 }}>Cargando…</td></tr>
             )}
             {!loading && tags.length === 0 && (
-              <tr><td colSpan={5} style={{ ...td, textAlign: "center", color: "rgba(245,241,232,0.4)", padding: 28 }}>Sin tags todavía.</td></tr>
+              <tr><td colSpan={5} style={{ ...td, textAlign: "center", color: "rgb(var(--sl-cream-rgb) / 0.4)", padding: 28 }}>Sin tags todavía.</td></tr>
             )}
             {!loading && tags.map((t) => (
               <tr key={t.id} style={{ opacity: t.isActive ? 1 : 0.5 }}>
@@ -254,14 +254,14 @@ export default function TagsAdminPage() {
                   {editingId === t.id ? (
                     <ColorSwatches value={editColor} onChange={setEditColor} />
                   ) : (
-                    <code style={{ fontSize: "0.78rem", color: "rgba(245,241,232,0.65)" }}>{t.color}</code>
+                    <code style={{ fontSize: "0.78rem", color: "rgb(var(--sl-cream-rgb) / 0.65)" }}>{t.color}</code>
                   )}
                 </td>
                 <td style={td}>
                   {editingId === t.id ? (
                     <input value={editDesc} onChange={(e) => setEditDesc(e.target.value)} style={ctrl} maxLength={300} placeholder="—" />
                   ) : (
-                    <span style={{ color: t.description ? "#f5f1e8" : "rgba(245,241,232,0.35)" }}>
+                    <span style={{ color: t.description ? "var(--sl-cream)" : "rgb(var(--sl-cream-rgb) / 0.35)" }}>
                       {t.description ?? "—"}
                     </span>
                   )}
@@ -324,21 +324,21 @@ function ColorSwatches({ value, onChange }: { value: TagColor; onChange: (c: Tag
 
 // ── Estilos ───────────────────────────────────────────────────────────
 const panel: React.CSSProperties = {
-  background: "rgba(245,241,232,0.04)",
-  border: "1px solid rgba(255,255,255,0.06)",
+  background: "rgb(var(--sl-cream-rgb) / 0.04)",
+  border: "1px solid rgb(var(--sl-veil-rgb) / 0.06)",
   borderRadius: 10,
   padding: 18,
   marginBottom: 18,
 };
-const lab:  React.CSSProperties = { display: "block", fontSize: "0.7rem", color: "rgba(245,241,232,0.5)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 };
+const lab:  React.CSSProperties = { display: "block", fontSize: "0.7rem", color: "rgb(var(--sl-cream-rgb) / 0.5)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 };
 const ctrl: React.CSSProperties = {
-  width: "100%", background: "rgba(245,241,232,0.04)", color: "#f5f1e8",
-  border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6,
+  width: "100%", background: "rgb(var(--sl-cream-rgb) / 0.04)", color: "var(--sl-cream)",
+  border: "1px solid rgb(var(--sl-veil-rgb) / 0.1)", borderRadius: 6,
   padding: "7px 10px", fontSize: "0.88rem", fontFamily: "inherit", boxSizing: "border-box",
 };
-const th:   React.CSSProperties = { textAlign: "left", padding: "12px 14px", fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(245,241,232,0.5)", borderBottom: "1px solid rgba(255,255,255,0.08)" };
-const td:   React.CSSProperties = { padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.04)", color: "rgba(245,241,232,0.9)", verticalAlign: "middle" };
-const primaryBtn: React.CSSProperties = { padding: "9px 16px", background: "#ba843c", color: "#1c2628", border: "none", borderRadius: 6, fontWeight: 700, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" };
-const ghostBtn:   React.CSSProperties = { padding: "5px 11px", background: "transparent", border: "1px solid rgba(186,132,60,0.4)", color: "#ba843c", borderRadius: 4, fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit" };
-const smallBtn:   React.CSSProperties = { padding: "5px 11px", background: "#ba843c", color: "#1c2628", border: "none", borderRadius: 4, fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" };
+const th:   React.CSSProperties = { textAlign: "left", padding: "12px 14px", fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "rgb(var(--sl-cream-rgb) / 0.5)", borderBottom: "1px solid rgb(var(--sl-veil-rgb) / 0.08)" };
+const td:   React.CSSProperties = { padding: "10px 14px", borderBottom: "1px solid rgb(var(--sl-veil-rgb) / 0.04)", color: "rgb(var(--sl-cream-rgb) / 0.9)", verticalAlign: "middle" };
+const primaryBtn: React.CSSProperties = { padding: "9px 16px", background: "var(--sl-gold)", color: "#1c2628", border: "none", borderRadius: 6, fontWeight: 700, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" };
+const ghostBtn:   React.CSSProperties = { padding: "5px 11px", background: "transparent", border: "1px solid rgb(var(--sl-gold-rgb) / 0.4)", color: "var(--sl-gold)", borderRadius: 4, fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit" };
+const smallBtn:   React.CSSProperties = { padding: "5px 11px", background: "var(--sl-gold)", color: "#1c2628", border: "none", borderRadius: 4, fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" };
 const dangerBtn:  React.CSSProperties = { padding: "5px 11px", background: "transparent", border: "1px solid rgba(224,85,85,0.45)", color: "#e05555", borderRadius: 4, fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit" };
