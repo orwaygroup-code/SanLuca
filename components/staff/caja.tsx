@@ -352,6 +352,8 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
   const [scPin, setScPin] = useState("");
   const [scBusy, setScBusy] = useState(false);
   const [scSent, setScSent] = useState<string | null>(null); // nombre del empleado al que se le mandó a la tablet
+  // #4 Cuenta YA LIGADA a un empleado: su NIP tecleado aquí mismo, en caja.
+  const [empApprovePin, setEmpApprovePin] = useState("");
 
   useEffect(() => {
     if (!open || comandaId == null) { setComanda(null); setLoadErr(null); return; }
@@ -458,6 +460,22 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
     if (r.ok && r.data) setComanda(r.data);
   };
 
+  // #4 Aprobar EN CAJA una cuenta ya ligada. El endpoint employee-approve
+  // siempre soportó este caso —valida el PIN del empleado ligado, venga de su
+  // Cartera o de la terminal— pero sólo lo llamaba la pantalla del empleado.
+  // Sin esto, ligar una cuenta la dejaba imposible de cobrar hasta que la
+  // persona abriera su app: si estaba parada frente a la caja, no había vía.
+  const approveLinkedEmployee = async () => {
+    if (!comanda) return;
+    setScBusy(true);
+    const r = await apiFetch<Comanda>(`/api/comandas/${comanda.id}/employee-approve`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pin: empApprovePin }),
+    });
+    setScBusy(false);
+    if (r.ok && r.data) { setComanda(r.data); setEmpApprovePin(""); }
+    else onError(r.error ?? "No se pudo aprobar la cuenta");
+  };
+
   // Mandar la confirmación a la TABLET del empleado. La cuenta queda pendiente hasta que confirme.
   const requestStaffCredit = async () => {
     if (!comanda || scEmp == null) return;
@@ -492,6 +510,37 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
             {paidBefore > 0 && <div style={{ ...kv, color: C.faint, fontSize: "0.78rem" }}><span>Pagado antes</span><span>{formatMXN(paidBefore)}</span></div>}
             <div style={{ ...kv, color: C.cream, fontWeight: 800 }}><span>Saldo por cobrar</span><span>{formatMXN(remaining)}</span></div>
           </div>
+
+          {/* #4 Cuenta LIGADA a un empleado. /pay la rechaza mientras no esté
+              APPROVED, y hasta ahora la única forma de aprobarla era que la
+              persona entrara a su app: si estaba parada frente a la caja, la
+              cuenta no se podía cerrar por ninguna vía. */}
+          {comanda.chargedEmployeeId != null && (
+            <div style={{ marginTop: 12, border: `1px solid ${comanda.employeeChargeStatus === "APPROVED" ? C.green : C.gold}`, borderRadius: 12, padding: "12px 14px" }}>
+              {comanda.employeeChargeStatus === "APPROVED" ? (
+                <div style={{ color: C.green, fontSize: "0.86rem", lineHeight: 1.5 }}>
+                  Ligada a <b>{comanda.chargedEmployee?.fullName ?? "un empleado"}</b> · aprobada. Ya se puede cobrar a crédito.
+                </div>
+              ) : (
+                <div>
+                  <div style={{ color: C.cream, fontSize: "0.86rem", lineHeight: 1.5 }}>
+                    Ligada a <b>{comanda.chargedEmployee?.fullName ?? "un empleado"}</b>. Debe aprobarla con su NIP —aquí en caja o desde su app— antes de cobrarla.
+                  </div>
+                  <div style={{ marginTop: 10 }}>
+                    <label style={fld.label}>NIP de {comanda.chargedEmployee?.fullName ?? "el empleado"}</label>
+                    <PinInput value={empApprovePin} onChange={setEmpApprovePin} />
+                    <button
+                      onClick={approveLinkedEmployee}
+                      disabled={scBusy || empApprovePin.length !== 4}
+                      style={{ ...btn.primary, width: "100%", marginTop: 10, opacity: empApprovePin.length === 4 && !scBusy ? 1 : 0.5 }}
+                    >
+                      {scBusy ? "Aprobando…" : "Aprobar en caja"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {calc.map((c, i) => {
             const isCash = c.method === "CASH";

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireCashier } from "@/lib/dualAuth";
 import { verifySupervisorPin } from "@/lib/staff";
-import { TENANT, ACTIVE_STATUSES, COMANDA_INCLUDE } from "@/lib/comanda";
+import { TENANT, ACTIVE_STATUSES, COMANDA_INCLUDE, statusAfterReopen } from "@/lib/comanda";
 import { notify } from "@/lib/notify";
 import type { ApiResponse } from "@/types";
 
@@ -70,11 +70,21 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         data: { voided: true, voidedById: a.staffId, voidedReason: reason, voidedAt: new Date() },
       });
     }
+    // Con los pagos anulados la cuenta vuelve a estar realmente sin cobrar, así
+    // que regresa a IN_SERVICE: el mesero recupera todas las acciones de mesa
+    // en servicio (agregar, cancelar, mover, descontar). Antes quedaba siempre
+    // en AWAITING_PAYMENT —que no está en EDITABLE_STATUSES— y reabrir dejaba
+    // la cuenta igual de bloqueada que antes: sólo cobrar o volver a reabrir.
+    //
+    // Si los pagos se conservan, el dinero sigue sobre la cuenta y editar los
+    // productos podría dejar el total por debajo de lo ya cobrado. Ese caso
+    // permanece en AWAITING_PAYMENT; para editarlo está /unlock, con su propia
+    // autorización y motivo.
     await tx.comanda.update({
       where: { id },
       data: {
-        status: "AWAITING_PAYMENT",
-        awaitingPaymentAt: new Date(),
+        status: statusAfterReopen(voidPayments),
+        awaitingPaymentAt: voidPayments ? null : new Date(),
         closedAt: null,
         closedById: null,
         reopenCount: { increment: 1 },

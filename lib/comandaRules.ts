@@ -1,5 +1,30 @@
 import type { StaffRole } from "./staff-session";
 
+/** Estados en los que la cuenta admite cambios (agregar, cancelar, descontar). */
+export const EDITABLE_STATUSES = ["OPEN", "IN_SERVICE"] as const;
+
+export function isEditableStatus(status: string): boolean {
+  return (EDITABLE_STATUSES as readonly string[]).includes(status);
+}
+
+/**
+ * Estado en que queda una cuenta PAID al reabrirse.
+ *
+ * Con los pagos anulados la cuenta vuelve a estar sin cobrar, así que regresa a
+ * IN_SERVICE y el mesero recupera todas las acciones de mesa en servicio.
+ * Conservando los pagos, el dinero sigue encima: editar productos podría dejar
+ * el total por debajo de lo cobrado, así que permanece bloqueada y para
+ * editarla está /unlock, con su propia autorización.
+ *
+ * Vive aquí, junto a las reglas puras, para poder fijar por prueba la
+ * invariante que se rompió: reabrir con pagos anulados TIENE que devolver un
+ * estado editable. Antes devolvía siempre AWAITING_PAYMENT, así que reabrir
+ * dejaba la cuenta tan bloqueada como estaba.
+ */
+export function statusAfterReopen(voidPayments: boolean): "IN_SERVICE" | "AWAITING_PAYMENT" {
+  return voidPayments ? "IN_SERVICE" : "AWAITING_PAYMENT";
+}
+
 /**
  * Reglas de permisos y helpers PUROS del sistema de Comandas (Fase B.1).
  * Sin DB — testeables directamente. Los endpoints las consumen.

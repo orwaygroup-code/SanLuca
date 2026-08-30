@@ -12,6 +12,8 @@ import {
   decidePrint,
   formatFolio,
   buildSplits,
+  statusAfterReopen,
+  isEditableStatus,
 } from "../lib/comandaRules";
 
 // ── canModifyComanda ────────────────────────────────────────────────
@@ -89,4 +91,20 @@ test("división genera un ticket por grupo con total = Σ unitPrice×qty", () =>
     units: [{ itemId: 1, quantity: 1 }, { itemId: 2, quantity: 1 }, { itemId: 3, quantity: 1 }],
     total: 730,
   });
+});
+
+// ── Reapertura de cuenta cobrada ────────────────────────────────────
+// Regresión: reabrir dejaba SIEMPRE la cuenta en AWAITING_PAYMENT, que no es
+// editable, así que "reabrir" no devolvía ninguna acción de mesa en servicio.
+
+test("reabrir anulando pagos devuelve la cuenta a un estado EDITABLE", () => {
+  const s = statusAfterReopen(true);
+  assert.equal(s, "IN_SERVICE");
+  assert.equal(isEditableStatus(s), true);
+});
+
+test("reabrir conservando pagos NO deja editar: el dinero sigue sobre la cuenta", () => {
+  const s = statusAfterReopen(false);
+  assert.equal(s, "AWAITING_PAYMENT");
+  assert.equal(isEditableStatus(s), false);
 });

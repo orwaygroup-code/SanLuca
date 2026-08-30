@@ -75,10 +75,10 @@ export const ACTIVE_STATUSES = ["OPEN", "IN_SERVICE", "AWAITING_PAYMENT", "PARTI
  * de tocarla. Regla de negocio de Paul: nada de cancelar/modificar una cuenta impresa sin
  * reabrirla primero.
  */
-export const EDITABLE_STATUSES = ["OPEN", "IN_SERVICE"] as const;
-export function isEditableStatus(status: string): boolean {
-  return (EDITABLE_STATUSES as readonly string[]).includes(status);
-}
+// Definidos en comandaRules (puro, sin DB) para poder probarlos sin instanciar
+// Prisma. Se re-exportan aquí porque medio proyecto los importa desde comanda.
+export { EDITABLE_STATUSES, isEditableStatus, statusAfterReopen } from "./comandaRules";
+
 /** Mensaje único cuando se intenta modificar una cuenta ya bloqueada (por cobrar / pagada). */
 export const LOCKED_ACCOUNT_MSG = "La cuenta ya está impresa / por cobrar. Reábrela para poder modificarla o cancelarla.";
 
