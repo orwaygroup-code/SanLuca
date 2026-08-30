@@ -33,10 +33,15 @@ export function StaffNotifications() {
   const subscribedRef = useRef(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  // Cerrar (minimizar) el panel al hacer click en cualquier otro lado.
+  // Cerrar (minimizar) el panel al tocar en cualquier otro lado.
+  //
+  // Escuchaba "mousedown", que en un táctil sólo llega como evento sintetizado
+  // después del toque —y no siempre—, así que en celular el panel se quedaba
+  // abierto. "pointerdown" cubre ratón, dedo y lápiz con un solo manejador y
+  // dispara en el instante del contacto.
   useEffect(() => {
     if (!open) return;
-    const onDown = (e: MouseEvent) => {
+    const onDown = (e: Event) => {
       if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
         const now = Date.now();
         setLastSeen(now);
@@ -44,8 +49,8 @@ export function StaffNotifications() {
         setOpen(false);
       }
     };
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
   }, [open]);
 
   useEffect(() => {

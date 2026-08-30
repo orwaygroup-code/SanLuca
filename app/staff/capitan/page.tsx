@@ -6,6 +6,7 @@ import { useStaffSession } from "@/lib/staff-session-client";
 import { C, StaffHeader, Spinner, useStaffLogout } from "@/components/staff/ui";
 import { CapitanBoard } from "@/components/staff/CapitanBoard";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { StaffRail } from "@/components/staff/StaffRail";
 import { Tour, type TourStep } from "@/components/staff/Tour";
 
 /** Tutorial guiado de la vista Capitán. */
@@ -63,22 +64,33 @@ export default function CapitanPage() {
         onLogout={logout}
         right={
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {hasAdmin && (
-              <button onClick={() => setMenuOpen(true)} title="Menú" aria-label="Abrir menú"
-                style={{ width: 40, height: 40, borderRadius: 999, border: `1px solid ${C.border}`, background: "transparent", color: C.gold, fontWeight: 800, fontSize: "1.15rem", lineHeight: 1, cursor: "pointer" }}>☰</button>
-            )}
+            {/* Siempre visible. Antes se ocultaba a quien no tuviera puente
+                admin —y esos managers se quedaban SIN navegación alguna en
+                esta vista—. Lo que cambia no es el botón, sino a dónde lleva:
+                el menú del panel para quien puede entrar a /admin, y el riel
+                de staff para el resto. */}
+            <button onClick={() => setMenuOpen(true)} title="Menú" aria-label="Abrir menú"
+              style={{ width: 40, height: 40, borderRadius: 999, border: `1px solid ${C.border}`, background: "transparent", color: C.gold, fontWeight: 800, fontSize: "1.15rem", lineHeight: 1, cursor: "pointer" }}>☰</button>
             <button onClick={() => setTourOpen(true)} title="Tutorial" aria-label="Abrir tutorial"
               style={{ width: 40, height: 40, borderRadius: 999, border: `1px solid ${C.border}`, background: "transparent", color: C.gold, fontWeight: 800, fontSize: "1.05rem", cursor: "pointer" }}>?</button>
           </div>
         }
       />
 
-      {/* Drawer de navegación (mismo menú del panel admin) — solo para MANAGER con puente admin. */}
-      {hasAdmin && menuOpen && (
+      {/* Drawer de navegación. Con puente admin abre el menú del panel; sin él,
+          el riel de staff — mismos destinos a los que sí tiene acceso. */}
+      {menuOpen && (
         <div style={{ position: "fixed", inset: 0, zIndex: 60 }}>
           <div onClick={() => setMenuOpen(false)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)" }} />
-          <div style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: 260, maxWidth: "82vw", boxShadow: "4px 0 24px rgba(0,0,0,0.5)" }}>
-            <AdminSidebar userName={staff.fullName} onLogout={logout} onNavigate={() => setMenuOpen(false)} />
+          <div
+            onClick={() => setMenuOpen(false)}
+            style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: hasAdmin ? 260 : 112, maxWidth: "82vw", boxShadow: "4px 0 24px rgba(0,0,0,0.5)", overflowY: "auto" }}
+          >
+            {hasAdmin ? (
+              <AdminSidebar userName={staff.fullName} onLogout={logout} onNavigate={() => setMenuOpen(false)} />
+            ) : (
+              <StaffRail active="mesas" role={staff.role} userName={staff.fullName} onLogout={logout} />
+            )}
           </div>
         </div>
       )}
