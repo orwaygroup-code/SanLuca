@@ -940,7 +940,11 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
         confirmLabel="Reimprimir"
         // Al supervisor en sesión no se le pide PIN: ya está identificado. Al
         // cajero sí, y es el PIN de quien autoriza, no el suyo.
-        requirePin={!isSupervisor}
+        //
+        // Salvo que la cuenta ya esté COBRADA: en el archivo no hay nada que
+        // alterar, así que una copia del ticket no necesita que nadie autorice.
+        // Sigue pidiendo el motivo, que es la huella de quién la pidió.
+        requirePin={!isSupervisor && !isPaid}
         busy={busy}
         onConfirm={async (reason, pin) => { setReprint(false); await doPrint(reason, pin); }}
         onCancel={() => setReprint(false)}

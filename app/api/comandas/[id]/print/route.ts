@@ -51,7 +51,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const comanda = await prisma.comanda.findFirst({
     where: { id, tenantId: TENANT },
     select: {
-      id: true, waiterId: true, folio: true, guestsActual: true, openedAt: true,
+      id: true, waiterId: true, folio: true, guestsActual: true, openedAt: true, status: true,
       subtotal: true, taxAmount: true, total: true, discountTotal: true,
       customName: true,
       waiter: { select: { fullName: true } },
@@ -92,19 +92,29 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     // autorizar un papel es la clase de fricción que termina en que nadie
     // reimprime y se resuelve a mano. Es el mismo override que ya usan
     // descuentos, reapertura, traspasos y cancelaciones.
-    const authPin = typeof body?.authPin === "string" ? body.authPin.trim() : "";
-    const auth = resolveReprintAuthorizer({
-      // isSupervisor y isReprintAuthorizer cubren el mismo conjunto
-      // (ADMIN, CAPTAIN, MANAGER), así que basta con pasar el rol tal cual.
-      operatorRole: actor.role,
-      operatorStaffId: actor.staffId,
-      pinProvided: authPin.length > 0,
-      pinAuthorizedId: authPin
-        ? await verifySupervisorPin(authPin, { tenantId: TENANT, roles: [...REPRINT_AUTHORIZER_ROLES] })
-        : null,
-    });
-    if (!auth.ok) return NextResponse.json<ApiResponse>({ success: false, error: auth.error }, { status: auth.status });
-    reprintAuthorizedById = auth.authorizedById;
+    // Excepción: una cuenta ya COBRADA vive en el archivo. No se le puede agregar
+    // ni quitar nada, y su ticket ya no describe una operación en curso, así que
+    // pedir PIN para sacarle una copia —la petición más común en caja— estorbaba
+    // sin proteger nada. Se conserva el motivo, que es lo que deja huella de
+    // quién pidió la copia y por qué.
+    const esArchivo = comanda.status === "PAID";
+    if (esArchivo) {
+      reprintAuthorizedById = actor.staffId;
+    } else {
+      const authPin = typeof body?.authPin === "string" ? body.authPin.trim() : "";
+      const auth = resolveReprintAuthorizer({
+        // isSupervisor y isReprintAuthorizer cubren el mismo conjunto
+        // (ADMIN, CAPTAIN, MANAGER), así que basta con pasar el rol tal cual.
+        operatorRole: actor.role,
+        operatorStaffId: actor.staffId,
+        pinProvided: authPin.length > 0,
+        pinAuthorizedId: authPin
+          ? await verifySupervisorPin(authPin, { tenantId: TENANT, roles: [...REPRINT_AUTHORIZER_ROLES] })
+          : null,
+      });
+      if (!auth.ok) return NextResponse.json<ApiResponse>({ success: false, error: auth.error }, { status: auth.status });
+      reprintAuthorizedById = auth.authorizedById;
+    }
     if (!authorizationReason || !authorizationReason.trim()) {
       return NextResponse.json<ApiResponse>({ success: false, error: "authorizationReason es obligatorio para reimprimir" }, { status: 400 });
     }
