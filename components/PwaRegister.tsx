@@ -12,7 +12,7 @@ import { usePathname } from "next/navigation";
  *     aunque quede abierto todo el servicio, se entera de los cambios y el usuario
  *     recarga cuando quiere. (El SW es passthrough: un reload trae código fresco.)
  */
-export function PwaRegister() {
+export function PwaRegister({ buildId }: { buildId?: string }) {
   const pathname = usePathname();
   const [updateReady, setUpdateReady] = useState(false);
 
@@ -36,12 +36,25 @@ export function PwaRegister() {
   }, [pathname]);
 
   useEffect(() => {
+    // El build que selló el HTML que el navegador tiene cargado. Es la
+    // referencia correcta: dice qué código está corriendo aquí, no qué versión
+    // respondió el servidor la primera vez.
+    const loaded = buildId && buildId !== "dev" ? buildId : null;
+    // Respaldo para desarrollo, donde la constante puede no existir: se guarda
+    // el primer valor visto y se detecta el cambio en caliente.
     let initial: string | null = null;
     let stopped = false;
     const check = async () => {
       try {
         const d = await fetch("/api/version", { cache: "no-store" }).then((r) => r.json());
         if (!d?.build) return;
+        if (loaded) {
+          // Detecta el desfase ya en la PRIMERA consulta: sirve tanto para un
+          // deploy con la app abierta como para una app abierta con el paquete
+          // viejo en caché, que es el caso que antes pasaba desapercibido.
+          if (d.build !== loaded) setUpdateReady(true);
+          return;
+        }
         if (initial === null) initial = d.build;
         else if (d.build !== initial) setUpdateReady(true);
       } catch {
@@ -57,7 +70,7 @@ export function PwaRegister() {
       clearInterval(id);
       if (typeof document !== "undefined") document.removeEventListener("visibilitychange", onVis);
     };
-  }, []);
+  }, [buildId]);
 
   if (!updateReady) return null;
   return (

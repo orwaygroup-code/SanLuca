@@ -16,6 +16,7 @@ import { LayoutWrapper } from "@/components/LayoutWrapper";
 import { LanguageProvider } from "@/lib/i18n";
 import { SessionProvider } from "@/lib/session-client";
 import { PwaRegister } from "@/components/PwaRegister";
+import { BUILD_ID } from "@/lib/buildId";
 import { SplashScreen } from "@/components/SplashScreen";
 import { NoZoom } from "@/components/NoZoom";
 import { THEME_BOOTSTRAP } from "@/components/ui/ThemeToggle";
@@ -86,7 +87,7 @@ export default function RootLayout({
       <body>
         <SplashScreen />
         <NoZoom />
-        <PwaRegister />
+        <PwaRegister buildId={BUILD_ID} />
         <InstallButton />
         <StaffNotifications />
         <StaffCreditConfirmPrompt />

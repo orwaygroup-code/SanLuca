@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { readFileSync } from "fs";
 import { join } from "path";
+import { BUILD_ID } from "@/lib/buildId";
 
 export const dynamic = "force-dynamic";
 
@@ -9,12 +10,9 @@ export const dynamic = "force-dynamic";
  * cliente lo compara contra el que tenía al cargar; si cambió, ofrece "Actualizar".
  * Se lee UNA vez al arrancar el proceso (no cambia durante la vida del proceso).
  */
-let BUILD = "dev";
-try {
-  BUILD = readFileSync(join(process.cwd(), ".next", "BUILD_ID"), "utf8").trim() || BUILD;
-} catch {
-  /* en dev o si no existe el archivo, queda "dev" */
-}
+// Fuente compartida con el sello del HTML: si cada uno leyera el archivo por su
+// cuenta acabarían pudiendo diferir, y justo su igualdad es lo que se compara.
+const BUILD = BUILD_ID;
 
 /**
  * Commit desplegado. Lo escribe deploy.sh junto al BUILD_ID.

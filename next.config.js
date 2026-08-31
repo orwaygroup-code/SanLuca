@@ -21,9 +21,19 @@ const SECURITY_HEADERS = [
   { key: "Content-Security-Policy",   value: CSP },
 ];
 
+/**
+ * Identificador del build. Se fija aquí —en vez de dejar que Next genere uno
+ * aleatorio— para que sea legible en los registros y estable dentro de un mismo
+ * build. Es el valor que acaba en .next/BUILD_ID, que a su vez sella el HTML y
+ * responde /api/version: comparar ambos revela una tablet corriendo código
+ * viejo (ver lib/buildId.ts).
+ */
+const BUILD_ID = process.env.BUILD_ID || `sl-${Date.now().toString(36)}`;
+
 const nextConfig = {
   reactStrictMode: true,
   output: "standalone",
+  generateBuildId: () => BUILD_ID,
   experimental: {
     serverActions: {
       bodySizeLimit: "2mb",
