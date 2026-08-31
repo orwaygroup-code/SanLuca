@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { requireCashier } from "@/lib/dualAuth";
 import { verifySupervisorPin } from "@/lib/staff";
 import { TENANT, ACTIVE_STATUSES, COMANDA_INCLUDE, recalcComandaTotals } from "@/lib/comanda";
+import { round2 } from "@/lib/comandaTotals";
+import { splitBillDiscount } from "@/lib/comandaRules";
 import type { ApiResponse } from "@/types";
 
 function parseId(raw: string): number | null {
@@ -36,7 +39,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   if (!authorizedById) return NextResponse.json<ApiResponse>({ success: false, error: "PIN de supervisor inválido (Capitán/Manager)" }, { status: 403 });
 
   const [from, to] = await Promise.all([
-    prisma.comanda.findFirst({ where: { id: fromId, tenantId: TENANT }, select: { id: true, status: true } }),
+    prisma.comanda.findFirst({ where: { id: fromId, tenantId: TENANT }, select: { id: true, status: true, discountTotal: true } }),
     prisma.comanda.findFirst({ where: { id: toId, tenantId: TENANT }, select: { id: true, status: true } }),
   ]);
   if (!from) return NextResponse.json<ApiResponse>({ success: false, error: "Cuenta origen no encontrada" }, { status: 404 });
@@ -49,11 +52,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
   const items = await prisma.comandaItem.findMany({
     where: { id: { in: itemIds }, comandaId: fromId, tenantId: TENANT, status: { not: "CANCELLED" } },
-    select: { id: true, dishNameSnapshot: true, quantity: true, lineTotal: true },
+    select: { id: true, dishNameSnapshot: true, quantity: true, lineTotal: true, discountAmount: true },
   });
   if (items.length === 0) return NextResponse.json<ApiResponse>({ success: false, error: "Ninguno de los productos elegidos se puede traspasar" }, { status: 400 });
 
-  const ops = items.flatMap((it) => [
+  // Tipado explícito: al arreglo se le suman después actualizaciones de Comanda,
+  // y la inferencia lo dejaría atado solo a operaciones de ComandaItem.
+  const ops: Prisma.PrismaPromise<unknown>[] = items.flatMap((it) => [
     prisma.comandaItem.update({ where: { id: it.id }, data: { comandaId: toId } }),
     prisma.comandaItemTransfer.create({
       data: {
@@ -63,6 +68,25 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       },
     }),
   ]);
+
+  // El descuento A NIVEL CUENTA sigue a los productos en proporción a lo que se
+  // llevan: se pactó sobre el consumo entero, así que si la mitad se va a otra
+  // cuenta, la mitad de la rebaja se va con ella. Quedándose entero en el
+  // origen, un traspaso grande lo acotaba en cero y el cliente pagaba de más.
+  const grossOf = (lineTotal: unknown, itemDiscount: unknown) => Math.max(0, round2(Number(lineTotal) - Number(itemDiscount)));
+  const todos = await prisma.comandaItem.findMany({
+    where: { comandaId: fromId, tenantId: TENANT, status: { not: "CANCELLED" } },
+    select: { lineTotal: true, discountAmount: true },
+  });
+  const totalGross = todos.reduce((s, i) => s + grossOf(i.lineTotal, i.discountAmount), 0);
+  const movedGross = items.reduce((s, i) => s + grossOf(i.lineTotal, i.discountAmount), 0);
+  const reparto = splitBillDiscount({ discountTotal: Number(from.discountTotal), movedGross, totalGross });
+  if (reparto.moved > 0) {
+    ops.push(
+      prisma.comanda.update({ where: { id: fromId }, data: { discountTotal: reparto.remaining } }),
+      prisma.comanda.update({ where: { id: toId }, data: { discountTotal: { increment: reparto.moved } } }),
+    );
+  }
 
   await prisma.$transaction(ops);
   await Promise.all([recalcComandaTotals(fromId), recalcComandaTotals(toId)]);

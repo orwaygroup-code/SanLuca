@@ -37,6 +37,18 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     return NextResponse.json<ApiResponse>({ success: false, error: `Comanda ${comanda.status}: no aplica pedir cuenta` }, { status: 409 });
   }
 
+  // No se pide la cuenta con productos aún "por enviar": nunca llegaron a
+  // cocina y se estarían cobrando como entregados. Es la misma regla que ya
+  // aplicaba la impresión; faltaba aquí, y dejaba la cuenta bloqueada con
+  // pendientes — el único modo de sacarlos era enviarlos a cocina, que además
+  // la desbloqueaba sin pedir PIN a nadie.
+  const pendientes = await prisma.comandaItem.count({
+    where: { comandaId: id, tenantId: TENANT, status: "PENDING" },
+  });
+  if (pendientes > 0) {
+    return NextResponse.json<ApiResponse>({ success: false, error: "Hay productos por enviar a cocina. Envíalos o quítalos antes de pedir la cuenta." }, { status: 409 });
+  }
+
   await prisma.comanda.update({ where: { id }, data: { status: "AWAITING_PAYMENT", awaitingPaymentAt: new Date() } });
   const updated = await prisma.comanda.findFirst({ where: { id, tenantId: TENANT }, include: COMANDA_INCLUDE });
   return NextResponse.json<ApiResponse>({ success: true, data: updated });

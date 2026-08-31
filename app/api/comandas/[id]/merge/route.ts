@@ -42,7 +42,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     prisma.comanda.findFirst({ where: { id: targetId, tenantId: TENANT }, select: { id: true, status: true } }),
     prisma.comanda.findFirst({
       where: { id: sourceId, tenantId: TENANT },
-      select: { id: true, status: true, folio: true, total: true, amountPaid: true },
+      select: { id: true, status: true, folio: true, total: true, amountPaid: true, discountTotal: true },
     }),
   ]);
   if (!target) return NextResponse.json<ApiResponse>({ success: false, error: "Cuenta destino no encontrada" }, { status: 404 });
@@ -83,7 +83,15 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     }),
     prisma.comanda.update({
       where: { id: sourceId },
-      data: { status: "MERGED", closedAt: new Date(), closedById: a.staffId },
+      // El descuento a nivel cuenta del origen se suma al destino y se limpia
+      // del origen: los productos se van todos allá, así que el descuento
+      // pactado sobre ellos tiene que irse también. Sin esto quedaba huérfano
+      // en una cuenta MERGED y el cliente perdía la rebaja acordada.
+      data: { status: "MERGED", closedAt: new Date(), closedById: a.staffId, discountTotal: 0 },
+    }),
+    prisma.comanda.update({
+      where: { id: targetId },
+      data: { discountTotal: { increment: source.discountTotal } },
     }),
   ]);
 

@@ -5,7 +5,7 @@ import { verifySupervisorPin } from "@/lib/staff";
 import { TENANT, COMANDA_INCLUDE, recalcComandaTotals, isEditableStatus, LOCKED_ACCOUNT_MSG } from "@/lib/comanda";
 import { notify } from "@/lib/notify";
 import { round2, lineTotal as calcLineTotal } from "@/lib/comandaTotals";
-import { formatFolio, nextSplitLabel, canSplitAccount, REPRINT_AUTHORIZER_ROLES } from "@/lib/comandaRules";
+import { formatFolio, nextSplitLabel, canSplitAccount, splitBillDiscount, REPRINT_AUTHORIZER_ROLES } from "@/lib/comandaRules";
 import type { ApiResponse } from "@/types";
 
 function parseId(raw: string): number | null {
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const parent = await prisma.comanda.findFirst({
     where: { id: parentId, tenantId: TENANT },
     select: {
-      id: true, status: true, tableId: true, customName: true, splitLabel: true,
+      id: true, status: true, tableId: true, customName: true, splitLabel: true, discountTotal: true,
       waiterId: true, shift: true, guestsActual: true, channel: true,
       table: { select: { number: true } },
       items: {
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         select: {
           id: true, status: true, dishId: true, dishNameSnapshot: true, unitPriceSnapshot: true,
           prepAreaSnapshot: true, quantity: true, modifiers: true, modifiersExtraCost: true,
-          kitchenNotes: true, discountAmount: true, course: true, addedById: true,
+          kitchenNotes: true, discountAmount: true, course: true, addedById: true, lineTotal: true,
         },
       },
     },
@@ -195,6 +195,26 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       });
     }
   });
+
+  // El descuento A NIVEL CUENTA sigue a los productos en proporción a lo que se
+  // llevan. Sin esto se queda entero en la cuenta original: si de ahí sale casi
+  // todo, el descuento supera lo que queda, se acota en cero y la diferencia se
+  // evapora — el cliente paga más de lo pactado sin que nadie lo note.
+  const grossOf = (lineTotal: number, itemDiscount: number) => Math.max(0, round2(lineTotal - itemDiscount));
+  const totalGross = parent.items.reduce((s, i) => s + grossOf(Number(i.lineTotal), Number(i.discountAmount)), 0);
+  const movedGross = units.reduce((s, u) => {
+    const it = byId.get(u.itemId)!;
+    const have = Number(it.quantity);
+    const share = have > 0 ? u.quantity / have : 0;
+    return s + grossOf(Number(it.lineTotal) * share, Number(it.discountAmount) * share);
+  }, 0);
+  const reparto = splitBillDiscount({ discountTotal: Number(parent.discountTotal), movedGross, totalGross });
+  if (reparto.moved > 0) {
+    await prisma.$transaction([
+      prisma.comanda.update({ where: { id: parentId }, data: { discountTotal: reparto.remaining } }),
+      prisma.comanda.update({ where: { id: childId }, data: { discountTotal: reparto.moved } }),
+    ]);
+  }
 
   await Promise.all([recalcComandaTotals(parentId), recalcComandaTotals(childId)]);
 
