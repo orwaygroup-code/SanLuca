@@ -51,3 +51,25 @@ San Luca AI WhatsApp*.json
 
 # Imágenes subidas desde el CRUD de platillos (se crean en el servidor)
 /public/uploads/
+
+# Herramientas de editor / IDE / agentes de IA (config PERSONAL de cada dev, no del proyecto)
+.claude/
+.agents/
+.junie/
+.idea/
+.vscode/
+skills-lock.json
+*.code-workspace
+
+# Dumps de base de datos (datos reales de prod — NUNCA al repo)
+*.dump
+*.sql.gz
+*.sqlc
+
+# Exports de Obsidian / notas y presentaciones sueltas (no son código)
+docs/obsidian-export/
+presentacion-*.md
+
+# Instrucciones locales de Claude Code (si tu equipo las quiere COMPARTIR, borra esta
+# línea y commitea CLAUDE.md a propósito; por defecto se trata como personal)
+CLAUDE.md
