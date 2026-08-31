@@ -722,6 +722,21 @@ model Comanda {
 
   status ComandaStatus @default(OPEN)
 
+  // ── División de cuenta ────────────────────
+  // Una cuenta hija nace de otra llevándose parte de sus productos, y desde ahí
+  // es una cuenta normal: se le agrega, se imprime, se cobra y se puede volver a
+  // dividir. Distinto de los "splits" de impresión, que reparten UN ticket sin
+  // crear cuentas.
+  parentComandaId Int?
+  parentComanda   Comanda?  @relation("ComandaSplit", fields: [parentComandaId], references: [id])
+  splitChildren   Comanda[] @relation("ComandaSplit")
+
+  // Etiqueta visible de la división: "14-1", y de una división de esa, "14-1-1".
+  // Se guarda completa —y no solo el sufijo— para que la cuenta siga llamándose
+  // igual aunque después se le cambie la mesa. Guion y no punto: un punto en un
+  // identificador acaba interpretándose como separador en algún lado.
+  splitLabel      String?
+
   // Totales cacheados (calculados en backend; IVA según RestaurantSettings)
   subtotal  Decimal @default(0) @db.Decimal(10, 2)
   taxAmount Decimal @default(0) @db.Decimal(10, 2)

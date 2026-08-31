@@ -107,6 +107,9 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   // asignadas a esa división. Permite repartir fracciones de un mismo platillo.
   const [splits, setSplits] = useState<Map<number, number>[]>([]);
   const [splitOpen, setSplitOpen] = useState(false);
+  // Partir la cuenta en una cuenta hija (14 → 14-1). Distinto de `splits`, que
+  // solo reparte el ticket al imprimir y no crea nada.
+  const [splitAcctOpen, setSplitAcctOpen] = useState(false);
 
   const isSupervisor = staff?.role === "CAPTAIN" || staff?.role === "MANAGER";
   const isManager = staff?.role === "MANAGER"; // "administrador": único que reabre cuentas selladas
@@ -234,6 +237,26 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
     setSplitOpen(false);
   };
   const removeSplit = (idx: number) => setSplits((s) => s.filter((_, i) => i !== idx));
+
+  // Partir la cuenta de verdad: crea una cuenta hija con lo seleccionado y deja
+  // el resto aquí. La hija queda "en servicio" y se comporta como cualquier otra.
+  const doSplitAccount = async (units: Map<number, number>, pin: string) => {
+    setBusy(true);
+    const r = await apiFetch<{ parent: Comanda; child: Comanda }>(`/api/comandas/${id}/split-account`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        units: [...units].map(([itemId, quantity]) => ({ itemId, quantity })),
+        authPin: pin,
+      }),
+    });
+    setBusy(false);
+    if (!r.ok) { push(r.error ?? "No se pudo dividir la cuenta", "error"); return; }
+    setSplitAcctOpen(false);
+    if (r.data?.parent) setComanda(r.data.parent);
+    const label = r.data?.child?.splitLabel ?? "nueva";
+    push(`Cuenta dividida · se creó ${label}`, "success");
+  };
 
   // ── acciones ──
   const post = useCallback(async (path: string, body?: unknown, okMsg?: string) => {
@@ -790,17 +813,30 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
                 {awaitingBill && !alreadyPrinted && (
                   <button style={caja.primary} onClick={() => setAskPrint(true)} disabled={busy || liveItems.length === 0 || pendingCount > 0} title={pendingCount > 0 ? "Envía a cocina lo pendiente antes de imprimir" : undefined}><Icon name="printer" size={18} />Imprimir ticket</button>
                 )}
+                {/* Partir la cuenta en dos cuentas reales. La hija se llama "14-1" y
+                    desde ahí es una cuenta normal: se le agrega, se imprime, se cobra
+                    y se puede volver a dividir ("14-1-1"). */}
+                {splittable && totalLiveUnits > 1 && (
+                  <button style={caja.secondary} onClick={() => setSplitAcctOpen(true)} disabled={busy || liveItems.length === 0}>
+                    Dividir cuenta
+                  </button>
+                )}
+                {/* Distinto: esto NO crea cuentas, reparte el ticket que se va a
+                    imprimir entre varios comensales. De ahí el nombre. */}
                 {splittable && totalLiveUnits > 1 && (
                   <button style={caja.secondary} onClick={() => setSplitOpen(true)} disabled={busy || matrixItemsWithQty.length === 0}>
-                    {splits.length === 0 ? "Dividir cuenta" : "Dividir otra cuenta"}
+                    {splits.length === 0 ? "Dividir ticket" : "Dividir otro ticket"}
                   </button>
                 )}
                 {alreadyPrinted && (
                   <button style={caja.primary} onClick={() => setPayOpen(true)} disabled={busy}><Icon name="card" size={18} />Cobrar{amountPaid > 0 ? ` · restan ${formatMXN(remaining)}` : ""}</button>
                 )}
-                {/* Impresa: la ÚNICA acción es Cobrar. "Reabrir cuenta" queda solo como salida de
-                    emergencia para SUPERVISORES (Capitán/Manager) — corrige errores tras imprimir. */}
-                {porCobrar && isSupervisor && (
+                {/* Impresa: las acciones son Cobrar y Reabrir. La reapertura devuelve la
+                    cuenta a "en servicio" con todo lo normal —agregar, imprimir, dividir—
+                    porque isBillPrinted solo cuenta tickets posteriores a la reapertura.
+                    Lo ve toda la caja: el endpoint exige PIN de Capitán o Manager pase lo
+                    que pase, así que esconderlo al cajero solo lo obligaba a cerrar sesión. */}
+                {porCobrar && (
                   <button style={caja.secondary} onClick={() => setUnlockAsk(true)} disabled={busy}>Reabrir cuenta</button>
                 )}
               </div>
@@ -1019,6 +1055,22 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
         busy={busy}
         onConfirm={createSplit}
         onClose={() => setSplitOpen(false)}
+      />
+
+      {/* Partir la cuenta: mismo selector, pero crea una cuenta hija y por eso
+          pide PIN y exige dejar algo del otro lado. */}
+      <SplitBillModal
+        open={splitAcctOpen}
+        divisionNumber={1}
+        title="Dividir cuenta"
+        intro="Elige los productos que se van a la cuenta nueva. El resto se queda en esta. La cuenta nueva se comporta como cualquier otra: se le agrega, se imprime, se cobra y se puede volver a dividir."
+        confirmLabel="Dividir"
+        requirePin
+        mustLeaveOne
+        items={liveItems.map((it) => ({ id: it.id, name: it.dishNameSnapshot, unitPrice: Number(it.unitPriceSnapshot), remainingQty: Number(it.quantity) }))}
+        busy={busy}
+        onConfirm={doSplitAccount}
+        onClose={() => setSplitAcctOpen(false)}
       />
 
       {/* ── Modales de CAJA ── */}

@@ -81,6 +81,10 @@ export interface Comanda {
   employeeChargeStatus?: "PENDING" | "APPROVED" | null;
   employeeChargeApprovedAt?: string | null;
   chargedEmployee?: { id: number; fullName: string; role: string } | null;
+
+  /** División de cuenta: "14-1" si nació de partir la 14; null si es una cuenta normal. */
+  splitLabel?: string | null;
+  parentComandaId?: number | null;
 }
 
 /**
@@ -98,8 +102,15 @@ export function isBillPrinted(c: { prints?: CPrint[]; reopens?: { reopenedAt: st
   return lastFinal > lastReopen;
 }
 
-/** Etiqueta corta de una comanda: "Mesa 5" o el nombre de la cuenta sin mesa. */
-export function comandaLabel(c: { table: CTableRef | null; customName?: string | null }): string {
+/**
+ * Etiqueta corta de una comanda: "Mesa 5", "Mesa 14-1" si es una división, o el
+ * nombre de la cuenta sin mesa.
+ *
+ * splitLabel manda sobre el número de mesa: una cuenta dividida sigue en la
+ * misma mesa, así que sin esto la 14 y la 14-1 se verían idénticas en el piso.
+ */
+export function comandaLabel(c: { table: CTableRef | null; customName?: string | null; splitLabel?: string | null }): string {
+  if (c.splitLabel) return c.table ? `Mesa ${c.splitLabel}` : c.splitLabel;
   if (c.table) return `Mesa ${c.table.number}`;
   return (c.customName && c.customName.trim()) || "Cuenta sin mesa";
 }

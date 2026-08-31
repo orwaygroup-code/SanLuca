@@ -12,17 +12,29 @@ export interface SplitBillItem { id: number; name: string; unitPrice: number; re
  * permite repartir un mismo platillo entre comensales ("Pasta ×2" → uno cada quien).
  * No permite confirmar con 0 unidades. Lo no seleccionado permanece en la matriz.
  */
-export function SplitBillModal({ open, divisionNumber, items, busy, onConfirm, onClose }: {
+export function SplitBillModal({
+  open, divisionNumber, items, busy, onConfirm, onClose,
+  title, intro, confirmLabel, requirePin, mustLeaveOne,
+}: {
   open: boolean;
   divisionNumber: number;
   items: SplitBillItem[];
   busy?: boolean;
-  onConfirm: (units: Map<number, number>) => void;
+  onConfirm: (units: Map<number, number>, pin: string) => void;
   onClose: () => void;
+  /** Textos: el mismo selector sirve para dividir el TICKET y para partir la CUENTA. */
+  title?: string;
+  intro?: string;
+  confirmLabel?: string;
+  /** Partir la cuenta mueve dinero de verdad: lo autoriza un Capitán o Manager. */
+  requirePin?: boolean;
+  /** Al partir la cuenta hay que dejar algo del otro lado; al dividir el ticket no. */
+  mustLeaveOne?: boolean;
 }) {
   const [qty, setQty] = useState<Record<number, number>>({});
+  const [pin, setPin] = useState("");
 
-  useEffect(() => { if (!open) setQty({}); }, [open]);
+  useEffect(() => { if (!open) { setQty({}); setPin(""); } }, [open]);
 
   const getQ = (id: number) => qty[id] ?? 0;
   const setClamped = (id: number, value: number, max: number) =>
@@ -30,7 +42,12 @@ export function SplitBillModal({ open, divisionNumber, items, busy, onConfirm, o
 
   const totalUnits = items.reduce((s, it) => s + getQ(it.id), 0);
   const selectedTotal = items.reduce((s, it) => s + it.unitPrice * getQ(it.id), 0);
-  const canConfirm = totalUnits > 0 && !busy;
+  const available = items.reduce((s, it) => s + it.remainingQty, 0);
+  // Llevarse todo no es dividir, es traspasar: el servidor lo rechaza, así que
+  // aquí se desactiva el botón en vez de dejar que el intento falle.
+  const leavesSomething = !mustLeaveOne || totalUnits < available;
+  const pinOk = !requirePin || /^\d{4}$/.test(pin);
+  const canConfirm = totalUnits > 0 && leavesSomething && pinOk && !busy;
 
   const confirm = () => {
     const units = new Map<number, number>();
@@ -38,13 +55,13 @@ export function SplitBillModal({ open, divisionNumber, items, busy, onConfirm, o
       const q = getQ(it.id);
       if (q > 0) units.set(it.id, q);
     }
-    onConfirm(units);
+    onConfirm(units, pin);
   };
 
   return (
-    <Modal open={open} title={`Dividir cuenta — División ${divisionNumber}`} onClose={onClose} width={480}>
+    <Modal open={open} title={title ?? `Dividir cuenta — División ${divisionNumber}`} onClose={onClose} width={480}>
       <p style={{ margin: "0 0 14px", color: C.dim, fontSize: "0.84rem", lineHeight: 1.5 }}>
-        Elige cuántas unidades de cada platillo van en esta división. Lo que dejes sin asignar queda en la cuenta principal (matriz).
+        {intro ?? "Elige cuántas unidades de cada platillo van en esta división. Lo que dejes sin asignar queda en la cuenta principal (matriz)."}
       </p>
 
       {items.length === 0 ? (
@@ -101,6 +118,33 @@ export function SplitBillModal({ open, divisionNumber, items, busy, onConfirm, o
         <span style={{ color: C.gold, fontWeight: 800, fontSize: "0.95rem" }}>{formatMXN(selectedTotal)}</span>
       </div>
 
+      {requirePin && (
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: "block", fontSize: "0.64rem", letterSpacing: "0.16em", textTransform: "uppercase", color: C.dim, fontWeight: 700, marginBottom: 6 }}>
+            PIN de supervisor (Capitán/Manager)
+          </label>
+          <input
+            type="password"
+            inputMode="numeric"
+            maxLength={4}
+            placeholder="••••"
+            value={pin}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+            style={{
+              width: "100%", boxSizing: "border-box", padding: "11px 12px", minHeight: 44,
+              borderRadius: 8, border: `1px solid ${C.line}`, background: "var(--sl-panel2)",
+              color: C.cream, fontFamily: "inherit", fontSize: "1.1rem",
+              letterSpacing: "0.5em", textAlign: "center",
+            }}
+          />
+          {mustLeaveOne && totalUnits >= available && available > 0 && (
+            <p style={{ margin: "8px 0 0", color: C.faint, fontSize: "0.76rem" }}>
+              Deja al menos un producto en la cuenta original; para moverlo todo usa Traspasar.
+            </p>
+          )}
+        </div>
+      )}
+
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
         <button style={btn.ghost} onClick={onClose} disabled={busy}>Cancelar</button>
         <button
@@ -108,7 +152,7 @@ export function SplitBillModal({ open, divisionNumber, items, busy, onConfirm, o
           onClick={confirm}
           disabled={!canConfirm}
         >
-          Crear División {divisionNumber}
+          {confirmLabel ?? `Crear División ${divisionNumber}`}
         </button>
       </div>
     </Modal>

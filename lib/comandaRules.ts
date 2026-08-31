@@ -173,3 +173,59 @@ export function resolveReprintAuthorizer(args: {
   }
   return { ok: true, authorizedById: args.pinAuthorizedId };
 }
+
+// ── División de cuenta (cuentas hijas) ───────────────────────────────────────
+
+/**
+ * Separador de las divisiones. Guion medio y no punto: un punto dentro de un
+ * identificador termina interpretándose como separador decimal o de ruta en
+ * algún punto de la cadena —hojas de cálculo, nombres de archivo, la propia
+ * impresora— y "14.1" se convierte en 14,1 sin que nadie lo note.
+ */
+export const SPLIT_SEP = "-";
+
+/**
+ * Nombre de la siguiente cuenta hija.
+ *
+ * De "14" con hijas ["14-1","14-2"] sale "14-3". De "14-1" con hija ["14-1-1"]
+ * sale "14-1-2". El nivel se lee de la propia etiqueta base, así que dividir una
+ * división no necesita lógica aparte: es la misma operación aplicada otra vez.
+ *
+ * Se numera por el MAYOR sufijo existente y no por la cantidad de hijas: si la
+ * 14-2 se cerró y desapareció de la lista, la siguiente debe seguir siendo 14-3.
+ * Reciclar el 2 dejaría dos cuentas distintas con el mismo nombre en el turno.
+ */
+export function nextSplitLabel(baseLabel: string, takenLabels: readonly string[]): string {
+  const prefix = `${baseLabel}${SPLIT_SEP}`;
+  let max = 0;
+  for (const label of takenLabels) {
+    if (!label.startsWith(prefix)) continue;
+    // Solo hijas DIRECTAS: "14-1-1" es nieta de "14" y no cuenta para su numeración.
+    const rest = label.slice(prefix.length);
+    if (!/^\d+$/.test(rest)) continue;
+    const n = Number(rest);
+    if (n > max) max = n;
+  }
+  return `${prefix}${max + 1}`;
+}
+
+/**
+ * ¿Se puede dividir esta cuenta? Hace falta que queden al menos dos unidades:
+ * dividir deja productos de un lado y del otro, y una cuenta que se queda vacía
+ * no es una división sino un traspaso —que ya tiene su propia acción.
+ */
+export function canSplitAccount(args: {
+  totalUnits: number;
+  selectedUnits: number;
+}): { ok: true } | { ok: false; error: string } {
+  if (args.totalUnits < 2) {
+    return { ok: false, error: "Hace falta al menos dos productos para dividir la cuenta." };
+  }
+  if (args.selectedUnits <= 0) {
+    return { ok: false, error: "Elige al menos un producto para la cuenta nueva." };
+  }
+  if (args.selectedUnits >= args.totalUnits) {
+    return { ok: false, error: "Deja al menos un producto en la cuenta original; para moverlo todo usa Traspasar." };
+  }
+  return { ok: true };
+}
