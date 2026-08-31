@@ -5,7 +5,6 @@ import { verifySupervisorPin } from "@/lib/staff";
 import { TENANT, COMANDA_INCLUDE, recalcComandaTotals, isEditableStatus, LOCKED_ACCOUNT_MSG } from "@/lib/comanda";
 import { notify } from "@/lib/notify";
 import { round2, lineTotal as calcLineTotal } from "@/lib/comandaTotals";
-import { splitBillDiscount } from "@/lib/comandaRules";
 import type { ApiResponse } from "@/types";
 
 function parseId(raw: string): number | null {
@@ -42,7 +41,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   }
 
   const [from, to] = await Promise.all([
-    prisma.comanda.findFirst({ where: { id: fromId, tenantId: TENANT }, select: { id: true, status: true, discountTotal: true } }),
+    prisma.comanda.findFirst({ where: { id: fromId, tenantId: TENANT }, select: { id: true, status: true } }),
     prisma.comanda.findFirst({ where: { id: toId, tenantId: TENANT }, select: { id: true, status: true } }),
   ]);
   if (!from) return NextResponse.json<ApiResponse>({ success: false, error: "Cuenta origen no encontrada" }, { status: 404 });
@@ -114,30 +113,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           }),
         ];
 
-  // El descuento A NIVEL CUENTA sigue a las unidades que se van, en proporción
-  // al consumo que representan. El descuento por PRODUCTO ya se repartía arriba
-  // (movedDiscount); este es el de la cuenta, que se quedaba entero en el
-  // origen y desaparecía si el traspaso era grande.
-  const grossOf = (lineTotal: unknown, itemDiscount: unknown) => Math.max(0, round2(Number(lineTotal) - Number(itemDiscount)));
-  const todos = await prisma.comandaItem.findMany({
-    where: { comandaId: fromId, tenantId: TENANT, status: { not: "CANCELLED" } },
-    select: { lineTotal: true, discountAmount: true },
-  });
-  const totalGross = todos.reduce((s, i) => s + grossOf(i.lineTotal, i.discountAmount), 0);
-  const reparto = splitBillDiscount({
-    discountTotal: Number(from.discountTotal),
-    movedGross: grossOf(movedLineTotal, movedDiscount),
-    totalGross,
-  });
-
   await prisma.$transaction([
     ...ops,
-    ...(reparto.moved > 0
-      ? [
-          prisma.comanda.update({ where: { id: fromId }, data: { discountTotal: reparto.remaining } }),
-          prisma.comanda.update({ where: { id: toId }, data: { discountTotal: { increment: reparto.moved } } }),
-        ]
-      : []),
     prisma.comandaItemTransfer.create({
       data: {
         tenantId: TENANT,

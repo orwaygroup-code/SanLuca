@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getStaffSession } from "@/lib/staff-auth-server";
 import { canModifyComanda, prepAreaToTarget } from "@/lib/comandaRules";
-import { TENANT, COMANDA_INCLUDE, isEditableStatus } from "@/lib/comanda";
+import { TENANT, COMANDA_INCLUDE } from "@/lib/comanda";
 import type { ApiResponse } from "@/types";
 
 function parseId(raw: string): number | null {
@@ -87,12 +87,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         },
       });
     }),
-    // Pasar a "en servicio" SOLO desde un estado abierto. Si la cuenta está
-    // bloqueada (por cobrar, parcialmente pagada), enviar productos a cocina no
-    // puede desbloquearla: eso lo autoriza un supervisor con PIN en /unlock.
-    ...(isEditableStatus(comanda.status)
-      ? [prisma.comanda.update({ where: { id }, data: { status: "IN_SERVICE" } })]
-      : []),
+    prisma.comanda.update({ where: { id }, data: { status: "IN_SERVICE" } }),
   ]);
 
   const updated = await prisma.comanda.findFirst({ where: { id, tenantId: TENANT }, include: COMANDA_INCLUDE });

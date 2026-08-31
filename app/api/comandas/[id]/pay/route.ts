@@ -10,7 +10,6 @@ import {
   enqueueDrawerKick,
 } from "@/lib/comanda";
 import { round2 } from "@/lib/comandaTotals";
-import { hasCurrentBillPrint } from "@/lib/comandaRules";
 import { getOpenSession, computePaymentOutcome, PAY_EPS } from "@/lib/caja";
 import { verifyWaiterPin, verifySupervisorPin } from "@/lib/staff";
 import type { ApiResponse } from "@/types";
@@ -100,28 +99,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     return NextResponse.json<ApiResponse>({ success: false, error: `Comanda ${comanda.status}: no se puede cobrar` }, { status: 409 });
   }
 
-  // No cobrar sin un ticket VIGENTE. Vigente = impreso después de la última
-  // reapertura: si la cuenta se reabrió y se modificó, el papel que tiene el
-  // cliente ya no describe lo que se va a cobrar. Antes bastaba con que
-  // existiera cualquier CUSTOMER_FINAL histórico, así que se podía reabrir,
-  // agregar productos y cobrar con el ticket viejo.
-  const [lastFinal, lastReopen] = await Promise.all([
-    prisma.comandaPrint.findFirst({
-      where: { comandaId: id, tenantId: TENANT, type: "CUSTOMER_FINAL" },
-      orderBy: { printedAt: "desc" },
-      select: { printedAt: true },
-    }),
-    prisma.comandaReopen.findFirst({
-      where: { comandaId: id, tenantId: TENANT },
-      orderBy: { reopenedAt: "desc" },
-      select: { reopenedAt: true },
-    }),
-  ]);
-  if (!hasCurrentBillPrint({ lastFinalPrintAt: lastFinal?.printedAt, lastReopenAt: lastReopen?.reopenedAt })) {
-    return NextResponse.json<ApiResponse>(
-      { success: false, error: lastFinal ? "La cuenta se reabrió: imprime el ticket de nuevo antes de cobrar" : "Imprime la cuenta antes de cobrar" },
-      { status: 409 },
-    );
+  // No cobrar sin haber impreso la cuenta primero (ticket físico antes del cobro).
+  const billPrints = await prisma.comandaPrint.count({ where: { comandaId: id, type: "CUSTOMER_FINAL" } });
+  if (billPrints === 0) {
+    return NextResponse.json<ApiResponse>({ success: false, error: "Imprime la cuenta antes de cobrar" }, { status: 409 });
   }
 
   const total = round2(Number(comanda.total));
