@@ -22,10 +22,10 @@ import { RP } from "@/components/admin/reportsUi";
 
 type Kind = "caja" | "hoja" | "pdf";
 
-const OPCIONES: { kind: Kind; title: string; desc: string; icon: string }[] = [
-  { kind: "caja", title: "Imprimir en caja", desc: "Sale por la impresora de la caja, en formato ticket.", icon: "🖶" },
-  { kind: "hoja", title: "Crear hoja de cálculo", desc: "Archivo CSV de esta vista. Abre en Excel o Sheets.", icon: "▦" },
-  { kind: "pdf", title: "PDF", desc: "Abre el documento y elige «Guardar como PDF» al imprimir.", icon: "⎙" },
+const OPCIONES: { kind: Kind; title: string; desc: string; icon: string; download: string }[] = [
+  { kind: "caja", title: "Imprimir en caja", desc: "Sale por la impresora de la caja, en formato ticket.", icon: "🖶", download: "el ticket (.txt)" },
+  { kind: "hoja", title: "Crear hoja de cálculo", desc: "Archivo CSV de esta vista. Abre en Excel o Sheets.", icon: "▦", download: "la hoja (.csv)" },
+  { kind: "pdf", title: "PDF", desc: "Abre el documento y elige «Guardar como PDF» al imprimir.", icon: "⎙", download: "el documento (.html)" },
 ];
 
 /** Descarga un texto como archivo, sin pasar por el servidor. */
@@ -70,6 +70,30 @@ export function ExportModal({
   const [busy, setBusy] = useState<Kind | null>(null);
 
   if (!open) return null;
+
+  /**
+   * Descarga directa del archivo de ese formato, sin pasar por el diálogo de
+   * impresión. Es la mitad derecha de cada recuadro: la izquierda hace lo suyo
+   * —mandar a la impresora, abrir el diálogo— y el icono se queda con el
+   * archivo, que muchas veces es lo único que se quiere.
+   */
+  const descargar = (kind: Kind) => {
+    if (kind === "hoja") {
+      download(producers.csv(), producers.fileName("csv"), "text/csv;charset=utf-8");
+      onDone?.("Hoja de cálculo descargada", "success");
+    } else if (kind === "pdf") {
+      // Documento imprimible. El PDF de verdad lo produce el diálogo del
+      // sistema; aquí se entrega el archivo tal cual, que se abre en cualquier
+      // navegador y de ahí se guarda como PDF sin depender de esta ventana.
+      download(producers.html(), producers.fileName("html"), "text/html;charset=utf-8");
+      onDone?.("Documento descargado", "success");
+    } else {
+      // El mismo texto de 42 columnas que sale por la térmica, en un archivo.
+      download(producers.ticket(), producers.fileName("txt"), "text/plain;charset=utf-8");
+      onDone?.("Ticket descargado", "success");
+    }
+    onClose();
+  };
 
   const run = async (kind: Kind) => {
     setBusy(kind);
@@ -127,26 +151,60 @@ export function ExportModal({
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {/* Cada opción son DOS acciones en un mismo recuadro: el cuerpo hace lo
+                suyo —mandar a la térmica, abrir el diálogo— y el icono de la
+                derecha se queda con el archivo. Van como botones hermanos y no
+                anidados: un botón dentro de otro no es HTML válido y el clic
+                interior dispararía también el exterior. */}
             {OPCIONES.map((o) => (
-              <button
+              <div
                 key={o.kind}
-                onClick={() => run(o.kind)}
-                disabled={busy !== null}
                 style={{
-                  display: "flex", alignItems: "center", gap: 12, textAlign: "left", width: "100%",
-                  padding: "13px 14px", borderRadius: 11, cursor: busy ? "default" : "pointer",
-                  border: `1px solid ${RP.border}`, background: "rgba(0,0,0,0.18)", color: RP.cream,
-                  fontFamily: "inherit", opacity: busy && busy !== o.kind ? 0.5 : 1,
+                  display: "flex", alignItems: "stretch", width: "100%",
+                  borderRadius: 11, overflow: "hidden",
+                  border: `1px solid ${RP.border}`, background: "rgba(0,0,0,0.18)",
+                  opacity: busy && busy !== o.kind ? 0.5 : 1,
                 }}
               >
-                <span aria-hidden style={{ fontSize: "1.15rem", color: RP.gold, width: 22, textAlign: "center" }}>{o.icon}</span>
-                <span style={{ minWidth: 0 }}>
-                  <span style={{ display: "block", fontWeight: 700, fontSize: "0.9rem" }}>
-                    {busy === o.kind ? "Preparando…" : o.title}
+                <button
+                  onClick={() => run(o.kind)}
+                  disabled={busy !== null}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 12, textAlign: "left", flex: 1, minWidth: 0,
+                    padding: "13px 14px", cursor: busy ? "default" : "pointer",
+                    border: "none", background: "transparent", color: RP.cream, fontFamily: "inherit",
+                  }}
+                >
+                  <span aria-hidden style={{ fontSize: "1.15rem", color: RP.gold, width: 22, textAlign: "center", flexShrink: 0 }}>{o.icon}</span>
+                  <span style={{ minWidth: 0 }}>
+                    <span style={{ display: "block", fontWeight: 700, fontSize: "0.9rem" }}>
+                      {busy === o.kind ? "Preparando…" : o.title}
+                    </span>
+                    <span style={{ display: "block", color: RP.dim, fontSize: "0.76rem", marginTop: 2 }}>{o.desc}</span>
                   </span>
-                  <span style={{ display: "block", color: RP.dim, fontSize: "0.76rem", marginTop: 2 }}>{o.desc}</span>
-                </span>
-              </button>
+                </button>
+                <button
+                  onClick={() => descargar(o.kind)}
+                  disabled={busy !== null}
+                  title={`Descargar ${o.download}`}
+                  aria-label={`Descargar ${o.download}`}
+                  style={{
+                    flexShrink: 0, width: 52, display: "grid", placeItems: "center",
+                    cursor: busy ? "default" : "pointer", fontFamily: "inherit",
+                    border: "none", borderLeft: `1px solid ${RP.border}`,
+                    background: "transparent", color: RP.gold,
+                  }}
+                >
+                  {/* SVG y no emoji: el emoji lo dibuja cada sistema con su propia
+                      tipografía y rompe la alineación de la fila. */}
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                       strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <path d="M7 10l5 5 5-5" />
+                    <path d="M12 15V3" />
+                  </svg>
+                </button>
+              </div>
             ))}
           </div>
         )}
