@@ -732,21 +732,29 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
                 {porCobrar && (
                   <button style={caja.secondary} onClick={() => setUnlockAsk(true)} disabled={busy}>Reabrir cuenta</button>
                 )}
-              </div>
-            )}
-
-            {/* Cuenta en $0 (cortesía / mesa sin consumo): se puede "matar" sin cobro,
-                dejando huella. No requiere imprimir ni cobrar. */}
-            {cajaActive && Number(c.total) === 0 && (
-              <div style={caja.primaryRow}>
-                <button style={caja.primary} onClick={() => setCloseZeroAsk(true)} disabled={busy}>Cerrar en $0 (sin cobro)</button>
+                {/* Cuenta en $0 (cortesía / mesa sin consumo): se puede "matar" sin cobro,
+                    dejando huella. No requiere imprimir ni cobrar. */}
+                {Number(c.total) === 0 && (
+                  <button style={caja.primary} onClick={() => setCloseZeroAsk(true)} disabled={busy}>Cerrar en $0 (sin cobro)</button>
+                )}
+                {/* Ligar a empleado, a la derecha de la acción principal: es una acción
+                    de la misma familia —decide cómo se salda la cuenta— y estando en su
+                    propio bloque más abajo se leía como algo aparte. Va en contorno y no
+                    en relleno para no competir con Cobrar, que es la acción esperada. */}
+                {c.table == null && !alreadyPrinted && !c.chargedEmployeeId && !linkPick && (
+                  <button style={caja.accentOutline} onClick={() => setLinkPick(true)} disabled={busy}>Ligar a empleado</button>
+                )}
               </div>
             )}
 
             {/* #4 Ligar a empleado (solo cuentas para llevar / sin mesa, ANTES de imprimir). El
                 empleado debe aprobarla en su cartera antes de que caja pueda cobrarla a crédito.
-                Tras imprimir, la UI queda solo en Cobrar (el crédito se maneja en el cobro). */}
-            {cajaActive && c.table == null && !alreadyPrinted && (
+                Tras imprimir, la UI queda solo en Cobrar (el crédito se maneja en el cobro).
+
+                El disparador vive arriba, junto a la acción principal. Este bloque solo
+                existe cuando hay algo que mostrar —el selector abierto o una cuenta ya
+                ligada—; si no, dejaría un encabezado suelto sin contenido debajo. */}
+            {cajaActive && c.table == null && !alreadyPrinted && (c.chargedEmployeeId != null || linkPick) && (
               <div style={{ marginTop: 14 }}>
                 <div style={caja.subLabel}>Empleado (crédito)</div>
                 {c.chargedEmployeeId ? (
@@ -757,8 +765,6 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
                     </span>
                     {editable && <button style={caja.more} onClick={() => doLink(null)} disabled={busy}>Desligar</button>}
                   </div>
-                ) : !linkPick ? (
-                  <button style={caja.more} onClick={() => setLinkPick(true)} disabled={busy}>Ligar a empleado</button>
                 ) : (
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                     <select value={selEmp} onChange={(e) => setSelEmp(e.target.value)} style={{ padding: "9px 11px", borderRadius: 9, background: "rgba(0,0,0,0.2)", border: `1px solid ${C.border}`, color: C.cream, fontFamily: "inherit", fontSize: "0.85rem", minWidth: 200 }}>
@@ -1199,6 +1205,10 @@ const caja: Record<string, React.CSSProperties> = {
   primaryRow: { display: "flex", flexWrap: "wrap", gap: 10 },
   primary: { ...btn.primary, minHeight: 50, minWidth: 160, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: "0.92rem" },
   secondary: { ...btn.ghost, minHeight: 50, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 },
+  // Mismo peso que la acción principal pero en contorno: acompaña a Cobrar sin
+  // disputarle la vista. Usa el token del acento, así que en modo claro pasa a
+  // azul —contorno y letra— sin necesidad de una regla por tema.
+  accentOutline: { ...btn.ghost, minHeight: 50, minWidth: 160, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: "0.92rem", fontWeight: 800, background: "transparent", border: "1px solid var(--sl-gold)", color: "var(--sl-gold)" },
   subLabel: { color: C.faint, fontSize: "0.6rem", letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 700, margin: "16px 0 8px" },
   moreRow: { display: "flex", flexWrap: "wrap", gap: 8 },
   more: { padding: "9px 14px", minHeight: 40, borderRadius: 9, border: `1px solid ${C.line}`, background: "transparent", color: C.dim, fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit" },
