@@ -167,9 +167,6 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   // ── división de cuenta (derivados) ──
   const itemById = useMemo(() => new Map(liveItems.map((i) => [i.id, i])), [liveItems]);
   const totalLiveUnits = useMemo(() => liveItems.reduce((s, i) => s + Number(i.quantity), 0), [liveItems]);
-  // ¿Alguna línea tiene cantidad fraccional? Si sí, la división POR UNIDAD se desactiva
-  // (las líneas fraccionales van completas a un ticket, no se subdividen).
-  const hasFractional = useMemo(() => liveItems.some((i) => !Number.isInteger(Number(i.quantity))), [liveItems]);
 
   // "Tiempo actual" se mantiene al día con el máximo existente (nunca lo baja).
   useEffect(() => {
@@ -187,7 +184,13 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
 
   const closeTour = () => { setTourOpen(false); try { localStorage.setItem("sl_tour_comandero_v1", "1"); } catch { /* ignore */ } };
 
-  const splittable = !alreadyPrinted && !hasFractional;
+  // Se puede dividir mientras no haya un ticket vigente. Antes exigía además que
+  // no hubiera cantidades fraccionadas, restricción heredada de la división de
+  // TICKET —que repartía unidad por unidad y no sabía partir media porción— y que
+  // se quedó cuando aquella se eliminó. La división de CUENTA sí las admite: mueve
+  // el renglón fraccionado completo. Con la regla vieja, una mesa con media
+  // botella o medio postre no se podía dividir, que es la mayoría de las mesas.
+  const splittable = !alreadyPrinted;
 
   // Partir la cuenta de verdad: crea una cuenta hija con lo seleccionado y deja
   // el resto aquí. La hija queda "en servicio" y se comporta como cualquier otra.
