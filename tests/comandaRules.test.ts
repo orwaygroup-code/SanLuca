@@ -11,7 +11,6 @@ import {
   canCancelItem,
   decidePrint,
   formatFolio,
-  buildSplits,
   statusAfterReopen,
   isEditableStatus,
 } from "../lib/comandaRules";
@@ -70,28 +69,6 @@ test("formatFolio COM-AAAA-NNNN con 4 dígitos", () => {
   assert.equal(formatFolio(2026, 10000), "COM-2026-10000");
 });
 
-// ── buildSplits (por unidad) ────────────────────────────────────────
-test("división genera un ticket por grupo con total = Σ unitPrice×qty", () => {
-  const itemsById = new Map([
-    [1, { unitPriceSnapshot: 200, quantity: 2, lineTotal: 400 }],
-    [2, { unitPriceSnapshot: 180, quantity: 1, lineTotal: 180 }],
-    [3, { unitPriceSnapshot: 350, quantity: 1, lineTotal: 350 }],
-  ]);
-  const tickets = buildSplits(
-    [
-      { units: [{ itemId: 1, quantity: 1 }] },
-      { units: [{ itemId: 1, quantity: 1 }, { itemId: 2, quantity: 1 }, { itemId: 3, quantity: 1 }] },
-    ],
-    itemsById,
-  );
-  assert.equal(tickets.length, 2);
-  assert.deepEqual(tickets[0], { ticketNumber: 1, units: [{ itemId: 1, quantity: 1 }], total: 200 });
-  assert.deepEqual(tickets[1], {
-    ticketNumber: 2,
-    units: [{ itemId: 1, quantity: 1 }, { itemId: 2, quantity: 1 }, { itemId: 3, quantity: 1 }],
-    total: 730,
-  });
-});
 
 // ── Reapertura de cuenta cobrada ────────────────────────────────────
 // Regresión: reabrir dejaba SIEMPRE la cuenta en AWAITING_PAYMENT, que no es

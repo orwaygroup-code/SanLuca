@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { C, Modal, btn, formatMXN } from "./ui";
 
-export interface SplitBillItem { id: number; name: string; unitPrice: number; remainingQty: number }
+export interface SplitAccountItem { id: number; name: string; unitPrice: number; remainingQty: number }
 
 /**
  * Modal de división de cuenta por UNIDAD (Fase B.2). De los platillos con cupo
@@ -12,13 +12,13 @@ export interface SplitBillItem { id: number; name: string; unitPrice: number; re
  * permite repartir un mismo platillo entre comensales ("Pasta ×2" → uno cada quien).
  * No permite confirmar con 0 unidades. Lo no seleccionado permanece en la matriz.
  */
-export function SplitBillModal({
+export function SplitAccountModal({
   open, divisionNumber, items, busy, onConfirm, onClose,
   title, intro, confirmLabel, requirePin, mustLeaveOne,
 }: {
   open: boolean;
   divisionNumber: number;
-  items: SplitBillItem[];
+  items: SplitAccountItem[];
   busy?: boolean;
   onConfirm: (units: Map<number, number>, pin: string) => void;
   onClose: () => void;

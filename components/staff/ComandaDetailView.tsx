@@ -8,13 +8,12 @@ import {
   TicketPreview, btn, formatMXN, STATUS_LABEL, STATUS_COLOR, useToasts, ToastHost, useStaffLogout, usePoll,
 } from "@/components/staff/ui";
 import { apiFetch, isBillPrinted, type Comanda, type CItem, type PayResult, type CashSession, type CutSnapshot } from "@/components/staff/types";
-import { SplitBillModal } from "@/components/staff/SplitBillModal";
+import { SplitAccountModal } from "@/components/staff/SplitAccountModal";
 import { PayModal, DiscountModal, MergeModal, TransferItemModal, ReopenModal } from "@/components/staff/caja";
 import { Icon } from "@/components/staff/icons";
 import { MenuSelector } from "@/components/staff/MenuSelector";
 import { Tour, type TourStep } from "@/components/staff/Tour";
 import { buildTotalLines } from "@/lib/displayTotals";
-import { buildSplitsPayload, effectiveTaxRate, divisionMoney, unitsSubtotal } from "@/lib/splitBill";
 
 
 const AWAIT = STATUS_COLOR.AWAITING_PAYMENT; // var(--sl-gold-soft) — tinte "requiere caja"
@@ -105,10 +104,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
 
   // División de cuenta: cada entrada (División 1..N) es un Map itemId → unidades
   // asignadas a esa división. Permite repartir fracciones de un mismo platillo.
-  const [splits, setSplits] = useState<Map<number, number>[]>([]);
-  const [splitOpen, setSplitOpen] = useState(false);
-  // Partir la cuenta en una cuenta hija (14 → 14-1). Distinto de `splits`, que
-  // solo reparte el ticket al imprimir y no crea nada.
+  // Partir la cuenta en una cuenta hija (14 → 14-1).
   const [splitAcctOpen, setSplitAcctOpen] = useState(false);
 
   const isSupervisor = staff?.role === "CAPTAIN" || staff?.role === "MANAGER";
@@ -170,7 +166,6 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
 
   // ── división de cuenta (derivados) ──
   const itemById = useMemo(() => new Map(liveItems.map((i) => [i.id, i])), [liveItems]);
-  const unitPriceById = useMemo(() => new Map(liveItems.map((i) => [i.id, Number(i.unitPriceSnapshot)])), [liveItems]);
   const totalLiveUnits = useMemo(() => liveItems.reduce((s, i) => s + Number(i.quantity), 0), [liveItems]);
   // ¿Alguna línea tiene cantidad fraccional? Si sí, la división POR UNIDAD se desactiva
   // (las líneas fraccionales van completas a un ticket, no se subdividen).
@@ -192,51 +187,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
 
   const closeTour = () => { setTourOpen(false); try { localStorage.setItem("sl_tour_comandero_v1", "1"); } catch { /* ignore */ } };
 
-  // Unidades ya asignadas (a cualquier división), por itemId.
-  const assignedQtyById = useMemo(() => {
-    const m = new Map<number, number>();
-    for (const split of splits) for (const [itemId, q] of split) m.set(itemId, (m.get(itemId) ?? 0) + q);
-    return m;
-  }, [splits]);
-
-  // Items con unidades aún disponibles en la matriz (no asignadas a ninguna división).
-  const matrixItemsWithQty = useMemo(() =>
-    liveItems
-      .map((it) => ({ ...it, remainingQty: Number(it.quantity) - (assignedQtyById.get(it.id) ?? 0) }))
-      .filter((it) => it.remainingQty > 0),
-    [liveItems, assignedQtyById]);
-
   const splittable = !alreadyPrinted && !hasFractional;
-
-  // Mantener las divisiones consistentes con los items vivos: si un item se
-  // cancela se quita de sus divisiones; si una cantidad asignada excede la
-  // ordenada actual se recorta; las divisiones que quedan vacías se descartan.
-  // (Items nuevos no entran a ninguna división → caen a la matriz con qty completa.)
-  useEffect(() => {
-    const maxById = new Map(liveItems.map((i) => [i.id, Number(i.quantity)]));
-    setSplits((prev) => {
-      let changed = false;
-      const pruned: Map<number, number>[] = [];
-      for (const split of prev) {
-        const next = new Map<number, number>();
-        for (const [itemId, q] of split) {
-          const max = maxById.get(itemId);
-          if (max === undefined) { changed = true; continue; }       // item cancelado
-          const clamped = Math.min(q, max);
-          if (clamped !== q) changed = true;                          // qty recortada
-          if (clamped > 0) next.set(itemId, clamped);
-        }
-        if (next.size > 0) pruned.push(next); else changed = true;    // división vacía
-      }
-      return changed ? pruned : prev;
-    });
-  }, [liveItems]);
-
-  const createSplit = (units: Map<number, number>) => {
-    if (units.size > 0) setSplits((s) => [...s, units]);
-    setSplitOpen(false);
-  };
-  const removeSplit = (idx: number) => setSplits((s) => s.filter((_, i) => i !== idx));
 
   // Partir la cuenta de verdad: crea una cuenta hija con lo seleccionado y deja
   // el resto aquí. La hija queda "en servicio" y se comporta como cualquier otra.
@@ -274,10 +225,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
 
   const sendToKitchen = () => post(`/api/comandas/${id}/send-to-kitchen`, undefined, "Enviado a cocina/barra");
   const doPrint = (authorizationReason?: string, authPin?: string) => {
-    const matrixUnits = matrixItemsWithQty.map((it) => ({ itemId: it.id, quantity: it.remainingQty }));
-    const splitsPayload = buildSplitsPayload(splits, matrixUnits);
     const body: Record<string, unknown> = {};
-    if (splitsPayload) body.splits = splitsPayload;
     if (authorizationReason) body.authorizationReason = authorizationReason;
     // Sólo va cuando quien opera no es supervisor: el servidor lo valida contra
     // los PINs de Capitán y Manager del tenant.
@@ -491,11 +439,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   const remaining = Math.max(0, Math.round((Number(c.total) - amountPaid) * 100) / 100);
 
   // ── render de división de cuenta ──
-  const rate = effectiveTaxRate(c);
-  const unitsOf = (split: Map<number, number>) => [...split.entries()].map(([itemId, quantity]) => ({ itemId, quantity }));
-  const unitName = (itemId: number) => itemById.get(itemId)?.dishNameSnapshot ?? `#${itemId}`;
-  const unitsToTicketItems = (units: { itemId: number; quantity: number }[]) =>
-    units.map((u) => ({ name: unitName(u.itemId), qty: u.quantity, total: (unitPriceById.get(u.itemId) ?? 0) * u.quantity }));
+
 
   // Fila completa (vista sin divisiones): status, modificadores y cancelar item.
   const renderItemRow = (it: CItem) => (
@@ -582,27 +526,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   );
 
   // Fila simple por unidad (matriz/divisiones): {qty}× nombre + subtotal por unidad.
-  const renderUnitRow = (key: string, name: string, qty: number, subtotal: number) => (
-    <div key={key} style={page.itemRow}>
-      <div style={{ color: C.cream, fontSize: "0.9rem", fontWeight: 600 }}>{qty}× {name}</div>
-      <span style={{ color: C.cream, fontWeight: 700, fontSize: "0.88rem" }}>{formatMXN(subtotal)}</span>
-    </div>
-  );
 
-  // Secciones del preview: una por división + la matriz residual como ticket
-  // final (si tiene unidades), reflejando exactamente lo que se imprimirá.
-  const matrixUnits = matrixItemsWithQty.map((it) => ({ itemId: it.id, quantity: it.remainingQty }));
-  const previewSplits = splits.length > 0
-    ? [
-        ...splits.map((split, idx) => {
-          const units = unitsOf(split);
-          return { title: `Ticket ${idx + 1}`, items: unitsToTicketItems(units), money: divisionMoney(unitsSubtotal(units, unitPriceById), rate, taxEnabled) };
-        }),
-        ...(matrixUnits.length > 0
-          ? [{ title: `Ticket ${splits.length + 1}`, items: unitsToTicketItems(matrixUnits), money: divisionMoney(unitsSubtotal(matrixUnits, unitPriceById), rate, taxEnabled) }]
-          : []),
-      ]
-    : undefined;
 
   return (
     <div style={page.root}>
@@ -650,7 +574,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
           <div style={page.panelHead}>Platillos</div>
           {liveItems.length === 0 ? (
             <EmptyState text="Sin platillos. Agrega del menú." />
-          ) : splits.length === 0 ? (
+          ) : (
             <div>
               {[...new Set(liveItems.map((i) => i.course))].sort((a, b) => a - b).map((cn, _i, arr) => (
                 <div key={cn}>
@@ -658,40 +582,6 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
                   {liveItems.filter((i) => i.course === cn).map(renderItemRow)}
                 </div>
               ))}
-            </div>
-          ) : (
-            <div>
-              {/* Matriz (cuenta principal): unidades aún sin dividir */}
-              <div style={page.splitHead}>
-                <span style={{ color: C.dim }}>Cuenta principal (matriz)</span>
-                <span style={{ color: C.cream, fontWeight: 700 }}>{formatMXN(unitsSubtotal(matrixUnits, unitPriceById))}</span>
-              </div>
-              {matrixItemsWithQty.length === 0 ? (
-                <div style={page.splitEmpty}>Todas las unidades están divididas.</div>
-              ) : matrixItemsWithQty.map((it) =>
-                renderUnitRow(`m-${it.id}`, it.dishNameSnapshot, it.remainingQty, Number(it.unitPriceSnapshot) * it.remainingQty),
-              )}
-
-              {/* Divisiones creadas */}
-              {splits.map((split, idx) => {
-                const units = unitsOf(split);
-                return (
-                  <div key={idx}>
-                    <div style={{ ...page.splitHead, ...page.splitHeadDivision }}>
-                      <span style={{ color: C.gold, fontWeight: 700 }}>División {idx + 1}</span>
-                      <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                        <span style={{ color: C.cream, fontWeight: 700 }}>{formatMXN(unitsSubtotal(units, unitPriceById))}</span>
-                        {splittable && (
-                          <button style={page.splitRemove} onClick={() => removeSplit(idx)}>Eliminar</button>
-                        )}
-                      </span>
-                    </div>
-                    {units.map((u) =>
-                      renderUnitRow(`d${idx}-${u.itemId}`, unitName(u.itemId), u.quantity, (unitPriceById.get(u.itemId) ?? 0) * u.quantity),
-                    )}
-                  </div>
-                );
-              })}
             </div>
           )}
         </section>
@@ -767,10 +657,25 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
             {/* Reimpresión a cocina: con productos enviados y ANTES de imprimir la cuenta
                 (tras imprimir, la UI queda solo en Cobrar). La autoriza un Capitán o
                 Manager; si quien opera no lo es, el modal le pide el PIN. */}
-            {!isPaid && !alreadyPrinted && liveItems.some((i) => i.status !== "PENDING") && (
-              <button style={caja.reprint} onClick={() => { setReprintSel(new Set()); setReprintPin(""); setReprintOpen(true); }} disabled={busy}>
-                <Icon name="printer" size={15} /> Reimprimir productos a cocina
-              </button>
+            {/* Las dos acciones sobre la cuenta viva comparten renglón; se envuelven
+                solas en pantallas angostas. La fila solo existe si hay algo que
+                poner: si no, dejaría un hueco con su margen. */}
+            {((!isPaid && !alreadyPrinted && liveItems.some((i) => i.status !== "PENDING")) || (splittable && totalLiveUnits > 1)) && (
+            <div style={caja.reprintRow}>
+              {!isPaid && !alreadyPrinted && liveItems.some((i) => i.status !== "PENDING") && (
+                <button style={caja.reprint} onClick={() => { setReprintSel(new Set()); setReprintPin(""); setReprintOpen(true); }} disabled={busy}>
+                  <Icon name="printer" size={15} /> Reimprimir productos a cocina
+                </button>
+              )}
+              {/* Partir la cuenta en dos cuentas reales. La hija se llama "14-1" y
+                  desde ahí es una cuenta normal: se le agrega, se imprime, se cobra
+                  y se puede volver a dividir ("14-1-1"). */}
+              {splittable && totalLiveUnits > 1 && (
+                <button style={caja.split} onClick={() => setSplitAcctOpen(true)} disabled={busy || liveItems.length === 0}>
+                  Dividir cuenta
+                </button>
+              )}
+            </div>
             )}
 
             {awaitingBill && !alreadyPrinted && (
@@ -812,21 +717,6 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
               <div style={caja.primaryRow}>
                 {awaitingBill && !alreadyPrinted && (
                   <button style={caja.primary} onClick={() => setAskPrint(true)} disabled={busy || liveItems.length === 0 || pendingCount > 0} title={pendingCount > 0 ? "Envía a cocina lo pendiente antes de imprimir" : undefined}><Icon name="printer" size={18} />Imprimir ticket</button>
-                )}
-                {/* Partir la cuenta en dos cuentas reales. La hija se llama "14-1" y
-                    desde ahí es una cuenta normal: se le agrega, se imprime, se cobra
-                    y se puede volver a dividir ("14-1-1"). */}
-                {splittable && totalLiveUnits > 1 && (
-                  <button style={caja.secondary} onClick={() => setSplitAcctOpen(true)} disabled={busy || liveItems.length === 0}>
-                    Dividir cuenta
-                  </button>
-                )}
-                {/* Distinto: esto NO crea cuentas, reparte el ticket que se va a
-                    imprimir entre varios comensales. De ahí el nombre. */}
-                {splittable && totalLiveUnits > 1 && (
-                  <button style={caja.secondary} onClick={() => setSplitOpen(true)} disabled={busy || matrixItemsWithQty.length === 0}>
-                    {splits.length === 0 ? "Dividir ticket" : "Dividir otro ticket"}
-                  </button>
                 )}
                 {alreadyPrinted && (
                   <button style={caja.primary} onClick={() => setPayOpen(true)} disabled={busy}><Icon name="card" size={18} />Cobrar{amountPaid > 0 ? ` · restan ${formatMXN(remaining)}` : ""}</button>
@@ -928,15 +818,14 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
           </section>
         )}
 
-        {(c.status === "AWAITING_PAYMENT" || alreadyPrinted || splits.length > 0) && (
+        {(c.status === "AWAITING_PAYMENT" || alreadyPrinted) && (
           <section style={{ marginTop: 18 }}>
             <TicketPreview
               folio={c.folio}
               table={c.table ? `Mesa ${c.table.number}` : (c.customName || "Cuenta sin mesa")}
               money={c}
               taxEnabled={taxEnabled}
-              items={previewSplits ? undefined : liveItems.map((i) => ({ name: i.dishNameSnapshot, qty: Number(i.quantity), total: Number(i.lineTotal) }))}
-              splits={previewSplits}
+              items={liveItems.map((i) => ({ name: i.dishNameSnapshot, qty: Number(i.quantity), total: Number(i.lineTotal) }))}
               footer="¡Gracias por su visita!"
             />
           </section>
@@ -1048,18 +937,10 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
         onCancel={() => setReprint(false)}
       />
 
-      <SplitBillModal
-        open={splitOpen}
-        divisionNumber={splits.length + 1}
-        items={matrixItemsWithQty.map((it) => ({ id: it.id, name: it.dishNameSnapshot, unitPrice: Number(it.unitPriceSnapshot), remainingQty: it.remainingQty }))}
-        busy={busy}
-        onConfirm={createSplit}
-        onClose={() => setSplitOpen(false)}
-      />
 
-      {/* Partir la cuenta: mismo selector, pero crea una cuenta hija y por eso
-          pide PIN y exige dejar algo del otro lado. */}
-      <SplitBillModal
+      {/* Partir la cuenta: crea una cuenta hija, por eso pide PIN y exige dejar
+          algo del otro lado. */}
+      <SplitAccountModal
         open={splitAcctOpen}
         divisionNumber={1}
         title="Dividir cuenta"
@@ -1300,10 +1181,6 @@ const page: Record<string, React.CSSProperties> = {
   batchClear: { padding: "8px 12px", borderRadius: 9, border: "none", background: "transparent", color: C.dim, fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit" },
   discBtn: { width: 30, height: 30, borderRadius: 7, border: `1px solid ${C.gold}`, background: "transparent", color: C.gold, fontSize: "0.92rem", fontWeight: 700, cursor: "pointer", lineHeight: 1 },
   actions: { display: "flex", flexWrap: "wrap", gap: 10, marginTop: 4 },
-  splitHead: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "10px 18px", background: "rgb(var(--sl-veil-rgb) / 0.03)", borderBottom: `1px solid ${C.line}`, fontSize: "0.7rem", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700 },
-  splitHeadDivision: { background: "rgb(var(--sl-gold-rgb) / 0.08)", borderTop: `1px solid ${C.border}` },
-  splitEmpty: { padding: "14px 18px", color: C.faint, fontSize: "0.82rem", borderBottom: `1px solid ${C.line}` },
-  splitRemove: { padding: "4px 10px", borderRadius: 7, border: `1px solid ${C.red}`, background: "transparent", color: C.red, fontSize: "0.7rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
 };
 
 // Acciones de CAJA con jerarquía: callout de estado → acción principal grande
@@ -1322,7 +1199,11 @@ const caja: Record<string, React.CSSProperties> = {
   subLabel: { color: C.faint, fontSize: "0.6rem", letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 700, margin: "16px 0 8px" },
   moreRow: { display: "flex", flexWrap: "wrap", gap: 8 },
   more: { padding: "9px 14px", minHeight: 40, borderRadius: 9, border: `1px solid ${C.line}`, background: "transparent", color: C.dim, fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit" },
-  reprint: { display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 14px", minHeight: 40, borderRadius: 9, border: `1px solid ${C.line}`, background: "transparent", color: C.gold, fontWeight: 700, fontSize: "0.82rem", cursor: "pointer", fontFamily: "inherit", marginBottom: 12 },
+  reprintRow: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12, marginBottom: 12 },
+  reprint: { display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 14px", minHeight: 40, borderRadius: 9, border: `1px solid ${C.line}`, background: "transparent", color: C.gold, fontWeight: 700, fontSize: "0.82rem", cursor: "pointer", fontFamily: "inherit" },
+  // Mismo alto y forma que el de reimprimir para que el renglón lea parejo; el
+  // color lo distingue: aquel es una acción de impresión, este mueve productos.
+  split: { display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "9px 14px", minHeight: 40, borderRadius: 9, border: `1px solid ${C.line}`, background: "transparent", color: C.cream, fontWeight: 700, fontSize: "0.82rem", cursor: "pointer", fontFamily: "inherit" },
 };
 
 // Modal de reimpresión a cocina (selección de productos, solo manager).

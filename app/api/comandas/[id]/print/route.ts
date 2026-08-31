@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolveActor, isSupervisor } from "@/lib/dualAuth";
 import { verifySupervisorPin } from "@/lib/staff";
-import { buildSplits, resolveReprintAuthorizer, REPRINT_AUTHORIZER_ROLES, type SplitInput } from "@/lib/comandaRules";
-import { validateSplits } from "@/lib/splitBill";
+import { resolveReprintAuthorizer, REPRINT_AUTHORIZER_ROLES } from "@/lib/comandaRules";
 import { TENANT, COMANDA_INCLUDE } from "@/lib/comanda";
 import { FISCAL, FACTURA_URL } from "@/lib/fiscal";
 import { numeroALetras } from "@/lib/numeroLetras";
@@ -37,9 +36,7 @@ function mergeLines(lines: TicketLine[]): TicketLine[] {
  * POST /api/comandas/:id/print — imprime ticket(s) de cliente (target CAJA).
  * Regla 1-print: la primera la hace el WAITER (de su comanda); una vez impreso
  * un CUSTOMER_FINAL, solo CAPTAIN/MANAGER puede reimprimir con authorizationReason.
- * Body: { splits?: [{ units: [{ itemId: number, quantity: number }] }], authorizationReason? }
- * Si hay `splits`, se genera UN ComandaPrint por grupo (cada uno con su splitConfig).
- * La división es por UNIDAD: permite repartir fracciones de un mismo platillo.
+ * Body: { authorizationReason?, authPin? }
  */
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   const actor = await resolveActor(request);
@@ -121,25 +118,6 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     return NextResponse.json<ApiResponse>({ success: false, error: "Hay productos por enviar a cocina. Envíalos o quítalos antes de imprimir la cuenta." }, { status: 409 });
   }
 
-  // Validar splits (si vienen) contra los items vivos de la comanda.
-  const maxQtyById = new Map(comanda.items.map((i) => [i.id, Number(i.quantity)]));
-  const itemsById = new Map(
-    comanda.items.map((i) => [i.id, {
-      unitPriceSnapshot: Number(i.unitPriceSnapshot),
-      quantity: Number(i.quantity),
-      lineTotal: Number(i.lineTotal),
-    }]),
-  );
-  let splitTickets: { ticketNumber: number; units: { itemId: number; quantity: number }[]; total: number }[] | null = null;
-
-  if (Array.isArray(body?.splits) && body.splits.length > 0) {
-    const check = validateSplits(body.splits as SplitInput[], maxQtyById);
-    if (!check.ok) {
-      return NextResponse.json<ApiResponse>({ success: false, error: check.error }, { status: 400 });
-    }
-    splitTickets = buildSplits(body.splits as SplitInput[], itemsById);
-  }
-
   const isReprint = printType === "CUSTOMER_REPRINT";
   const common = {
     tenantId: TENANT,
@@ -154,61 +132,28 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   // Snapshot listo-para-imprimir del ticket de cliente → lo consume el PrintBridge.
   const tableLabel = comanda.table ? `Mesa ${comanda.table.number} - ${comanda.table.section.name}` : (comanda.customName || "Cuenta sin mesa");
   const nowIso = new Date().toISOString();
-  const itemInfo = new Map(
-    comanda.items.map((i) => [i.id, { name: i.dishNameSnapshot, unit: Number(i.unitPriceSnapshot) }]),
-  );
-
-  if (splitTickets) {
-    // Un ComandaPrint por cada grupo de la división.
-    await prisma.$transaction(
-      splitTickets.map((t) => {
-        const lines = mergeLines(t.units.map((u) => {
-          const info = itemInfo.get(u.itemId)!;
-          return { qty: u.quantity, name: info.name, unit: info.unit, total: +(info.unit * u.quantity).toFixed(2) };
-        }));
-        return prisma.comandaPrint.create({
-          data: {
-            ...common,
-            splitConfig: t,
-            ticketsPrinted: 1,
-            status: "PENDING",
-            payload: {
-              kind: "customer", fiscal: FISCAL, folio: comanda.folio, table: tableLabel,
-              waiter: comanda.waiter?.fullName ?? "", guests: comanda.guestsActual, orden: comanda.id,
-              opened: comanda.openedAt.toISOString(), time: nowIso,
-              reprint: isReprint, ticketNumber: t.ticketNumber, items: lines, total: t.total,
-              importeLetra: numeroALetras(t.total),
-              factura: { url: FACTURA_URL, folio: comanda.folio },
-            },
-          },
-        });
-      }),
-    );
-  } else {
-    const lines = mergeLines(comanda.items.map((i) => ({
-      qty: Number(i.quantity), name: i.dishNameSnapshot, unit: Number(i.unitPriceSnapshot), total: Number(i.lineTotal),
-    })));
-    await prisma.comandaPrint.create({
-      data: {
-        ...common,
-        splitConfig: undefined,
-        ticketsPrinted: 1,
-        status: "PENDING",
-        payload: {
-          kind: "customer", fiscal: FISCAL, folio: comanda.folio, table: tableLabel,
-          waiter: comanda.waiter?.fullName ?? "", guests: comanda.guestsActual, orden: comanda.id,
-          opened: comanda.openedAt.toISOString(), time: nowIso,
-          reprint: isReprint, ticketNumber: null, items: lines,
-          subtotal: Number(comanda.subtotal), tax: Number(comanda.taxAmount), total: Number(comanda.total),
-          // #11: descuento a la cuenta visible en el ticket. `gross` = suma bruta de líneas
-          // (antes de descuento) para anclar el renglón "Descuento" y calcular el %.
-          discount: Number(comanda.discountTotal), gross: +lines.reduce((s, l) => s + l.total, 0).toFixed(2),
-          importeLetra: numeroALetras(Number(comanda.total)),
-          factura: { url: FACTURA_URL, folio: comanda.folio },
-        },
+  const lines = mergeLines(comanda.items.map((i) => ({
+    qty: Number(i.quantity), name: i.dishNameSnapshot, unit: Number(i.unitPriceSnapshot), total: Number(i.lineTotal),
+  })));
+  await prisma.comandaPrint.create({
+    data: {
+      ...common,
+      ticketsPrinted: 1,
+      status: "PENDING",
+      payload: {
+        kind: "customer", fiscal: FISCAL, folio: comanda.folio, table: tableLabel,
+        waiter: comanda.waiter?.fullName ?? "", guests: comanda.guestsActual, orden: comanda.id,
+        opened: comanda.openedAt.toISOString(), time: nowIso,
+        reprint: isReprint, ticketNumber: null, items: lines,
+        subtotal: Number(comanda.subtotal), tax: Number(comanda.taxAmount), total: Number(comanda.total),
+        // #11: descuento a la cuenta visible en el ticket. `gross` = suma bruta de líneas
+        // (antes de descuento) para anclar el renglón "Descuento" y calcular el %.
+        discount: Number(comanda.discountTotal), gross: +lines.reduce((s, l) => s + l.total, 0).toFixed(2),
+        importeLetra: numeroALetras(Number(comanda.total)),
+        factura: { url: FACTURA_URL, folio: comanda.folio },
       },
-    });
-  }
+    },
+  });
 
   // El cajón NO se abre al imprimir la cuenta: solo al COBRAR efectivo (ver pay/route.ts),
   // en corte, en movimientos de dinero y con el botón manual de caja.

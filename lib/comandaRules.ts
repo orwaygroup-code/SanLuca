@@ -95,37 +95,6 @@ export function formatCashFolio(year: number, seq: number): string {
   return `CAJA-${year}-${String(seq).padStart(4, "0")}`;
 }
 
-/** prepArea → impresora física (PrintTarget) al enviar a cocina/barra. */
-export function prepAreaToTarget(prepArea: "BARRA" | "COCINA"): "BARRA" | "COCINA" {
-  return prepArea; // 1:1 en B.1 (2 áreas). Si se subdividen áreas, se mapea aquí.
-}
-
-export interface SplitUnit { itemId: number; quantity: number }
-export interface SplitInput { units: SplitUnit[] }
-export interface SplitTicket { ticketNumber: number; units: SplitUnit[]; total: number }
-
-/**
- * Construye la config de cada ticket de una división de cuenta (Fase B.2).
- * `splits` define los grupos de UNIDADES (itemId + quantity) — permite dividir
- * fracciones de un mismo platillo entre comensales (p.ej. "Pasta ×2", uno cada quien).
- * `itemsById` da el precio unitario / cantidad / lineTotal de cada item vivo.
- *
- * El total de cada ticket = Σ (unitPriceSnapshot × quantity) por unidad. Se usa
- * el precio unitario directo (no lineTotal/cantidad) para evitar drift de redondeo.
- * Devuelve un SplitTicket por grupo (→ el endpoint crea un ComandaPrint por cada uno).
- */
-export function buildSplits(
-  splits: SplitInput[],
-  itemsById: Map<number, { unitPriceSnapshot: number; quantity: number; lineTotal: number }>,
-): SplitTicket[] {
-  return splits.map((s, i) => ({
-    ticketNumber: i + 1,
-    units: s.units,
-    total: Math.round(
-      s.units.reduce((sum, u) => sum + (itemsById.get(u.itemId)?.unitPriceSnapshot ?? 0) * u.quantity, 0) * 100,
-    ) / 100,
-  }));
-}
 
 /** Roles que pueden AUTORIZAR una reimpresión tecleando su PIN. */
 export const REPRINT_AUTHORIZER_ROLES = ["CAPTAIN", "MANAGER"] as const;
@@ -172,6 +141,11 @@ export function resolveReprintAuthorizer(args: {
     return { ok: false, status: 403, error: "PIN incorrecto o sin permiso para autorizar la reimpresión." };
   }
   return { ok: true, authorizedById: args.pinAuthorizedId };
+}
+
+/** prepArea → impresora física (PrintTarget) al enviar a cocina/barra. */
+export function prepAreaToTarget(prepArea: "BARRA" | "COCINA"): "BARRA" | "COCINA" {
+  return prepArea; // 1:1 en B.1 (2 áreas). Si se subdividen áreas, se mapea aquí.
 }
 
 // ── División de cuenta (cuentas hijas) ───────────────────────────────────────
