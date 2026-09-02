@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getStaffSession } from "@/lib/staff-auth-server";
 import { canModifyComanda, prepAreaToTarget } from "@/lib/comandaRules";
 import { TENANT, COMANDA_INCLUDE } from "@/lib/comanda";
+import { notify } from "@/lib/notify";
 import type { ApiResponse } from "@/types";
 
 function parseId(raw: string): number | null {
@@ -89,6 +90,17 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     }),
     prisma.comanda.update({ where: { id }, data: { status: "IN_SERVICE" } }),
   ]);
+
+  // Auditoría en tiempo real: campana + push a managers por cada envío a cocina.
+  // El detalle (productos, comentarios, hora, mesero) queda en el payload del
+  // ComandaPrint KITCHEN_BAR y lo muestra el panel /admin/comandas.
+  void notify({
+    roles: ["MANAGER"],
+    type: "audit",
+    title: "Comanda enviada a cocina",
+    body: `${comanda.folio} · ${comanda.waiter.fullName} · ${pending.length} ${pending.length === 1 ? "producto" : "productos"}`,
+    url: "/admin/comandas",
+  });
 
   const updated = await prisma.comanda.findFirst({ where: { id, tenantId: TENANT }, include: COMANDA_INCLUDE });
   return NextResponse.json<ApiResponse>({ success: true, data: updated });

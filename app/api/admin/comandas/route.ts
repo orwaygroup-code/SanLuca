@@ -6,9 +6,10 @@ import { resolveDateRange } from "@/lib/dateRange";
 import type { ApiResponse } from "@/types";
 
 type AuditKind =
-  | "PRINT" | "REPRINT" | "TABLE_CHANGE" | "WAITER_CHANGE" | "ITEM_CANCEL" | "ITEM_REMOVE"
+  | "PRINT" | "REPRINT" | "KITCHEN_SEND" | "TABLE_CHANGE" | "WAITER_CHANGE" | "ITEM_CANCEL" | "ITEM_REMOVE"
   | "PAYMENT" | "PAYMENT_VOID" | "DISCOUNT" | "MERGE" | "TRANSFER" | "REOPEN";
-interface AuditEvent { kind: AuditKind; at: string; actor: string; detail: string; reason: string | null }
+interface AuditItem { qty: number; name: string; notes: string | null; mods: string | null }
+interface AuditEvent { kind: AuditKind; at: string; actor: string; detail: string; reason: string | null; items?: AuditItem[] }
 
 const MXN = (n: number) => `$${(Math.round(n * 100) / 100).toFixed(2)}`;
 const METHOD_LABEL: Record<string, string> = { CASH: "Efectivo", CARD_DEBIT: "Débito", CARD_CREDIT: "Crédito", TRANSFER: "Transferencia" };
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest) {
       guestsActual: true, cancellationReason: true, cancelledById: true, cancelledAt: true,
       table: { select: { number: true, section: { select: { name: true } } } },
       waiter: { select: { fullName: true } },
-      prints: { select: { type: true, printedAt: true, authorizationReason: true, executedBy: { select: { fullName: true } }, authorizedBy: { select: { fullName: true } } } },
+      prints: { select: { type: true, target: true, printedAt: true, authorizationReason: true, payload: true, executedBy: { select: { fullName: true } }, authorizedBy: { select: { fullName: true } } } },
       tableChanges: { select: { fromTableId: true, toTableId: true, reason: true, changedAt: true, changedBy: { select: { fullName: true } } } },
       waiterChanges: { select: { fromWaiterId: true, toWaiterId: true, reason: true, changedAt: true, changedBy: { select: { fullName: true } } } },
       items: { where: { status: "CANCELLED" }, select: { dishNameSnapshot: true, quantity: true, cancelledReason: true, cancelledById: true, cancelledAt: true } },
@@ -82,11 +83,26 @@ export async function GET(request: NextRequest) {
   const data = comandas.map((c) => {
     const events: AuditEvent[] = [];
     for (const p of c.prints) {
+      // KITCHEN_BAR = envío a cocina/barra. Se audita en tiempo real con su detalle
+      // (mesero, hora de expedición, productos y comentarios) leído del payload del ticket.
+      if (p.type === "KITCHEN_BAR") {
+        const pl = (p.payload ?? {}) as { waiter?: string; time?: string; items?: { qty?: number; name?: string; notes?: string | null; mods?: string | null }[] };
+        const its: AuditItem[] = (pl.items ?? []).map((i) => ({ qty: Number(i.qty ?? 0), name: String(i.name ?? ""), notes: i.notes ?? null, mods: i.mods ?? null }));
+        const nProd = its.reduce((s, i) => s + i.qty, 0);
+        events.push({
+          kind: "KITCHEN_SEND",
+          at: p.printedAt.toISOString(),
+          actor: pl.waiter || p.executedBy.fullName,
+          detail: `Enviado a ${p.target === "BARRA" ? "barra" : "cocina"} · ${nProd} ${nProd === 1 ? "producto" : "productos"}`,
+          reason: null,
+          items: its,
+        });
+        continue;
+      }
       // Solo auditamos IMPRESIONES REALES de papel del cliente/cocina. Se ignoran:
-      // KITCHEN_BAR (envío a cocina, ruido), DRAWER_KICK (abre el cajón, NO imprime),
-      // KITCHEN_CANCEL (ya se ve como cancelación del producto), CORTE/TIP/MESSAGE.
-      // Antes TODO lo que no fuera CUSTOMER_REPRINT se marcaba "Impresión de cuenta", así
-      // que el pulso del cajón al cobrar aparecía como una impresión de más.
+      // DRAWER_KICK (abre el cajón, NO imprime), KITCHEN_CANCEL (ya se ve como cancelación
+      // del producto), CORTE/TIP/MESSAGE. Antes TODO lo que no fuera CUSTOMER_REPRINT se
+      // marcaba "Impresión de cuenta", así que el pulso del cajón al cobrar contaba de más.
       if (p.type !== "CUSTOMER_FINAL" && p.type !== "CUSTOMER_REPRINT" && p.type !== "KITCHEN_REPRINT") continue;
       const reprint = p.type === "CUSTOMER_REPRINT";
       const kitchenReprint = p.type === "KITCHEN_REPRINT";

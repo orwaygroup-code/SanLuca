@@ -8,9 +8,10 @@ import { DateRangeBar, DEFAULT_FILTER, dateFilterQuery, type DateFilter } from "
 import { dialogAlert, dialogPrompt } from "@/components/ui/DialogHost";
 
 type AuditKind =
-  | "PRINT" | "REPRINT" | "TABLE_CHANGE" | "WAITER_CHANGE" | "ITEM_CANCEL" | "ITEM_REMOVE"
+  | "PRINT" | "REPRINT" | "KITCHEN_SEND" | "TABLE_CHANGE" | "WAITER_CHANGE" | "ITEM_CANCEL" | "ITEM_REMOVE"
   | "PAYMENT" | "PAYMENT_VOID" | "DISCOUNT" | "MERGE" | "TRANSFER" | "REOPEN";
-interface AuditEvent { kind: AuditKind; at: string; actor: string; detail: string; reason: string | null }
+interface AuditItem { qty: number; name: string; notes: string | null; mods: string | null }
+interface AuditEvent { kind: AuditKind; at: string; actor: string; detail: string; reason: string | null; items?: AuditItem[] }
 interface AuditComanda {
   id: number; folio: string; status: string; total: number; table: string; waiter: string; guests: number;
   openedAt: string; closedAt: string | null;
@@ -24,6 +25,7 @@ const STATUS_COLOR: Record<string, string> = { OPEN: "var(--sl-blue)", IN_SERVIC
 const EVENT_META: Record<string, { label: string; color: string }> = {
   PRINT: { label: "Impresión", color: "var(--sl-blue)" },
   REPRINT: { label: "Reimpresión", color: "var(--sl-amber)" },
+  KITCHEN_SEND: { label: "Enviado a cocina", color: "#4aa3b8" },
   TABLE_CHANGE: { label: "Cambio de mesa", color: "#b07cd6" },
   WAITER_CHANGE: { label: "Cambio de mesero", color: "#b07cd6" },
   ITEM_CANCEL: { label: "Item cancelado", color: "var(--sl-red)" },
@@ -62,6 +64,19 @@ export default function AdminComandasAuditPage() {
   }, [filter]);
 
   useEffect(() => { if (session.user?.role === "ADMIN") load(); }, [session.user, load]);
+
+  // Auto-refresco en vivo (auditoría en tiempo real): re-lee cada 15 s SIN parpadear
+  // (no resetea a null). Solo con la pestaña visible, para no golpear el server de fondo.
+  useEffect(() => {
+    if (session.user?.role !== "ADMIN") return;
+    const t = setInterval(async () => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      const r = await fetch(`/api/admin/comandas?${dateFilterQuery(filter)}`, { credentials: "same-origin" });
+      const d = await r.json().catch(() => null);
+      if (d?.success) setRows(d.data as AuditComanda[]);
+    }, 15000);
+    return () => clearInterval(t);
+  }, [session.user, filter]);
 
   // Reimprime el ticket del cliente de una cuenta pasada (archivo). CUSTOMER_REPRINT con motivo.
   const reprint = async (id: number | string) => {
@@ -133,13 +148,26 @@ export default function AdminComandasAuditPage() {
                     {c.events.map((e, i) => {
                       const m = eventMeta(e.kind);
                       return (
-                        <div key={i} style={S.event}>
-                          <span style={{ ...S.eventTag, color: m.color, borderColor: m.color }}>{m.label}</span>
-                          <span style={{ color: C.cream, fontSize: "0.8rem", flex: 1, minWidth: 0 }}>
-                            {e.detail} · <span style={{ color: C.dim }}>{e.actor}</span>
-                            {e.reason && <span style={{ color: C.faint }}> — “{e.reason}”</span>}
-                          </span>
-                          <span style={{ color: C.faint, fontSize: "0.7rem", whiteSpace: "nowrap" }}>{fmt(e.at)}</span>
+                        <div key={i}>
+                          <div style={S.event}>
+                            <span style={{ ...S.eventTag, color: m.color, borderColor: m.color }}>{m.label}</span>
+                            <span style={{ color: C.cream, fontSize: "0.8rem", flex: 1, minWidth: 0 }}>
+                              {e.detail} · <span style={{ color: C.dim }}>{e.actor}</span>
+                              {e.reason && <span style={{ color: C.faint }}> — “{e.reason}”</span>}
+                            </span>
+                            <span style={{ color: C.faint, fontSize: "0.7rem", whiteSpace: "nowrap" }}>{fmt(e.at)}</span>
+                          </div>
+                          {e.items && e.items.length > 0 && (
+                            <div style={S.itemList}>
+                              {e.items.map((it, j) => (
+                                <div key={j} style={{ color: C.dim, fontSize: "0.76rem" }}>
+                                  · {it.qty}× {it.name}
+                                  {it.notes && <span style={{ color: C.faint }}> — {it.notes}</span>}
+                                  {it.mods && <span style={{ color: C.faint }}> ({it.mods})</span>}
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -178,4 +206,5 @@ const S: Record<string, React.CSSProperties> = {
   cancelBox: { marginTop: 8, padding: "8px 11px", borderRadius: 8, background: "rgba(217,83,79,0.12)", border: "1px solid rgba(217,83,79,0.4)", color: "#e9a3a0", fontSize: "0.8rem" },
   event: { display: "flex", alignItems: "center", gap: 10, padding: "6px 0", borderTop: `1px solid ${C.line}` },
   eventTag: { fontSize: "0.66rem", fontWeight: 700, padding: "2px 8px", borderRadius: 6, border: "1px solid", whiteSpace: "nowrap" },
+  itemList: { paddingLeft: 18, paddingBottom: 4, display: "flex", flexDirection: "column", gap: 1 },
 };
