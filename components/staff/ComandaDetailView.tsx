@@ -239,8 +239,10 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   // pasa a «Por cobrar» (AWAITING_PAYMENT) → ni mesero ni caja agregan/modifican.
   const printAndLock = async () => {
     setAskBill(false);
-    const okPrint = await doPrint();
-    if (okPrint) await post(`/api/comandas/${id}/send-to-cashier`, undefined, "Ticket impreso · enviada a caja");
+    // /print ya pasa la comanda a AWAITING_PAYMENT de forma atómica (fuente única de
+    // verdad); ya no hace falta el 2.º paso a /send-to-cashier —que además fallaba por
+    // asimetría de realm desde ADMIN y dejaba la comanda impresa pero en IN_SERVICE.
+    await doPrint();
   };
 
   const confirmCancelItem = async (reason?: string, pin?: string) => {

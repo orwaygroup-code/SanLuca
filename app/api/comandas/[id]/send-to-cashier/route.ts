@@ -33,6 +33,12 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   if (!canModifyComanda(s.role, isOwner) && !(isTakeout && isCajaRole)) {
     return NextResponse.json<ApiResponse>({ success: false, error: "No puedes modificar esta comanda" }, { status: 403 });
   }
+  // Idempotente: si ya está "por cobrar" / pago parcial (p. ej. porque imprimir la cuenta
+  // ya la pasó a AWAITING_PAYMENT — ver /print), "pedir cuenta" es un no-op exitoso, no un error.
+  if (comanda.status === "AWAITING_PAYMENT" || comanda.status === "PARTIALLY_PAID") {
+    const same = await prisma.comanda.findFirst({ where: { id, tenantId: TENANT }, include: COMANDA_INCLUDE });
+    return NextResponse.json<ApiResponse>({ success: true, data: same });
+  }
   if (comanda.status !== "OPEN" && comanda.status !== "IN_SERVICE") {
     return NextResponse.json<ApiResponse>({ success: false, error: `Comanda ${comanda.status}: no aplica pedir cuenta` }, { status: 409 });
   }

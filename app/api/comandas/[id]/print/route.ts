@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolveActor, isSupervisor } from "@/lib/dualAuth";
 import { verifySupervisorPin } from "@/lib/staff";
-import { resolveReprintAuthorizer, REPRINT_AUTHORIZER_ROLES } from "@/lib/comandaRules";
+import { resolveReprintAuthorizer, REPRINT_AUTHORIZER_ROLES, isEditableStatus } from "@/lib/comandaRules";
 import { TENANT, COMANDA_INCLUDE } from "@/lib/comanda";
 import { FISCAL, FACTURA_URL } from "@/lib/fiscal";
 import { numeroALetras } from "@/lib/numeroLetras";
@@ -145,24 +145,37 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const lines = mergeLines(comanda.items.map((i) => ({
     qty: Number(i.quantity), name: i.dishNameSnapshot, unit: Number(i.unitPriceSnapshot), total: Number(i.lineTotal),
   })));
-  await prisma.comandaPrint.create({
-    data: {
-      ...common,
-      ticketsPrinted: 1,
-      status: "PENDING",
-      payload: {
-        kind: "customer", fiscal: FISCAL, folio: comanda.folio, table: tableLabel,
-        waiter: comanda.waiter?.fullName ?? "", guests: comanda.guestsActual, orden: comanda.id,
-        opened: comanda.openedAt.toISOString(), time: nowIso,
-        reprint: isReprint, ticketNumber: null, items: lines,
-        subtotal: Number(comanda.subtotal), tax: Number(comanda.taxAmount), total: Number(comanda.total),
-        // #11: descuento a la cuenta visible en el ticket. `gross` = suma bruta de líneas
-        // (antes de descuento) para anclar el renglón "Descuento" y calcular el %.
-        discount: Number(comanda.discountTotal), gross: +lines.reduce((s, l) => s + l.total, 0).toFixed(2),
-        importeLetra: numeroALetras(Number(comanda.total)),
-        factura: { url: FACTURA_URL, folio: comanda.folio },
+  await prisma.$transaction(async (tx) => {
+    await tx.comandaPrint.create({
+      data: {
+        ...common,
+        ticketsPrinted: 1,
+        status: "PENDING",
+        payload: {
+          kind: "customer", fiscal: FISCAL, folio: comanda.folio, table: tableLabel,
+          waiter: comanda.waiter?.fullName ?? "", guests: comanda.guestsActual, orden: comanda.id,
+          opened: comanda.openedAt.toISOString(), time: nowIso,
+          reprint: isReprint, ticketNumber: null, items: lines,
+          subtotal: Number(comanda.subtotal), tax: Number(comanda.taxAmount), total: Number(comanda.total),
+          // #11: descuento a la cuenta visible en el ticket. `gross` = suma bruta de líneas
+          // (antes de descuento) para anclar el renglón "Descuento" y calcular el %.
+          discount: Number(comanda.discountTotal), gross: +lines.reduce((s, l) => s + l.total, 0).toFixed(2),
+          importeLetra: numeroALetras(Number(comanda.total)),
+          factura: { url: FACTURA_URL, folio: comanda.folio },
+        },
       },
-    },
+    });
+
+    // Imprimir la CUENTA (CUSTOMER_FINAL) es lo que pasa la comanda a "Por cobrar":
+    // UNA sola fuente de verdad, atómica con el ticket. Antes solo lo hacía
+    // /send-to-cashier, así que imprimir desde Operación/Manager dejaba la comanda
+    // impresa pero en IN_SERVICE → Caja/piso (que agrupan por status) no mostraban
+    // "Cobrar" mientras el detalle (que deriva del ticket) sí. Idempotente: las
+    // reimpresiones (CUSTOMER_REPRINT) y las que ya venían de send-to-cashier
+    // (AWAITING_PAYMENT, no editable) NO re-transicionan.
+    if (printType === "CUSTOMER_FINAL" && isEditableStatus(comanda.status)) {
+      await tx.comanda.update({ where: { id }, data: { status: "AWAITING_PAYMENT", awaitingPaymentAt: new Date() } });
+    }
   });
 
   // El cajón NO se abre al imprimir la cuenta: solo al COBRAR efectivo (ver pay/route.ts),
