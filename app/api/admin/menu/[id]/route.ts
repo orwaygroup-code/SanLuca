@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/dualAuth";
+import { verifySupervisorPin } from "@/lib/staff";
 import { dishUpdateSchema } from "@/lib/validations";
+import { TENANT } from "@/lib/comanda";
+import { notify } from "@/lib/notify";
 import type { ApiResponse } from "@/types";
 
 const DISH_SELECT = {
@@ -24,12 +27,25 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   }
   const d = parsed.data;
 
-  const exists = await prisma.dish.findUnique({ where: { id: params.id }, select: { id: true } });
+  const exists = await prisma.dish.findUnique({ where: { id: params.id }, select: { id: true, name: true } });
   if (!exists) return NextResponse.json<ApiResponse>({ success: false, error: "Platillo no encontrado" }, { status: 404 });
 
   if (d.categoryId !== undefined) {
     const cat = await prisma.menuCategory.findUnique({ where: { id: d.categoryId }, select: { id: true } });
     if (!cat) return NextResponse.json<ApiResponse>({ success: false, error: "Categoría no encontrada" }, { status: 404 });
+  }
+
+  // ELIMINAR (active:false) exige PIN de un Capitán/Manager y deja registro en auditoría.
+  // Archivar (archived:true) y Restaurar (active:true) NO piden PIN: son reversibles/suaves.
+  let eliminadoPor: string | null = null;
+  if (d.active === false) {
+    const authPin = (d.authPin ?? "").trim();
+    const authorizedById = authPin ? await verifySupervisorPin(authPin, { tenantId: TENANT, roles: ["CAPTAIN", "MANAGER"] }) : null;
+    if (!authorizedById) {
+      return NextResponse.json<ApiResponse>({ success: false, error: "PIN de Capitán o Manager requerido para eliminar" }, { status: 403 });
+    }
+    const sup = await prisma.staff.findUnique({ where: { id: authorizedById }, select: { fullName: true } });
+    eliminadoPor = sup?.fullName ?? `#${authorizedById}`;
   }
 
   const updated = await prisma.dish.update({
@@ -52,6 +68,17 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     },
     select: DISH_SELECT,
   });
+
+  if (eliminadoPor) {
+    void notify({
+      roles: ["MANAGER"],
+      type: "audit",
+      title: "Producto eliminado",
+      body: `${exists.name} · autorizó ${eliminadoPor} (ventas históricas conservadas)`,
+      url: "/admin/menu",
+    });
+  }
+
   return NextResponse.json<ApiResponse>({ success: true, data: updated });
 }
 

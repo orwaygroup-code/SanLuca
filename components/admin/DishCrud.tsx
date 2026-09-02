@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/session-client";
 import { GoldSelect, type SelectOption } from "@/components/ui/GoldSelect";
-import { dialogAlert, dialogConfirm } from "@/components/ui/DialogHost";
+import { dialogAlert, dialogPrompt } from "@/components/ui/DialogHost";
 
 /**
  * CRUD de platillos del menú (y de "Extras"). Jerarquía: Turno (Comida/Brunch) →
@@ -37,6 +37,12 @@ const AVAIL_FILTER: SelectOption[] = [
   { value: "true", label: "Solo visibles en menú" },
   { value: "false", label: "Solo ocultos" },
 ];
+type DishState = "active" | "archived" | "eliminated";
+const STATE_FILTER: SelectOption[] = [
+  { value: "active", label: "Activos" },
+  { value: "archived", label: "Archivados" },
+  { value: "eliminated", label: "Eliminados" },
+];
 
 async function getJson(url: string) { const r = await fetch(url, { credentials: "same-origin" }); return r.json().catch(() => null); }
 
@@ -52,7 +58,7 @@ export function DishCrud({ isExtra }: { isExtra: boolean }) {
   const [query, setQuery] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<DishRow | null>(null);
-  const [showDisabled, setShowDisabled] = useState(false);
+  const [stateFilter, setStateFilter] = useState<DishState>("active");
 
   useEffect(() => {
     if (session.loading) return;
@@ -70,12 +76,12 @@ export function DishCrud({ isExtra }: { isExtra: boolean }) {
     params.set("isExtra", String(isExtra));
     if (cartaFilter) params.set("cartaId", cartaFilter);
     if (availFilter) params.set("available", availFilter);
-    if (showDisabled) params.set("includeDisabled", "true");
+    params.set("state", stateFilter);
     if (query.trim()) params.set("q", query.trim());
     const d = await getJson(`/api/admin/menu?${params}`);
     if (d?.success) setRows(d.data as DishRow[]);
     setLoading(false);
-  }, [isExtra, cartaFilter, availFilter, showDisabled, query]);
+  }, [isExtra, cartaFilter, availFilter, stateFilter, query]);
 
   useEffect(() => { if (session.user?.role === "ADMIN") loadCartas(); }, [session.user, loadCartas]);
   useEffect(() => { if (session.user?.role === "ADMIN") fetchList(); }, [session.user, fetchList]);
@@ -104,12 +110,19 @@ export function DishCrud({ isExtra }: { isExtra: boolean }) {
   // Archivar: guardar por si acaso (restaurable de un toque). Sale de operación.
   const archiveDish = (row: DishRow) => patchDish(row, { archived: true });
   // Eliminar: retirar de la operación. No borra ventas; queda en «Eliminados», restaurable.
+  // (c) avisa el impacto (ventas históricas que se conservan) + (a) exige PIN de supervisor.
   const eliminarDish = async (row: DishRow) => {
-    const ok = await dialogConfirm(
-      `«${row.name}» se retirará de la carta y la comandera. Sus ventas históricas se conservan y puedes restaurarlo después. ¿Eliminar?`,
-      { title: "Eliminar producto", confirmLabel: "Eliminar", danger: true },
+    const u = await getJson(`/api/admin/menu/${row.id}/usage`);
+    const n = u?.success ? Number(u.data?.salesCount ?? 0) : 0;
+    const impacto = n > 0
+      ? `«${row.name}» aparece en ${n} ${n === 1 ? "venta histórica que se conserva" : "ventas históricas que se conservan"}. `
+      : `«${row.name}» aún no tiene ventas registradas. `;
+    const pin = await dialogPrompt(
+      `${impacto}Escribe el PIN de un Capitán o Manager para eliminarlo (se retira de la carta y la comandera; es reversible).`,
+      { title: "Eliminar producto", password: true, maxLength: 4, placeholder: "PIN de supervisor", confirmLabel: "Eliminar" },
     );
-    if (ok) await patchDish(row, { active: false });
+    if (!pin || pin.length !== 4) return;
+    await patchDish(row, { active: false, authPin: pin });
   };
   const restoreDish = (row: DishRow) => patchDish(row, { active: true });
 
@@ -146,9 +159,7 @@ export function DishCrud({ isExtra }: { isExtra: boolean }) {
         <GoldSelect value={cartaFilter} onChange={setCartaFilter} options={cartaFilterOptions} placeholder="Carta" style={{ minWidth: 200 }} />
         <GoldSelect value={availFilter} onChange={(v) => setAvailFilter(v as "" | "true" | "false")} options={AVAIL_FILTER} placeholder="Visibilidad" style={{ minWidth: 180 }} />
         <input style={S.search} placeholder="Buscar producto…" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && fetchList()} />
-        <label style={{ display: "flex", alignItems: "center", gap: 7, color: "rgb(var(--sl-cream-rgb) / 0.72)", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
-          <input type="checkbox" checked={showDisabled} onChange={(e) => setShowDisabled(e.target.checked)} /> Ver archivados / eliminados
-        </label>
+        <GoldSelect value={stateFilter} onChange={(v) => setStateFilter(v as DishState)} options={STATE_FILTER} placeholder="Estado" style={{ minWidth: 150 }} />
       </div>
 
       {loading ? <p style={S.empty}>Cargando…</p> : rows.length === 0 ? <p style={S.empty}>Sin {isExtra ? "extras" : "productos"}. Toca «+» para agregar.</p> : (

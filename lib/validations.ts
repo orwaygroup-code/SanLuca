@@ -115,6 +115,7 @@ export const dishCreateSchema = z.object({
   available: z.boolean().optional(),
   active: z.boolean().optional(),
   archived: z.boolean().optional(), // acción (solo update): true=archivar (active→false, archivedAt=now); false=restaurar
+  authPin: z.string().optional(),   // PIN de supervisor requerido para ELIMINAR (active:false)
   isExtra: z.boolean().optional(),
   position: z.number().int().nullish(),
 });

@@ -28,12 +28,18 @@ export async function GET(request: NextRequest) {
   const categoryId = searchParams.get("categoryId");
   const cartaId = searchParams.get("cartaId");
   const available = searchParams.get("available");
-  // Por defecto SOLO platillos habilitados; los deshabilitados solo se ven si se pide explícito.
-  const includeDisabled = searchParams.get("includeDisabled") === "true";
+  // Estado: active (default) | archived | eliminated | all. Archivar y eliminar
+  // dejan active=false; archivedAt distingue archivado (sello) de eliminado (sin sello).
+  const state = searchParams.get("state");
+  const stateWhere =
+    state === "archived" ? { active: false, NOT: { archivedAt: null } } :
+    state === "eliminated" ? { active: false, archivedAt: null } :
+    state === "all" || searchParams.get("includeDisabled") === "true" ? {} :
+    { active: true };
 
   const dishes = await prisma.dish.findMany({
     where: {
-      ...(includeDisabled ? {} : { active: true }),
+      ...stateWhere,
       ...(isExtra === "true" ? { isExtra: true } : isExtra === "false" ? { isExtra: false } : {}),
       ...(categoryId ? { categoryId } : {}),
       ...(cartaId ? { category: { cartaId } } : {}),
