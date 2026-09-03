@@ -4,6 +4,8 @@
  * string en JSON — por eso los montos son number | string (Number() los normaliza).
  */
 
+import { billHasVigentTicket } from "@/lib/comandaRules";
+
 export type ComandaStatus =
   | "OPEN" | "IN_SERVICE" | "AWAITING_PAYMENT" | "PARTIALLY_PAID" | "PAID" | "MERGED" | "CANCELLED";
 export type ItemStatus = "PENDING" | "SENT" | "IN_PREP" | "READY" | "SERVED" | "DELIVERED" | "CANCELLED";
@@ -92,14 +94,12 @@ export interface Comanda {
  * la última reapertura. Al reabrir la cuenta el candado se reinicia: se puede volver a
  * modificar e imprimir; al reimprimir se vuelve a cerrar (solo Cobrar). Fuente única de la
  * regla "impreso → solo Cobrar" para el detalle y las listas de operación.
+ *
+ * Delega en billHasVigentTicket (lib/comandaRules) — la MISMA función que usa el endpoint
+ * /print, para que cliente y servidor no puedan discrepar sobre si toca imprimir o reimprimir.
  */
 export function isBillPrinted(c: { prints?: CPrint[]; reopens?: { reopenedAt: string }[] }): boolean {
-  const lastFinal = (c.prints ?? [])
-    .filter((p) => p.type === "CUSTOMER_FINAL")
-    .reduce((max, p) => Math.max(max, new Date(p.printedAt).getTime()), 0);
-  if (!lastFinal) return false;
-  const lastReopen = c.reopens?.[0]?.reopenedAt ? new Date(c.reopens[0].reopenedAt).getTime() : 0;
-  return lastFinal > lastReopen;
+  return billHasVigentTicket(c.prints ?? [], c.reopens?.[0]?.reopenedAt);
 }
 
 /**

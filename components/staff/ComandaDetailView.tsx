@@ -726,6 +726,13 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
                 {alreadyPrinted && (
                   <button style={caja.primary} onClick={() => setPayOpen(true)} disabled={busy}><Icon name="card" size={18} />Cobrar{amountPaid > 0 ? ` · restan ${formatMXN(remaining)}` : ""}</button>
                 )}
+                {/* Reimprimir la CUENTA estando "por cobrar" (antes esto solo existía para
+                    cuentas ya PAGADAS, así que en caja no había forma de sacar otra copia sin
+                    reabrir). La autoriza un Capitán/Manager en sesión, o el cajero con el PIN de
+                    uno vía el modal `reprint`; siempre con motivo para auditoría. */}
+                {alreadyPrinted && (
+                  <button style={caja.secondary} onClick={() => setReprint(true)} disabled={busy}><Icon name="printer" size={16} />Reimprimir ticket</button>
+                )}
                 {/* Impresa: las acciones son Cobrar y Reabrir. La reapertura devuelve la
                     cuenta a "en servicio" con todo lo normal —agregar, imprimir, dividir—
                     porque isBillPrinted solo cuenta tickets posteriores a la reapertura.

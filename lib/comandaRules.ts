@@ -85,6 +85,30 @@ export function decidePrint(args: {
   return { allowed: true, type: "CUSTOMER_REPRINT" };
 }
 
+/**
+ * ¿La cuenta tiene un ticket de cliente VIGENTE? = existe un CUSTOMER_FINAL emitido
+ * DESPUÉS de la última reapertura. Reabrir reinicia el candado: se puede volver a
+ * modificar e imprimir, y esa nueva impresión vuelve a ser un CUSTOMER_FINAL (no una
+ * reimpresión).
+ *
+ * Fuente ÚNICA de la regla, compartida por el endpoint /print (servidor, fechas Date)
+ * y el cliente isBillPrinted (JSON, fechas string) — acepta ambas formas para que las
+ * dos no puedan divergir. Divergir fue justo el bug: el servidor contaba TODOS los
+ * CUSTOMER_FINAL de la historia e ignoraba la reapertura, así que tras reabrir exigía
+ * motivo de reimpresión mientras la UI ofrecía imprimir de nuevo (400 en cada intento).
+ */
+export function billHasVigentTicket(
+  prints: readonly { type: string; printedAt: string | Date }[],
+  lastReopenAt: string | Date | null | undefined,
+): boolean {
+  const lastFinal = prints
+    .filter((p) => p.type === "CUSTOMER_FINAL")
+    .reduce((max, p) => Math.max(max, new Date(p.printedAt).getTime()), 0);
+  if (!lastFinal) return false;
+  const reopen = lastReopenAt ? new Date(lastReopenAt).getTime() : 0;
+  return lastFinal > reopen;
+}
+
 /** Folio COM-AAAA-NNNN (NNNN secuencial por año, 4 dígitos). */
 export function formatFolio(year: number, seq: number): string {
   return `COM-${year}-${String(seq).padStart(4, "0")}`;

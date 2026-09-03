@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireStaffRole } from "@/lib/staff-auth-server";
 import { TENANT, ACTIVE_STATUSES } from "@/lib/comanda";
+import { billHasVigentTicket } from "@/lib/comandaRules";
 import type { ApiResponse } from "@/types";
 
 /**
@@ -25,7 +26,10 @@ export async function GET(request: NextRequest) {
     select: {
       id: true, folio: true, status: true, tableId: true, total: true, guestsActual: true,
       waiter: { select: { id: true, fullName: true } },
-      prints: { where: { type: "CUSTOMER_FINAL" }, select: { id: true }, take: 1 }, // ¿ya se imprimió la cuenta?
+      // ¿Hay ticket de cliente VIGENTE? El último CUSTOMER_FINAL + la última reapertura:
+      // reabrir reinicia el candado, así que la mesa vuelve a "en servicio" (ver billHasVigentTicket).
+      prints: { where: { type: "CUSTOMER_FINAL" }, orderBy: { printedAt: "desc" }, take: 1, select: { type: true, printedAt: true } },
+      reopens: { orderBy: { reopenedAt: "desc" }, take: 1, select: { reopenedAt: true } },
     },
   });
   const byTable = new Map(activeComandas.map((c) => [c.tableId, c]));
@@ -39,7 +43,7 @@ export async function GET(request: NextRequest) {
       section: t.section.name,
       state: c ? c.status : "FREE",
       comanda: c
-        ? { id: c.id, folio: c.folio, status: c.status, total: Number(c.total), guests: c.guestsActual, waiter: c.waiter, billPrinted: c.prints.length > 0 }
+        ? { id: c.id, folio: c.folio, status: c.status, total: Number(c.total), guests: c.guestsActual, waiter: c.waiter, billPrinted: billHasVigentTicket(c.prints, c.reopens[0]?.reopenedAt) }
         : null,
     };
   });

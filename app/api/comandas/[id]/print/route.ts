@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolveActor, isSupervisor } from "@/lib/dualAuth";
 import { verifySupervisorPin } from "@/lib/staff";
-import { resolveReprintAuthorizer, REPRINT_AUTHORIZER_ROLES, isEditableStatus } from "@/lib/comandaRules";
+import { resolveReprintAuthorizer, REPRINT_AUTHORIZER_ROLES, isEditableStatus, billHasVigentTicket } from "@/lib/comandaRules";
 import { TENANT, COMANDA_INCLUDE } from "@/lib/comanda";
 import { FISCAL, FACTURA_URL } from "@/lib/fiscal";
 import { numeroALetras } from "@/lib/numeroLetras";
@@ -60,14 +60,20 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         where: { status: { not: "CANCELLED" } },
         select: { id: true, quantity: true, unitPriceSnapshot: true, lineTotal: true, status: true, dishNameSnapshot: true },
       },
-      prints: { select: { type: true } },
+      prints: { select: { type: true, printedAt: true } },
+      // Solo la última reapertura: reabrir reinicia el candado de impresión (ver billHasVigentTicket).
+      reopens: { orderBy: { reopenedAt: "desc" }, take: 1, select: { reopenedAt: true } },
     },
   });
   if (!comanda) return NextResponse.json<ApiResponse>({ success: false, error: "Comanda no encontrada" }, { status: 404 });
 
   const body = await request.json().catch(() => ({}));
   const authorizationReason: string | null = typeof body?.authorizationReason === "string" ? body.authorizationReason : null;
-  const alreadyPrinted = comanda.prints.some((p) => p.type === "CUSTOMER_FINAL");
+  // "Ya impresa" = ticket vigente = hay un CUSTOMER_FINAL POSTERIOR a la última reapertura.
+  // Mismo criterio que el cliente (isBillPrinted): tras reabrir, la siguiente impresión es una
+  // impresión fresca (CUSTOMER_FINAL), no una reimpresión — sin esto el servidor pedía motivo de
+  // reimpresión y truncaba con 400 lo que la UI ofrecía como "Imprimir".
+  const alreadyPrinted = billHasVigentTicket(comanda.prints, comanda.reopens[0]?.reopenedAt);
 
   // Decisión dual-realm de impresión (regla 1-print + reimpresión supervisada).
   const supervisor = isSupervisor(actor);
