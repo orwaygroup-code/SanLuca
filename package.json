@@ -23,6 +23,7 @@
     "db:seed:kitchen": "tsx prisma/seeds/kitchen-staff.ts",
     "db:seed:chef": "tsx prisma/seeds/chef-specialties.ts",
     "db:seed:brunch-fix": "tsx prisma/seeds/brunch-corrections-2026-06-17.ts",
+    "db:seed:comida-2026-09": "tsx prisma/seeds/comida-carta-2026-09-04.ts",
     "db:update-wine-images": "tsx prisma/update-wine-images.ts",
     "db:studio": "prisma studio",
     "test": "tsx --test tests/*.test.ts",
