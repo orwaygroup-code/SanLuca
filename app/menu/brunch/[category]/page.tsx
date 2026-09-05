@@ -12,9 +12,6 @@ import { fonts } from "@/config/theme";
 import DishCardBlue from "@/components/menu/DishCardBlue";
 import NavThemeSetter from "@/components/NavThemeSetter";
 
-// Revalida el Full Route Cache cada 60s: archivar un platillo se refleja sin redeploy.
-export const revalidate = 60;
-
 // Paleta brunch
 const B = {
     bg: "#f0ebe0",
