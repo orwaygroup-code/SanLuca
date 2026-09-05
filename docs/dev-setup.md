@@ -18,11 +18,15 @@ en PowerShell ajusta `cp`→`copy` y las variables.
   - Las tools (`psql`, `pg_restore`) deben estar en el PATH. Si no, usa la ruta del bin,
     p. ej. Windows: `C:\Program Files\PostgreSQL\16\bin\`.
 
-## 1. Clonar e instalar
+## 1. Clonar, instalar y cambiar a la rama de pruebas
+
+Trabajamos en la rama **`pruebas-local`** (no en `main`). Ahí subimos cambios para que los
+pruebes; lo que se valida se integra a `main` aparte.
 
 ```bash
 git clone <URL_DEL_REPO> sanluca
 cd sanluca
+git checkout pruebas-local     # la rama donde probamos
 npm install
 ```
 
@@ -88,6 +92,23 @@ Abre <http://localhost:3000>.
 
 **Login:** los PINs de staff vienen con los datos de prod. Pídele a Paul un PIN de prueba,
 o resetea uno con los seeds (`npm run db:seed:staff` acepta variables como `SEED_RICARDO_PIN`).
+
+## 7. Actualizar tras cada push (el loop de cada día)
+
+Cada vez que subimos cambios a `pruebas-local`, sincroniza tu local así:
+
+```bash
+git pull origin pruebas-local
+npm install            # por si cambiaron dependencias
+npx prisma db push     # por si cambió el esquema (agrega columnas nuevas, sin borrar datos)
+npx prisma generate    # SIEMPRE — regenera el cliente Prisma
+# reinicia el server: Ctrl+C y de nuevo  npm run dev
+```
+
+> **Importante — no te saltes `npx prisma generate`.** Es el paso que más se olvida. Si el
+> esquema cambió (p. ej. campos nuevos como `splitLabel` / `parentComandaId`) y no regeneras
+> el cliente, `tsc` y el build fallan con errores tipo *"Property … does not exist"* aunque
+> el código esté bien: es el cliente Prisma desactualizado, no un bug del código.
 
 ---
 
