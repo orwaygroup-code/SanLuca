@@ -1,7 +1,8 @@
 /**
  * Patch n8n JSON: v13.5 → v13.6
  * Reemplaza HTTP_Log_Sheets (Google Sheets) por HTTP_Log_BD (BD Prisma)
- * y simplifica Preparar_Log.
+ * y corrige Preparar_Log: lee de Procesar_Respuesta (la fuente real de
+ * hasReserva/reservaData) en vez de $input, y devuelve booleanos estrictos.
  *
  * Uso: node scripts/patch-n8n-v136.js <ruta-input.json> [ruta-output.json]
  */
@@ -43,15 +44,32 @@ for (const node of data.nodes) {
 }
 if (!found) console.warn("⚠  No se encontró HTTP_Log_Sheets — ya parchado?");
 
-// ── CAMBIO B: simplificar Preparar_Log ──────────────────────────────────
-const newCode = `const phone = $input.first().json.phone;
-const phone_number_id = $input.first().json.phone_number_id;
-const clientMessage = $input.first().json.clientMessage;
-const hasReserva = $input.first().json.hasReserva;
-const reservaData = $input.first().json.reservaData;
-const consultaReservas = $input.first().json.consultaReservas || null;
-const transferData = $input.first().json.transferData || null;
-return [{ json: { phone, phone_number_id, clientMessage, hasReserva, reservaData, consultaReservas, transferData } }];`;
+// ── CAMBIO B: Preparar_Log lee de Procesar_Respuesta (fix hasReserva) ────
+// BUG que corrige: la versión anterior leía con `$input.first().json`, pero la entrada
+// directa de Preparar_Log puede ser la respuesta de HTTP_Log_BD (POST /api/bot/messages),
+// que NO trae estos campos → `hasReserva` salía undefined y el IF_Hay_Reserva tronaba
+// ("'' is a string but was expecting a boolean") → nunca se creaban reservas.
+// Fix: leer explícito de `$('Procesar_Respuesta')` (que sí arma hasReserva = reservaData!==null)
+// y castear a booleano estricto (hasReserva/hasPedido) para el IF con validación de tipos.
+const newCode = `const src = $('Procesar_Respuesta').first().json;
+
+const phone            = src.phone;
+const phone_number_id  = src.phone_number_id;
+const clientMessage    = src.clientMessage;
+const hasReserva       = src.hasReserva === true;
+const reservaData      = src.reservaData ?? null;
+const consultaReservas = src.consultaReservas ?? null;
+const transferData     = src.transferData ?? null;
+const hasPedido        = src.hasPedido === true;
+const pedidoData       = src.pedidoData ?? null;
+const pedidoMessage    = src.pedidoMessage ?? '';
+
+// Modo hostess/admin (para filtros de consulta) se resuelve aquí desde el estado global.
+const _sd = $getWorkflowStaticData('global');
+const isHostess = !!(_sd.hostessMode && _sd.hostessMode[phone]);
+const isAdmin = !!(_sd.adminMode && _sd.adminMode[phone]);
+
+return [{ json: { phone, phone_number_id, clientMessage, hasReserva, reservaData, consultaReservas, transferData, isHostess, isAdmin, hasPedido, pedidoData, pedidoMessage } }];`;
 
 for (const node of data.nodes) {
   if (node.name === "Preparar_Log") {
