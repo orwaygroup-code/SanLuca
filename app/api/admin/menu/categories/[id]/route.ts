@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/dualAuth";
+import { revalidatePath } from "next/cache";
 import type { ApiResponse } from "@/types";
 
 const CAT_SELECT = { id: true, name: true, position: true, visible: true, cartaId: true } as const;
@@ -37,6 +38,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     },
     select: CAT_SELECT,
   });
+  revalidatePath("/menu", "layout");
   return NextResponse.json<ApiResponse>({ success: true, data: updated });
 }
 
@@ -49,5 +51,6 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   if (count > 0) return NextResponse.json<ApiResponse>({ success: false, error: "La categoría tiene platillos; muévelos o deshabilítalos primero" }, { status: 409 });
 
   await prisma.menuCategory.delete({ where: { id: params.id } });
+  revalidatePath("/menu", "layout");
   return NextResponse.json<ApiResponse>({ success: true, data: { id: params.id } });
 }

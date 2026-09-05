@@ -5,6 +5,7 @@ import { verifySupervisorPin } from "@/lib/staff";
 import { dishUpdateSchema } from "@/lib/validations";
 import { TENANT } from "@/lib/comanda";
 import { notify } from "@/lib/notify";
+import { revalidatePath } from "next/cache";
 import type { ApiResponse } from "@/types";
 
 const DISH_SELECT = {
@@ -79,6 +80,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     });
   }
 
+  // Un platillo editado/archivado desde /admin debe verse ya en el menú público, no en 60s.
+  // El seed (tsx, fuera de Next) no dispara esto; por eso el revalidate=60 de las páginas es aparte.
+  revalidatePath("/menu", "layout");
   return NextResponse.json<ApiResponse>({ success: true, data: updated });
 }
 

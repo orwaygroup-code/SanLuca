@@ -50,6 +50,9 @@ export function FaltantesPanel({
   }, []);
   useEffect(() => { loadMenu(); loadFaltas(); }, [loadMenu, loadFaltas]);
   usePoll(loadFaltas, 10000, true);
+  // El menú también se refresca (no solo al montar): sin esto, un platillo archivado
+  // seguía ofreciéndose para marcar como faltante. Sin prop de apertura → poll largo.
+  usePoll(loadMenu, 60000, true);
 
   const flatDishes = useMemo(() => (menu ?? []).flatMap((c) => c.dishes.map((d) => ({ ...d, catName: c.name }))), [menu]);
   const faltaDishIds = useMemo(() => new Set((faltas ?? []).filter((f) => f.dishId).map((f) => f.dishId)), [faltas]);

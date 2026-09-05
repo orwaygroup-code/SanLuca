@@ -6,6 +6,9 @@
 
 import { redirect } from "next/navigation";
 
+// Revalida el Full Route Cache cada 60s: archivar un platillo se refleja sin redeploy.
+export const revalidate = 60;
+
 export default function BrunchPage() {
     redirect("/menu");
 }

@@ -12,6 +12,9 @@ import { fonts, colors } from "@/config/theme";
 import DishCardGold from "@/components/menu/DishCardGold";
 import NavThemeSetter from "@/components/NavThemeSetter";
 
+// Revalida el Full Route Cache cada 60s: archivar un platillo se refleja sin redeploy.
+export const revalidate = 60;
+
 type PageProps = {
     params: Promise<{ category: string }>;
 };

@@ -70,9 +70,12 @@ export function MenuSelector({ open, onClose, onAdd, busy, pendingItems = [], on
   }, []);
 
   useEffect(() => {
-    if (open && !cats) loadMenu();
+    // Refetch en CADA apertura (no solo la 1ª): las tablets corren como PWA y no se
+    // recargan en días, así que con el guard `!cats` un platillo archivado seguía en el
+    // selector indefinidamente. Mismo criterio que el efecto de /api/eighty-six de arriba.
+    if (open) loadMenu();
     if (!open) { setSelected(null); setQuery(""); setSection(""); setAdded(0); setPanelOpen(false); }
-  }, [open, cats, loadMenu]);
+  }, [open, loadMenu]);
 
   // Ancho de pantalla → panel fijo (tablet horizontal) vs overlay (angosto).
   useEffect(() => {

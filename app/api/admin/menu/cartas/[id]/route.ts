@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/dualAuth";
+import { revalidatePath } from "next/cache";
 import type { ApiResponse } from "@/types";
 
 const CARTA_SELECT = { id: true, name: true, turno: true, clase: true, position: true, isPrincipal: true } as const;
@@ -46,6 +47,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   }
 
   const updated = await prisma.carta.findUnique({ where: { id: params.id }, select: CARTA_SELECT });
+  revalidatePath("/menu", "layout");
   return NextResponse.json<ApiResponse>({ success: true, data: updated });
 }
 
@@ -58,5 +60,6 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   if (count > 0) return NextResponse.json<ApiResponse>({ success: false, error: "La carta tiene categorías; muévelas o elimínalas primero" }, { status: 409 });
 
   await prisma.carta.delete({ where: { id: params.id } });
+  revalidatePath("/menu", "layout");
   return NextResponse.json<ApiResponse>({ success: true, data: { id: params.id } });
 }
