@@ -16,6 +16,22 @@ import { reEvalUserRule } from "./tagRules";
  * después). Cada función devuelve un SvcResult mapeable a HTTP.
  */
 
+/**
+ * Regla de duplicado del bot de WhatsApp (PURA, testeable). Una reserva existente
+ * `a` es la misma que la entrante `b` si es del mismo teléfono, la misma fecha/hora
+ * EXACTA y sigue activa (no CANCELLED/NO_SHOW). El `where` de findFirst en
+ * app/api/bot/reservation implementa esta misma condición contra la BD; esta función
+ * la fija por prueba.
+ */
+export function isSameBotReservation(
+  a: { guestPhone: string; date: Date | string; status: string },
+  b: { guestPhone: string; date: Date | string },
+): boolean {
+  if (a.status === "CANCELLED" || a.status === "NO_SHOW") return false;
+  if (a.guestPhone !== b.guestPhone) return false;
+  return new Date(a.date).getTime() === new Date(b.date).getTime();
+}
+
 export interface SvcResult<T = unknown> { ok: boolean; status: number; data?: T; error?: string }
 const ok = <T>(data: T, status = 200): SvcResult<T> => ({ ok: true, status, data });
 const err = (error: string, status = 400): SvcResult<never> => ({ ok: false, status, error });

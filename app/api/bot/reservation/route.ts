@@ -8,6 +8,7 @@ import { resolveBotAssignment } from "@/lib/autoAssignTable";
 import { reEvalUserRule } from "@/lib/tagRules";
 import { sendReservationQR, buildReservationCaption } from "@/lib/whatsapp";
 import { notify } from "@/lib/notify";
+import { Prisma } from "@prisma/client";
 
 // ── Normaliza teléfono a 10 dígitos ───────────────────────────────────
 function normalizePhone(raw: string): string {
@@ -79,6 +80,60 @@ function autoZonaPorHora(hora: string | null | undefined): string {
     return h >= 8 && h < 17 ? "Terraza" : "Salón";
 }
 
+// Reserva con el include que usan create/findFirst en este endpoint.
+type BotReservationWithTable = Prisma.ReservationGetPayload<{
+    include: { table: { select: { number: true; section: { select: { name: true } } } } };
+}>;
+
+// ── Única forma de respuesta del endpoint ─────────────────────────────
+// n8n consume este JSON: NO renombrar, NO anidar distinto, NO quitar campos
+// existentes. El único campo nuevo es `duplicate`. La usan el camino normal y
+// el de duplicado, para que ambos devuelvan exactamente la misma estructura.
+function buildBotReservationResponse(
+    reservation: BotReservationWithTable,
+    opts: { autoConfirmed: boolean; provisional: boolean; sectionName: string | null; zonaFinal: string | null; duplicate?: boolean },
+) {
+    const appUrl     = process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "";
+    const checkinUrl = opts.autoConfirmed ? `${appUrl}/checkin/${reservation.qrToken}` : null;
+    // QR servido desde NUESTRO dominio (PNG) — Meta/Instagram no baja imágenes de hosts externos.
+    const qrImageUrl = checkinUrl ? `${appUrl}/api/checkin/${reservation.qrToken}/qr.png` : null;
+    const qrCaption  = checkinUrl
+        ? buildReservationCaption({
+            guestName:         reservation.guestName,
+            date:              new Date(reservation.date),
+            guests:            reservation.guests,
+            sectionPreference: reservation.sectionPreference,
+            checkinUrl,
+            markdown:          false,
+        })
+        : null;
+    // nº de mesas apartadas = FKs no nulas (equivale a outcome.tableIds.length).
+    const tableCount = [reservation.tableId, reservation.linkedTableId, reservation.thirdTableId, reservation.fourthTableId].filter(Boolean).length;
+    const tableInfo  = !opts.autoConfirmed
+        ? `Sin cupo disponible (zona: ${opts.zonaFinal ?? "cualquiera"}) - requiere asignacion manual`
+        : opts.provisional
+            ? `Cupo apartado en ${opts.sectionName} (${tableCount} mesas) - la hostess finaliza la combinacion`
+            : `Mesa #${reservation.table?.number ?? "?"} en ${reservation.table?.section.name ?? opts.sectionName}`;
+
+    return {
+        success: true,
+        data: {
+            id:               reservation.id,
+            autoConfirmed:    opts.autoConfirmed,
+            provisional:      opts.provisional,
+            qrToken:          reservation.qrToken,
+            checkinUrl,
+            qrImageUrl,
+            qrCaption,
+            date:             reservation.date,
+            sectionRequested: opts.zonaFinal,
+            tableInfo,
+            notes:            reservation.notes,
+            duplicate:        opts.duplicate ?? false,
+        },
+    };
+}
+
 export async function POST(request: NextRequest) {
     const botKey = request.headers.get("x-bot-key");
     if (!botKey || botKey !== process.env.BOT_API_KEY) {
@@ -114,6 +169,30 @@ export async function POST(request: NextRequest) {
     const guestCount = parseInt(String(personas), 10) || 2;
     const phone = normalizePhone(String(celular));
 
+    // Dedup temprana: el bot reintenta (timeout de n8n, reentrega de webhooks de
+    // Meta, el agente LLM reinvoca la herramienta). Misma condición que
+    // isSameBotReservation (lib/reservations). Respondemos 200 con la reserva
+    // existente, NUNCA 409: el bot trata cualquier no-2xx como fallo y reintenta
+    // o le dice al cliente que hubo error cuando ya tiene mesa.
+    const existing = await prisma.reservation.findFirst({
+        where: {
+            guestPhone: phone,
+            date:       reservationDate,
+            status:     { notIn: ["CANCELLED", "NO_SHOW"] },
+        },
+        include: { table: { select: { number: true, section: { select: { name: true } } } } },
+    });
+    if (existing) {
+        console.log(`[BOT_RESERVATION] duplicado ignorado: ${existing.id} ya existe para ${phone} @ ${reservationDate.toISOString()}`);
+        return NextResponse.json(buildBotReservationResponse(existing, {
+            autoConfirmed: existing.status === "CONFIRMED",
+            provisional:   existing.tablesProvisional,
+            sectionName:   existing.sectionPreference,
+            zonaFinal:     existing.sectionPreference,
+            duplicate:     true,
+        }));
+    }
+
     const zonaNormalizada = normalizeZona(zona);
     // Si el cliente no dio preferencia, se auto-asigna la zona por la hora (Terraza de día, Salón de tarde/noche).
     const zonaFinal = zonaNormalizada ?? autoZonaPorHora(hora);
@@ -140,97 +219,99 @@ export async function POST(request: NextRequest) {
     console.log('[BOT_RESERVATION] asignación:', outcome);
     const [t1, t2, t3, t4] = outcome?.tableIds ?? [];
 
-    const reservation = await prisma.reservation.create({
-        data: {
-            userId:            user.id,
-            guestName:         titular,
-            guestPhone:        phone,
-            guests:            guestCount,
-            sectionPreference: outcome?.sectionName ?? zonaFinal ?? null,
-            date:              reservationDate,
-            // Confirma por disponibilidad: si hay cupo (1 mesa o mesas apartadas)
-            // nace CONFIRMED y se manda el QR. Si son mesas apartadas, la hostess
-            // finaliza la combinación (tablesProvisional). Sin cupo → PENDING.
-            status:            outcome ? "CONFIRMED" : "PENDING",
-            tablesProvisional: outcome?.provisional ?? false,
-            paymentStatus:     "UNPAID",
-            source:            "WHATSAPP",
-            notes:             notes && String(notes).trim() ? String(notes).trim() : null,
-            ...(t1 ? { tableId:       t1 } : {}),
-            ...(t2 ? { linkedTableId: t2 } : {}),
-            ...(t3 ? { thirdTableId:  t3 } : {}),
-            ...(t4 ? { fourthTableId: t4 } : {}),
-        },
-        include: {
-            table: { select: { number: true, section: { select: { name: true } } } },
-        },
+    // Lock para ejecuciones paralelas: dos entregas simultáneas de Meta pueden
+    // pasar el chequeo del dedup temprano las dos. Serializamos por teléfono con
+    // un advisory lock de transacción y RE-comprobamos dentro; si otra ya la creó,
+    // devolvemos esa (raceHit) sin volver a crear ni a notificar/mandar QR.
+    let raceHit = false;
+    const reservation = await prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${"bot-reserva:" + phone}))`;
+        const race = await tx.reservation.findFirst({
+            where: { guestPhone: phone, date: reservationDate, status: { notIn: ["CANCELLED", "NO_SHOW"] } },
+            include: { table: { select: { number: true, section: { select: { name: true } } } } },
+        });
+        if (race) { raceHit = true; return race; }
+        return tx.reservation.create({
+            data: {
+                userId:            user.id,
+                guestName:         titular,
+                guestPhone:        phone,
+                guests:            guestCount,
+                sectionPreference: outcome?.sectionName ?? zonaFinal ?? null,
+                date:              reservationDate,
+                // Confirma por disponibilidad: si hay cupo (1 mesa o mesas apartadas)
+                // nace CONFIRMED y se manda el QR. Si son mesas apartadas, la hostess
+                // finaliza la combinación (tablesProvisional). Sin cupo → PENDING.
+                status:            outcome ? "CONFIRMED" : "PENDING",
+                tablesProvisional: outcome?.provisional ?? false,
+                paymentStatus:     "UNPAID",
+                source:            "WHATSAPP",
+                notes:             notes && String(notes).trim() ? String(notes).trim() : null,
+                ...(t1 ? { tableId:       t1 } : {}),
+                ...(t2 ? { linkedTableId: t2 } : {}),
+                ...(t3 ? { thirdTableId:  t3 } : {}),
+                ...(t4 ? { fourthTableId: t4 } : {}),
+            },
+            include: {
+                table: { select: { number: true, section: { select: { name: true } } } },
+            },
+        });
     });
 
-    // Notifica a managers + caja/hostess (Operación) la reserva nueva del bot.
-    void notify({
-        roles: ["MANAGER", "OPERATION"],
-        type: "reserva",
-        title: "Nueva reserva (WhatsApp)",
-        body: `${reservation.guestName} · ${reservation.guests} pers · ${new Date(reservation.date).toLocaleString("es-MX", { timeZone: "America/Mexico_City", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: false })}${reservation.sectionPreference ? ` · ${reservation.sectionPreference}` : ""}${reservation.status === "PENDING" ? " · SIN CUPO (revisar)" : ""}`,
-        url: "/admin",
-    });
+    // Efectos secundarios SOLO si de verdad creamos la reserva. Si fue un raceHit,
+    // `reservation` es una existente que creó otra ejecución paralela: no re-notificar
+    // ni re-enviar el QR (el cliente ya lo recibió cuando se creó).
+    if (!raceHit) {
+        // Notifica a managers + caja/hostess (Operación) la reserva nueva del bot.
+        void notify({
+            roles: ["MANAGER", "OPERATION"],
+            type: "reserva",
+            title: "Nueva reserva (WhatsApp)",
+            body: `${reservation.guestName} · ${reservation.guests} pers · ${new Date(reservation.date).toLocaleString("es-MX", { timeZone: "America/Mexico_City", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: false })}${reservation.sectionPreference ? ` · ${reservation.sectionPreference}` : ""}${reservation.status === "PENDING" ? " · SIN CUPO (revisar)" : ""}`,
+            url: "/admin",
+        });
 
-    // Fire-and-forget: re-evaluar Inactivo (cliente WA volvió a reservar).
-    reEvalUserRule(user.id, "Inactivo").catch((e) =>
-        console.error("[AUTO_TAG] reEval Inactivo failed (bot reservation):", e),
-    );
+        // Fire-and-forget: re-evaluar Inactivo (cliente WA volvió a reservar).
+        reEvalUserRule(user.id, "Inactivo").catch((e) =>
+            console.error("[AUTO_TAG] reEval Inactivo failed (bot reservation):", e),
+        );
 
-    // Auto-confirmación: si hay mesa, se envía el QR. Solo por WhatsApp cuando el
-    // canal es WhatsApp — en Instagram/Messenger el QR lo manda n8n de vuelta al
-    // MISMO chat (paridad de canal), así que aquí NO se envía por WhatsApp para no
-    // duplicar. Fire-and-forget: un fallo de envío NO tumba la creación.
-    if (outcome && channel === "whatsapp") {
-        sendReservationQR({
-            phone:             reservation.guestPhone,
-            guestName:         reservation.guestName,
-            date:              new Date(reservation.date),
-            guests:            reservation.guests,
-            sectionPreference: reservation.sectionPreference,
-            qrToken:           reservation.qrToken,
-        }).catch((e) => console.error("[WhatsApp QR bot auto-confirm]", e));
+        // Auto-confirmación: si hay mesa, se envía el QR. Solo por WhatsApp cuando el
+        // canal es WhatsApp — en Instagram/Messenger el QR lo manda n8n de vuelta al
+        // MISMO chat (paridad de canal), así que aquí NO se envía por WhatsApp para no
+        // duplicar. Fire-and-forget: un fallo de envío NO tumba la creación.
+        if (outcome && channel === "whatsapp") {
+            sendReservationQR({
+                phone:             reservation.guestPhone,
+                guestName:         reservation.guestName,
+                date:              new Date(reservation.date),
+                guests:            reservation.guests,
+                sectionPreference: reservation.sectionPreference,
+                qrToken:           reservation.qrToken,
+            }).catch((e) => console.error("[WhatsApp QR bot auto-confirm]", e));
+        }
     }
 
-    // QR listo para que n8n lo reenvíe al chat de IG/Messenger (paridad de canal).
-    const appUrl     = process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "";
-    const checkinUrl = outcome ? `${appUrl}/checkin/${reservation.qrToken}` : null;
-    // QR servido desde NUESTRO dominio (PNG) — Meta/Instagram no puede bajar imágenes de hosts externos como api.qrserver.com.
-    const qrImageUrl = checkinUrl ? `${appUrl}/api/checkin/${reservation.qrToken}/qr.png` : null;
-    // Texto de la reserva para que n8n lo mande DEBAJO del QR en IG/Messenger (paridad con WhatsApp,
-    // que sí lleva caption). Plano (sin *negritas*) porque IG/Messenger no las renderiza.
-    const qrCaption  = checkinUrl
-        ? buildReservationCaption({
-            guestName:         reservation.guestName,
-            date:              new Date(reservation.date),
-            guests:            reservation.guests,
-            sectionPreference: reservation.sectionPreference,
-            checkinUrl,
-            markdown:          false,
-        })
-        : null;
-
-    return NextResponse.json({
-        success: true,
-        data: {
-            id:               reservation.id,
-            autoConfirmed:    !!outcome,
-            provisional:      outcome?.provisional ?? false,
-            qrToken:          reservation.qrToken,
-            checkinUrl,
-            qrImageUrl,
-            qrCaption,
-            date:             reservation.date,
-            sectionRequested: zonaFinal,
-            tableInfo:        !outcome
-                ? `Sin cupo disponible (zona: ${zonaFinal ?? "cualquiera"}) - requiere asignacion manual`
-                : outcome.provisional
-                    ? `Cupo apartado en ${outcome.sectionName} (${outcome.tableIds.length} mesas) - la hostess finaliza la combinacion`
-                    : `Mesa #${reservation.table?.number ?? "?"} en ${reservation.table?.section.name ?? outcome.sectionName}`,
-            notes:            reservation.notes,
-        },
-    });
+    // Una sola forma de respuesta. Si fue raceHit, reflejamos el estado REAL de la
+    // reserva existente (no el `outcome` que calculamos y no usamos) y marcamos duplicate.
+    return NextResponse.json(
+        buildBotReservationResponse(
+            reservation,
+            raceHit
+                ? {
+                    autoConfirmed: reservation.status === "CONFIRMED",
+                    provisional:   reservation.tablesProvisional,
+                    sectionName:   reservation.sectionPreference,
+                    zonaFinal:     reservation.sectionPreference,
+                    duplicate:     true,
+                }
+                : {
+                    autoConfirmed: !!outcome,
+                    provisional:   outcome?.provisional ?? false,
+                    sectionName:   outcome?.sectionName ?? null,
+                    zonaFinal:     zonaFinal,
+                    duplicate:     false,
+                },
+        ),
+    );
 }
