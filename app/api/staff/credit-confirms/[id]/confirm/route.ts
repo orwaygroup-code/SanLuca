@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolveActor } from "@/lib/dualAuth";
 import { verifyWaiterPin } from "@/lib/staff";
+import { allow, reset } from "@/lib/rateLimit";
 import { TENANT, ACTIVE_STATUSES, COMANDA_INCLUDE, settleComanda } from "@/lib/comanda";
 import { round2 } from "@/lib/comandaTotals";
 import { getOpenSession } from "@/lib/caja";
@@ -31,9 +32,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   if (req.status !== "PENDING") return NextResponse.json<ApiResponse>({ success: false, error: "Esta solicitud ya no está pendiente" }, { status: 409 });
 
   // Autoriza el PROPIO empleado con su PIN (funciona desde su tablet o desde caja).
+  if (!allow(`credit-confirm:${req.employeeId}`, 5, 15 * 60_000)) {
+    return NextResponse.json<ApiResponse>({ success: false, error: "TOO_MANY_ATTEMPTS" }, { status: 429 });
+  }
   if (!(await verifyWaiterPin(req.employeeId, pin))) {
     return NextResponse.json<ApiResponse>({ success: false, error: "PIN incorrecto" }, { status: 403 });
   }
+  reset(`credit-confirm:${req.employeeId}`);
 
   const session = await getOpenSession();
   if (!session) return NextResponse.json<ApiResponse>({ success: false, error: "No hay turno de caja abierto" }, { status: 409 });

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireCashier } from "@/lib/dualAuth";
 import { verifySupervisorPin } from "@/lib/staff";
+import { allow, reset } from "@/lib/rateLimit";
 import { TENANT, COMANDA_INCLUDE, recalcComandaTotals, isEditableStatus, LOCKED_ACCOUNT_MSG } from "@/lib/comanda";
 import type { ApiResponse } from "@/types";
 
@@ -32,8 +33,12 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   if (!toId || itemIds.length === 0) return NextResponse.json<ApiResponse>({ success: false, error: "toComandaId e itemIds son obligatorios" }, { status: 400 });
   if (toId === fromId) return NextResponse.json<ApiResponse>({ success: false, error: "El destino debe ser otra cuenta" }, { status: 400 });
 
+  if (!allow(`sup-pin:${a.staffId ?? "admin"}`, 5, 15 * 60_000)) {
+    return NextResponse.json<ApiResponse>({ success: false, error: "TOO_MANY_ATTEMPTS" }, { status: 429 });
+  }
   const authorizedById = await verifySupervisorPin(authPin, { tenantId: TENANT });
   if (!authorizedById) return NextResponse.json<ApiResponse>({ success: false, error: "PIN de supervisor inválido (Capitán/Manager)" }, { status: 403 });
+  reset(`sup-pin:${a.staffId ?? "admin"}`);
 
   const [from, to] = await Promise.all([
     prisma.comanda.findFirst({ where: { id: fromId, tenantId: TENANT }, select: { id: true, status: true } }),

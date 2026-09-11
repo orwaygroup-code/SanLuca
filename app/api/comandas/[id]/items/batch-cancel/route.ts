@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolveActor, isSupervisor } from "@/lib/dualAuth";
 import { verifySupervisorPin } from "@/lib/staff";
+import { allow, reset } from "@/lib/rateLimit";
 import { prepAreaToTarget } from "@/lib/comandaRules";
 import { TENANT, COMANDA_INCLUDE, recalcComandaTotals, isEditableStatus, LOCKED_ACCOUNT_MSG } from "@/lib/comanda";
 import { notify } from "@/lib/notify";
@@ -57,8 +58,12 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   let authorizerId: number | null = isStaff ? actor.staffId : null;
   if (sentItems.length > 0) {
     if (!reason) return NextResponse.json<ApiResponse>({ success: false, error: "Motivo obligatorio para cancelar productos ya enviados" }, { status: 400 });
+    if (!allow(`sup-pin:${actor.staffId ?? "admin"}`, 5, 15 * 60_000)) {
+      return NextResponse.json<ApiResponse>({ success: false, error: "TOO_MANY_ATTEMPTS" }, { status: 429 });
+    }
     const authorizedById = await verifySupervisorPin(authPin, { tenantId: TENANT });
     if (!authorizedById) return NextResponse.json<ApiResponse>({ success: false, error: "PIN de supervisor inválido (Capitán/Manager)" }, { status: 403 });
+    reset(`sup-pin:${actor.staffId ?? "admin"}`);
     authorizerId = authorizedById;
   } else {
     // Solo PENDING: dueño / opener / caja-en-llevar / supervisor.

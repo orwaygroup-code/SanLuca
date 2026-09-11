@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireCashier } from "@/lib/dualAuth";
 import { verifySupervisorPin } from "@/lib/staff";
+import { allow, reset } from "@/lib/rateLimit";
 import { TENANT } from "@/lib/comanda";
 import { notify } from "@/lib/notify";
 import type { ApiResponse } from "@/types";
@@ -23,8 +24,12 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
   // PIN de MANAGER obligatorio (queda registrado quién autorizó).
   const authPin = typeof body?.authPin === "string" ? body.authPin : "";
+  if (!allow(`sup-pin:${a.staffId ?? "admin"}`, 5, 15 * 60_000)) {
+    return NextResponse.json<ApiResponse>({ success: false, error: "TOO_MANY_ATTEMPTS" }, { status: 429 });
+  }
   const managerId = await verifySupervisorPin(authPin, { tenantId: TENANT, roles: ["MANAGER"] });
   if (!managerId) return NextResponse.json<ApiResponse>({ success: false, error: "PIN de Manager inválido" }, { status: 403 });
+  reset(`sup-pin:${a.staffId ?? "admin"}`);
 
   const credit = await prisma.waiterCredit.findFirst({
     where: { id, tenantId: TENANT },

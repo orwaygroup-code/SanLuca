@@ -8,6 +8,7 @@ import {
   type StaffRole,
 } from "@/lib/staff-session";
 import { signSession, sessionCookieString, type Role } from "@/lib/session";
+import { allow, reset } from "@/lib/rateLimit";
 import type { ApiResponse } from "@/types";
 
 /**
@@ -28,24 +29,32 @@ export async function POST(request: NextRequest) {
     }
 
     const { username, pin } = parsed.data;
+
+    // Límite de intentos: por usuario y por IP. El de IP va en 60 (no 20): no está
+    // verificado que el proxy mande X-Forwarded-For; si no lo manda, todas las tablets
+    // comparten bucket, y 60 frena fuerza bruta sin bloquear al local por errores de la mañana.
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "sin-ip";
+    if (!allow(`staff-login:${parsed.data.username.toLowerCase()}`, 5, 15 * 60_000) ||
+        !allow(`staff-login-ip:${ip}`, 60, 15 * 60_000)) {
+      return NextResponse.json<ApiResponse>({ success: false, error: "TOO_MANY_ATTEMPTS" }, { status: 429 });
+    }
+
     const staff = await prisma.staff.findUnique({
       where: { username: username.toLowerCase() },
     });
 
-    // Mensaje genérico para no revelar si el usuario existe.
-    if (!staff || !(await verifyPin(pin, staff.pinHash))) {
+    // Empleado inexistente, desactivado o PIN incorrecto → MISMO fallo: no distinguir
+    // un empleado desactivado de credenciales malas (ni por código ni por mensaje).
+    if (!staff || !staff.active || !(await verifyPin(pin, staff.pinHash))) {
       return NextResponse.json<ApiResponse>(
         { success: false, error: "WRONG_CREDENTIALS" },
         { status: 401 }
       );
     }
 
-    if (!staff.active) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: "INACTIVE" },
-        { status: 403 }
-      );
-    }
+    // Login correcto: limpia el contador de intentos de este usuario (misma clave
+    // normalizada que el allow y que la consulta a la base).
+    reset(`staff-login:${parsed.data.username.toLowerCase()}`);
 
     await prisma.staff.update({
       where: { id: staff.id },

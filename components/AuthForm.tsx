@@ -142,6 +142,9 @@ export function AuthForm() {
                 if (data.error === "USE_PIN") {
                     throw new Error("Tu cuenta de administrador entra con PIN. Ingresa en /staff con tu usuario y PIN.");
                 }
+                if (data.error === "TOO_MANY_ATTEMPTS") {
+                    throw new Error("Demasiados intentos. Espera 15 minutos.");
+                }
                 throw new Error(data.error);
             }
             await session.refresh();

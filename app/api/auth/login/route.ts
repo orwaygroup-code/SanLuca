@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { loginSchema } from "@/lib/validations";
 import { verifyPassword } from "@/lib/auth";
 import { signSession, sessionCookieString, type Role } from "@/lib/session";
+import { allow, reset } from "@/lib/rateLimit";
 import type { ApiResponse } from "@/types";
 
 export async function POST(request: NextRequest) {
@@ -19,6 +20,10 @@ export async function POST(request: NextRequest) {
         }
 
         const { email, password } = validation.data;
+
+        if (!allow(`login:${email}`, 5, 15 * 60_000)) {
+            return NextResponse.json<ApiResponse>({ success: false, error: "TOO_MANY_ATTEMPTS" }, { status: 429 });
+        }
 
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user) {
@@ -41,6 +46,7 @@ export async function POST(request: NextRequest) {
                 { status: 401 }
             );
         }
+        reset(`login:${email}`); // contraseña correcta: limpia el contador de fallos
 
         // Puente de identidad: un ADMIN ligado a un Staff (tiene PIN, hoy solo
         // Ricardo) entra SOLO por PIN en /staff (que auto-genera esta sesión) →

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/dualAuth";
 import { verifySupervisorPin } from "@/lib/staff";
+import { allow, reset } from "@/lib/rateLimit";
 import { dishUpdateSchema } from "@/lib/validations";
 import { TENANT } from "@/lib/comanda";
 import { notify } from "@/lib/notify";
@@ -41,10 +42,14 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   let eliminadoPor: string | null = null;
   if (d.active === false) {
     const authPin = (d.authPin ?? "").trim();
+    if (authPin && !allow(`menu-delete:${a.userId}`, 5, 15 * 60_000)) {
+      return NextResponse.json<ApiResponse>({ success: false, error: "TOO_MANY_ATTEMPTS" }, { status: 429 });
+    }
     const authorizedById = authPin ? await verifySupervisorPin(authPin, { tenantId: TENANT, roles: ["CAPTAIN", "MANAGER"] }) : null;
     if (!authorizedById) {
       return NextResponse.json<ApiResponse>({ success: false, error: "PIN de Capitán o Manager requerido para eliminar" }, { status: 403 });
     }
+    reset(`menu-delete:${a.userId}`);
     const sup = await prisma.staff.findUnique({ where: { id: authorizedById }, select: { fullName: true } });
     eliminadoPor = sup?.fullName ?? `#${authorizedById}`;
   }

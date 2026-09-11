@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireCashier } from "@/lib/dualAuth";
 import { verifySupervisorPin } from "@/lib/staff";
+import { allow, reset } from "@/lib/rateLimit";
 import { TENANT, COMANDA_INCLUDE, recalcComandaTotals, isEditableStatus, LOCKED_ACCOUNT_MSG } from "@/lib/comanda";
 import { notify } from "@/lib/notify";
 import { round2, computeDiscountAmount } from "@/lib/comandaTotals";
@@ -36,10 +37,14 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   }
   if (!reason) return NextResponse.json<ApiResponse>({ success: false, error: "El motivo es obligatorio" }, { status: 400 });
 
+  if (!allow(`sup-pin:${a.staffId ?? "admin"}`, 5, 15 * 60_000)) {
+    return NextResponse.json<ApiResponse>({ success: false, error: "TOO_MANY_ATTEMPTS" }, { status: 429 });
+  }
   const authorizedById = await verifySupervisorPin(authPin, { tenantId: TENANT, roles: ["OPERATION", "CAPTAIN", "MANAGER"] });
   if (!authorizedById) {
     return NextResponse.json<ApiResponse>({ success: false, error: "PIN inválido (Operación/Capitán/Manager)" }, { status: 403 });
   }
+  reset(`sup-pin:${a.staffId ?? "admin"}`);
 
   const comanda = await prisma.comanda.findFirst({
     where: { id, tenantId: TENANT },

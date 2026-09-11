@@ -16,7 +16,7 @@ const ROLE_HOME: Record<string, string> = {
 
 const ERROR_MSG: Record<string, string> = {
   WRONG_CREDENTIALS: "Usuario o PIN incorrecto.",
-  INACTIVE:          "Tu cuenta está desactivada. Avisa al manager.",
+  TOO_MANY_ATTEMPTS: "Demasiados intentos. Espera 15 minutos.",
 };
 
 function StaffLoginInner() {

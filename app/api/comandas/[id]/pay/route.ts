@@ -13,6 +13,7 @@ import { billHasVigentTicket } from "@/lib/comandaRules";
 import { round2 } from "@/lib/comandaTotals";
 import { getOpenSession, computePaymentOutcome, PAY_EPS } from "@/lib/caja";
 import { verifyWaiterPin, verifySupervisorPin } from "@/lib/staff";
+import { allow, reset } from "@/lib/rateLimit";
 import type { ApiResponse } from "@/types";
 
 function parseId(raw: string): number | null {
@@ -149,9 +150,15 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       if (comanda.employeeChargeStatus !== "APPROVED") {
         return NextResponse.json<ApiResponse>({ success: false, error: "El empleado aún no aprueba esta cuenta. Debe palomearla en su cartera antes de cobrarla a crédito." }, { status: 409 });
       }
-    } else if (!(await verifyWaiterPin(creditWaiterId, pin))) {
+    } else {
       // Crédito ad-hoc (sin ligar): el empleado deudor lo autoriza con su PIN aquí mismo.
-      return NextResponse.json<ApiResponse>({ success: false, error: "PIN del mesero incorrecto" }, { status: 403 });
+      if (!allow(`waiter-pin:${creditWaiterId}`, 5, 15 * 60_000)) {
+        return NextResponse.json<ApiResponse>({ success: false, error: "TOO_MANY_ATTEMPTS" }, { status: 429 });
+      }
+      if (!(await verifyWaiterPin(creditWaiterId, pin))) {
+        return NextResponse.json<ApiResponse>({ success: false, error: "PIN del mesero incorrecto" }, { status: 403 });
+      }
+      reset(`waiter-pin:${creditWaiterId}`);
     }
   }
 
@@ -161,10 +168,14 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   let tipPointExcludedById: number | null = null;
   if (wantExcludeTip) {
     const tipPin = typeof body?.tipPin === "string" ? body.tipPin : "";
+    if (!allow(`sup-pin:${a.staffId}`, 5, 15 * 60_000)) {
+      return NextResponse.json<ApiResponse>({ success: false, error: "TOO_MANY_ATTEMPTS" }, { status: 429 });
+    }
     tipPointExcludedById = await verifySupervisorPin(tipPin, { tenantId: TENANT });
     if (!tipPointExcludedById) {
       return NextResponse.json<ApiResponse>({ success: false, error: "PIN de supervisor inválido para excluir el punto" }, { status: 403 });
     }
+    reset(`sup-pin:${a.staffId}`);
   }
 
   await prisma.$transaction(async (tx) => {

@@ -7,6 +7,7 @@ import { round2 } from "@/lib/comandaTotals";
 import { getOpenSession } from "@/lib/caja";
 import { loadWaiterBase, normalizePolicy, computeWaiterSettlement } from "@/lib/tips";
 import { verifyWaiterPin } from "@/lib/staff";
+import { allow, reset } from "@/lib/rateLimit";
 import type { ApiResponse } from "@/types";
 
 /**
@@ -43,10 +44,14 @@ export async function POST(request: NextRequest) {
 
   // 2) ¿Ya liquidado en este turno?
   // 3) PIN del propio mesero (autorización).
+  if (!allow(`waiter-pin:${waiterId}`, 5, 15 * 60_000)) {
+    return NextResponse.json<ApiResponse>({ success: false, error: "TOO_MANY_ATTEMPTS" }, { status: 429 });
+  }
   const okPin = await verifyWaiterPin(waiterId, pin);
   if (!okPin) {
     return NextResponse.json<ApiResponse>({ success: false, error: "PIN del mesero incorrecto" }, { status: 403 });
   }
+  reset(`waiter-pin:${waiterId}`);
 
   // 4) Cálculo server-side desde la base del turno.
   const base = await loadWaiterBase(session.id);

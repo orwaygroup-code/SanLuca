@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolveActor, isSupervisor } from "@/lib/dualAuth";
 import { verifySupervisorPin } from "@/lib/staff";
+import { allow, reset } from "@/lib/rateLimit";
 import { resolveReprintAuthorizer, REPRINT_AUTHORIZER_ROLES, isEditableStatus, billHasVigentTicket } from "@/lib/comandaRules";
 import { TENANT, COMANDA_INCLUDE } from "@/lib/comanda";
 import { FISCAL, FACTURA_URL } from "@/lib/fiscal";
@@ -108,6 +109,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       reprintAuthorizedById = actor.staffId;
     } else {
       const authPin = typeof body?.authPin === "string" ? body.authPin.trim() : "";
+      if (authPin && !allow(`sup-pin:${actor.staffId ?? "admin"}`, 5, 15 * 60_000)) {
+        return NextResponse.json<ApiResponse>({ success: false, error: "TOO_MANY_ATTEMPTS" }, { status: 429 });
+      }
       const auth = resolveReprintAuthorizer({
         // isSupervisor y isReprintAuthorizer cubren el mismo conjunto
         // (ADMIN, CAPTAIN, MANAGER), así que basta con pasar el rol tal cual.
@@ -119,6 +123,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           : null,
       });
       if (!auth.ok) return NextResponse.json<ApiResponse>({ success: false, error: auth.error }, { status: auth.status });
+      if (authPin) reset(`sup-pin:${actor.staffId ?? "admin"}`);
       reprintAuthorizedById = auth.authorizedById;
     }
     if (!authorizationReason || !authorizationReason.trim()) {

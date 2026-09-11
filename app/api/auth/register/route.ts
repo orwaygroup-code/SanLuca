@@ -4,6 +4,7 @@ import { registerSchema } from "@/lib/validations";
 import { hashPassword } from "@/lib/auth";
 import { signSession, sessionCookieString, type Role } from "@/lib/session";
 import { reEvalUserRule } from "@/lib/tagRules";
+import { allow } from "@/lib/rateLimit";
 import type { ApiResponse } from "@/types";
 
 /** Versión actual de los documentos legales aceptados al registrarse. */
@@ -34,6 +35,11 @@ export async function POST(request: NextRequest) {
         }
 
         const { name, email, phone, birthDate, password } = validation.data;
+
+        const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "sin-ip";
+        if (!allow(`register-ip:${ip}`, 3, 60 * 60_000)) {
+            return NextResponse.json<ApiResponse>({ success: false, error: "TOO_MANY_ATTEMPTS" }, { status: 429 });
+        }
 
         const existing = await prisma.user.findUnique({ where: { email } });
         if (existing) {

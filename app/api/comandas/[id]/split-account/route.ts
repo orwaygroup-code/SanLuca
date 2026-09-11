@@ -6,6 +6,7 @@ import { TENANT, COMANDA_INCLUDE, recalcComandaTotals, isEditableStatus, LOCKED_
 import { notify } from "@/lib/notify";
 import { round2, lineTotal as calcLineTotal } from "@/lib/comandaTotals";
 import { formatFolio, nextSplitLabel, canSplitAccount, REPRINT_AUTHORIZER_ROLES } from "@/lib/comandaRules";
+import { allow, reset } from "@/lib/rateLimit";
 import type { ApiResponse } from "@/types";
 
 function parseId(raw: string): number | null {
@@ -56,10 +57,14 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   // La división la autoriza un Capitán o Manager, siempre y con PIN: mueve
   // dinero entre cuentas y cambia lo que cada comensal termina pagando.
   const authPin = typeof body?.authPin === "string" ? body.authPin.trim() : "";
+  if (!allow(`sup-pin:${a.staffId ?? "admin"}`, 5, 15 * 60_000)) {
+    return NextResponse.json<ApiResponse>({ success: false, error: "TOO_MANY_ATTEMPTS" }, { status: 429 });
+  }
   const authorizedById = await verifySupervisorPin(authPin, { tenantId: TENANT, roles: [...REPRINT_AUTHORIZER_ROLES] });
   if (!authorizedById) {
     return NextResponse.json<ApiResponse>({ success: false, error: "PIN de supervisor inválido (Capitán/Manager)" }, { status: 403 });
   }
+  reset(`sup-pin:${a.staffId ?? "admin"}`);
 
   const parent = await prisma.comanda.findFirst({
     where: { id: parentId, tenantId: TENANT },

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireCashier } from "@/lib/dualAuth";
 import { verifySupervisorPin } from "@/lib/staff";
+import { allow, reset } from "@/lib/rateLimit";
 import { TENANT, isUniqueViolation, enqueueDrawerKick } from "@/lib/comanda";
 import { getShiftWindow } from "@/lib/schedule";
 import { getOpenSession, nextCashFolio, CASH_SESSION_INCLUDE } from "@/lib/caja";
@@ -30,10 +31,14 @@ export async function POST(request: NextRequest) {
   // #1: abrir turno exige PIN de caja (OPERACIÓN/CAPITÁN/MANAGER). El dueño del PIN queda
   // como quien abrió el turno (accountability, aunque la terminal tenga otra sesión).
   const authPin = typeof body?.authPin === "string" ? body.authPin : "";
+  if (!allow(`sup-pin:${a.staffId ?? "admin"}`, 5, 15 * 60_000)) {
+    return NextResponse.json<ApiResponse>({ success: false, error: "TOO_MANY_ATTEMPTS" }, { status: 429 });
+  }
   const openerId = await verifySupervisorPin(authPin, { tenantId: TENANT, roles: ["OPERATION", "CAPTAIN", "MANAGER"] });
   if (!openerId) {
     return NextResponse.json<ApiResponse>({ success: false, error: "PIN de caja inválido (Operación/Capitán/Manager)" }, { status: 403 });
   }
+  reset(`sup-pin:${a.staffId ?? "admin"}`);
 
   const open = await getOpenSession();
   if (open) {

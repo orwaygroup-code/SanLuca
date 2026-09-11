@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getStaffSession } from "@/lib/staff-auth-server";
 import { prepAreaToTarget, resolveReprintAuthorizer, REPRINT_AUTHORIZER_ROLES } from "@/lib/comandaRules";
 import { verifySupervisorPin } from "@/lib/staff";
+import { allow, reset } from "@/lib/rateLimit";
 import { TENANT, COMANDA_INCLUDE } from "@/lib/comanda";
 import type { ApiResponse } from "@/types";
 
@@ -29,6 +30,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   // Manager, en sesión o con su PIN. Antes era sólo MANAGER en sesión, lo que
   // dejaba a la caja sin salida cuando el manager no estaba en el piso.
   const authPin = typeof body?.authPin === "string" ? body.authPin.trim() : "";
+  if (authPin && !allow(`sup-pin:${s.staffId ?? "admin"}`, 5, 15 * 60_000)) {
+    return NextResponse.json<ApiResponse>({ success: false, error: "TOO_MANY_ATTEMPTS" }, { status: 429 });
+  }
   const auth = resolveReprintAuthorizer({
     operatorRole: s.role,
     operatorStaffId: s.staffId,
@@ -38,6 +42,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       : null,
   });
   if (!auth.ok) return NextResponse.json<ApiResponse>({ success: false, error: auth.error }, { status: auth.status });
+  if (authPin) reset(`sup-pin:${s.staffId ?? "admin"}`);
 
   const itemIds: number[] = Array.isArray(body?.itemIds) ? body.itemIds.filter((n: unknown) => Number.isInteger(n)) : [];
   if (itemIds.length === 0) return NextResponse.json<ApiResponse>({ success: false, error: "Elige al menos un producto" }, { status: 400 });

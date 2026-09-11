@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolveActor } from "@/lib/dualAuth";
 import { verifyWaiterPin } from "@/lib/staff";
+import { allow, reset } from "@/lib/rateLimit";
+import { billHasVigentTicket } from "@/lib/comandaRules";
 import { TENANT, ACTIVE_STATUSES, COMANDA_INCLUDE, settleComanda } from "@/lib/comanda";
 import { round2 } from "@/lib/comandaTotals";
 import { getOpenSession } from "@/lib/caja";
@@ -30,7 +32,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
   const comanda = await prisma.comanda.findFirst({
     where: { id, tenantId: TENANT },
-    select: { id: true, status: true, chargedEmployeeId: true, employeeChargeStatus: true, total: true, amountPaid: true },
+    select: { id: true, status: true, chargedEmployeeId: true, employeeChargeStatus: true, total: true, amountPaid: true,
+      prints: { select: { type: true, printedAt: true } },
+      reopens: { orderBy: { reopenedAt: "desc" }, take: 1, select: { reopenedAt: true } },
+    },
   });
   if (!comanda) return NextResponse.json<ApiResponse>({ success: false, error: "Comanda no encontrada" }, { status: 404 });
   if (comanda.chargedEmployeeId == null) {
@@ -40,8 +45,18 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     return NextResponse.json<ApiResponse>({ success: false, error: `Comanda ${comanda.status}: ya no se puede aprobar` }, { status: 409 });
   }
 
+  if (!allow(`employee-approve:${comanda.chargedEmployeeId}`, 5, 15 * 60_000)) {
+    return NextResponse.json<ApiResponse>({ success: false, error: "TOO_MANY_ATTEMPTS" }, { status: 429 });
+  }
   const okPin = await verifyWaiterPin(comanda.chargedEmployeeId, pin);
   if (!okPin) return NextResponse.json<ApiResponse>({ success: false, error: "PIN del empleado inválido" }, { status: 403 });
+  reset(`employee-approve:${comanda.chargedEmployeeId}`);
+
+  // Aprobar-para-cobrar exige ticket de cliente VIGENTE (igual que /pay): sin cuenta
+  // impresa no hay cobro, ni por esta vía ni por caja.
+  if (!billHasVigentTicket(comanda.prints, comanda.reopens[0]?.reopenedAt)) {
+    return NextResponse.json<ApiResponse>({ success: false, error: "Imprime la cuenta antes de cobrar" }, { status: 409 });
+  }
 
   await prisma.comanda.update({
     where: { id },

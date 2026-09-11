@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireCashier } from "@/lib/dualAuth";
 import { verifySupervisorPin } from "@/lib/staff";
+import { allow, reset } from "@/lib/rateLimit";
 import { TENANT, ACTIVE_STATUSES, COMANDA_INCLUDE, statusAfterReopen } from "@/lib/comanda";
 import { notify } from "@/lib/notify";
 import type { ApiResponse } from "@/types";
@@ -35,10 +36,14 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
   // Reabrir una cuenta ya cobrada solo lo autoriza un ADMINISTRADOR (Manager). Perla
   // (Operación) y el Capitán NO pueden reabrir: la cuenta pagada queda sellada para ellos.
+  if (!allow(`sup-pin:${a.staffId ?? "admin"}`, 5, 15 * 60_000)) {
+    return NextResponse.json<ApiResponse>({ success: false, error: "TOO_MANY_ATTEMPTS" }, { status: 429 });
+  }
   const authorizedById = await verifySupervisorPin(authPin, { tenantId: TENANT, roles: ["MANAGER"] });
   if (!authorizedById) {
     return NextResponse.json<ApiResponse>({ success: false, error: "PIN de administrador (Manager) inválido" }, { status: 403 });
   }
+  reset(`sup-pin:${a.staffId ?? "admin"}`);
 
   const comanda = await prisma.comanda.findFirst({
     where: { id, tenantId: TENANT },
