@@ -9,6 +9,7 @@ import {
   completeLinkedReservation,
   enqueueDrawerKick,
 } from "@/lib/comanda";
+import { billHasVigentTicket } from "@/lib/comandaRules";
 import { round2 } from "@/lib/comandaTotals";
 import { getOpenSession, computePaymentOutcome, PAY_EPS } from "@/lib/caja";
 import { verifyWaiterPin, verifySupervisorPin } from "@/lib/staff";
@@ -92,16 +93,20 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
   const comanda = await prisma.comanda.findFirst({
     where: { id, tenantId: TENANT },
-    select: { id: true, status: true, total: true, amountPaid: true, tipTotal: true, chargedEmployeeId: true, employeeChargeStatus: true },
+    select: {
+      id: true, status: true, total: true, amountPaid: true, tipTotal: true, chargedEmployeeId: true, employeeChargeStatus: true,
+      prints: { select: { type: true, printedAt: true } },
+      reopens: { orderBy: { reopenedAt: "desc" }, take: 1, select: { reopenedAt: true } },
+    },
   });
   if (!comanda) return NextResponse.json<ApiResponse>({ success: false, error: "Comanda no encontrada" }, { status: 404 });
   if (!ACTIVE_STATUSES.includes(comanda.status as (typeof ACTIVE_STATUSES)[number])) {
     return NextResponse.json<ApiResponse>({ success: false, error: `Comanda ${comanda.status}: no se puede cobrar` }, { status: 409 });
   }
 
-  // No cobrar sin haber impreso la cuenta primero (ticket físico antes del cobro).
-  const billPrints = await prisma.comandaPrint.count({ where: { comandaId: id, type: "CUSTOMER_FINAL" } });
-  if (billPrints === 0) {
+  // No cobrar sin un ticket de cliente VIGENTE (posterior a la última reapertura):
+  // mismo criterio que /print (billHasVigentTicket). Tras reabrir hay que reimprimir.
+  if (!billHasVigentTicket(comanda.prints, comanda.reopens[0]?.reopenedAt)) {
     return NextResponse.json<ApiResponse>({ success: false, error: "Imprime la cuenta antes de cobrar" }, { status: 409 });
   }
 

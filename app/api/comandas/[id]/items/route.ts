@@ -56,7 +56,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const qty = Math.min(999, Math.round(rawQty * 100) / 100);
   const extra = typeof modifiersExtraCost === "number" && modifiersExtraCost >= 0 ? modifiersExtraCost : 0;
 
-  const dish = await prisma.dish.findFirst({ where: { id: dishId }, select: { name: true, price: true, prepArea: true } });
+  const dish = await prisma.dish.findFirst({ where: { id: dishId, active: true }, select: { name: true, price: true, prepArea: true } });
   if (!dish) return NextResponse.json<ApiResponse>({ success: false, error: "Platillo no encontrado" }, { status: 404 });
   if (!dish.prepArea) {
     return NextResponse.json<ApiResponse>(

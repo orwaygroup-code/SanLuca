@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireCashier } from "@/lib/dualAuth";
 import { TENANT, ACTIVE_STATUSES } from "@/lib/comanda";
+import { billHasVigentTicket } from "@/lib/comandaRules";
 import { round2 } from "@/lib/comandaTotals";
 import { getOpenSession } from "@/lib/caja";
 import { pushToStaff } from "@/lib/notify";
@@ -37,14 +38,16 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
   const comanda = await prisma.comanda.findFirst({
     where: { id, tenantId: TENANT },
-    select: { id: true, folio: true, status: true, total: true, amountPaid: true, customName: true, table: { select: { number: true } } },
+    select: { id: true, folio: true, status: true, total: true, amountPaid: true, customName: true, table: { select: { number: true } },
+      prints: { select: { type: true, printedAt: true } },
+      reopens: { orderBy: { reopenedAt: "desc" }, take: 1, select: { reopenedAt: true } },
+    },
   });
   if (!comanda) return NextResponse.json<ApiResponse>({ success: false, error: "Comanda no encontrada" }, { status: 404 });
   if (!ACTIVE_STATUSES.includes(comanda.status as (typeof ACTIVE_STATUSES)[number])) {
     return NextResponse.json<ApiResponse>({ success: false, error: `Comanda ${comanda.status}: no se puede cobrar` }, { status: 409 });
   }
-  const billPrints = await prisma.comandaPrint.count({ where: { comandaId: id, type: "CUSTOMER_FINAL" } });
-  if (billPrints === 0) return NextResponse.json<ApiResponse>({ success: false, error: "Imprime la cuenta antes de cobrar" }, { status: 409 });
+  if (!billHasVigentTicket(comanda.prints, comanda.reopens[0]?.reopenedAt)) return NextResponse.json<ApiResponse>({ success: false, error: "Imprime la cuenta antes de cobrar" }, { status: 409 });
 
   const remaining = round2(Number(comanda.total) - Number(comanda.amountPaid));
   if (remaining <= 0) return NextResponse.json<ApiResponse>({ success: false, error: "La cuenta ya está saldada" }, { status: 409 });

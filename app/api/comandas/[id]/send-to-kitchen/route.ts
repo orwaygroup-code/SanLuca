@@ -43,6 +43,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     return NextResponse.json<ApiResponse>({ success: false, error: "No puedes modificar esta comanda" }, { status: 403 });
   }
 
+  if (comanda.status !== "OPEN" && comanda.status !== "IN_SERVICE")
+    return NextResponse.json<ApiResponse>({ success: false, error: `Comanda ${comanda.status}: no se puede enviar a cocina` }, { status: 409 });
+
   const pending = await prisma.comandaItem.findMany({
     where: { comandaId: id, tenantId: TENANT, status: "PENDING" },
     select: { id: true, prepAreaSnapshot: true, dishNameSnapshot: true, quantity: true, course: true, kitchenNotes: true, modifiers: true, dish: { select: { category: { select: { name: true, carta: { select: { name: true } } } } } } },

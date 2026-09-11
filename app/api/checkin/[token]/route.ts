@@ -30,6 +30,24 @@ const RESERVATION_SELECT = {
     },
 } as const;
 
+// Proyección PÚBLICA del check-in (token sin auth): NO expone teléfono, email,
+// notas ni paymentStatus. Solo lo que el host necesita ver al escanear el QR.
+const CHECKIN_PUBLIC_SELECT = {
+    id: true,
+    guestName: true,
+    date: true,
+    guests: true,
+    sectionPreference: true,
+    status: true,
+    checkedInAt: true,
+    table: {
+        select: {
+            number: true,
+            section: { select: { name: true } },
+        },
+    },
+} as const;
+
 // ── GET /api/checkin/[token] ─────────────────────────
 // Devuelve los datos de la reserva para el host
 export async function GET(
@@ -38,7 +56,7 @@ export async function GET(
 ) {
     const reservation = await prisma.reservation.findUnique({
         where: { qrToken: params.token },
-        select: RESERVATION_SELECT,
+        select: CHECKIN_PUBLIC_SELECT,
     });
 
     if (!reservation) {

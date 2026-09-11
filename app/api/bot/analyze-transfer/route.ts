@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFileSync, readFileSync, unlinkSync } from 'fs';
+import { writeFileSync, unlinkSync } from 'fs';
 import { execSync } from 'child_process';
 
 const BOT_KEY = process.env.BOT_API_KEY;
@@ -41,8 +41,6 @@ TIPO es uno de:
 Responde UNICAMENTE con JSON valido. Sin markdown, sin backticks.`;
 
 export async function POST(req: NextRequest) {
-  const tmpImg = `/tmp/transfer_${Date.now()}.jpg`;
-
   try {
     const botKey = req.headers.get('x-bot-key');
     if (botKey !== BOT_KEY) {
@@ -51,13 +49,21 @@ export async function POST(req: NextRequest) {
 
     const { image_id, wa_token, image_url, plataforma } = await req.json();
 
+    const looksLikeUrl = (s: string) => typeof s === 'string' && /^https?:\/\//i.test(s);
+
+    // Cierra la entrada que se interpola en el execSync de Graph API. image_id puede
+    // ser URL (Messenger/IG) o numérico (WhatsApp); solo el numérico entra al shell,
+    // así que solo ese debe ser dígitos. La URL se valida luego por allowlist de host.
+    if (image_id != null && !looksLikeUrl(String(image_id)) && !/^\d{1,30}$/.test(String(image_id)))
+      return NextResponse.json({ error: "image_id inválido" }, { status: 400 });
+    if (wa_token != null && !/^[A-Za-z0-9_-]{20,400}$/.test(String(wa_token)))
+      return NextResponse.json({ error: "wa_token inválido" }, { status: 400 });
+
     // ── Determinar de donde descargar la imagen ────────────────
     // WhatsApp: viene image_id (hay que resolver la URL via Graph API)
     // Messenger/Instagram: viene image_url directa (o image_id que ya ES una URL)
     let downloadUrl = '';
     let needsAuth = false;
-
-    const looksLikeUrl = (s: string) => typeof s === 'string' && /^https?:\/\//i.test(s);
 
     if (image_url && looksLikeUrl(image_url)) {
       // Messenger/Instagram: URL directa firmada
@@ -84,14 +90,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No se pudo resolver la URL de la imagen' }, { status: 400 });
     }
 
-    // ── Descargar la imagen ────────────────────────────────────
-    const authHeader = needsAuth ? `-H "Authorization: Bearer ${wa_token}"` : '';
-    execSync(
-      `curl -s -L -o ${tmpImg} "${downloadUrl}" ${authHeader}`,
-      { timeout: 30000 }
-    );
+    // Allowlist de hosts para la descarga (solo CDNs de Meta/IG por https). La
+    // downloadUrl viene de image_url/image_id o de la Graph API y se interpola en curl.
+    const ALLOWED = [/\.fbcdn\.net$/, /\.cdninstagram\.com$/, /^lookaside\.fbsbx\.com$/, /^graph\.facebook\.com$/, /^scontent[\w.-]*\.xx\.fbcdn\.net$/];
+    let u: URL;
+    let dlHost: string;
+    try {
+      u = new URL(downloadUrl);
+      if (u.protocol !== "https:") throw new Error("no-https");
+      dlHost = u.hostname;
+    } catch {
+      return NextResponse.json({ error: "URL no permitida" }, { status: 400 });
+    }
+    if (!ALLOWED.some((re) => re.test(dlHost))) {
+      return NextResponse.json({ error: "URL no permitida" }, { status: 400 });
+    }
 
-    const imageBuffer = readFileSync(tmpImg);
+    // ── Descargar la imagen (fetch, sin shell) ─────────────────
+    const dl = await fetch(u.href, needsAuth ? { headers: { Authorization: `Bearer ${wa_token}` } } : undefined);
+    if (!dl.ok) return NextResponse.json({ error: "No se pudo descargar la imagen" }, { status: 502 });
+    const imageBuffer = Buffer.from(await dl.arrayBuffer());
     const base64Image = imageBuffer.toString('base64');
 
     // ── Enviar a GPT-4o Vision ─────────────────────────────────
@@ -125,7 +143,6 @@ export async function POST(req: NextRequest) {
       { timeout: 120000, maxBuffer: 50 * 1024 * 1024 }
     ).toString();
 
-    try { unlinkSync(tmpImg); } catch(e) {}
     try { unlinkSync(tmpBody); } catch(e) {}
 
     const visionData = JSON.parse(visionResp);
@@ -155,7 +172,6 @@ export async function POST(req: NextRequest) {
     }
 
   } catch (e: any) {
-    try { unlinkSync(tmpImg); } catch(x) {}
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
