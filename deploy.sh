@@ -115,24 +115,7 @@ cp .next/BUILD_ID .next/standalone/.next/BUILD_ID 2>/dev/null || true
 echo "$DEPLOYED_SHA" > .next/standalone/.next/COMMIT_SHA
 ok "Assets copiados (commit $DEPLOYED_SHA)"
 
-# 6. Scripts de seed/data (idempotentes)
-if [ -f scripts/update-menu-brunch.ts ]; then
-  log "Aplicando update-menu-brunch.ts"
-  npx tsx scripts/update-menu-brunch.ts
-  ok "Menú actualizado"
-fi
-if [ -f scripts/backfill-created-by.ts ]; then
-  log "Backfill Reservation.createdById"
-  npx tsx scripts/backfill-created-by.ts
-  ok "Backfill completo"
-fi
-if [ -f scripts/migrate-cartas.ts ]; then
-  log "Migración de cartas del menú (turno/carta)"
-  npx tsx scripts/migrate-cartas.ts
-  ok "Cartas migradas"
-fi
-
-# 7. Restart
+# 6. Restart
 log "PM2 restart"
 pm2 restart "$PM2_NAME" --update-env
 pm2 save >/dev/null

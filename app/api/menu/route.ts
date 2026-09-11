@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { getMenuCategories } from "@/lib/db";
 import type { ApiResponse, MenuCategory } from "@/types";
 
+// Lee el menú en vivo (platillos activos): sin esto Next prerenderiza el GET una
+// vez en build y sirve el menú congelado hasta el siguiente deploy.
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const categories = await getMenuCategories();

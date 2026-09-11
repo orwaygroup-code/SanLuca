@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+// Lee la BD por request (usa headers/params): evita el intento de prerender en
+// build que imprime "Dynamic server usage" y entierra errores reales.
+export const dynamic = 'force-dynamic';
+
 const BOT_KEY = process.env.BOT_API_KEY;
 
 function normalize(s: string): string {

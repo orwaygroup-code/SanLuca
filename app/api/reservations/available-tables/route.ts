@@ -17,6 +17,10 @@ import { tableFitsGuests } from "@/lib/tableCapacity";
 import { expirePendingPayments } from "@/lib/expirePendingPayments";
 import type { ApiResponse } from "@/types";
 
+// Lee la BD por request (usa request.url): evita el intento de prerender en build
+// que imprime "Dynamic server usage" y entierra errores reales.
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest) {
   try {
     await expirePendingPayments();

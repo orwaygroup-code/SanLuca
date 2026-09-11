@@ -268,6 +268,7 @@ export async function POST(request: NextRequest) {
         const reservation = await prisma.reservation.create({
             data: {
                 userId,
+                createdById: userId,
                 date: reservationDate,
                 ...(assignedTableId       ? { tableId:       assignedTableId }       : {}),
                 ...(assignedLinkedTableId ? { linkedTableId: assignedLinkedTableId } : {}),

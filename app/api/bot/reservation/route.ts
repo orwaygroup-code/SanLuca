@@ -234,6 +234,7 @@ export async function POST(request: NextRequest) {
         return tx.reservation.create({
             data: {
                 userId:            user.id,
+                createdById:       user.id,
                 guestName:         titular,
                 guestPhone:        phone,
                 guests:            guestCount,
