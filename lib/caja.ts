@@ -56,7 +56,11 @@ export interface CutSnapshot {
   cashCollected: number; // solo CASH.amount
   cashIn: number; // Σ entradas de efectivo (depósitos al cajón)
   cashOut: number; // Σ salidas de efectivo (retiros del cajón)
-  expectedCash: number; // openingFloat + cashCollected + cashIn - cashOut
+  expectedCash: number; // openingFloat + cashCollected + cashIn - cashOut (solo ventas)
+  tipsPaidCash: number; // Σ liquidaciones PAY: efectivo que SALE del cajón hacia meseros
+  tipsCollectedCash: number; // Σ liquidaciones COLLECT: efectivo que ENTRA al cajón de meseros
+  tipsNetCash: number; // tipsCollectedCash − tipsPaidCash (efecto neto de propinas en el cajón)
+  expectedCashWithTips: number; // expectedCash + tipsNetCash = base REAL del arqueo del cajón
   paymentsCount: number;
   comandasSettled: number; // comandas PAID ligadas a la sesión
   comensales: number; // Σ guestsActual de las comandas PAID
@@ -147,7 +151,7 @@ export async function buildCut(cashSessionId: number, db: Db = prisma): Promise<
   });
   if (!session) throw new Error(`CashSession ${cashSessionId} no encontrada`);
 
-  const [grouped, comandasSettled, moves, agg] = await Promise.all([
+  const [grouped, comandasSettled, moves, agg, tipSettle] = await Promise.all([
     db.comandaPayment.groupBy({
       by: ["method"],
       where: { tenantId: TENANT, cashSessionId, voided: false },
@@ -166,9 +170,21 @@ export async function buildCut(cashSessionId: number, db: Db = prisma): Promise<
       _min: { folio: true },
       _max: { folio: true },
     }),
+    // Liquidaciones de propina del turno: PAY = la casa paga al mesero en efectivo
+    // (SALE del cajón); COLLECT = el mesero completa su punto en efectivo (ENTRA al
+    // cajón). El efectivo físico ya reflejó estos movimientos al momento del corte,
+    // pero no viven como cashMovement → hay que reconciliarlos contra el cajón.
+    db.waiterTipSettlement.groupBy({
+      by: ["direction"],
+      where: { tenantId: TENANT, cashSessionId },
+      _sum: { amount: true },
+    }),
   ]);
   const cashIn = round2(Number(moves.find((m) => m.direction === "IN")?._sum.amount ?? 0));
   const cashOut = round2(Number(moves.find((m) => m.direction === "OUT")?._sum.amount ?? 0));
+  const tipsPaidCash = round2(Number(tipSettle.find((t) => t.direction === "PAY")?._sum.amount ?? 0));
+  const tipsCollectedCash = round2(Number(tipSettle.find((t) => t.direction === "COLLECT")?._sum.amount ?? 0));
+  const tipsNetCash = round2(tipsCollectedCash - tipsPaidCash);
 
   const byId = new Map(grouped.map((g) => [g.method, g]));
   const byMethod: CutMethodRow[] = METHODS.map((method) => {
@@ -196,6 +212,10 @@ export async function buildCut(cashSessionId: number, db: Db = prisma): Promise<
     cashIn: s.cashIn,
     cashOut: s.cashOut,
     expectedCash: s.expectedCash,
+    tipsPaidCash,
+    tipsCollectedCash,
+    tipsNetCash,
+    expectedCashWithTips: round2(s.expectedCash + tipsNetCash),
     paymentsCount: s.paymentsCount,
     comandasSettled,
     comensales: Number(agg._sum.guestsActual ?? 0),

@@ -7,7 +7,7 @@ import {
   C, StaffHeader, Spinner, EmptyState, Badge, ConfirmModal, ReasonModal, Modal, fld,
   TicketPreview, btn, formatMXN, STATUS_LABEL, STATUS_COLOR, useToasts, ToastHost, useStaffLogout, usePoll,
 } from "@/components/staff/ui";
-import { apiFetch, isBillPrinted, type Comanda, type CItem, type PayResult, type CashSession, type CutSnapshot } from "@/components/staff/types";
+import { apiFetch, isBillPrinted, type Comanda, type CItem, type CComandaNote, type PrepArea, type PayResult, type CashSession, type CutSnapshot } from "@/components/staff/types";
 import { SplitAccountModal } from "@/components/staff/SplitAccountModal";
 import { PayModal, DiscountModal, MergeModal, TransferItemModal, ReopenModal } from "@/components/staff/caja";
 import { Icon } from "@/components/staff/icons";
@@ -61,6 +61,10 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   const [commentDraft, setCommentDraft] = useState("");
   const [editCm, setEditCm] = useState<number | null>(null); // comentario en edición
   const [editDraft, setEditDraft] = useState("");
+  // Nota libre entre productos (append-only): input abierto + borrador + área destino.
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [noteDraft, setNoteDraft] = useState("");
+  const [noteArea, setNoteArea] = useState<PrepArea>("COCINA");
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [cancelItem, setCancelItem] = useState<CItem | null>(null);
@@ -154,6 +158,7 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   usePoll(refresh, 9000, !!comanda && !menuOpen);
 
   const liveItems = useMemo(() => (comanda?.items ?? []).filter((i) => i.status !== "CANCELLED"), [comanda]);
+  const liveNotes = useMemo(() => comanda?.comandaNotes ?? [], [comanda]);
   const pendingCount = useMemo(() => liveItems.filter((i) => i.status === "PENDING").length, [liveItems]);
   // "Impreso" = ticket de cliente vigente (emitido DESPUÉS de la última reapertura). Al
   // reabrir la cuenta el candado se reinicia: se puede modificar y volver a imprimir. Ver
@@ -227,6 +232,14 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   }, [push]);
 
   const sendToKitchen = () => post(`/api/comandas/${id}/send-to-kitchen`, undefined, "Enviado a cocina/barra");
+  // Nota libre ENTRE productos (append-only): se intercala en el ticket del área elegida
+  // en el tiempo actual. No es editable una vez agregada; se imprime con la próxima tanda.
+  const submitNote = async () => {
+    const t = noteDraft.trim();
+    if (!t) return;
+    const ok = await post(`/api/comandas/${id}/notes`, { text: t, area: noteArea, course: currentCourse }, "Nota agregada");
+    if (ok) { setNoteDraft(""); setNoteOpen(false); }
+  };
   const doPrint = (authorizationReason?: string, authPin?: string) => {
     const body: Record<string, unknown> = {};
     if (authorizationReason) body.authorizationReason = authorizationReason;
@@ -530,6 +543,24 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
     </div>
   );
 
+  // Fila de NOTA libre entre productos (append-only, read-only): no es un platillo,
+  // va al ticket de cocina/barra del área indicada. Solo se muestra y acumula.
+  const renderNoteRow = (n: CComandaNote) => (
+    <div key={`note-${n.id}`} style={page.noteRow}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 10, minWidth: 0, flex: 1 }}>
+        <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke={C.gold} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 3 }}><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ color: C.cream, fontSize: "0.9rem", fontWeight: 600, wordBreak: "break-word" }}>{n.text}</div>
+          <div style={{ display: "flex", gap: 6, marginTop: 4, alignItems: "center", flexWrap: "wrap" }}>
+            <Badge text={`Nota · ${n.area === "BARRA" ? "Barra" : "Cocina"}`} color={C.gold} />
+            <Badge text={ITEM_STATUS_LABEL[n.status] ?? n.status} color={ITEM_STATUS_COLOR[n.status] ?? C.dim} />
+            <span style={{ color: C.faint, fontSize: "0.7rem" }}>{n.createdByName}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   // Fila simple por unidad (matriz/divisiones): {qty}× nombre + subtotal por unidad.
 
 
@@ -577,16 +608,24 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
         {/* Items */}
         <section style={page.panel} data-tour="items">
           <div style={page.panelHead}>Platillos</div>
-          {liveItems.length === 0 ? (
+          {liveItems.length === 0 && liveNotes.length === 0 ? (
             <EmptyState text="Sin platillos. Agrega del menú." />
           ) : (
             <div>
-              {[...new Set(liveItems.map((i) => i.course))].sort((a, b) => a - b).map((cn, _i, arr) => (
-                <div key={cn}>
-                  {arr.length > 1 && <div style={page.courseSep}>{courseLabel(cn)}</div>}
-                  {liveItems.filter((i) => i.course === cn).map(renderItemRow)}
-                </div>
-              ))}
+              {[...new Set([...liveItems.map((i) => i.course), ...liveNotes.map((n) => n.course)])].sort((a, b) => a - b).map((cn, _i, arr) => {
+                // Productos y notas del tiempo, intercalados por orden de captura (la nota
+                // queda ENTRE los productos tal como se capturó).
+                const rows = [
+                  ...liveItems.filter((i) => i.course === cn).map((i) => ({ at: i.addedAt, el: renderItemRow(i) })),
+                  ...liveNotes.filter((n) => n.course === cn).map((n) => ({ at: n.createdAt, el: renderNoteRow(n) })),
+                ].sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
+                return (
+                  <div key={cn}>
+                    {arr.length > 1 && <div style={page.courseSep}>{courseLabel(cn)}</div>}
+                    {rows.map((r) => r.el)}
+                  </div>
+                );
+              })}
             </div>
           )}
         </section>
@@ -627,6 +666,28 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
           {canModify && (
             <button data-tour="add" style={btn.ghost} onClick={() => setMenuOpen(true)} disabled={busy}>+ Agregar platillos ({courseLabel(currentCourse)})</button>
           )}
+          {canModify && (noteOpen ? (
+            <div style={{ flexBasis: "100%", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <input
+                autoFocus
+                value={noteDraft}
+                onChange={(e) => setNoteDraft(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") submitNote(); else if (e.key === "Escape") { setNoteOpen(false); setNoteDraft(""); } }}
+                placeholder={`Nota para ${noteArea === "BARRA" ? "barra" : "cocina"} (entre productos)…`}
+                maxLength={500}
+                style={{ ...page.commentInput, flex: 1, minWidth: 180 }}
+              />
+              <div style={{ display: "flex", gap: 4 }}>
+                {(["COCINA", "BARRA"] as const).map((ar) => (
+                  <button key={ar} onClick={() => setNoteArea(ar)} style={{ ...page.areaToggle, ...(noteArea === ar ? page.areaToggleOn : {}) }}>{ar === "BARRA" ? "Barra" : "Cocina"}</button>
+                ))}
+              </div>
+              <button style={page.commentSave} disabled={busy || !noteDraft.trim()} onClick={submitNote}>Agregar nota</button>
+              <button style={page.commentCancel} title="Cancelar" onClick={() => { setNoteOpen(false); setNoteDraft(""); }}>✕</button>
+            </div>
+          ) : (
+            <button style={btn.ghost} onClick={() => { setNoteOpen(true); setNoteDraft(""); }} disabled={busy}>＋ Nota a cocina/barra</button>
+          ))}
           {canModify && pendingCount > 0 && (
             <button data-tour="send" style={btn.primary} onClick={sendToKitchen} disabled={busy}>Enviar a cocina ({pendingCount})</button>
           )}
@@ -1192,6 +1253,9 @@ const page: Record<string, React.CSSProperties> = {
   panelHead: { padding: "12px 18px", borderBottom: `1px solid ${C.line}`, color: C.faint, fontSize: "0.66rem", letterSpacing: "0.16em", textTransform: "uppercase", fontWeight: 700 },
   courseSep: { padding: "8px 18px", background: "rgb(var(--sl-gold-rgb) / 0.08)", borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.line}`, color: C.gold, fontSize: "0.68rem", letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 700 },
   itemRow: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "12px 18px", borderBottom: `1px solid ${C.line}` },
+  noteRow: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "10px 18px", borderBottom: `1px solid ${C.line}`, background: "rgb(var(--sl-gold-rgb) / 0.06)" },
+  areaToggle: { padding: "6px 10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "transparent", color: C.dim, fontSize: "0.76rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" },
+  areaToggleOn: { background: C.gold, color: "var(--sl-on-accent)", borderColor: C.gold },
   cancelX: { width: 30, height: 30, borderRadius: 7, border: `1px solid ${C.red}`, background: "transparent", color: C.red, fontSize: "1.1rem", cursor: "pointer", lineHeight: 1 },
   commentAdd: { marginTop: 6, padding: 0, background: "transparent", border: "none", color: C.gold, fontSize: "0.74rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", textAlign: "left" },
   commentEdit: { padding: 0, background: "transparent", border: "none", color: C.faint, fontSize: "0.7rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 },

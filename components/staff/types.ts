@@ -38,6 +38,18 @@ export interface CItemComment {
   createdAt: string;
 }
 
+/** Nota libre entre productos (append-only). Va al ticket de cocina/barra; no es un platillo. */
+export interface CComandaNote {
+  id: number;
+  text: string;
+  area: PrepArea;
+  course: number;
+  status: ItemStatus;
+  sentAt: string | null;
+  createdByName: string;
+  createdAt: string;
+}
+
 export interface CPrint {
   id: number;
   type: "KITCHEN_BAR" | "KITCHEN_CANCEL" | "KITCHEN_REPRINT" | "CUSTOMER_FINAL" | "CUSTOMER_REPRINT";
@@ -74,6 +86,7 @@ export interface Comanda {
   waiterId: number;
   reservationId: string | null;
   items: CItem[];
+  comandaNotes?: CComandaNote[]; // notas libres entre productos (append-only, van a cocina/barra)
   prints: CPrint[];
   reopens?: { reopenedAt: string }[]; // última reapertura primero; para saber si se imprimió DESPUÉS de reabrir
   table: CTableRef | null;
@@ -131,6 +144,10 @@ export interface CutSnapshot {
   cashIn: number;
   cashOut: number;
   expectedCash: number;
+  tipsPaidCash: number;
+  tipsCollectedCash: number;
+  tipsNetCash: number;
+  expectedCashWithTips: number;
   paymentsCount: number;
   comandasSettled: number;
   generatedAt: string;

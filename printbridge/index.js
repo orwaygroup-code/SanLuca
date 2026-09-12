@@ -77,6 +77,13 @@ function renderKitchen(p, w) {
       o += "\n" + BOLD_ON + center("-- " + courseLabel(c) + " --", w) + BOLD_OFF + "\n";
       lastCourse = c;
     }
+    // Nota libre entre productos (no es platillo): se intercala y se resalta con ">>".
+    if (it.kind === "note") {
+      o += "\n";
+      for (const ln of wrap(">> " + ascii(it.text || ""), w)) o += BOLD_ON + ln + BOLD_OFF + "\n";
+      o += "\n";
+      continue;
+    }
     o += BOLD_ON + qfmt(it.qty) + " x " + ascii(it.name) + BOLD_OFF + "\n";
     if (it.origin) o += "   " + ascii(it.origin) + "\n"; // de qué carta/categoría viene (homónimos)
     if (it.mods)  o += "   + " + ascii(it.mods) + "\n";

@@ -100,6 +100,7 @@ export const LOCKED_ACCOUNT_MSG = "La cuenta ya está impresa / por cobrar. Reá
 /** Include estándar para devolver una comanda con su detalle. */
 export const COMANDA_INCLUDE = {
   items: { orderBy: { addedAt: "asc" }, include: { comments: { orderBy: { createdAt: "asc" } } } },
+  comandaNotes: { orderBy: { createdAt: "asc" } }, // notas libres entre productos (append-only)
   prints: { orderBy: { printedAt: "asc" } },
   reopens: { orderBy: { reopenedAt: "desc" }, take: 1 }, // solo la última: el candado de impresión se reinicia al reabrir
 

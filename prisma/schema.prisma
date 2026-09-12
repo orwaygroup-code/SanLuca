@@ -122,6 +122,7 @@ model Staff {
   tipSettlementRows     TipSettlementWaiter[] @relation("TipSettlementWaiter")
   waiterTipsReceived    WaiterTipSettlement[] @relation("WaiterTipSettlementWaiter") // liquidaciones donde es el mesero
   waiterTipsSettled     WaiterTipSettlement[] @relation("WaiterTipSettler") // liquidaciones que ejecutó como caja
+  comandaNotesCreated   ComandaNote[]         @relation("ComandaNoteCreator") // notas libres que capturó
   user                  User? // vínculo dual-realm (Ricardo). Inverso de User.staff
 
   @@index([tenantId, role, active])
@@ -759,6 +760,7 @@ model Comanda {
   shift String? // "brunch" | "cena"
 
   items         ComandaItem[]
+  comandaNotes  ComandaNote[] // notas libres entre productos (append-only, van a cocina/barra)
   prints        ComandaPrint[]
   tableChanges  ComandaTableChange[]
   waiterChanges ComandaWaiterChange[]
@@ -846,6 +848,33 @@ model ComandaItemComment {
   createdAt   DateTime @default(now())
 
   @@index([tenantId, itemId])
+}
+
+// Nota libre ENTRE productos de una comanda (append-only: se agrega, nunca se edita
+// ni borra). Va al ticket de cocina/barra del área elegida, intercalada entre los
+// productos por "tiempo" (course) y orden de captura. No es un platillo ni aparece
+// en la cuenta del cliente: es una instrucción para el área.
+model ComandaNote {
+  id       Int @id @default(autoincrement())
+  tenantId Int @default(1)
+
+  comandaId Int
+  comanda   Comanda @relation(fields: [comandaId], references: [id], onDelete: Cascade)
+
+  text String   @db.Text
+  area PrepArea // COCINA / BARRA: en qué ticket de área se imprime
+
+  course Int @default(1) // mismo "tiempo" que los productos, para posicionarse en el ticket
+
+  status ComandaItemStatus @default(PENDING) // PENDING -> SENT (se envía con la tanda a cocina)
+  sentAt DateTime?
+
+  createdById   Int
+  createdBy     Staff    @relation("ComandaNoteCreator", fields: [createdById], references: [id])
+  createdByName String
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId, comandaId, status])
 }
 
 model ComandaPrint {

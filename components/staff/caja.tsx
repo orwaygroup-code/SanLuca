@@ -173,7 +173,7 @@ export function CloseCashSessionModal({ open, session, cut, onClose, onClosed, o
 
   useEffect(() => { if (open) { setCountedCash(""); setCountedCard(""); setNotes(""); } }, [open]);
 
-  const expected = cut?.expectedCash ?? 0;
+  const expected = cut?.expectedCashWithTips ?? cut?.expectedCash ?? 0;
   const difference = countedCash.trim() ? round2(num(countedCash) - expected) : null;
   const cardExpected = round2(
     (cut?.byMethod.find((m) => m.method === "CARD_DEBIT")?.amount ?? 0) +
@@ -201,11 +201,16 @@ export function CloseCashSessionModal({ open, session, cut, onClose, onClosed, o
           <div style={{ ...kv, color: C.dim }}><span>Efectivo cobrado</span><span>{formatMXN(cut.cashCollected)}</span></div>
           {cut.cashIn > 0 && <div style={{ ...kv, color: C.green }}><span>+ Entradas de efectivo</span><span>{formatMXN(cut.cashIn)}</span></div>}
           {cut.cashOut > 0 && <div style={{ ...kv, color: C.red }}><span>− Salidas de efectivo</span><span>{formatMXN(cut.cashOut)}</span></div>}
+          <div style={{ ...kv, color: C.dim, borderTop: `1px solid ${C.line}`, marginTop: 4, paddingTop: 6 }}>
+            <span>Efectivo esperado (ventas)</span><span>{formatMXN(cut.expectedCash)}</span>
+          </div>
+          {cut.tipsPaidCash > 0 && <div style={{ ...kv, color: C.red }}><span>− Propina pagada a meseros</span><span>{formatMXN(cut.tipsPaidCash)}</span></div>}
+          {cut.tipsCollectedCash > 0 && <div style={{ ...kv, color: C.green }}><span>+ Propina cobrada a meseros</span><span>{formatMXN(cut.tipsCollectedCash)}</span></div>}
           <div style={{ ...kv, color: C.cream, fontWeight: 800, borderTop: `1px solid ${C.line}`, marginTop: 4, paddingTop: 6 }}>
-            <span>Efectivo esperado</span><span>{formatMXN(cut.expectedCash)}</span>
+            <span>Efectivo esperado en cajón</span><span>{formatMXN(cut.expectedCashWithTips)}</span>
           </div>
           <div style={{ ...kv, color: C.faint, fontSize: "0.78rem" }}><span>Tarjetas + transferencias</span><span>{formatMXN(round2(cut.totalCollected - cut.cashCollected))}</span></div>
-          <div style={{ ...kv, color: C.faint, fontSize: "0.78rem" }}><span>Propinas (aparte de caja)</span><span>{formatMXN(cut.totalTips)}</span></div>
+          <div style={{ ...kv, color: C.faint, fontSize: "0.78rem" }}><span>Propinas registradas (total)</span><span>{formatMXN(cut.totalTips)}</span></div>
         </div>
       )}
       <Field label="Arqueo: efectivo contado en el cajón">
@@ -268,7 +273,7 @@ export function TurnoBar({ session, cut, onOpenTurno, onCloseTurno }: {
               <span style={{ color: C.cream, fontWeight: 700, fontSize: "0.86rem" }}>{session.folio}</span>
             </div>
             <div style={{ color: C.faint, fontSize: "0.74rem", marginTop: 4 }}>
-              Desde {hhmm(session.openedAt)} · esperado en cajón {formatMXN(cut?.expectedCash ?? Number(session.openingFloat))}
+              Desde {hhmm(session.openedAt)} · esperado en cajón {formatMXN(cut?.expectedCashWithTips ?? cut?.expectedCash ?? Number(session.openingFloat))}
               {cut ? ` · ${cut.comandasSettled} cuentas` : ""}
             </div>
           </div>
@@ -289,7 +294,7 @@ export function CajaMonitor({ session, cut }: { session: CashSession | null; cut
       <div style={mon.grid}>
         <Kpi label="Cobrado (turno)" value={formatMXN(cut.totalCollected)} big />
         <Kpi label="Propinas (apartado)" value={formatMXN(cut.totalTips)} />
-        <Kpi label="Efectivo esperado" value={formatMXN(cut.expectedCash)} />
+        <Kpi label="Efectivo esperado" value={formatMXN(cut.expectedCashWithTips)} />
         <Kpi label="Cuentas cobradas" value={String(cut.comandasSettled)} />
       </div>
       <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden" }}>
@@ -308,9 +313,18 @@ export function CajaMonitor({ session, cut }: { session: CashSession | null; cut
             </div>
           ))
         )}
+        {(cut.tipsPaidCash > 0 || cut.tipsCollectedCash > 0) && (
+          <div style={{ ...mon.row, borderTop: `1px solid ${C.border}` }}>
+            <span style={{ color: C.dim, fontSize: "0.78rem" }}>Propina liquidada en efectivo</span>
+            <span style={{ display: "flex", gap: 16, alignItems: "center", fontSize: "0.78rem" }}>
+              {cut.tipsPaidCash > 0 && <span style={{ color: C.red }}>− pagada {formatMXN(cut.tipsPaidCash)}</span>}
+              {cut.tipsCollectedCash > 0 && <span style={{ color: C.green }}>+ cobrada {formatMXN(cut.tipsCollectedCash)}</span>}
+            </span>
+          </div>
+        )}
         <div style={{ ...mon.row, borderTop: `1px solid ${C.border}` }}>
           <span style={{ color: C.dim, fontSize: "0.78rem" }}>Fondo inicial {formatMXN(cut.openingFloat)}</span>
-          <span style={{ color: C.cream, fontWeight: 800 }}>Esperado {formatMXN(cut.expectedCash)}</span>
+          <span style={{ color: C.cream, fontWeight: 800 }}>Esperado {formatMXN(cut.expectedCashWithTips)}</span>
         </div>
       </div>
     </div>

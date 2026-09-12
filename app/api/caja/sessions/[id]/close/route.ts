@@ -108,7 +108,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   }
 
   const cut = await buildCut(id);
-  const difference = round2(countedCash - cut.expectedCash);
+  // El arqueo se compara contra el efectivo esperado CON la reconciliación de
+  // propina: la liquidación de meseros mueve efectivo real del cajón (PAY sale,
+  // COLLECT entra) y debe descontarse/sumarse, o el sobra/falta queda falseado.
+  const difference = round2(countedCash - cut.expectedCashWithTips);
 
   // Tarjeta esperada (según el sistema) = débito + crédito. Se compara con lo que
   // declara el cajero (según terminales) para el sobrante/faltante de tarjeta. La
@@ -121,7 +124,11 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
   const declaracion = {
     countedCash: round2(countedCash),
-    expectedCash: cut.expectedCash,
+    expectedCash: cut.expectedCashWithTips, // base real del arqueo (incluye propina liquidada en efectivo)
+    expectedCashSales: cut.expectedCash, // solo ventas (fondo + efectivo cobrado + movimientos)
+    tipsPaidCash: cut.tipsPaidCash,
+    tipsCollectedCash: cut.tipsCollectedCash,
+    tipsNetCash: cut.tipsNetCash,
     cashDifference: difference,
     countedCard: countedCard != null ? round2(countedCard) : null,
     cardExpected,
@@ -137,7 +144,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       closedAt: new Date(),
       countedCash,
       countedCard,
-      expectedCash: cut.expectedCash,
+      expectedCash: cut.expectedCashWithTips,
       difference,
       cutSnapshot: snapshot as unknown as Prisma.InputJsonValue,
       ...(notes ? { notes } : {}),
@@ -162,6 +169,11 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     formasPago: snapshot.byMethod,
     totalVentas: snapshot.totalCollected,
     propinas: snapshot.totalTips,
+    // Balance de propina contra el efectivo del cajón (reconciliación del arqueo).
+    propinasPagadasEfectivo: snapshot.tipsPaidCash,
+    propinasCobradasEfectivo: snapshot.tipsCollectedCash,
+    efectivoEsperadoVentas: snapshot.expectedCash,
+    efectivoEsperado: snapshot.expectedCashWithTips,
     cuentas: snapshot.comandasSettled,
     comensales: snapshot.comensales,
     ventaNeta: snapshot.ventaNeta,

@@ -574,7 +574,19 @@ function SeatModal({ res, freeTables, onClose, onSeated, onError }: {
           <label style={{ ...fld.label, marginTop: 18 }}>3 · Comensales</label>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <button style={stepper} onClick={() => setGuests((g) => Math.max(1, g - 1))}>−</button>
-            <span style={{ color: C.cream, fontWeight: 800, fontSize: "1.2rem", minWidth: 36, textAlign: "center" }}>{guests}</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={guests}
+              onChange={(e) => {
+                const d = e.target.value.replace(/\D/g, "");
+                if (d === "") { setGuests(1); return; }
+                setGuests(Math.max(1, Math.min(40, parseInt(d, 10))));
+              }}
+              onFocus={(e) => e.currentTarget.select()}
+              aria-label="Número de comensales"
+              style={{ width: 56, minHeight: 44, textAlign: "center", fontWeight: 800, fontSize: "1.2rem", color: C.cream, background: "rgba(0,0,0,0.2)", border: `1px solid ${C.border}`, borderRadius: 9, padding: "6px 4px", fontFamily: "inherit" }}
+            />
             <button style={stepper} onClick={() => setGuests((g) => Math.min(40, g + 1))}>+</button>
           </div>
         </>

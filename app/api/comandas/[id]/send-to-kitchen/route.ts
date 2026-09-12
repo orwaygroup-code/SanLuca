@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { PrepArea, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getStaffSession } from "@/lib/staff-auth-server";
 import { canModifyComanda, prepAreaToTarget } from "@/lib/comandaRules";
@@ -46,15 +47,25 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   if (comanda.status !== "OPEN" && comanda.status !== "IN_SERVICE")
     return NextResponse.json<ApiResponse>({ success: false, error: `Comanda ${comanda.status}: no se puede enviar a cocina` }, { status: 409 });
 
-  const pending = await prisma.comandaItem.findMany({
-    where: { comandaId: id, tenantId: TENANT, status: "PENDING" },
-    select: { id: true, prepAreaSnapshot: true, dishNameSnapshot: true, quantity: true, course: true, kitchenNotes: true, modifiers: true, dish: { select: { category: { select: { name: true, carta: { select: { name: true } } } } } } },
-  });
-  if (pending.length === 0) {
-    return NextResponse.json<ApiResponse>({ success: false, error: "No hay items pendientes por enviar" }, { status: 400 });
+  const [pending, pendingNotes] = await Promise.all([
+    prisma.comandaItem.findMany({
+      where: { comandaId: id, tenantId: TENANT, status: "PENDING" },
+      select: { id: true, prepAreaSnapshot: true, dishNameSnapshot: true, quantity: true, course: true, kitchenNotes: true, modifiers: true, addedAt: true, dish: { select: { category: { select: { name: true, carta: { select: { name: true } } } } } } },
+    }),
+    // Notas libres PENDING (append-only): viajan con esta tanda, intercaladas entre
+    // los productos del área por tiempo (course) y orden de captura (createdAt).
+    prisma.comandaNote.findMany({
+      where: { comandaId: id, tenantId: TENANT, status: "PENDING" },
+      select: { id: true, area: true, text: true, course: true, createdAt: true },
+    }),
+  ]);
+  if (pending.length === 0 && pendingNotes.length === 0) {
+    return NextResponse.json<ApiResponse>({ success: false, error: "No hay items ni notas pendientes por enviar" }, { status: 400 });
   }
 
-  const areas = Array.from(new Set(pending.map((i) => i.prepAreaSnapshot))); // BARRA / COCINA
+  // Áreas = unión de las de los productos y las de las notas (una nota puede ir a un
+  // área sin productos en esta tanda: igual se imprime su ticket).
+  const areas = Array.from(new Set<PrepArea>([...pending.map((i) => i.prepAreaSnapshot), ...pendingNotes.map((n) => n.area)]));
   const tableLabel = comanda.table ? `Mesa ${comanda.table.number} - ${comanda.table.section.name}` : (comanda.customName || "Cuenta sin mesa");
   const nowIso = new Date().toISOString();
 
@@ -63,11 +74,24 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       where: { comandaId: id, tenantId: TENANT, status: "PENDING" },
       data: { status: "SENT", sentAt: new Date() },
     }),
+    prisma.comandaNote.updateMany({
+      where: { comandaId: id, tenantId: TENANT, status: "PENDING" },
+      data: { status: "SENT", sentAt: new Date() },
+    }),
     ...areas.map((area) => {
-      const areaItems = pending
-        .filter((i) => i.prepAreaSnapshot === area)
-        .sort((a, b) => a.course - b.course) // agrupa por tiempo para los separadores del ticket
-        .map((i) => ({ qty: Number(i.quantity), name: i.dishNameSnapshot, course: i.course, notes: i.kitchenNotes ?? null, mods: i.modifiers ?? null, origin: i.dish?.category ? (i.dish.category.carta ? `${i.dish.category.carta.name} · ${i.dish.category.name}` : i.dish.category.name) : null }));
+      // Productos y notas del área, ordenados por (tiempo, orden de captura) para
+      // que la nota quede ENTRE los productos tal como se capturaron.
+      const rows: { course: number; at: number; entry: Record<string, unknown> }[] = [
+        ...pending.filter((i) => i.prepAreaSnapshot === area).map((i) => ({
+          course: i.course, at: i.addedAt.getTime(),
+          entry: { kind: "item", qty: Number(i.quantity), name: i.dishNameSnapshot, course: i.course, notes: i.kitchenNotes ?? null, mods: i.modifiers ?? null, origin: i.dish?.category ? (i.dish.category.carta ? `${i.dish.category.carta.name} · ${i.dish.category.name}` : i.dish.category.name) : null },
+        })),
+        ...pendingNotes.filter((n) => n.area === area).map((n) => ({
+          course: n.course, at: n.createdAt.getTime(),
+          entry: { kind: "note", text: n.text, course: n.course },
+        })),
+      ];
+      rows.sort((a, b) => (a.course - b.course) || (a.at - b.at));
       // Snapshot listo-para-imprimir → el PrintBridge lo convierte a ESC/POS.
       const payload = {
         kind:   "kitchen",
@@ -77,7 +101,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         guests: comanda.guestsActual,
         area,
         time:   nowIso,
-        items:  areaItems,
+        items:  rows.map((r) => r.entry),
       };
       return prisma.comandaPrint.create({
         data: {
@@ -87,7 +111,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           target:       prepAreaToTarget(area),
           executedById: s.staffId,
           status:       "PENDING",
-          payload,
+          payload:      payload as Prisma.InputJsonValue,
         },
       });
     }),
@@ -97,11 +121,12 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   // Auditoría en tiempo real: campana + push a managers por cada envío a cocina.
   // El detalle (productos, comentarios, hora, mesero) queda en el payload del
   // ComandaPrint KITCHEN_BAR y lo muestra el panel /admin/comandas.
+  const notasTxt = pendingNotes.length > 0 ? ` + ${pendingNotes.length} ${pendingNotes.length === 1 ? "nota" : "notas"}` : "";
   void notify({
     roles: ["MANAGER"],
     type: "audit",
     title: "Comanda enviada a cocina",
-    body: `${comanda.folio} · ${comanda.waiter.fullName} · ${pending.length} ${pending.length === 1 ? "producto" : "productos"}`,
+    body: `${comanda.folio} · ${comanda.waiter.fullName} · ${pending.length} ${pending.length === 1 ? "producto" : "productos"}${notasTxt}`,
     url: "/admin/comandas",
   });
 
