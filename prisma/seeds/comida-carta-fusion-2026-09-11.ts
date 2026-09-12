@@ -201,14 +201,19 @@ async function main() {
     console.log(tag(`   ✎ posiciones de las ${CAT_ORDER.length} categorías (orden de carta)`));
 
     // 3) Validación: cada fila UPDATE/AMBIG + cada ARCHIVE debe resolver a un platillo vivo.
+    // PLAN (UPDATE/AMBIG) DEBE resolver: sin el platillo no hay cómo aplicar el cambio → aborta.
+    // ARCHIVE es distinto: si el platillo ya no está, el objetivo (fuera del menú) ya se cumplió
+    // → solo se avisa y se omite, no se aborta (prod pudo divergir por ediciones desde /admin).
     const errs: string[] = [];
     for (const r of PLAN) if (r.op !== "NEW") { if (!(await resolve(r))) errs.push(`PLAN: no encontrado "${r.findName ?? r.name}" (${r.from ?? r.cat})`); }
+    if (errs.length) { errs.forEach((e) => console.error("  ✗ " + e)); throw new Error("Validación falló: platillos a ACTUALIZAR no encontrados por nombre+categoría."); }
+    const archMiss = [];
     for (const a of ARCHIVE) {
       const f = await db.dish.findFirst({ where: { name: a.findName, categoryId: CUR[a.from] }, select: { id: true } });
-      if (!f) errs.push(`ARCHIVE: no encontrado "${a.findName}" (${a.from})`);
+      if (!f) archMiss.push(a.findName);
     }
-    if (errs.length) { errs.forEach((e) => console.error("  ✗ " + e)); throw new Error("Validación falló (platillos no encontrados por nombre+categoría)."); }
-    console.log(tag(`\nValidación OK: ${PLAN.filter((r) => r.op !== "NEW").length} a actualizar + ${ARCHIVE.length} a archivar resueltos.`));
+    if (archMiss.length) console.log(tag(`   ⚠  a archivar no presentes (se omiten, ya no en el menú): ${archMiss.join(", ")}`));
+    console.log(tag(`Validación OK: ${PLAN.filter((r) => r.op !== "NEW").length} a actualizar + ${ARCHIVE.length - archMiss.length}/${ARCHIVE.length} a archivar resueltos.`));
 
     // contador de posición por categoría (para nuevos y movidos)
     const posCounter: Record<string, number> = {};
