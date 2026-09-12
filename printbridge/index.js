@@ -252,6 +252,13 @@ function renderCorte(p, w) {
   const saldoFinal = efectivoFinal + tarjetaVentas;
   const d = p.declaracion || {};
   const f = p.fiscal || {};
+  // Balance de propina liquidada en EFECTIVO contra el cajon (reconciliacion del arqueo):
+  // la liquidacion por mesero PAGA (sale) o COBRA (entra) efectivo del cajon. Con fallback
+  // para cortes viejos reimpresos (payload sin estos campos) -> bloque se omite.
+  const tipsPaidCash = Number(p.propinasPagadasEfectivo || 0);
+  const tipsCollectedCash = Number(p.propinasCobradasEfectivo || 0);
+  const efectivoEsperadoVentas = p.efectivoEsperadoVentas != null ? Number(p.efectivoEsperadoVentas) : efectivoFinal;
+  const efectivoEsperadoCajon = p.efectivoEsperado != null ? Number(p.efectivoEsperado) : (efectivoFinal - tipsPaidCash + tipsCollectedCash);
 
   let o = INIT;
   o += BOLD_ON + center(f.nombre || "SAN LUCA", w) + BOLD_OFF + "\n";
@@ -295,6 +302,15 @@ function renderCorte(p, w) {
   if (p.folioFrom) o += row("Folio inicial", ascii(p.folioFrom), w) + "\n";
   if (p.folioTo) o += row("Folio final", ascii(p.folioTo), w) + "\n";
   o += rule(w) + "\n";
+
+  if (tipsPaidCash > 0 || tipsCollectedCash > 0) {
+    o += BOLD_ON + center("BALANCE PROPINA / EFECTIVO", w) + BOLD_OFF + "\n";
+    o += row("Efectivo esperado (ventas)", money(efectivoEsperadoVentas), w) + "\n";
+    if (tipsPaidCash > 0) o += row("- Propina pagada a meseros", money(tipsPaidCash), w) + "\n";
+    if (tipsCollectedCash > 0) o += row("+ Propina cobrada a meseros", money(tipsCollectedCash), w) + "\n";
+    o += BOLD_ON + row("= Efectivo esperado cajon", money(efectivoEsperadoCajon), w) + BOLD_OFF + "\n";
+    o += rule(w) + "\n";
+  }
 
   o += BOLD_ON + center("DECLARACION DE CAJERO", w) + BOLD_OFF + "\n";
   o += row("Efectivo declarado", money(d.countedCash || 0), w) + "\n";
