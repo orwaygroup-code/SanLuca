@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useTranslation } from "@/lib/i18n";
@@ -50,6 +50,10 @@ export function AuthForm() {
     const { t } = useTranslation();
     const session = useSession();
     const searchParams = useSearchParams();
+    // El useEffect de canje corre más de una vez por montaje (el objeto `session`
+    // cambia cuando el provider termina /api/auth/me). Con canje de un solo uso, la
+    // 2ª llamada da 401 y su router.replace pisaría la navegación buena. Guarda: canjea una vez.
+    const exchangeStarted = useRef(false);
     const redirect = searchParams.get("redirect") ?? "/reservation";
     const initialMode: Mode = searchParams.get("mode") === "login" ? "login" : "register";
 
@@ -92,25 +96,36 @@ export function AuthForm() {
 
         // Si viene de Google OAuth con un token de corta duración
         const gt = searchParams.get("gt");
-        if (gt) {
-            fetch(`/api/auth/google/exchange?token=${encodeURIComponent(gt)}`, { credentials: "same-origin" })
+        if (gt && !exchangeStarted.current) {
+            exchangeStarted.current = true;
+            fetch("/api/auth/google/exchange", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ token: gt }),
+                credentials: "same-origin",
+            })
                 .then((r) => r.json())
                 .then(async (data) => {
                     if (data.success) {
                         await session.refresh();
-                        router.push(
+                        // router.replace (no push): al navegar, el gt no queda en el historial.
+                        router.replace(
                             data.data.userRole === "ADMIN" ? "/admin/dashboard"
                             : data.data.userRole === "HOSTES" ? "/admin"
                             : redirect
                         );
+                    } else {
+                        router.replace("/login"); // canje fallido: saca el gt de la URL
                     }
                 })
-                .catch(() => { });
+                .catch(() => { router.replace("/login"); });
         }
 
         // Error de Google
         const err = searchParams.get("error");
         if (err === "google_failed") setError("Error al iniciar sesión con Google. Intenta de nuevo.");
+        else if (err === "google_privileged") setError("Esta cuenta entra con PIN de personal.");
+        else if (err === "google_state") setError("La sesión de Google expiró o no es válida. Intenta de nuevo.");
     }, [redirect, router, searchParams, session]);
 
     const setL = <K extends keyof LoginData>(f: K, v: LoginData[K]) =>
@@ -321,7 +336,7 @@ export function AuthForm() {
 
                         <button
                             className="auth-google-btn"
-                            onClick={() => window.location.href = `/api/auth/google?state=${encodeURIComponent(redirect)}`}
+                            onClick={() => window.location.href = `/api/auth/google?redirect=${encodeURIComponent(redirect)}`}
                         >
                             <svg width="18" height="18" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
                                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -453,7 +468,7 @@ export function AuthForm() {
 
                         <button
                             className="auth-google-btn"
-                            onClick={() => window.location.href = `/api/auth/google?state=${encodeURIComponent(redirect)}`}
+                            onClick={() => window.location.href = `/api/auth/google?redirect=${encodeURIComponent(redirect)}`}
                         >
                             <svg width="18" height="18" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
                                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
