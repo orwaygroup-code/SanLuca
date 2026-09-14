@@ -503,7 +503,7 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
   };
 
   return (
-    <Modal open={open} title="Cobrar cuenta" onClose={onClose} width={520}>
+    <Modal open={open} title="Cobrar cuenta" onClose={() => { if (scEmp != null && !scSent && !scBusy) void clearStaffCreditEmployee(); onClose(); }} width={520}>
       {!hasOpenSession ? (
         <EmptyState text="Abre un turno de caja antes de cobrar." />
       ) : loadErr ? (
@@ -599,7 +599,7 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
 
           {/* Cobrar por CRÉDITO DE PERSONAL (todo el saldo a un empleado). Flecha que despliega. */}
           <div style={{ marginTop: 12, border: `1px solid ${C.line}`, borderRadius: 12, overflow: "hidden" }}>
-            <button onClick={() => setScOpen((v) => !v)} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "12px 14px", background: "transparent", border: "none", color: C.cream, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: "0.9rem" }}>
+            <button onClick={() => { const collapsing = scOpen; setScOpen((v) => !v); if (collapsing && scEmp != null && !scSent && !scBusy) void clearStaffCreditEmployee(); }} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "12px 14px", background: "transparent", border: "none", color: C.cream, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: "0.9rem" }}>
               <span>Cobrar por crédito de personal</span>
               <span style={{ color: C.gold, display: "inline-block", transform: scOpen ? "rotate(90deg)" : "none", transition: "transform .15s" }}>▸</span>
             </button>

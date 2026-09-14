@@ -12,6 +12,10 @@ type Db = typeof prisma | Prisma.TransactionClient;
 
 export const TENANT = 1;
 
+/** Motivo (prefijo) del descuento de empleado. Vive en lib —no en el route.ts—
+ *  porque App Router prohíbe exportar símbolos que no sean handlers desde una ruta. */
+export const EMPLOYEE_DISCOUNT_REASON = "Descuento de empleado";
+
 /**
  * Encola un pulso de apertura de cajón para el PrintBridge de CAJA. No imprime
  * papel: crea un ComandaPrint DRAWER_KICK con payload {kind:"drawer"} que el

@@ -8,6 +8,7 @@ import {
   settleComanda,
   completeLinkedReservation,
   enqueueDrawerKick,
+  EMPLOYEE_DISCOUNT_REASON,
 } from "@/lib/comanda";
 import { billHasVigentTicket } from "@/lib/comandaRules";
 import { round2 } from "@/lib/comandaTotals";
@@ -109,6 +110,21 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   // mismo criterio que /print (billHasVigentTicket). Tras reabrir hay que reimprimir.
   if (!billHasVigentTicket(comanda.prints, comanda.reopens[0]?.reopenedAt)) {
     return NextResponse.json<ApiResponse>({ success: false, error: "Imprime la cuenta antes de cobrar" }, { status: 409 });
+  }
+
+  // Guarda del descuento de empleado: ese descuento solo es válido cobrado a crédito
+  // de personal. Si la cuenta lo trae y ninguna línea de pago es WAITER_CREDIT, se
+  // rechaza — cierra el hueco de cobrar el 50% en efectivo cuando la cajera abandonó
+  // el panel de crédito dejando el descuento pegado en la base.
+  const empDisc = await prisma.comandaDiscount.findFirst({
+    where: { comandaId: id, tenantId: TENANT, scope: "BILL", reason: { startsWith: EMPLOYEE_DISCOUNT_REASON } },
+    select: { id: true },
+  });
+  if (empDisc && !lines.some((l) => l.method === "WAITER_CREDIT")) {
+    return NextResponse.json<ApiResponse>(
+      { success: false, error: "La cuenta tiene descuento de empleado. Cóbrala por crédito de personal, o retira el descuento eligiendo al empleado y pulsando \"cambiar\"." },
+      { status: 409 },
+    );
   }
 
   const total = round2(Number(comanda.total));

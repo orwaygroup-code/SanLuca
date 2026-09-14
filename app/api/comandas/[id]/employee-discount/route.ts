@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireCashier } from "@/lib/dualAuth";
-import { TENANT, COMANDA_INCLUDE, ACTIVE_STATUSES, recalcComandaTotals } from "@/lib/comanda";
+import { TENANT, COMANDA_INCLUDE, ACTIVE_STATUSES, recalcComandaTotals, EMPLOYEE_DISCOUNT_REASON } from "@/lib/comanda";
 import { round2, computeDiscountAmount } from "@/lib/comandaTotals";
 import { notify } from "@/lib/notify";
 import type { ApiResponse } from "@/types";
@@ -29,8 +29,6 @@ function parseId(raw: string): number | null {
  * Comparte con aquel el modelo: descuento scope BILL, que REEMPLAZA al anterior
  * en vez de acumularse. Reaplicarlo es idempotente.
  */
-
-const DISCOUNT_REASON = "Descuento de empleado";
 
 async function employeePercent(): Promise<number> {
   const s = await prisma.restaurantSettings.findUnique({
@@ -88,12 +86,12 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   if (amount <= 0) return NextResponse.json<ApiResponse>({ success: false, error: "El descuento resulta en $0" }, { status: 400 });
 
   // No pisar un descuento que un supervisor autorizó a mano: solo se reemplaza el de
-  // empleado (su reason empieza con DISCOUNT_REASON). Si hay otro vigente, se rechaza.
+  // empleado (su reason empieza con EMPLOYEE_DISCOUNT_REASON). Si hay otro vigente, se rechaza.
   const vigente = await prisma.comandaDiscount.findFirst({
     where: { comandaId: id, tenantId: TENANT, scope: "BILL" },
     select: { reason: true },
   });
-  if (vigente && !vigente.reason.startsWith(DISCOUNT_REASON)) {
+  if (vigente && !vigente.reason.startsWith(EMPLOYEE_DISCOUNT_REASON)) {
     return NextResponse.json<ApiResponse>(
       { success: false, error: "La cuenta ya tiene un descuento autorizado por un supervisor; retíralo antes de aplicar el de empleado" },
       { status: 409 },
@@ -110,7 +108,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         type: "PERCENT",
         value: pct,
         amount,
-        reason: `${DISCOUNT_REASON} (${pct}%)`,
+        reason: `${EMPLOYEE_DISCOUNT_REASON} (${pct}%)`,
         authorizedById: a.staffId,
       },
     }),
@@ -139,7 +137,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
   // Sólo retira SU descuento: si un supervisor puso otro a mano, no se toca.
   const mine = await prisma.comandaDiscount.findFirst({
-    where: { comandaId: id, tenantId: TENANT, scope: "BILL", reason: { startsWith: DISCOUNT_REASON } },
+    where: { comandaId: id, tenantId: TENANT, scope: "BILL", reason: { startsWith: EMPLOYEE_DISCOUNT_REASON } },
     select: { id: true },
   });
   if (mine) {
