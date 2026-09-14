@@ -4,41 +4,27 @@
 // Devuelve:  { reply }  — n8n lo manda de vuelta al cliente.
 
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-
-function formatPhone(raw: string): string {
-    const d = raw.replace(/\D/g, "");
-    if (d.startsWith("52") && d.length === 12) return d.slice(2); // quitar código de país
-    if (d.length === 10) return d;
-    return d.length > 10 ? d.slice(-10) : d;
-}
-
-function fmtDate(d: Date) {
-    return d.toLocaleDateString("es-MX", {
-        weekday: "long", day: "numeric", month: "long", year: "numeric",
-    });
-}
-function fmtTime(d: Date) {
-    return d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
-}
-
-const STATUS_ES: Record<string, string> = {
-    PENDING:     "Pendiente de confirmación",
-    CONFIRMED:   "Confirmada ✅",
-    IN_PROGRESS: "En curso 🍽️",
-    DELAYED:     "Con retraso ⏳",
-    CANCELLED:   "Cancelada ❌",
-    COMPLETED:   "Completada ✓",
-    NO_SHOW:     "No se presentó",
-};
+import { verifyMetaSignature } from "@/lib/metaSignature";
+import { buildBotReply } from "@/lib/botReply";
 
 export async function POST(request: NextRequest) {
     try {
-        const body = await request.json();
+        // Se lee el cuerpo CRUDO antes de parsear: la firma de Meta se calcula sobre
+        // los bytes exactos, no sobre el JSON re-serializado.
+        const raw = await request.text();
+        const body = JSON.parse(raw);
 
         // ── ROUTER: payload directo de Meta ───────────────────────
         // Meta manda { entry: [...] }, n8n manda { phone, message }
         if (body.entry) {
+            // Firma de Meta SOLO en esta rama. Falla cerrado: sin WHATSAPP_APP_SECRET
+            // o con firma que no coincide → 401 (el secreto va en .env del VPS ANTES
+            // del deploy; si falta, el bot amanece mudo y el smoke lo detecta).
+            if (!verifyMetaSignature(raw, request.headers.get("x-hub-signature-256"))) {
+                console.error("[whatsapp/webhook] firma de Meta inválida o ausente");
+                return NextResponse.json({ error: "invalid signature" }, { status: 401 });
+            }
+
             // Reenviar TODOS los eventos a n8n incondicionalmente
             // (mensajes normales, audio, anuncios Click-to-WhatsApp con referral, etc.)
             fetch("http://localhost:5678/webhook/whatsapp", {
@@ -51,118 +37,17 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ status: "ok" });
         }
 
-        // ── HANDLER: llamada de n8n con { phone, message } ────────
+        // ── HANDLER (compatibilidad): llamada de n8n con { phone, message } ────
+        // Rama OBSOLETA: n8n debe apuntar a /api/bot/reply (x-bot-key). Se conserva
+        // llamando a la misma función hasta que Paul repunte n8n (quitarla = Ola 8 #35).
         const { phone, message } = body as { phone: string; message: string };
 
         if (!phone || !message) {
             return NextResponse.json({ reply: "No pude procesar tu mensaje." });
         }
 
-        const localPhone = formatPhone(phone);
-
-        // Buscar reservas activas por teléfono del titular
-        const reservations = await prisma.reservation.findMany({
-            where: {
-                guestPhone:   { contains: localPhone },
-                status:       { notIn: ["CANCELLED", "NO_SHOW"] },
-            },
-            orderBy: { date: "asc" },
-            take: 3,
-            select: {
-                id:                true,
-                guestName:         true,
-                date:              true,
-                guests:            true,
-                sectionPreference: true,
-                status:            true,
-                paymentStatus:     true,
-                table:             { select: { number: true, section: { select: { name: true } } } },
-            },
-        });
-
-        const msg = message.toLowerCase();
-        const appUrl = process.env.APP_URL ?? "https://sanlucaristorante.com";
-
-        // ── Sin reservas ──────────────────────────────────────────
-        if (reservations.length === 0) {
-            return NextResponse.json({
-                reply:
-                    `Hola 👋 No encontré ninguna reserva activa asociada a tu número.\n\n` +
-                    `Puedes hacer una reserva en:\n${appUrl}/reservation`,
-            });
-        }
-
-        const r = reservations[0];
-        const fecha = fmtDate(new Date(r.date));
-        const hora  = fmtTime(new Date(r.date));
-
-        // ── Cancelar ──────────────────────────────────────────────
-        if (msg.includes("cancelar") || msg.includes("cancel")) {
-            return NextResponse.json({
-                reply:
-                    `Para cancelar tu reserva del *${fecha}* a las *${hora}*, comunícate directamente con el restaurante.\n\n` +
-                    `📞 También puedes llamarnos o escribirnos por aquí y con gusto te ayudamos.`,
-            });
-        }
-
-        // ── QR / check-in ─────────────────────────────────────────
-        // El código QR es una credencial: NO se manda un enlace en respuesta a un
-        // teléfono no verificado. Llega por este mismo canal al confirmar la reserva.
-        if (msg.includes("qr") || msg.includes("check") || msg.includes("código") || msg.includes("codigo")) {
-            return NextResponse.json({
-                reply:
-                    `Tu código QR para la reserva del *${fecha}* llega por este mismo canal cuando la reserva queda confirmada.\n\n` +
-                    `Preséntalo al llegar al restaurante para tu check-in.`,
-            });
-        }
-
-        // ── Hora ──────────────────────────────────────────────────
-        if (msg.includes("hora") || msg.includes("cuándo") || msg.includes("cuando")) {
-            return NextResponse.json({
-                reply: `Tu próxima reserva es el *${fecha}* a las *${hora}* 🕐`,
-            });
-        }
-
-        // ── Mesa / sección ────────────────────────────────────────
-        if (msg.includes("mesa") || msg.includes("lugar") || msg.includes("sección") || msg.includes("seccion")) {
-            const mesa = r.table
-                ? `Mesa #${r.table.number} en ${r.table.section.name}`
-                : r.sectionPreference
-                    ? `Sección preferida: ${r.sectionPreference} (mesa por asignar)`
-                    : "Mesa por asignar";
-            return NextResponse.json({
-                reply: `📍 ${mesa}\nFecha: ${fecha} a las ${hora}`,
-            });
-        }
-
-        // ── Estado ────────────────────────────────────────────────
-        if (msg.includes("estado") || msg.includes("estatus") || msg.includes("confirmada") || msg.includes("confirmar")) {
-            return NextResponse.json({
-                reply: `Estado de tu reserva: *${STATUS_ES[r.status] ?? r.status}*`,
-            });
-        }
-
-        // ── Respuesta por defecto: resumen completo ────────────────
-        const mesa = r.table
-            ? `#${r.table.number} - ${r.table.section.name}`
-            : r.sectionPreference ?? "Por asignar";
-
-        const lines = [
-            `¡Hola ${r.guestName}! 🍽️ Aquí el resumen de tu reserva en *San Luca*:\n`,
-            `📅 *${fecha}*`,
-            `🕐 ${hora}`,
-            `👥 ${r.guests} persona${r.guests !== 1 ? "s" : ""}`,
-            `📍 ${mesa}`,
-            `✅ Estado: ${STATUS_ES[r.status] ?? r.status}`,
-        ];
-
-        if (reservations.length > 1) {
-            lines.push(`\nTienes ${reservations.length} reservas activas. Escribe *"reservas"* para ver todas.`);
-        }
-
-        lines.push(`\nPuedes preguntar por: *hora*, *mesa*, *QR*, *estado* o *cancelar*.`);
-
-        return NextResponse.json({ reply: lines.join("\n") });
+        console.warn("[whatsapp/webhook] rama n8n obsoleta: apunta n8n a /api/bot/reply");
+        return NextResponse.json({ reply: await buildBotReply(phone, message) });
     } catch (error) {
         console.error("[WhatsApp webhook]", error);
         return NextResponse.json({ reply: "Ocurrió un error. Intenta de nuevo." });
