@@ -47,7 +47,9 @@ export async function GET(request: NextRequest) {
 
   const [credits, tipAgg, cashRows, settings, salesAgg] = await Promise.all([
     prisma.waiterCredit.findMany({
-      where: { tenantId: TENANT, waiterId: s.staffId },
+      // Excluye los créditos anulados al reabrir la cuenta (status VOIDED): ya no son
+      // deuda, así que no se listan ni entran en `pending`.
+      where: { tenantId: TENANT, waiterId: s.staffId, status: { not: "VOIDED" } },
       select: { id: true, amount: true, status: true, note: true, createdAt: true, paidAt: true, comanda: { select: { folio: true } } },
       orderBy: { createdAt: "desc" },
     }),

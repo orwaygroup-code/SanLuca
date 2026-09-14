@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireCashier } from "@/lib/dualAuth";
 import { TENANT, COMANDA_INCLUDE, ACTIVE_STATUSES, recalcComandaTotals } from "@/lib/comanda";
 import { round2, computeDiscountAmount } from "@/lib/comandaTotals";
+import { notify } from "@/lib/notify";
 import type { ApiResponse } from "@/types";
 
 function parseId(raw: string): number | null {
@@ -86,6 +87,19 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const amount = round2(Math.min(computeDiscountAmount(base, "PERCENT", pct), base));
   if (amount <= 0) return NextResponse.json<ApiResponse>({ success: false, error: "El descuento resulta en $0" }, { status: 400 });
 
+  // No pisar un descuento que un supervisor autorizó a mano: solo se reemplaza el de
+  // empleado (su reason empieza con DISCOUNT_REASON). Si hay otro vigente, se rechaza.
+  const vigente = await prisma.comandaDiscount.findFirst({
+    where: { comandaId: id, tenantId: TENANT, scope: "BILL" },
+    select: { reason: true },
+  });
+  if (vigente && !vigente.reason.startsWith(DISCOUNT_REASON)) {
+    return NextResponse.json<ApiResponse>(
+      { success: false, error: "La cuenta ya tiene un descuento autorizado por un supervisor; retíralo antes de aplicar el de empleado" },
+      { status: 409 },
+    );
+  }
+
   await prisma.$transaction([
     prisma.comandaDiscount.deleteMany({ where: { comandaId: id, tenantId: TENANT, scope: "BILL" } }),
     prisma.comandaDiscount.create({
@@ -105,6 +119,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   await recalcComandaTotals(id);
 
   const updated = await prisma.comanda.findFirst({ where: { id, tenantId: TENANT }, include: COMANDA_INCLUDE });
+  void notify({
+    roles: ["MANAGER"],
+    type: "audit",
+    title: "Descuento de empleado",
+    body: `${updated?.folio ?? "#" + id} · -${amount.toFixed(2)} (${pct}%)`,
+    url: "/admin/comandas",
+  });
   return NextResponse.json<ApiResponse>({ success: true, data: updated });
 }
 

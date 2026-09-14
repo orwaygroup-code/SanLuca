@@ -47,7 +47,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
   const comanda = await prisma.comanda.findFirst({
     where: { id, tenantId: TENANT },
-    select: { id: true, status: true, tableId: true },
+    select: { id: true, status: true, tableId: true, folio: true },
   });
   if (!comanda) return NextResponse.json<ApiResponse>({ success: false, error: "Comanda no encontrada" }, { status: 404 });
   if (comanda.status !== "PAID") {
@@ -68,11 +68,40 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     );
   }
 
+  // Anular pagos de un turno YA CERRADO modifica un corte que su cutSnapshot da por
+  // congelado. No se hace a ciegas: se exige confirmación explícita y queda rastro
+  // en la(s) sesión(es) afectada(s).
+  const pagos = voidPayments
+    ? await prisma.comandaPayment.findMany({
+        where: { comandaId: id, tenantId: TENANT, voided: false },
+        select: { cashSession: { select: { id: true, folio: true, status: true } } },
+      })
+    : [];
+  const closedById = new Map<number, string>(
+    pagos.filter((p) => p.cashSession.status === "CLOSED").map((p) => [p.cashSession.id, p.cashSession.folio]),
+  );
+  const cerrados = [...new Set([...closedById.values()])];
+  if (voidPayments && cerrados.length > 0 && body?.confirmCorteCerrado !== true) {
+    return NextResponse.json<ApiResponse>(
+      {
+        success: false,
+        error: `Estos pagos pertenecen a un corte ya cerrado (${cerrados.join(", ")}). Anularlos modificará ese corte. Vuelve a enviar con confirmCorteCerrado: true si es lo que quieres.`,
+      },
+      { status: 409 },
+    );
+  }
+
   await prisma.$transaction(async (tx) => {
     if (voidPayments) {
       await tx.comandaPayment.updateMany({
         where: { comandaId: id, tenantId: TENANT, voided: false },
         data: { voided: true, voidedById: a.staffId, voidedReason: reason, voidedAt: new Date() },
+      });
+      // Los créditos que ese cobro generó dejan de ser deuda: si no se anulan, el
+      // consumo queda con dos cuentas por cobrar al re-cobrarse a crédito.
+      await tx.waiterCredit.updateMany({
+        where: { comandaId: id, tenantId: TENANT, status: "OUTSTANDING" },
+        data: { status: "VOIDED", note: "Anulado al reabrir la cuenta: " + reason },
       });
     }
     // Con los pagos anulados la cuenta vuelve a estar realmente sin cobrar, así
@@ -93,7 +122,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         closedAt: null,
         closedById: null,
         reopenCount: { increment: 1 },
-        ...(voidPayments ? { amountPaid: 0, tipTotal: 0, cashSessionId: null } : {}),
+        ...(voidPayments
+          ? { amountPaid: 0, tipTotal: 0, cashSessionId: null, excludeTipPoint: false, tipPointExcludedById: null }
+          : {}),
       },
     });
     await tx.comandaReopen.create({
@@ -106,6 +137,18 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         reopenedById: authorizedById,
       },
     });
+    // Rastro en la(s) sesión(es) cerrada(s) cuyo corte se acaba de modificar.
+    if (voidPayments && closedById.size > 0) {
+      const stamp = new Date().toISOString();
+      for (const [sessionId] of closedById) {
+        const cs = await tx.cashSession.findUnique({ where: { id: sessionId }, select: { notes: true } });
+        const line = `Corte modificado tras el cierre: pagos anulados de ${comanda.folio} el ${stamp}`;
+        await tx.cashSession.update({
+          where: { id: sessionId },
+          data: { notes: cs?.notes ? `${cs.notes}\n${line}` : line },
+        });
+      }
+    }
   });
 
   const updated = await prisma.comanda.findFirst({ where: { id, tenantId: TENANT }, include: COMANDA_INCLUDE });

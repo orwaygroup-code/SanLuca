@@ -12,8 +12,15 @@ export async function GET(request: NextRequest) {
   const a = await requireCashier(request);
   if (!a) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 401 });
 
-  const status = new URL(request.url).searchParams.get("status"); // OUTSTANDING | PAID | (todo)
-  const where = { tenantId: TENANT, ...(status === "PAID" || status === "OUTSTANDING" ? { status } : {}) };
+  const status = new URL(request.url).searchParams.get("status"); // OUTSTANDING | PAID | VOIDED | (todo)
+  // "todo" (sin filtro explícito) excluye los VOIDED: un crédito anulado al reabrir
+  // la cuenta ya no es deuda. Se puede pedir explícitamente con ?status=VOIDED.
+  const where = {
+    tenantId: TENANT,
+    ...(status === "PAID" || status === "OUTSTANDING" || status === "VOIDED"
+      ? { status }
+      : { status: { not: "VOIDED" } }),
+  };
 
   const credits = await prisma.waiterCredit.findMany({
     where,

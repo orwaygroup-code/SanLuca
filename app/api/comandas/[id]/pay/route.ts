@@ -124,9 +124,11 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     );
   }
 
-  const newAmountPaid = outcome.newAmountPaid;
-  const newTipTotal = round2(Number(comanda.tipTotal) + outcome.sumTip);
-  const settled = outcome.settled;
+  // El desenlace final se fija DENTRO de la transacción, con la comanda fresca
+  // (candado optimista). Estos valores externos son solo el arranque/respaldo.
+  let settled = false;
+  let finalAmountPaid = outcome.newAmountPaid;
+  let finalRemaining = outcome.newRemaining;
 
   // Crédito de mesero: si hay una línea WAITER_CREDIT, la autoriza el PROPIO mesero
   // deudor con su PIN (puede no ser quien atiende). Perla ya está autorizada (requireCashier).
@@ -178,49 +180,78 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     reset(`sup-pin:${a.staffId}`);
   }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.comandaPayment.createMany({
-      data: lines.map((l) => ({
-        tenantId: TENANT,
-        comandaId: id,
-        cashSessionId: session.id,
-        method: l.method,
-        amount: l.amount,
-        received: l.received,
-        changeGiven: l.changeGiven,
-        tip: l.tip,
-        reference: l.reference,
-        splitTicketNumber: l.splitTicketNumber,
-        receivedById: a.staffId as number,
-      })),
-    });
+  try {
+    await prisma.$transaction(async (tx) => {
+      // Se relee la comanda DENTRO de la transacción: el saldo pudo cambiar entre
+      // la validación temprana y aquí (doble toque en la tablet, reintento por red
+      // lenta). El outcome se recalcula sobre esos valores frescos y la escritura
+      // es CONDICIONAL a ellos (candado optimista): dos cobros concurrentes no
+      // pueden saldar dos veces la misma cuenta ni dejarla con dos pagos y un total.
+      const fresh = await tx.comanda.findFirst({
+        where: { id, tenantId: TENANT },
+        select: { status: true, total: true, amountPaid: true, tipTotal: true },
+      });
+      if (!fresh) throw Object.assign(new Error("Comanda no encontrada"), { httpStatus: 404 });
+      const freshOutcome = computePaymentOutcome(round2(Number(fresh.total)), round2(Number(fresh.amountPaid)), lines);
+      if (freshOutcome.overpay) throw Object.assign(new Error("El pago excede el saldo"), { httpStatus: 409 });
 
-    // Registra la(s) cuenta(s) por cobrar del mesero (se salda al descontar nómina).
-    if (creditLines.length > 0 && creditWaiterId) {
-      await tx.waiterCredit.createMany({
-        data: creditLines.map((l) => ({
+      await tx.comandaPayment.createMany({
+        data: lines.map((l) => ({
           tenantId: TENANT,
-          waiterId: creditWaiterId as number,
           comandaId: id,
           cashSessionId: session.id,
+          method: l.method,
           amount: l.amount,
-          authorizedById: a.staffId as number,
+          received: l.received,
+          changeGiven: l.changeGiven,
+          tip: l.tip,
+          reference: l.reference,
+          splitTicketNumber: l.splitTicketNumber,
+          receivedById: a.staffId as number,
         })),
       });
-    }
 
-    await tx.comanda.update({
-      where: { id },
-      data: {
-        amountPaid: newAmountPaid,
-        tipTotal: newTipTotal,
-        ...(wantExcludeTip ? { excludeTipPoint: true, tipPointExcludedById } : {}),
-        ...(settled ? {} : { status: "PARTIALLY_PAID", cashSessionId: session.id }),
-      },
+      // Registra la(s) cuenta(s) por cobrar del mesero (se salda al descontar nómina).
+      if (creditLines.length > 0 && creditWaiterId) {
+        await tx.waiterCredit.createMany({
+          data: creditLines.map((l) => ({
+            tenantId: TENANT,
+            waiterId: creditWaiterId as number,
+            comandaId: id,
+            cashSessionId: session.id,
+            amount: l.amount,
+            authorizedById: a.staffId as number,
+          })),
+        });
+      }
+
+      const upd = await tx.comanda.updateMany({
+        where: { id, amountPaid: fresh.amountPaid }, // ← candado optimista
+        data: {
+          amountPaid: freshOutcome.newAmountPaid,
+          tipTotal: round2(Number(fresh.tipTotal) + freshOutcome.sumTip),
+          ...(wantExcludeTip ? { excludeTipPoint: true, tipPointExcludedById } : {}),
+          ...(freshOutcome.settled ? {} : { status: "PARTIALLY_PAID", cashSessionId: session.id }),
+        },
+      });
+      if (upd.count === 0) throw Object.assign(new Error("La cuenta cambió durante el cobro. Vuelve a intentarlo."), { httpStatus: 409 });
+
+      if (freshOutcome.settled) await settleComanda(tx, id, a.staffId as number, session.id);
+
+      settled = freshOutcome.settled;
+      finalAmountPaid = freshOutcome.newAmountPaid;
+      finalRemaining = freshOutcome.newRemaining;
     });
-
-    if (settled) await settleComanda(tx, id, a.staffId as number, session.id);
-  });
+  } catch (e) {
+    const httpStatus =
+      typeof e === "object" && e !== null && typeof (e as { httpStatus?: unknown }).httpStatus === "number"
+        ? (e as { httpStatus: number }).httpStatus
+        : 500;
+    const message = httpStatus === 500 ? "No se pudo procesar el cobro"
+                  : e instanceof Error ? e.message : "No se pudo procesar el cobro";
+    if (httpStatus === 500) console.error("[pay] transacción falló", e);
+    return NextResponse.json<ApiResponse>({ success: false, error: message }, { status: httpStatus });
+  }
 
   if (settled) await completeLinkedReservation(id);
 
@@ -234,8 +265,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     data: {
       comanda: updated,
       settled,
-      amountPaid: newAmountPaid,
-      remaining: outcome.newRemaining,
+      amountPaid: finalAmountPaid,
+      remaining: finalRemaining,
       changeGiven: outcome.changeTotal,
     },
   });

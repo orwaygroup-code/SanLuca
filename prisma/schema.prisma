@@ -1012,7 +1012,7 @@ model WaiterCredit {
   comanda        Comanda?  @relation(fields: [comandaId], references: [id], onDelete: SetNull)
   cashSessionId  Int?
   amount         Decimal   @db.Decimal(10, 2)
-  status         String    @default("OUTSTANDING") // OUTSTANDING | PAID
+  status         String    @default("OUTSTANDING") // OUTSTANDING | PAID | VOIDED
   authorizedById Int // quién lo autorizó (caja/Perla)
   authorizedBy   Staff     @relation("WaiterCreditAuthorizer", fields: [authorizedById], references: [id])
   note           String?
