@@ -57,9 +57,6 @@ export const createReservationSchema = z.object({
   occasion: z.string().max(100).optional(),
   notes: z.string().max(500).optional(),
 
-  // Grupo grande (>15 personas): reserva área completa por todo el día
-  isLargeGroup: z.boolean().optional(),
-
   // Mesa seleccionada en el mapa
   tableId:        z.string().cuid().optional(),
   linkedTableId:  z.string().cuid().optional(),

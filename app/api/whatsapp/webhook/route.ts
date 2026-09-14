@@ -77,7 +77,6 @@ export async function POST(request: NextRequest) {
                 status:            true,
                 paymentStatus:     true,
                 table:             { select: { number: true, section: { select: { name: true } } } },
-                qrToken:           true,
             },
         });
 
@@ -107,12 +106,12 @@ export async function POST(request: NextRequest) {
         }
 
         // ── QR / check-in ─────────────────────────────────────────
+        // El código QR es una credencial: NO se manda un enlace en respuesta a un
+        // teléfono no verificado. Llega por este mismo canal al confirmar la reserva.
         if (msg.includes("qr") || msg.includes("check") || msg.includes("código") || msg.includes("codigo")) {
-            const qrUrl = `${appUrl}/checkin/${r.qrToken}`;
             return NextResponse.json({
                 reply:
-                    `Tu código QR para la reserva del *${fecha}*:\n\n` +
-                    `🔗 ${qrUrl}\n\n` +
+                    `Tu código QR para la reserva del *${fecha}* llega por este mismo canal cuando la reserva queda confirmada.\n\n` +
                     `Preséntalo al llegar al restaurante para tu check-in.`,
             });
         }

@@ -62,7 +62,10 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const { date, time, tableId, linkedTableId, thirdTableId, fourthTableId, isLargeGroup, ...rest } = validation.data;
+        const { date, time, tableId, linkedTableId, thirdTableId, fourthTableId, ...rest } = validation.data;
+        // Grupo grande se DERIVA del número de comensales (>15), nunca del cliente:
+        // evita que alguien aparte un área completa con guests: 2.
+        const isLargeGroup = Number(rest.guests) > 15;
 
         // 4. Combinar fecha + hora en un solo DateTime
         // Tratar como hora local de México (UTC-6, sin horario de verano desde 2023)

@@ -251,7 +251,6 @@ export function ReservationForm() {
           sectionPreference: form.sectionPreference,
           occasion: form.occasion || undefined,
           notes: form.notes || undefined,
-          isLargeGroup: true,
         }),
       });
       const data = await res.json();
