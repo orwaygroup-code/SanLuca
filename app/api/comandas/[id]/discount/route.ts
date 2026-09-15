@@ -15,7 +15,8 @@ function parseId(raw: string): number | null {
 
 /**
  * POST /api/comandas/:id/discount — descuento A LA CUENTA (scope BILL).
- * requireCashier + authPin de un Capitán/Manager (override sin cambiar sesión).
+ * requireCashier + authPin de Operación/Capitán/Manager (decisión del 14 sep: la
+ * cajera puede autorizar sola; queda auditado con quién y a qué mesa).
  * Body: { type: "PERCENT"|"FIXED", value, reason, authPin }
  * El monto se acota al saldo descontable (Σ línea efectiva − discountTotal), así
  * el total nunca queda negativo. recalcComandaTotals redesglosa el IVA.
@@ -83,6 +84,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   await recalcComandaTotals(id);
 
   const updated = await prisma.comanda.findFirst({ where: { id, tenantId: TENANT }, include: COMANDA_INCLUDE });
-  void notify({ roles: ["MANAGER"], type: "audit", title: "Descuento a la cuenta", body: `${updated?.folio ?? `#${id}`} · -${amount.toFixed(2)} · ${reason}`, url: "/admin/comandas" });
+  const who = await prisma.staff.findUnique({ where: { id: authorizedById }, select: { fullName: true } });
+  void notify({ roles: ["MANAGER"], type: "audit", title: "Descuento a la cuenta", body: `${updated?.folio ?? `#${id}`} · -${amount.toFixed(2)} · ${reason} · por ${who?.fullName ?? "?"} · ${updated?.table ? "mesa " + updated.table.number : "sin mesa"}`, url: "/admin/comandas" });
   return NextResponse.json<ApiResponse>({ success: true, data: updated });
 }

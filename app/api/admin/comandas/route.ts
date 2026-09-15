@@ -12,7 +12,7 @@ interface AuditItem { qty: number; name: string; notes: string | null; mods: str
 interface AuditEvent { kind: AuditKind; at: string; actor: string; detail: string; reason: string | null; items?: AuditItem[] }
 
 const MXN = (n: number) => `$${(Math.round(n * 100) / 100).toFixed(2)}`;
-const METHOD_LABEL: Record<string, string> = { CASH: "Efectivo", CARD_DEBIT: "Débito", CARD_CREDIT: "Crédito", TRANSFER: "Transferencia" };
+const METHOD_LABEL: Record<string, string> = { CASH: "Efectivo", CARD_DEBIT: "Débito", CARD_CREDIT: "Crédito", TRANSFER: "Transferencia", WAITER_CREDIT: "Crédito de personal" };
 
 /**
  * GET /api/admin/comandas?range=today|7d|30d — auditoría de comandas para Ricardo.

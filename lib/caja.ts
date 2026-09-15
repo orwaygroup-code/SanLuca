@@ -72,7 +72,7 @@ export interface CutSnapshot {
   generatedAt: string; // ISO
 }
 
-const METHODS: PaymentMethod[] = ["CASH", "CARD_DEBIT", "CARD_CREDIT", "TRANSFER"];
+const METHODS: PaymentMethod[] = ["CASH", "CARD_DEBIT", "CARD_CREDIT", "TRANSFER", "WAITER_CREDIT"];
 
 /** Tolerancia de centavo para comparar contra el total (redondeos). */
 export const PAY_EPS = 0.01;

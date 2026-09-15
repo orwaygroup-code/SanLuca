@@ -226,7 +226,7 @@ function renderCustomer(p, w) {
   return o;
 }
 
-const METHOD_LABEL = { CASH: "Efectivo", CARD_DEBIT: "Tarjeta debito", CARD_CREDIT: "Tarjeta credito", TRANSFER: "Transferencia" };
+const METHOD_LABEL = { CASH: "Efectivo", CARD_DEBIT: "Tarjeta debito", CARD_CREDIT: "Tarjeta credito", TRANSFER: "Transferencia", WAITER_CREDIT: "Credito personal" };
 
 // Envuelve un texto largo a `w` columnas (para la direccion del encabezado).
 function wrap(s, w) {

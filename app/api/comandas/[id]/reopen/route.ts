@@ -91,6 +91,22 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     );
   }
 
+  // Decisión 7: si el crédito de personal de esta cuenta YA se descontó en nómina
+  // (WaiterCredit PAID), NO se reabre anulando pagos — el empleado pagaría dos veces.
+  // Reabrir SIN anular pagos (solo agregar productos) sí se permite.
+  if (voidPayments) {
+    const paid = await prisma.waiterCredit.count({ where: { comandaId: id, tenantId: TENANT, status: "PAID" } });
+    if (paid > 0) {
+      return NextResponse.json<ApiResponse>(
+        {
+          success: false,
+          error: "El crédito de esta cuenta ya se descontó en nómina. Reábrela sin anular pagos si solo vas a agregar productos.",
+        },
+        { status: 409 },
+      );
+    }
+  }
+
   await prisma.$transaction(async (tx) => {
     if (voidPayments) {
       await tx.comandaPayment.updateMany({
