@@ -5,6 +5,7 @@ import { verifySupervisorPin } from "@/lib/staff";
 import { allow, reset } from "@/lib/rateLimit";
 import { resolveReprintAuthorizer, REPRINT_AUTHORIZER_ROLES, isEditableStatus, billHasVigentTicket } from "@/lib/comandaRules";
 import { TENANT, COMANDA_INCLUDE } from "@/lib/comanda";
+import { applyEmployeeDiscount } from "@/lib/employeeDiscount";
 import { FISCAL, FACTURA_URL } from "@/lib/fiscal";
 import { numeroALetras } from "@/lib/numeroLetras";
 import type { ApiResponse } from "@/types";
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     select: {
       id: true, waiterId: true, folio: true, guestsActual: true, openedAt: true, status: true,
       subtotal: true, taxAmount: true, total: true, discountTotal: true,
-      customName: true,
+      customName: true, chargedEmployeeId: true,
       waiter: { select: { fullName: true } },
       table: { select: { number: true, section: { select: { name: true } } } },
       items: {
@@ -139,6 +140,26 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     return NextResponse.json<ApiResponse>({ success: false, error: "Hay productos por enviar a cocina. Envíalos o quítalos antes de imprimir la cuenta." }, { status: 409 });
   }
 
+  // Cuenta ligada a un empleado: el descuento de empleado se aplica AL IMPRIMIR, que
+  // es el punto de paso obligatorio (nadie cobra sin imprimir y aquí la cuenta ya está
+  // completa). Cubre: ligada al crear (sin productos aún) → descuento ahora; reabierta
+  // y reimpresa → recalculado. Si hay descuento de supervisor, ese manda (se ignora el
+  // resultado). Luego se releen los totales para el ticket.
+  let totals = {
+    subtotal: Number(comanda.subtotal), tax: Number(comanda.taxAmount),
+    total: Number(comanda.total), discount: Number(comanda.discountTotal),
+  };
+  if (printType === "CUSTOMER_FINAL" && comanda.chargedEmployeeId != null) {
+    await applyEmployeeDiscount(id, actor.staffId as number);
+    const fresh = await prisma.comanda.findFirst({
+      where: { id, tenantId: TENANT },
+      select: { subtotal: true, taxAmount: true, total: true, discountTotal: true },
+    });
+    if (fresh) {
+      totals = { subtotal: Number(fresh.subtotal), tax: Number(fresh.taxAmount), total: Number(fresh.total), discount: Number(fresh.discountTotal) };
+    }
+  }
+
   const isReprint = printType === "CUSTOMER_REPRINT";
   const common = {
     tenantId: TENANT,
@@ -167,11 +188,11 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           waiter: comanda.waiter?.fullName ?? "", guests: comanda.guestsActual, orden: comanda.id,
           opened: comanda.openedAt.toISOString(), time: nowIso,
           reprint: isReprint, ticketNumber: null, items: lines,
-          subtotal: Number(comanda.subtotal), tax: Number(comanda.taxAmount), total: Number(comanda.total),
+          subtotal: totals.subtotal, tax: totals.tax, total: totals.total,
           // #11: descuento a la cuenta visible en el ticket. `gross` = suma bruta de líneas
           // (antes de descuento) para anclar el renglón "Descuento" y calcular el %.
-          discount: Number(comanda.discountTotal), gross: +lines.reduce((s, l) => s + l.total, 0).toFixed(2),
-          importeLetra: numeroALetras(Number(comanda.total)),
+          discount: totals.discount, gross: +lines.reduce((s, l) => s + l.total, 0).toFixed(2),
+          importeLetra: numeroALetras(totals.total),
           factura: { url: FACTURA_URL, folio: comanda.folio },
         },
       },

@@ -1283,6 +1283,7 @@ model PushSubscription {
   @@index([tenantId, staffId])
 }
 
+// OBSOLETO desde la Ola 7c (14 sep 2026): solo historial. El flujo es link-employee + employee-approve. Borrar en Ola 8 (db push destructivo).
 // Cobro a "crédito de personal" que espera la CONFIRMACIÓN del empleado desde su tablet.
 // Caja lo crea (PENDING) y notifica al empleado; éste confirma con su PIN y ahí se cobra.
 model StaffCreditConfirm {

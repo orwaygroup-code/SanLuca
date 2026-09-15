@@ -13,7 +13,7 @@ import {
 import { billHasVigentTicket } from "@/lib/comandaRules";
 import { round2 } from "@/lib/comandaTotals";
 import { getOpenSession, computePaymentOutcome, PAY_EPS } from "@/lib/caja";
-import { verifyWaiterPin, verifySupervisorPin } from "@/lib/staff";
+import { verifySupervisorPin } from "@/lib/staff";
 import { allow, reset } from "@/lib/rateLimit";
 import type { ApiResponse } from "@/types";
 
@@ -146,37 +146,29 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   let finalAmountPaid = outcome.newAmountPaid;
   let finalRemaining = outcome.newRemaining;
 
-  // Crédito de mesero: si hay una línea WAITER_CREDIT, la autoriza el PROPIO mesero
-  // deudor con su PIN (puede no ser quien atiende). Perla ya está autorizada (requireCashier).
+  // Crédito de personal (Ola 7c): solo se cobra a crédito una cuenta LIGADA a un
+  // empleado y ya APROBADA por él con su PIN (desde su Cartera o el aviso). Ya no hay
+  // PIN ad-hoc en caja: ligar + aprobar es el único camino.
   const creditLines = lines.filter((l) => l.method === "WAITER_CREDIT");
   let creditWaiterId: number | null = null;
   if (creditLines.length > 0) {
     creditWaiterId = Number(body?.creditWaiterId);
-    const pin = typeof body?.creditWaiterPin === "string" ? body.creditWaiterPin : "";
     if (!Number.isInteger(creditWaiterId) || creditWaiterId <= 0) {
       return NextResponse.json<ApiResponse>({ success: false, error: "Elige el mesero al que se le carga el crédito" }, { status: 400 });
     }
     const waiter = await prisma.staff.findFirst({ where: { id: creditWaiterId, tenantId: TENANT, active: true }, select: { id: true } });
     if (!waiter) return NextResponse.json<ApiResponse>({ success: false, error: "Mesero no encontrado o inactivo" }, { status: 404 });
-    if (comanda.chargedEmployeeId != null) {
-      // #4 Cuenta LIGADA: el crédito solo puede ir a ese empleado y solo si ya la aprobó en su
-      // cartera. Esa aprobación (con PIN, ya registrada) ES la autorización — no se pide PIN otra
-      // vez aquí, así el empleado no tiene que estar en caja al momento de cobrar.
-      if (creditWaiterId !== comanda.chargedEmployeeId) {
-        return NextResponse.json<ApiResponse>({ success: false, error: "Esta cuenta está ligada a otro empleado; el crédito debe ir a ese empleado" }, { status: 409 });
-      }
-      if (comanda.employeeChargeStatus !== "APPROVED") {
-        return NextResponse.json<ApiResponse>({ success: false, error: "El empleado aún no aprueba esta cuenta. Debe palomearla en su cartera antes de cobrarla a crédito." }, { status: 409 });
-      }
-    } else {
-      // Crédito ad-hoc (sin ligar): el empleado deudor lo autoriza con su PIN aquí mismo.
-      if (!allow(`waiter-pin:${creditWaiterId}`, 5, 15 * 60_000)) {
-        return NextResponse.json<ApiResponse>({ success: false, error: "TOO_MANY_ATTEMPTS" }, { status: 429 });
-      }
-      if (!(await verifyWaiterPin(creditWaiterId, pin))) {
-        return NextResponse.json<ApiResponse>({ success: false, error: "PIN del mesero incorrecto" }, { status: 403 });
-      }
-      reset(`waiter-pin:${creditWaiterId}`);
+    if (comanda.chargedEmployeeId == null) {
+      return NextResponse.json<ApiResponse>({ success: false, error: "Liga la cuenta a un empleado y que la apruebe con su PIN antes de cobrarla a crédito" }, { status: 409 });
+    }
+    // #4 Cuenta LIGADA: el crédito solo puede ir a ese empleado y solo si ya la aprobó en su
+    // cartera. Esa aprobación (con PIN, ya registrada) ES la autorización — no se pide PIN otra
+    // vez aquí, así el empleado no tiene que estar en caja al momento de cobrar.
+    if (creditWaiterId !== comanda.chargedEmployeeId) {
+      return NextResponse.json<ApiResponse>({ success: false, error: "Esta cuenta está ligada a otro empleado; el crédito debe ir a ese empleado" }, { status: 409 });
+    }
+    if (comanda.employeeChargeStatus !== "APPROVED") {
+      return NextResponse.json<ApiResponse>({ success: false, error: "El empleado aún no aprueba esta cuenta. Debe palomearla en su cartera antes de cobrarla a crédito." }, { status: 409 });
     }
   }
 
