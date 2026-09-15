@@ -9,7 +9,6 @@ import assert from "node:assert/strict";
 import {
   canModifyComanda,
   canCancelItem,
-  decidePrint,
   formatFolio,
   statusAfterReopen,
   isEditableStatus,
@@ -37,29 +36,6 @@ test("WAITER cancela PENDING propio, pero NO un item SENT", () => {
 test("CAPTAIN/MANAGER cancelan item SENT", () => {
   assert.equal(canCancelItem({ role: "CAPTAIN", isOwner: false, itemStatus: "SENT" }), true);
   assert.equal(canCancelItem({ role: "MANAGER", isOwner: false, itemStatus: "DELIVERED" }), true);
-});
-
-// ── decidePrint (regla 1-print) ─────────────────────────────────────
-test("WAITER imprime 1 vez (CUSTOMER_FINAL); segundo intento bloqueado", () => {
-  const first = decidePrint({ role: "WAITER", isOwner: true, alreadyPrinted: false });
-  assert.equal(first.allowed, true);
-  assert.equal(first.type, "CUSTOMER_FINAL");
-
-  const second = decidePrint({ role: "WAITER", isOwner: true, alreadyPrinted: true });
-  assert.equal(second.allowed, false); // ya impreso → necesita Capitán/Manager
-});
-
-test("CAPTAIN reimprime SOLO con authorizationReason", () => {
-  const noReason = decidePrint({ role: "CAPTAIN", isOwner: false, alreadyPrinted: true });
-  assert.equal(noReason.allowed, false);
-
-  const ok = decidePrint({ role: "CAPTAIN", isOwner: false, alreadyPrinted: true, authorizationReason: "cliente pidió dividir" });
-  assert.equal(ok.allowed, true);
-  assert.equal(ok.type, "CUSTOMER_REPRINT");
-});
-
-test("WAITER no imprime ticket de comanda ajena", () => {
-  assert.equal(decidePrint({ role: "WAITER", isOwner: false, alreadyPrinted: false }).allowed, false);
 });
 
 // ── formatFolio ─────────────────────────────────────────────────────

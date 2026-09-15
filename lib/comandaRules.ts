@@ -58,34 +58,6 @@ export function canCancelItem(args: { role: StaffRole; isOwner: boolean; itemSta
 }
 
 /**
- * Decisión de impresión de ticket de cliente (regla "1 print").
- * - Si NO existe aún un CUSTOMER_FINAL para la comanda → primera impresión:
- *   WAITER (de su comanda) u OPERATION/CAPTAIN/MANAGER. Tipo CUSTOMER_FINAL.
- * - Si YA existe → reimpresión: SOLO CAPTAIN/MANAGER con authorizationReason.
- *   Tipo CUSTOMER_REPRINT.
- */
-export function decidePrint(args: {
-  role: StaffRole;
-  isOwner: boolean;
-  alreadyPrinted: boolean;
-  authorizationReason?: string | null;
-}): { allowed: boolean; type?: "CUSTOMER_FINAL" | "CUSTOMER_REPRINT"; error?: string } {
-  if (!args.alreadyPrinted) {
-    const ok = args.role === "WAITER" ? args.isOwner : true; // OPERATION/CAPTAIN/MANAGER ok
-    return ok
-      ? { allowed: true, type: "CUSTOMER_FINAL" }
-      : { allowed: false, error: "Solo puedes imprimir tickets de tus comandas" };
-  }
-  if (!isCaptainOrManager(args.role)) {
-    return { allowed: false, error: "La reimpresión la autoriza un Capitán o Manager" };
-  }
-  if (!args.authorizationReason || !args.authorizationReason.trim()) {
-    return { allowed: false, error: "authorizationReason es obligatorio para reimprimir" };
-  }
-  return { allowed: true, type: "CUSTOMER_REPRINT" };
-}
-
-/**
  * ¿La cuenta tiene un ticket de cliente VIGENTE? = existe un CUSTOMER_FINAL emitido
  * DESPUÉS de la última reapertura. Reabrir reinicia el candado: se puede volver a
  * modificar e imprimir, y esa nueva impresión vuelve a ser un CUSTOMER_FINAL (no una

@@ -134,14 +134,6 @@ export async function getTopDishesBySection(section: "comida" | "brunch", limit 
   });
 }
 
-// ============================================
-// LOCATIONS
-// ============================================
-
-export async function getActiveLocations() {
-  return [];
-}
-
 // // ============================================
 // // CONTACT
 // // ============================================
