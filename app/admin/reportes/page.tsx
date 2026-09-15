@@ -83,6 +83,7 @@ export default function ReportesPage() {
         data={data}
         rangeLabel={rangeLabel(filter)}
         sub={sub}
+        printParams={Object.fromEntries(new URLSearchParams(dateFilterQuery(filter)))}
         onDone={(msg) => { void dialogAlert(msg, "Exportar reporte"); }}
       />
 

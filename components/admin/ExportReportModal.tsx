@@ -22,13 +22,15 @@ import {
  * consulta desde esta pantalla.
  */
 export function ExportReportModal({
-  open, onClose, data, rangeLabel, sub, onDone,
+  open, onClose, data, rangeLabel, sub, printParams, onDone,
 }: {
   open: boolean;
   onClose: () => void;
   data: ReportData | null;
   rangeLabel: string;
   sub: ReportSub;
+  /** Parámetros del rango (from/to/range/cashSessionId) para que el servidor rearme el reporte. */
+  printParams: Record<string, string>;
   onDone?: (msg: string, kind: "success" | "error") => void;
 }) {
   return (
@@ -44,6 +46,8 @@ export function ExportReportModal({
         csv: () => reportToCsv(data!, rangeLabel, sub),
         html: () => reportToPrintableHtml(data!, rangeLabel, sub),
         fileName: (ext) => reportFileName(rangeLabel, ext, sub),
+        // El reporte de ventas se arma en el servidor: se mandan la vista y el rango.
+        print: () => ({ kind: "ventas", sub, ...printParams }),
       }}
     />
   );

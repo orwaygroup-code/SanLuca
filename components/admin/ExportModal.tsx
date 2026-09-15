@@ -53,6 +53,12 @@ export interface ExportProducers {
   html: () => string;
   /** Nombre del archivo, sin extensión decidida por el formato. */
   fileName: (ext: string) => string;
+  /**
+   * Reportes de venta: body para reports/print (el servidor arma el ticket, papel =
+   * evidencia). Si falta, se manda el texto del cliente como reporte de pantalla
+   * (Cierres/Historial).
+   */
+  print?: () => Record<string, unknown>;
 }
 
 export function ExportModal({
@@ -116,10 +122,13 @@ export function ExportModal({
         w.onload = () => { w.focus(); w.print(); };
         onClose();
       } else {
+        // Reportes de venta: el servidor arma el ticket vía producers.print(). Las
+        // demás pantallas mandan su texto ya formado como reporte de pantalla.
+        const printBody = producers.print ? producers.print() : { kind: "pantalla", text: producers.ticket() };
         const r = await apiFetch<{ id: number }>("/api/admin/reports/print", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: producers.ticket() }),
+          body: JSON.stringify(printBody),
         });
         if (r.ok) { onDone?.("Enviado a la impresora de caja", "success"); onClose(); }
         else onDone?.(r.error ?? "No se pudo enviar a la impresora", "error");
