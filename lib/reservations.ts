@@ -6,6 +6,8 @@ import { combinedCapacity, evaluateCapacity } from "./tableCapacity";
 import { getReservationWindow } from "./tableConflict";
 import { sendReservationQR } from "./whatsapp";
 import { reEvalUserRule } from "./tagRules";
+import { getSchedule } from "./schedule";
+import { checkReservationDateTime } from "./reservationRules";
 
 /**
  * Servicio de reservas para el realm STAFF (PIN). Reusa los mismos helpers que
@@ -118,6 +120,10 @@ export async function createReservation(input: CreateInput, createdById: string 
 
   const reservationDate = new Date(`${date}T${time}:00.000-06:00`);
   if (isNaN(reservationDate.getTime())) return err("Fecha u hora inválida", 400);
+  // La hostess SÍ puede registrar un evento privado en día cerrado (allowClosedDay);
+  // la fecha pasada sigue bloqueada (con la tolerancia de 1 h para walk-ins tardíos).
+  const chk = checkReservationDateTime(reservationDate, await getSchedule(), { allowClosedDay: true });
+  if (!chk.ok) return err(chk.error, chk.status);
 
   const phone = guestPhone.replace(/\D/g, "").slice(-10);
 

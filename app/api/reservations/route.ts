@@ -12,6 +12,8 @@ import { sendReservationQR } from "@/lib/whatsapp";
 import { notify } from "@/lib/notify";
 import { getAvailableCredit, applyCreditsToReservation } from "@/lib/credits";
 import { createReservationPreference } from "@/lib/mercadopago";
+import { getSchedule } from "@/lib/schedule";
+import { checkReservationDateTime } from "@/lib/reservationRules";
 import { getSession } from "@/lib/auth-server";
 import { reEvalUserRule } from "@/lib/tagRules";
 import type { ApiResponse } from "@/types";
@@ -78,7 +80,11 @@ export async function POST(request: NextRequest) {
             );
         }
 
-
+        // 5. Fecha/hora válidas contra el horario del negocio (pasado, día cerrado, fuera de servicio).
+        const chk = checkReservationDateTime(reservationDate, await getSchedule());
+        if (!chk.ok) {
+            return NextResponse.json<ApiResponse>({ success: false, error: chk.error }, { status: chk.status });
+        }
 
         // 6. Verificar límite de reservas activas por usuario
         const activeCount = await prisma.reservation.count({
@@ -213,6 +219,18 @@ export async function POST(request: NextRequest) {
         //    Ver lib/tableConflict.ts para regla detallada.
         if (tableId) {
             const allIds = [tableId, linkedTableId, thirdTableId, fourthTableId].filter(Boolean) as string[];
+            // Todas las mesas elegidas deben existir, estar activas y NO bloqueadas
+            // (TableBlock): un cliente no puede reservar una mesa que la hostess bloqueó.
+            const okTables = await prisma.table.findMany({
+                where: { id: { in: allIds }, isActive: true, block: { is: null } },
+                select: { id: true },
+            });
+            if (okTables.length !== allIds.length) {
+                return NextResponse.json<ApiResponse>(
+                    { success: false, error: "Alguna de las mesas elegidas no está disponible" },
+                    { status: 409 }
+                );
+            }
             const tableConflict = await findTableConflict(prisma, {
                 tableIds: allIds,
                 reservationDate,
@@ -320,17 +338,13 @@ export async function POST(request: NextRequest) {
             console.error("[AUTO_TAG] reEval Inactivo failed (public reservation):", e),
         );
 
-        // Aplicar crédito (parcial o total) — después de tener el id
+        // Aplicar crédito (parcial o total) — atómico: consumir los créditos y
+        // registrar creditUsed en la MISMA transacción, para que no se gaste crédito
+        // sin quedar anotado si el update falla.
         if (creditUsed > 0) {
-            const applied = await applyCreditsToReservation(
-                customerEmail,
-                customerPhone,
-                creditUsed,
-                reservation.id
-            );
-            await prisma.reservation.update({
-                where: { id: reservation.id },
-                data: { creditUsed: applied },
+            await prisma.$transaction(async (tx) => {
+                const applied = await applyCreditsToReservation(customerEmail, customerPhone, creditUsed, reservation.id, tx);
+                await tx.reservation.update({ where: { id: reservation.id }, data: { creditUsed: applied } });
             });
         }
 
@@ -376,10 +390,16 @@ export async function POST(request: NextRequest) {
                 );
             } catch (mpErr) {
                 console.error("[MP] preference error:", mpErr);
+                // Devolver los créditos ya aplicados ANTES de cancelar: si no, se
+                // consumieron por una reserva que nunca se pudo pagar.
+                await prisma.credit.updateMany({
+                    where: { appliedReservationId: reservation.id },
+                    data: { used: false, appliedReservationId: null, usedAt: null },
+                });
                 // rollback: cancelar la reserva pendiente
                 await prisma.reservation.update({
                     where: { id: reservation.id },
-                    data: { status: "CANCELLED", cancelReason: "MercadoPago error" },
+                    data: { status: "CANCELLED", cancelReason: "MercadoPago error", creditUsed: 0 },
                 });
                 return NextResponse.json<ApiResponse>(
                     { success: false, error: "No se pudo iniciar el pago. Inténtalo de nuevo." },

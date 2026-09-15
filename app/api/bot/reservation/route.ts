@@ -8,6 +8,8 @@ import { resolveBotAssignment } from "@/lib/autoAssignTable";
 import { reEvalUserRule } from "@/lib/tagRules";
 import { sendReservationQR, buildReservationCaption } from "@/lib/whatsapp";
 import { notify } from "@/lib/notify";
+import { getSchedule } from "@/lib/schedule";
+import { checkReservationDateTime } from "@/lib/reservationRules";
 import { Prisma } from "@prisma/client";
 
 // ── Normaliza teléfono a 10 dígitos ───────────────────────────────────
@@ -164,6 +166,12 @@ export async function POST(request: NextRequest) {
             { success: false, error: `Formato de fecha invalido: "${fecha}" "${hora}". Usar DD/MM/YYYY y HH:MM` },
             { status: 400 }
         );
+    }
+
+    // Fecha/hora válidas contra el horario del negocio (el bot no reserva en día cerrado).
+    const chk = checkReservationDateTime(reservationDate, await getSchedule());
+    if (!chk.ok) {
+        return NextResponse.json({ success: false, error: chk.error }, { status: chk.status });
     }
 
     const guestCount = parseInt(String(personas), 10) || 2;

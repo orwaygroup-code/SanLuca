@@ -1,4 +1,7 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
+
+type Db = typeof prisma | Prisma.TransactionClient;
 
 /** Sum of unused credits matching email AND phone. */
 export async function getAvailableCredit(email: string, phone: string): Promise<number> {
@@ -25,13 +28,14 @@ export async function applyCreditsToReservation(
   email: string,
   phone: string,
   amountNeeded: number,
-  reservationId: string
+  reservationId: string,
+  db: Db = prisma,
 ): Promise<number> {
   const e = email.trim().toLowerCase();
   const p = phone.replace(/\D/g, "");
   if (!e || !p || amountNeeded <= 0) return 0;
 
-  const credits = await prisma.credit.findMany({
+  const credits = await db.credit.findMany({
     where: { used: false, customerEmail: e, customerPhone: p },
     orderBy: { createdAt: "asc" },
   });
@@ -42,7 +46,7 @@ export async function applyCreditsToReservation(
     if (remaining <= 0) break;
     if (c.amount <= remaining) {
       // consume entirely
-      await prisma.credit.update({
+      await db.credit.update({
         where: { id: c.id },
         data: {
           used: true,
@@ -54,7 +58,7 @@ export async function applyCreditsToReservation(
       applied += c.amount;
     } else {
       // split: mark the existing as used and create remainder
-      await prisma.credit.update({
+      await db.credit.update({
         where: { id: c.id },
         data: {
           used: true,
@@ -64,7 +68,7 @@ export async function applyCreditsToReservation(
         },
       });
       const leftover = c.amount - remaining;
-      await prisma.credit.create({
+      await db.credit.create({
         data: {
           customerEmail: c.customerEmail,
           customerPhone: c.customerPhone,
