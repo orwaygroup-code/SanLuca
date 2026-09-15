@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     },
     orderBy: [{ employeeChargeStatus: "asc" }, { openedAt: "asc" }], // APPROVED antes que PENDING alfabéticamente; da igual, se separan en UI
     select: {
-      id: true, folio: true, customName: true, total: true, discountTotal: true, openedAt: true,
+      id: true, folio: true, customName: true, total: true, discountTotal: true, status: true, openedAt: true,
       employeeChargeStatus: true, employeeChargeApprovedAt: true,
       table: { select: { number: true } },
       openedBy: { select: { fullName: true } },

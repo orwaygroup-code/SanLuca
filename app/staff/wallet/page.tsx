@@ -12,7 +12,7 @@ interface Tips { registered: number; cash: number; total: number; salesToday: nu
 interface Wallet { pending: number; credits: Credit[]; tips: Tips }
 // #4 Cuentas (para llevar) ligadas a este empleado, esperando su aprobación.
 interface ChargeItem { id: number; quantity: number | string; dishNameSnapshot: string; lineTotal: number | string }
-interface Charge { id: number; folio: string; customName: string | null; total: number | string; openedAt: string; employeeChargeStatus: "PENDING" | "APPROVED"; openedBy: { fullName: string } | null; items: ChargeItem[] }
+interface Charge { id: number; folio: string; customName: string | null; total: number | string; discountTotal: number | string; table: { number: number } | null; openedAt: string; employeeChargeStatus: "PENDING" | "APPROVED"; openedBy: { fullName: string } | null; items: ChargeItem[] }
 
 /** Wallet del empleado: propinas de hoy (caja + efectivo propio) y saldo a crédito. */
 export default function WalletPage() {
@@ -91,7 +91,7 @@ export default function WalletPage() {
                   <div key={c.id} style={{ border: `1px solid ${C.line}`, borderRadius: 12, background: C.panel, padding: "12px 14px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ color: C.cream, fontWeight: 700, fontSize: "0.9rem" }}>{c.customName || `Cuenta ${c.folio}`}</div>
+                        <div style={{ color: C.cream, fontWeight: 700, fontSize: "0.9rem" }}>{c.table ? `Mesa ${c.table.number} · ` : ""}{c.customName || `Cuenta ${c.folio}`}</div>
                         <div style={{ color: C.faint, fontSize: "0.74rem", marginTop: 2 }}>{fmtTime(c.openedAt)}{c.openedBy ? ` · abrió ${c.openedBy.fullName}` : ""}</div>
                       </div>
                       <div style={{ color: C.cream, fontWeight: 800 }}>{formatMXN(Number(c.total))}</div>

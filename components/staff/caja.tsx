@@ -355,24 +355,20 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
   const [loadErr, setLoadErr] = useState<string | null>(null);
   const [waiters, setWaiters] = useState<{ id: number; fullName: string; role: string }[]>([]);
   const [creditWaiterId, setCreditWaiterId] = useState("");
-  const [creditPin, setCreditPin] = useState("");
   const [excludeTip, setExcludeTip] = useState(false);
   const [excludeTipPin, setExcludeTipPin] = useState("");
-  // Cobrar por CRÉDITO DE PERSONAL (desplegable): elegir empleado → confirmar en caja (PIN) o en tablet.
+  // Cobrar por CRÉDITO DE PERSONAL (desplegable): liga la cuenta a un empleado.
+  // El estado del panel se deriva de comanda.chargedEmployeeId / employeeChargeStatus.
   const [scOpen, setScOpen] = useState(false);
-  const [scEmp, setScEmp] = useState<number | null>(null);
   const [scSearch, setScSearch] = useState("");
-  const [scPinMode, setScPinMode] = useState(false); // true = mostrando el input de PIN (confirmar en caja)
-  const [scPin, setScPin] = useState("");
   const [scBusy, setScBusy] = useState(false);
-  const [scSent, setScSent] = useState<string | null>(null); // nombre del empleado al que se le mandó a la tablet
   // #4 Cuenta YA LIGADA a un empleado: su NIP tecleado aquí mismo, en caja.
   const [empApprovePin, setEmpApprovePin] = useState("");
 
   useEffect(() => {
     if (!open || comandaId == null) { setComanda(null); setLoadErr(null); return; }
-    setComanda(null); setLoadErr(null); setCreditWaiterId(""); setCreditPin(""); setExcludeTip(false); setExcludeTipPin("");
-    setScOpen(false); setScEmp(null); setScPinMode(false); setScPin(""); setScSent(null); setScSearch("");
+    setComanda(null); setLoadErr(null); setCreditWaiterId(""); setExcludeTip(false); setExcludeTipPin("");
+    setScOpen(false); setScSearch(""); setEmpApprovePin("");
     apiFetch<{ id: number; fullName: string; role: string }[]>("/api/comandas/credit-staff").then((r) => { if (r.ok) setWaiters(r.data ?? []); });
     apiFetch<Comanda>(`/api/comandas/${comandaId}`).then((r) => {
       if (r.ok) {
@@ -400,11 +396,7 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
   // reemplaza al PIN aquí. Si aún no la aprueba, no se puede cobrar a crédito.
   const linkedEmp = comanda?.chargedEmployeeId ?? null;
   const isLinkedApproved = linkedEmp != null && comanda?.employeeChargeStatus === "APPROVED";
-  const creditReady = !hasCredit
-    ? true
-    : linkedEmp != null
-    ? isLinkedApproved && Number(creditWaiterId) === linkedEmp
-    : Number(creditWaiterId) > 0 && /^\d{4}$/.test(creditPin);
+  const creditReady = !hasCredit || (linkedEmp != null && isLinkedApproved && Number(creditWaiterId) === linkedEmp);
   const tipReady = !excludeTip || /^\d{4}$/.test(excludeTipPin);
   const canSubmit = !!comanda && coveredNow > 0 && creditReady && tipReady && !busy;
 
@@ -429,49 +421,49 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
       }));
     const r = await apiFetch<PayResult>(`/api/comandas/${comanda.id}/pay`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ payments, ...(hasCredit ? { creditWaiterId: Number(creditWaiterId), creditWaiterPin: creditPin } : {}), ...(excludeTip ? { excludeTipPoint: true, tipPin: excludeTipPin } : {}) }),
+      body: JSON.stringify({ payments, ...(hasCredit ? { creditWaiterId: Number(creditWaiterId) } : {}), ...(excludeTip ? { excludeTipPoint: true, tipPin: excludeTipPin } : {}) }),
     });
     setBusy(false);
     if (r.ok) onPaid(r.data!);
     else onError(r.error ?? "No se pudo cobrar");
   };
 
-  // Cobrar TODO el saldo al crédito de personal del empleado, confirmando con su PIN aquí en caja.
-  const payStaffCredit = async () => {
-    if (!comanda || scEmp == null || scPin.length !== 4) return;
+  // Ligar la cuenta a un empleado: el backend aplica el descuento de empleado y
+  // avisa a su tablet. La cuenta queda PENDING hasta que él la apruebe con su PIN.
+  const linkEmployee = async (employeeId: number) => {
+    if (!comanda) return;
+    setScBusy(true);
+    const r = await apiFetch<Comanda>(`/api/comandas/${comanda.id}/link-employee`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ employeeId }),
+    });
+    setScBusy(false);
+    if (r.ok && r.data) { setComanda(r.data); setScSearch(""); }
+    else onError(r.error ?? "No se pudo ligar la cuenta");
+  };
+
+  // Desligar: quita el descuento de empleado y libera la cuenta (employeeId null).
+  const unlinkEmployee = async () => {
+    if (!comanda) return;
+    setScBusy(true);
+    const r = await apiFetch<Comanda>(`/api/comandas/${comanda.id}/link-employee`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ employeeId: null }),
+    });
+    setScBusy(false);
+    if (r.ok && r.data) setComanda(r.data);
+    else onError(r.error ?? "No se pudo desligar la cuenta");
+  };
+
+  // Cobrar TODO el saldo al crédito de personal del empleado LIGADO y APROBADO.
+  const payLinkedCredit = async () => {
+    if (!comanda || comanda.chargedEmployeeId == null) return;
     setScBusy(true);
     const r = await apiFetch<PayResult>(`/api/comandas/${comanda.id}/pay`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ payments: [{ method: "WAITER_CREDIT", amount: remaining, tip: 0, reference: "Crédito de personal" }], creditWaiterId: scEmp, creditWaiterPin: scPin }),
+      body: JSON.stringify({ payments: [{ method: "WAITER_CREDIT", amount: remaining, tip: 0, reference: "Crédito de personal" }], creditWaiterId: comanda.chargedEmployeeId }),
     });
     setScBusy(false);
     if (r.ok) onPaid(r.data!);
     else onError(r.error ?? "No se pudo cobrar a crédito");
-  };
-
-  // #1 Descuento de empleado, automático. Al elegir a la persona se aplica el
-  // porcentaje configurado en Ajustes, de modo que el saldo que se cobra en
-  // caja —y el que se manda a su tablet— ya venga descontado. Antes había que
-  // aplicarlo a mano desde el modal de descuentos y se olvidaba.
-  const pickStaffCreditEmployee = async (employeeId: number) => {
-    setScEmp(employeeId); setScPinMode(false); setScPin(""); setScSearch("");
-    if (!comanda) return;
-    setScBusy(true);
-    const r = await apiFetch<Comanda>(`/api/comandas/${comanda.id}/employee-discount`, { method: "POST" });
-    setScBusy(false);
-    if (r.ok && r.data) setComanda(r.data);
-    else if (r.error) onError(r.error);
-  };
-
-  // Al cambiar de empleado o cerrar el desplegable se retira el descuento: si
-  // la cuenta termina cobrándose por otra vía, no debe quedarse con él puesto.
-  const clearStaffCreditEmployee = async () => {
-    setScEmp(null); setScPinMode(false); setScPin("");
-    if (!comanda) return;
-    setScBusy(true);
-    const r = await apiFetch<Comanda>(`/api/comandas/${comanda.id}/employee-discount`, { method: "DELETE" });
-    setScBusy(false);
-    if (r.ok && r.data) setComanda(r.data);
   };
 
   // #4 Aprobar EN CAJA una cuenta ya ligada. El endpoint employee-approve
@@ -490,20 +482,8 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
     else onError(r.error ?? "No se pudo aprobar la cuenta");
   };
 
-  // Mandar la confirmación a la TABLET del empleado. La cuenta queda pendiente hasta que confirme.
-  const requestStaffCredit = async () => {
-    if (!comanda || scEmp == null) return;
-    setScBusy(true);
-    const r = await apiFetch<{ employee: string }>(`/api/comandas/${comanda.id}/staff-credit/request`, {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ employeeId: scEmp }),
-    });
-    setScBusy(false);
-    if (r.ok) setScSent(r.data?.employee ?? "el empleado");
-    else onError(r.error ?? "No se pudo enviar la confirmación");
-  };
-
   return (
-    <Modal open={open} title="Cobrar cuenta" onClose={() => { if (scEmp != null && !scSent && !scBusy) void clearStaffCreditEmployee(); onClose(); }} width={520}>
+    <Modal open={open} title="Cobrar cuenta" onClose={onClose} width={520}>
       {!hasOpenSession ? (
         <EmptyState text="Abre un turno de caja antes de cobrar." />
       ) : loadErr ? (
@@ -599,18 +579,14 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
 
           {/* Cobrar por CRÉDITO DE PERSONAL (todo el saldo a un empleado). Flecha que despliega. */}
           <div style={{ marginTop: 12, border: `1px solid ${C.line}`, borderRadius: 12, overflow: "hidden" }}>
-            <button onClick={() => { const collapsing = scOpen; setScOpen((v) => !v); if (collapsing && scEmp != null && !scSent && !scBusy) void clearStaffCreditEmployee(); }} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "12px 14px", background: "transparent", border: "none", color: C.cream, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: "0.9rem" }}>
+            <button onClick={() => setScOpen((v) => !v)} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "12px 14px", background: "transparent", border: "none", color: C.cream, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: "0.9rem" }}>
               <span>Cobrar por crédito de personal</span>
               <span style={{ color: C.gold, display: "inline-block", transform: scOpen ? "rotate(90deg)" : "none", transition: "transform .15s" }}>▸</span>
             </button>
             {scOpen && (
               <div style={{ padding: "0 14px 14px" }}>
-                {scSent ? (
-                  <div>
-                    <div style={{ color: C.green, fontSize: "0.88rem", lineHeight: 1.5 }}>Confirmación enviada a <b>{scSent}</b>. La cuenta queda <b>pendiente</b> hasta que confirme en su tablet.</div>
-                    <button style={{ ...btn.primary, marginTop: 12, width: "100%" }} onClick={onClose}>Listo</button>
-                  </div>
-                ) : scEmp == null ? (
+                {comanda.chargedEmployeeId == null ? (
+                  // Sin ligar: picker (misma lista/grupos/búsqueda). Al elegir se LIGA.
                   <div>
                     <input
                       value={scSearch}
@@ -631,7 +607,7 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
                             <div style={{ color: C.faint, fontSize: "0.68rem", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 800, marginBottom: 5 }}>{label}</div>
                             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                               {list.map((w) => (
-                                <button key={w.id} onClick={() => pickStaffCreditEmployee(w.id)}
+                                <button key={w.id} onClick={() => linkEmployee(w.id)} disabled={scBusy}
                                   style={{ display: "block", width: "100%", textAlign: "left", background: "rgba(0,0,0,0.16)", border: `1px solid ${C.border}`, borderRadius: 9, padding: "10px 12px", color: C.cream, fontFamily: "inherit", fontSize: "0.86rem", cursor: "pointer" }}>
                                   {w.fullName}
                                 </button>
@@ -642,27 +618,24 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
                       })()}
                     </div>
                   </div>
+                ) : comanda.employeeChargeStatus === "APPROVED" ? (
+                  // Ligada y APROBADA: cobrar a crédito, o desligar.
+                  <div>
+                    <div style={{ color: C.green, fontWeight: 800, marginBottom: 12 }}>Aprobada por {comanda.chargedEmployee?.fullName ?? "el empleado"} · {formatMXN(remaining)}</div>
+                    <div style={{ display: "flex", gap: 10 }}>
+                      <button onClick={payLinkedCredit} disabled={scBusy} style={{ ...btn.primary, flex: 1, opacity: scBusy ? 0.5 : 1 }}>{scBusy ? "Cobrando…" : "Cobrar a crédito"}</button>
+                      <button onClick={unlinkEmployee} disabled={scBusy} style={{ ...btn.ghost, flex: 1 }}>Desligar</button>
+                    </div>
+                  </div>
                 ) : (
+                  // Ligada, PENDING: la aprobación con NIP se hace en el bloque «Ligada a…» de
+                  // arriba o desde su Cartera. Aquí solo la cabecera y Desligar.
                   <div>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                      <span style={{ color: C.cream, fontWeight: 800 }}>{waiters.find((w) => w.id === scEmp)?.fullName ?? "Empleado"} · {formatMXN(remaining)}</span>
-                      <button onClick={clearStaffCreditEmployee} style={{ background: "transparent", border: "none", color: C.gold, fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit" }}>cambiar</button>
+                      <span style={{ color: C.cream, fontWeight: 800 }}>Ligada a {comanda.chargedEmployee?.fullName ?? "el empleado"} · {formatMXN(remaining)}</span>
+                      <button onClick={unlinkEmployee} disabled={scBusy} style={{ background: "transparent", border: "none", color: C.gold, fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit" }}>Desligar</button>
                     </div>
-                    {!scPinMode ? (
-                      <div style={{ display: "flex", gap: 10 }}>
-                        <button onClick={() => setScPinMode(true)} disabled={scBusy} style={{ ...btn.primary, flex: 1, minHeight: 64, fontSize: "0.92rem" }}>Confirmar en caja</button>
-                        <button onClick={requestStaffCredit} disabled={scBusy} style={{ ...btn.ghost, flex: 1, minHeight: 64, fontSize: "0.92rem", borderColor: C.gold, color: C.gold }}>{scBusy ? "Enviando…" : "Confirmar en tablet"}</button>
-                      </div>
-                    ) : (
-                      <div>
-                        <label style={fld.label}>PIN de {waiters.find((w) => w.id === scEmp)?.fullName ?? "el empleado"}</label>
-                        <PinInput value={scPin} onChange={setScPin} />
-                        <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
-                          <button onClick={() => { setScPinMode(false); setScPin(""); }} disabled={scBusy} style={{ ...btn.ghost, flex: 1 }}>Atrás</button>
-                          <button onClick={payStaffCredit} disabled={scBusy || scPin.length !== 4} style={{ ...btn.primary, flex: 1, opacity: scPin.length === 4 && !scBusy ? 1 : 0.5 }}>{scBusy ? "Cobrando…" : "Cobrar a crédito"}</button>
-                        </div>
-                      </div>
-                    )}
+                    <div style={{ color: C.faint, fontSize: "0.74rem", marginTop: 8 }}>Aprueba con su NIP en el bloque «Ligada a…» de arriba, o desde su Cartera. Si aprueba desde su Cartera, la cuenta se cobra sola.</div>
                   </div>
                 )}
               </div>
@@ -684,16 +657,7 @@ export function PayModal({ open, comandaId, hasOpenSession, onClose, onPaid, onE
           )}
           {hasCredit && linkedEmp == null && (
             <div style={{ border: `1px solid ${C.gold}`, borderRadius: 12, padding: "12px 14px", marginTop: 12, background: "color-mix(in srgb, var(--sl-gold) 8%, transparent)" }}>
-              <div style={{ color: C.gold, fontWeight: 800, fontSize: "0.82rem", marginBottom: 8 }}>Crédito de empleado · lo autoriza el empleado deudor con su PIN</div>
-              <label style={fld.label}>Empleado al que se le carga</label>
-              <GoldSelect
-                value={creditWaiterId}
-                onChange={setCreditWaiterId}
-                options={[{ value: "", label: "Elige empleado…" }, ...waiters.map((w) => ({ value: String(w.id), label: w.fullName }))]}
-              />
-              <label style={{ ...fld.label, marginTop: 10 }}>PIN del empleado</label>
-              <PinInput value={creditPin} onChange={setCreditPin} />
-              <div style={{ color: C.faint, fontSize: "0.74rem", marginTop: 6 }}>Se le descuenta de su nómina. Queda como cuenta por cobrar.</div>
+              <div style={{ color: C.gold, fontSize: "0.82rem" }}>Para cobrar a crédito de personal, liga la cuenta a un empleado (panel de abajo).</div>
             </div>
           )}
 
