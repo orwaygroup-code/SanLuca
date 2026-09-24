@@ -14,6 +14,12 @@ import { Icon } from "@/components/staff/icons";
 import { MenuSelector } from "@/components/staff/MenuSelector";
 import { Tour, type TourStep } from "@/components/staff/Tour";
 import { buildTotalLines } from "@/lib/displayTotals";
+import { parseDishOptions, type OptionGroup } from "@/lib/dishOptions";
+
+/** Grupos del platillo que ofrecen algún extra con COSTO (Proteína, Extras) — el único
+ *  lugar que interpreta Dish.options en esta vista; lo usan el botón "+ extra" y su hoja (B-6b). */
+const pricedExtraGroups = (opts: unknown): OptionGroup[] =>
+  parseDishOptions(opts).filter((g) => g.choices.some((c) => c.price != null));
 
 
 const AWAIT = STATUS_COLOR.AWAITING_PAYMENT; // var(--sl-gold-soft) — tinte "requiere caja"
@@ -68,6 +74,22 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [cancelItem, setCancelItem] = useState<CItem | null>(null);
+  const [extraTarget, setExtraTarget] = useState<CItem | null>(null); // renglón al que se le agrega un extra (B-6b)
+  const [extraPicks, setExtraPicks] = useState<{ group: string; label: string }[]>([]);
+  // Extra suelto sobre un renglón ya capturado (B-6b). Solo se muestran los grupos con
+  // opciones de precio (Proteína, Extras); la salsa/estilo obligatorios NO se re-eligen.
+  const extraGroups: OptionGroup[] = useMemo(
+    () => (extraTarget ? pricedExtraGroups(extraTarget.dish?.options) : []),
+    [extraTarget],
+  );
+  const extraCost = useMemo(() => {
+    let sum = 0;
+    for (const g of extraGroups) for (const p of extraPicks) if (p.group === g.group) {
+      const c = g.choices.find((x) => x.label === p.label);
+      if (c?.price) sum += c.price;
+    }
+    return sum;
+  }, [extraGroups, extraPicks]);
   const [reopenOpen, setReopenOpen] = useState(false);
   const [closeZeroAsk, setCloseZeroAsk] = useState(false);
   const [unlockAsk, setUnlockAsk] = useState(false);
@@ -459,6 +481,23 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
   // ── render de división de cuenta ──
 
 
+  // Mismo criterio de max por grupo que MenuSelector: max 1 reemplaza; max>1 acumula hasta el tope; tocar uno elegido lo quita.
+  const toggleExtra = (g: OptionGroup, label: string) => {
+    setExtraPicks((prev) => {
+      const inGroup = prev.filter((p) => p.group === g.group);
+      const already = inGroup.some((p) => p.label === label);
+      if (already) return prev.filter((p) => !(p.group === g.group && p.label === label));
+      if (g.max <= 1) return [...prev.filter((p) => p.group !== g.group), { group: g.group, label }];
+      if (inGroup.length >= g.max) return prev;
+      return [...prev, { group: g.group, label }];
+    });
+  };
+  const confirmExtra = async () => {
+    if (!extraTarget || extraPicks.length === 0) return;
+    const ok = await post(`/api/comandas/${id}/items`, { extraFor: extraTarget.id, options: extraPicks }, "Extra agregado");
+    if (ok) { setExtraTarget(null); setExtraPicks([]); }
+  };
+
   // Fila completa (vista sin divisiones): status, modificadores y cancelar item.
   const renderItemRow = (it: CItem) => (
     <div key={it.id} style={page.itemRow}>
@@ -524,6 +563,11 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
         ) : (
           <button style={page.commentAdd} onClick={() => { setCommentFor(it.id); setCommentDraft(""); }}>＋ agregar comentario</button>
         ))}
+        {/* "+ extra" (B-6b): cobra solo un extra sobre este renglón ya capturado. Solo si el
+            platillo ofrece extras con costo y el renglón no está cancelado. */}
+        {canModify && it.status !== "CANCELLED" && pricedExtraGroups(it.dish?.options).length > 0 && (
+          <button style={page.commentAdd} onClick={() => { setExtraTarget(it); setExtraPicks([]); }}>＋ extra</button>
+        )}
         </div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -924,6 +968,66 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
         busy={busy}
       />
 
+      {/* Hoja "Extra" (B-6b): mismo patrón de 3 zonas que MenuSelector (cabecera fija,
+          cuerpo scrollable, pie fijo). Solo los grupos con opciones de precio. */}
+      {extraTarget && (
+        <>
+          <div style={xsheet.scrim} onClick={() => { setExtraTarget(null); setExtraPicks([]); }} />
+          <div style={xsheet.sheet} role="dialog" aria-label={`Extra para ${extraTarget.dishNameSnapshot}`}>
+            <div style={xsheet.head}>
+              <div style={xsheet.grip} />
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={xsheet.name}>Extra para {extraTarget.dishNameSnapshot}</div>
+                </div>
+                <button style={xsheet.close} onClick={() => { setExtraTarget(null); setExtraPicks([]); }} aria-label="Cancelar">×</button>
+              </div>
+            </div>
+
+            <div style={xsheet.body}>
+              {extraGroups.map((g) => {
+                const inGroup = extraPicks.filter((p) => p.group === g.group);
+                return (
+                  <div key={g.group} style={{ marginTop: 16 }}>
+                    <div style={xsheet.optHead}>
+                      <span style={xsheet.optGroup}>{g.group}</span>
+                    </div>
+                    {g.desc && <div style={xsheet.optDesc}>{g.desc}</div>}
+                    <div style={xsheet.optChips}>
+                      {g.choices.map((c) => {
+                        const on = inGroup.some((p) => p.label === c.label);
+                        const full = !on && g.max > 1 && inGroup.length >= g.max;
+                        return (
+                          <button
+                            key={c.label}
+                            onClick={() => toggleExtra(g, c.label)}
+                            disabled={full}
+                            aria-pressed={on}
+                            style={{ ...xsheet.optChip, ...(on ? xsheet.optChipOn : {}), ...(full ? xsheet.optChipOff : {}) }}
+                          >
+                            {c.label}{c.price ? ` +${formatMXN(c.price)}` : ""}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={xsheet.foot}>
+              <button
+                style={{ ...btn.primary, width: "100%", marginTop: 20, minHeight: 52, fontSize: "0.95rem", opacity: busy || extraPicks.length === 0 ? 0.6 : 1 }}
+                onClick={confirmExtra}
+                disabled={busy || extraPicks.length === 0}
+              >
+                {busy ? "Agregando…" : `Agregar extra · ${formatMXN(extraCost)}`}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Cancelar item */}
       {cancelItem && cancelItem.status === "PENDING" && (
         <ConfirmModal
@@ -1243,6 +1347,32 @@ function EmbedBar({ title, onBack, right }: { title: string; onBack: () => void;
 const courseStepBtn: React.CSSProperties = {
   width: 46, height: 46, borderRadius: 12, border: `1px solid ${C.border}`, background: "transparent",
   color: C.cream, fontSize: "1.5rem", cursor: "pointer", lineHeight: 1, fontFamily: "inherit", flexShrink: 0,
+};
+
+// Hoja "Extra" (B-6b): espejo del patrón de MenuSelector (3 zonas + chips). Duplicación
+// de marcado aceptada por el spec; la lógica y los precios NO se duplican (ambos leen
+// Dish.options con el helper de arriba y el precio lo recalcula el servidor).
+const xsheet: Record<string, React.CSSProperties> = {
+  scrim: { position: "fixed", inset: 0, zIndex: 96, background: "rgba(0,0,0,0.55)" },
+  sheet: {
+    position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 97, background: C.panel,
+    borderTop: `1px solid ${C.border}`, borderRadius: "20px 20px 0 0", padding: "10px 20px 0",
+    maxWidth: 520, margin: "0 auto", boxShadow: "0 -18px 48px rgba(0,0,0,0.5)",
+    maxHeight: "88vh", display: "flex", flexDirection: "column",
+  },
+  head: { flexShrink: 0 },
+  grip: { width: 40, height: 4, borderRadius: 999, background: "rgb(var(--sl-cream-rgb) / 0.25)", margin: "0 auto 14px" },
+  name: { color: C.cream, fontWeight: 800, fontSize: "1.15rem", lineHeight: 1.2 },
+  close: { width: 44, height: 44, borderRadius: 10, border: `1px solid ${C.line}`, background: "transparent", color: C.cream, fontSize: "1.25rem", cursor: "pointer", flexShrink: 0 },
+  body: { flex: 1, overflowY: "auto", overscrollBehavior: "contain", paddingBottom: 16 },
+  foot: { flexShrink: 0, paddingBottom: "calc(20px + env(safe-area-inset-bottom))" },
+  optHead: { display: "flex", alignItems: "baseline", gap: 8, marginBottom: 6 },
+  optGroup: { color: C.cream, fontWeight: 800, fontSize: "0.86rem" },
+  optDesc: { color: C.faint, fontSize: "0.74rem", lineHeight: 1.4, margin: "-2px 0 8px" },
+  optChips: { display: "flex", flexWrap: "wrap", gap: 8 },
+  optChip: { minHeight: 44, padding: "0 14px", borderRadius: 10, border: `1px solid ${C.line}`, background: "transparent", color: C.dim, fontWeight: 700, fontSize: "0.9rem", cursor: "pointer", fontFamily: "inherit" },
+  optChipOn: { background: C.gold, color: "var(--sl-on-accent)", borderColor: C.gold },
+  optChipOff: { opacity: 0.4, cursor: "not-allowed" },
 };
 
 const page: Record<string, React.CSSProperties> = {
