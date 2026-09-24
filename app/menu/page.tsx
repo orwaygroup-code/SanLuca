@@ -24,6 +24,7 @@ function mapDish(d: any) {
     price: Number(d.price),
     imageUrl: d.imageUrl ?? null,
     category: d.category?.name ?? null,
+    options: d.options ?? null,
   };
 }
 

@@ -915,8 +915,8 @@ export function ComandaDetailView({ embedded = false }: { embedded?: boolean }) 
       <MenuSelector
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
-        onAdd={async (dishId, quantity, modifiers, kitchenNotes) => {
-          const ok = await post(`/api/comandas/${id}/items`, { dishId, quantity, modifiers, kitchenNotes, course: currentCourse }, "Platillo agregado");
+        onAdd={async (dishId, quantity, modifiers, kitchenNotes, options) => {
+          const ok = await post(`/api/comandas/${id}/items`, { dishId, quantity, modifiers, kitchenNotes, course: currentCourse, options }, "Platillo agregado");
           return ok;
         }}
         pendingItems={liveItems.filter((i) => i.status === "PENDING")}

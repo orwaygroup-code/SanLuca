@@ -10,6 +10,7 @@ import { getShiftWindow } from "@/lib/schedule";
 import { formatFolio } from "@/lib/comandaRules";
 import { lineTotal as calcLineTotal } from "@/lib/comandaTotals";
 import { TENANT, COMANDA_INCLUDE, recalcComandaTotals, isUniqueViolation } from "@/lib/comanda";
+import { parseDishOptions } from "@/lib/dishOptions";
 import type { ApiResponse } from "@/types";
 
 const MX_TZ = "America/Mexico_City";
@@ -47,7 +48,7 @@ interface Producto {
   nombre?: string; nombre_platillo?: string; precio_unitario?: number; precio?: number;
 }
 
-type DishRow = { id: string; name: string; price: unknown; prepArea: "BARRA" | "COCINA" | null };
+type DishRow = { id: string; name: string; price: unknown; prepArea: "BARRA" | "COCINA" | null; options: unknown };
 
 // Convierte un nombre en un CONJUNTO de palabras para comparar: minúsculas, sin
 // acentos, y todo lo no alfanumérico (paréntesis, apóstrofos, puntuación) pasa a
@@ -123,7 +124,7 @@ export async function POST(request: NextRequest) {
   // ambiguo se anota para que Perla lo revise (mejor anotar que adivinar mal).
   const ids = [...new Set((productos as Producto[]).map((p) => String(p?.id ?? "")).filter(Boolean))];
   const byIdList = ids.length
-    ? await prisma.dish.findMany({ where: { id: { in: ids }, active: true }, select: { id: true, name: true, price: true, prepArea: true } })
+    ? await prisma.dish.findMany({ where: { id: { in: ids }, active: true }, select: { id: true, name: true, price: true, prepArea: true, options: true } })
     : [];
   const dishById = new Map(byIdList.map((d) => [d.id, d as DishRow]));
 
@@ -134,7 +135,7 @@ export async function POST(request: NextRequest) {
   if (needName) {
     const all = await prisma.dish.findMany({
       where: { active: true, prepArea: { not: null } },
-      select: { id: true, name: true, price: true, prepArea: true },
+      select: { id: true, name: true, price: true, prepArea: true, options: true },
     });
     nameIndex = all.map((d) => ({ set: toTokenSet(d.name), d: d as DishRow }));
   }
@@ -169,6 +170,10 @@ export async function POST(request: NextRequest) {
     const d = resolveDish(p);
     const qty = Math.min(999, Math.round((Number(p?.cantidad ?? p?.quantity ?? 1) || 1) * 100) / 100);
     if (!d || !d.prepArea) { sinMatch.push(`${p?.nombre ?? p?.id ?? "?"}${p?.notas ? " (" + p.notas + ")" : ""}`); continue; }
+    // Brunch B-3: el bot no puede crear un renglón que un mesero no podría. Si el platillo
+    // exige elegir opciones (algún grupo required), no se vende por aquí: va a sinMatch para
+    // que Perla lo capture a mano. Los grupos solo opcionales sí se venden (precio base OK).
+    if (parseDishOptions(d.options).some((g) => g.required)) { sinMatch.push(`${d.name} (requiere elegir opciones)`); continue; }
     items.push({
       dishId: d.id, name: d.name, price: Number(d.price), prepArea: d.prepArea, qty,
       kitchenNotes: typeof p?.notas === "string" && p.notas.trim() ? p.notas.trim() : null,

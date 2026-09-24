@@ -188,6 +188,7 @@ export default async function BrunchCategoryPage({ params }: PageProps) {
                                 price={Number(dish.price)}
                                 weight={null}
                                 imageUrl={dish.imageUrl ?? null}
+                                options={dish.options}
                             />
                         ))}
                     </div>

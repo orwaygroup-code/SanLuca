@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { fonts } from "@/config/theme";
 import { useTranslation } from "@/lib/i18n";
+import { parseDishOptions } from "@/lib/dishOptions";
 
 const BLUE = "#6b8dab";
 const BLUE_HOVER = "#7a9dbd";
@@ -17,6 +18,7 @@ type DishCardBlueProps = {
     price: number;
     weight?: number | null;
     imageUrl?: string | null;
+    options?: unknown; // grupos por platillo (Brunch B-3), sin parsear
 };
 
 export default function DishCardBlue({
@@ -25,6 +27,7 @@ export default function DishCardBlue({
     price,
     weight,
     imageUrl,
+    options,
 }: DishCardBlueProps) {
     const { price: fmtPrice } = useTranslation();
     const [hovered, setHovered] = useState(false);
@@ -102,6 +105,26 @@ export default function DishCardBlue({
                             {description}
                         </p>
                     )}
+                    {/* Opciones por platillo (Brunch B-3): un renglón discreto por grupo, bajo la
+                        descripción. Mismo criterio que MenuPageClient, en el azul de esta tarjeta.
+                        Sin grupos, la tarjeta se ve igual que hoy. */}
+                    {parseDishOptions(options).map((g) => (
+                        <p
+                            key={g.group}
+                            style={{
+                                fontFamily: fonts.primary,
+                                fontSize: "0.68rem",
+                                color: "rgba(30,58,82,0.5)",
+                                margin: "0.5rem 0 0",
+                                lineHeight: 1.5,
+                            }}
+                        >
+                            <span style={{ color: "rgba(30,58,82,0.75)", fontWeight: 700 }}>{g.group}</span>
+                            {g.desc ? ` — ${g.desc}` : ""}
+                            {": "}
+                            {g.choices.map((c) => `${c.label}${c.price ? ` +${fmtPrice(c.price)}` : ""}`).join(" · ")}
+                        </p>
+                    ))}
                 </div>
 
                 {/* Precio + peso + ⊕ */}

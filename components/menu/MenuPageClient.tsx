@@ -13,6 +13,7 @@ import { useSearchParams } from "next/navigation";
 import { fonts, colors } from "@/config/theme";
 import { BRUNCH_GROUPS, COMIDA_GROUPS } from "@/config/Menustructure";
 import { useTranslation } from "@/lib/i18n";
+import { parseDishOptions } from "@/lib/dishOptions";
 
 type InsigniaItem = {
     id: string;
@@ -21,6 +22,7 @@ type InsigniaItem = {
     price: number;
     imageUrl?: string | null;
     category?: string | null;
+    options?: unknown; // grupos por platillo (Brunch B-3), sin parsear
 };
 
 type DbCategory = {
@@ -648,6 +650,15 @@ function PlatosInsignia({
                                                 {dish.description}
                                             </p>
                                         )}
+                                        {/* Opciones por platillo (Brunch B-3): un renglón discreto por grupo. Sin opciones = igual que hoy. */}
+                                        {parseDishOptions(dish.options).map((g) => (
+                                            <p key={g.group} style={{ fontFamily: fonts.primary, fontSize: "0.68rem", color: "rgba(255,255,255,0.4)", margin: "0.7rem 0 0", lineHeight: 1.5, maxWidth: "34ch" }}>
+                                                <span style={{ color: "rgba(255,255,255,0.62)", fontWeight: 700 }}>{g.group}</span>
+                                                {g.desc ? ` — ${g.desc}` : ""}
+                                                {": "}
+                                                {g.choices.map((c) => `${c.label}${c.price ? ` +${fmtPrice(c.price)}` : ""}`).join(" · ")}
+                                            </p>
+                                        ))}
                                     </div>
                                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "2rem", paddingTop: "1.25rem", borderTop: `1px solid ${isActive ? t.borderAccent : t.border}` }}>
                                         <span style={{ fontFamily: fonts.primary, fontSize: isCenter ? "1.5rem" : "1.2rem", fontWeight: 600, color: isActive ? (mode === "comida" ? colors.peru : "#ffffff") : "rgba(255,255,255,0.6)", transition: "color 0.3s ease" }}>

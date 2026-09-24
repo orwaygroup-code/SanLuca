@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { C, btn, fld, formatMXN, Spinner, EmptyState } from "./ui";
 import { apiFetch, type CItem } from "./types";
+import { parseDishOptions, type OptionGroup } from "@/lib/dishOptions";
 
 /**
  * Selector de platillos a PANTALLA COMPLETA (comandero). Reemplaza el modal.
@@ -16,7 +17,7 @@ import { apiFetch, type CItem } from "./types";
 type Area = "COCINA" | "BARRA";
 type Turno = "comida" | "brunch";
 interface CartaRef { id: string; name: string; turno: "COMIDA" | "BRUNCH"; clase: Area; position: number | null }
-interface Dish { id: string; name: string; price: number; description: string | null; imageUrl: string | null; prepArea: Area | null; featured101?: boolean } // #7 featured101 = priorizar (101)
+interface Dish { id: string; name: string; price: number; description: string | null; imageUrl: string | null; prepArea: Area | null; featured101?: boolean; options?: unknown } // #7 featured101 = priorizar (101). options = grupos por platillo (Brunch B-3), sin parsear (el contrato en lib/dishOptions los interpreta).
 interface Cat { id: string; name: string; dishes: Dish[]; carta: CartaRef | null }
 interface FlatDish extends Dish { catId: string; catName: string; cartaId: string; cartaName: string; turno: Turno }
 
@@ -32,7 +33,7 @@ const clampQty = (v: number) => Math.round(Math.max(0.1, Math.min(99, v)) * 10) 
 export function MenuSelector({ open, onClose, onAdd, busy, pendingItems = [], onRemove }: {
   open: boolean;
   onClose: () => void;
-  onAdd: (dishId: string, quantity: number, modifiers: string | null, kitchenNotes: string | null) => Promise<boolean>;
+  onAdd: (dishId: string, quantity: number, modifiers: string | null, kitchenNotes: string | null, options: { group: string; label: string }[]) => Promise<boolean>;
   busy: boolean;
   pendingItems?: CItem[]; // platillos agregados AÚN sin enviar a cocina (para el panel lateral)
   onRemove?: (itemId: number) => void | Promise<void>;
@@ -47,6 +48,7 @@ export function MenuSelector({ open, onClose, onAdd, busy, pendingItems = [], on
   const [qty, setQty] = useState(1);
   const [qtyStr, setQtyStr] = useState(""); // buffer mientras se teclea la cantidad ("" = usar qty)
   const [comment, setComment] = useState("");
+  const [picks, setPicks] = useState<{ group: string; label: string }[]>([]); // opciones elegidas del platillo abierto (Brunch B-3)
   const [added, setAdded] = useState(0);
   const [flash, setFlash] = useState<string | null>(null);
   const [imgFailed, setImgFailed] = useState<Set<string>>(new Set());
@@ -74,7 +76,7 @@ export function MenuSelector({ open, onClose, onAdd, busy, pendingItems = [], on
     // recargan en días, así que con el guard `!cats` un platillo archivado seguía en el
     // selector indefinidamente. Mismo criterio que el efecto de /api/eighty-six de arriba.
     if (open) loadMenu();
-    if (!open) { setSelected(null); setQuery(""); setSection(""); setAdded(0); setPanelOpen(false); }
+    if (!open) { setSelected(null); setPicks([]); setQuery(""); setSection(""); setAdded(0); setPanelOpen(false); }
   }, [open, loadMenu]);
 
   // Ancho de pantalla → panel fijo (tablet horizontal) vs overlay (angosto).
@@ -126,20 +128,48 @@ export function MenuSelector({ open, onClose, onAdd, busy, pendingItems = [], on
     return allDishes.filter((d) => d.turno === turno && d.cartaId === carta && (section === "" || d.catId === section));
   }, [allDishes, searching, query, turno, carta, section]);
 
-  const pick = (d: FlatDish) => { setSelected(d); setQty(1); setQtyStr(""); setComment(""); };
+  const pick = (d: FlatDish) => { setSelected(d); setQty(1); setQtyStr(""); setComment(""); setPicks([]); };
   const setQtyQuick = (v: number) => { setQty(v); setQtyStr(""); }; // botón rápido o ± → limpia el buffer del teclado
   const commitQtyStr = () => { const n = parseFloat(qtyStr.replace(",", ".")); if (Number.isFinite(n)) setQty(clampQty(n)); setQtyStr(""); };
   // Cantidad efectiva: si hay algo tecleado sin confirmar, se usa eso; si no, qty.
   const effQty = () => { const n = parseFloat(qtyStr.replace(",", ".")); return qtyStr !== "" && Number.isFinite(n) ? clampQty(n) : qty; };
+  // Opciones del platillo abierto. La UI consume el contrato (lib/dishOptions), no
+  // reimplementa sus reglas: el precio de cada choice sale del grupo, igual que en el
+  // servidor, que de todas formas ignora lo que mande el cliente.
+  const groups: OptionGroup[] = useMemo(() => (selected ? parseDishOptions(selected.options) : []), [selected]);
+  const extra = useMemo(() => {
+    let sum = 0;
+    for (const g of groups) for (const p of picks) if (p.group === g.group) {
+      const c = g.choices.find((x) => x.label === p.label);
+      if (c?.price) sum += c.price;
+    }
+    return sum;
+  }, [groups, picks]);
+  // Primer grupo obligatorio sin elegir → bloquea "Agregar" y dice qué falta.
+  const missing = useMemo(() => groups.find((g) => g.required && !picks.some((p) => p.group === g.group)) ?? null, [groups, picks]);
+
+  // Tocar un chip: max 1 reemplaza; max>1 acumula hasta el tope; tocar uno elegido lo quita.
+  const toggleChoice = (g: OptionGroup, label: string) => {
+    setPicks((prev) => {
+      const inGroup = prev.filter((p) => p.group === g.group);
+      const already = inGroup.some((p) => p.label === label);
+      if (already) return prev.filter((p) => !(p.group === g.group && p.label === label));
+      if (g.max <= 1) return [...prev.filter((p) => p.group !== g.group), { group: g.group, label }];
+      if (inGroup.length >= g.max) return prev; // tope alcanzado
+      return [...prev, { group: g.group, label }];
+    });
+  };
+
   const confirmAdd = async () => {
-    if (!selected) return;
+    if (!selected || missing) return;
     const q = effQty();
     const label = `${fmtQty(q)}× ${selected.name}`;
-    const ok = await onAdd(selected.id, q, null, comment.trim() || null);
+    const ok = await onAdd(selected.id, q, null, comment.trim() || null, picks);
     if (ok) {
       setAdded((n) => n + q);
       setFlash(label);
       setSelected(null);
+      setPicks([]);
       window.setTimeout(() => setFlash((f) => (f === label ? null : f)), 1800);
     }
   };
@@ -288,6 +318,37 @@ export function MenuSelector({ open, onClose, onAdd, busy, pendingItems = [], on
               <button style={s.close} onClick={() => setSelected(null)} aria-label="Cancelar">×</button>
             </div>
 
+            {/* Opciones por platillo (Brunch B-3): un bloque por grupo, en el orden del contrato. */}
+            {groups.map((g) => {
+              const inGroup = picks.filter((p) => p.group === g.group);
+              return (
+                <div key={g.group} style={{ marginTop: 16 }}>
+                  <div style={s.optHead}>
+                    <span style={s.optGroup}>{g.group}</span>
+                    {g.required && <span style={s.optReq}>Obligatorio</span>}
+                  </div>
+                  {g.desc && <div style={s.optDesc}>{g.desc}</div>}
+                  <div style={s.optChips}>
+                    {g.choices.map((c) => {
+                      const on = inGroup.some((p) => p.label === c.label);
+                      const full = !on && g.max > 1 && inGroup.length >= g.max;
+                      return (
+                        <button
+                          key={c.label}
+                          onClick={() => toggleChoice(g, c.label)}
+                          disabled={full}
+                          aria-pressed={on}
+                          style={{ ...s.optChip, ...(on ? s.optChipOn : {}), ...(full ? s.optChipOff : {}) }}
+                        >
+                          {c.label}{c.price ? ` +${formatMXN(c.price)}` : ""}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+
             <label style={{ ...fld.label, marginTop: 18 }}>Cantidad</label>
             <div style={s.quickRow}>
               {([["½", 0.5], ["1", 1], ["1½", 1.5], ["2", 2], ["3", 3]] as const).map(([lbl, v]) => (
@@ -320,11 +381,11 @@ export function MenuSelector({ open, onClose, onAdd, busy, pendingItems = [], on
             />
 
             <button
-              style={{ ...btn.primary, width: "100%", marginTop: 20, minHeight: 52, fontSize: "0.95rem", opacity: busy ? 0.6 : 1 }}
+              style={{ ...btn.primary, width: "100%", marginTop: 20, minHeight: 52, fontSize: "0.95rem", opacity: busy || missing ? 0.6 : 1 }}
               onClick={confirmAdd}
-              disabled={busy}
+              disabled={busy || !!missing}
             >
-              {busy ? "Agregando…" : `Agregar ${fmtQty(effQty())} · ${formatMXN(Math.round(selected.price * effQty() * 100) / 100)}`}
+              {busy ? "Agregando…" : missing ? `Elige ${missing.group}` : `Agregar ${fmtQty(effQty())} · ${formatMXN(Math.round((selected.price + extra) * effQty() * 100) / 100)}`}
             </button>
           </div>
         </>
@@ -515,6 +576,21 @@ const s: Record<string, React.CSSProperties> = {
     color: C.dim, fontWeight: 700, fontSize: "0.95rem", cursor: "pointer", fontFamily: "inherit",
   },
   quickOn: { background: C.gold, color: "var(--sl-on-accent)", borderColor: C.gold },
+
+  // Opciones por platillo (Brunch B-3). Los chips reusan el criterio visual de los
+  // botones rápidos de cantidad (quick/quickOn): elegido = dorado con tinta oscura.
+  optHead: { display: "flex", alignItems: "baseline", gap: 8, marginBottom: 6 },
+  optGroup: { color: C.cream, fontWeight: 800, fontSize: "0.86rem" },
+  optReq: { color: C.gold, fontSize: "0.66rem", fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase" },
+  optDesc: { color: C.faint, fontSize: "0.74rem", lineHeight: 1.4, margin: "-2px 0 8px" },
+  optChips: { display: "flex", flexWrap: "wrap", gap: 8 },
+  optChip: {
+    minHeight: 44, padding: "0 14px", borderRadius: 10, border: `1px solid ${C.line}`, background: "transparent",
+    color: C.dim, fontWeight: 700, fontSize: "0.9rem", cursor: "pointer", fontFamily: "inherit",
+  },
+  optChipOn: { background: C.gold, color: "var(--sl-on-accent)", borderColor: C.gold },
+  optChipOff: { opacity: 0.4, cursor: "not-allowed" },
+
   qtyHint: { color: C.faint, fontSize: "0.72rem", textAlign: "center", marginTop: 8 },
   qtyRow: { display: "flex", alignItems: "center", gap: 16, justifyContent: "center" },
   qtyBtn: {
