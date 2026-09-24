@@ -309,20 +309,15 @@ export function MenuSelector({ open, onClose, onAdd, busy, pendingItems = [], on
         <>
           <div style={s.sheetScrim} onClick={() => setSelected(null)} />
           <div style={s.sheet} role="dialog" aria-label={`Agregar ${selected.name}`}>
-            {/* Cabecera fija (B-6b): grip + nombre + precio + cerrar. Nunca se pierde de vista. */}
-            <div style={s.sheetHead}>
-              <div style={s.sheetGrip} />
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-                <div style={{ minWidth: 0 }}>
-                  <div style={s.sheetName}>{selected.name}</div>
-                  <div style={s.sheetPrice}>{formatMXN(selected.price)} c/u</div>
-                </div>
-                <button style={s.close} onClick={() => setSelected(null)} aria-label="Cancelar">×</button>
+            <div style={s.sheetGrip} />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={s.sheetName}>{selected.name}</div>
+                <div style={s.sheetPrice}>{formatMXN(selected.price)} c/u</div>
               </div>
+              <button style={s.close} onClick={() => setSelected(null)} aria-label="Cancelar">×</button>
             </div>
 
-            {/* Cuerpo scrollable (B-6b): opciones + cantidad + comentario. */}
-            <div style={s.sheetBody}>
             {/* Opciones por platillo (Brunch B-3): un bloque por grupo, en el orden del contrato. */}
             {groups.map((g) => {
               const inGroup = picks.filter((p) => p.group === g.group);
@@ -384,10 +379,7 @@ export function MenuSelector({ open, onClose, onAdd, busy, pendingItems = [], on
               onChange={(e) => setComment(e.target.value)}
               placeholder="ej. sin cebolla, término medio, extra pan"
             />
-            </div>
 
-            {/* Pie fijo (B-6b): el botón con el precio nunca se pierde de vista. */}
-            <div style={s.sheetFoot}>
             <button
               style={{ ...btn.primary, width: "100%", marginTop: 20, minHeight: 52, fontSize: "0.95rem", opacity: busy || missing ? 0.6 : 1 }}
               onClick={confirmAdd}
@@ -395,7 +387,6 @@ export function MenuSelector({ open, onClose, onAdd, busy, pendingItems = [], on
             >
               {busy ? "Agregando…" : missing ? `Elige ${missing.group}` : `Agregar ${fmtQty(effQty())} · ${formatMXN(Math.round((selected.price + extra) * effQty() * 100) / 100)}`}
             </button>
-            </div>
           </div>
         </>
       )}
@@ -572,13 +563,9 @@ const s: Record<string, React.CSSProperties> = {
   sheetScrim: { position: "fixed", inset: 0, zIndex: 96, background: "rgba(0,0,0,0.55)" },
   sheet: {
     position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 97, background: C.panel,
-    borderTop: `1px solid ${C.border}`, borderRadius: "20px 20px 0 0", padding: "10px 20px 0",
+    borderTop: `1px solid ${C.border}`, borderRadius: "20px 20px 0 0", padding: "10px 20px calc(20px + env(safe-area-inset-bottom))",
     maxWidth: 520, margin: "0 auto", boxShadow: "0 -18px 48px rgba(0,0,0,0.5)",
-    maxHeight: "88vh", display: "flex", flexDirection: "column", // 3 zonas: cabecera fija · cuerpo scrollable · pie fijo (B-6b)
   },
-  sheetHead: { flexShrink: 0 },
-  sheetBody: { flex: 1, overflowY: "auto", overscrollBehavior: "contain", paddingBottom: 16 },
-  sheetFoot: { flexShrink: 0, paddingBottom: "calc(20px + env(safe-area-inset-bottom))" }, // hereda el padding inferior que tenía la hoja
   sheetGrip: { width: 40, height: 4, borderRadius: 999, background: "rgb(var(--sl-cream-rgb) / 0.25)", margin: "0 auto 14px" },
   sheetName: { color: C.cream, fontWeight: 800, fontSize: "1.15rem", lineHeight: 1.2 },
   sheetPrice: { color: C.gold, fontWeight: 700, fontSize: "0.9rem", marginTop: 4 },
