@@ -7,6 +7,7 @@ import { notify } from "@/lib/notify";
 import { round2, lineTotal as calcLineTotal } from "@/lib/comandaTotals";
 import { formatFolio, nextSplitLabel, canSplitAccount, REPRINT_AUTHORIZER_ROLES } from "@/lib/comandaRules";
 import { allow, reset } from "@/lib/rateLimit";
+import type { Prisma } from "@prisma/client";
 import type { ApiResponse } from "@/types";
 
 function parseId(raw: string): number | null {
@@ -77,7 +78,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         select: {
           id: true, status: true, dishId: true, dishNameSnapshot: true, unitPriceSnapshot: true,
           prepAreaSnapshot: true, quantity: true, modifiers: true, modifiersExtraCost: true,
-          kitchenNotes: true, discountAmount: true, course: true, addedById: true,
+          optionsSnapshot: true, kitchenNotes: true, discountAmount: true, course: true, addedById: true,
         },
       },
     },
@@ -191,6 +192,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           discountAmount: movedDiscount,
           modifiers: item.modifiers ?? undefined,
           modifiersExtraCost: item.modifiersExtraCost,
+          // La selección de opciones (Brunch B-2) viaja con su renglón a la cuenta hija.
+          optionsSnapshot: item.optionsSnapshot ? (item.optionsSnapshot as unknown as Prisma.InputJsonValue) : undefined,
           kitchenNotes: item.kitchenNotes,
           status: item.status,
           course: item.course,

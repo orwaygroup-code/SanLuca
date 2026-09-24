@@ -182,6 +182,7 @@ model Dish {
   category         MenuCategory      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   reservationItems ReservationItem[] // ← platillos pre-ordenados que usan este dish
   prepArea         PrepArea? // área de preparación (Fase B). NULL = no clasificado
+  options          Json? // grupos de opciones del platillo (Fase Brunch B-2): [{ group, required, max, choices: [{ label, price? }] }]
   comandaItems     ComandaItem[]
   createdAt        DateTime          @default(now())
 }
@@ -805,6 +806,7 @@ model ComandaItem {
 
   modifiers          String? @db.Text
   modifiersExtraCost Decimal @default(0) @db.Decimal(10, 2)
+  optionsSnapshot    Json? // opciones que eligió el mesero, congeladas (Fase Brunch B-2): [{ group, label, price? }]
   kitchenNotes       String? @db.Text
 
   status         ComandaItemStatus @default(PENDING)

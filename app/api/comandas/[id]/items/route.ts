@@ -4,6 +4,8 @@ import { getStaffSession } from "@/lib/staff-auth-server";
 import { canModifyComanda } from "@/lib/comandaRules";
 import { lineTotal as calcLineTotal } from "@/lib/comandaTotals";
 import { TENANT, COMANDA_INCLUDE, recalcComandaTotals } from "@/lib/comanda";
+import { parseDishOptions, resolveSelection, type OptionPick } from "@/lib/dishOptions";
+import type { Prisma } from "@prisma/client";
 import type { ApiResponse } from "@/types";
 
 function parseId(raw: string): number | null {
@@ -45,7 +47,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   }
 
   const body = await request.json().catch(() => ({}));
-  const { dishId, quantity, modifiers, modifiersExtraCost, kitchenNotes, course } = body || {};
+  const { dishId, quantity, modifiers, modifiersExtraCost, kitchenNotes, course, options } = body || {};
   if (typeof dishId !== "string") {
     return NextResponse.json<ApiResponse>({ success: false, error: "dishId es obligatorio" }, { status: 400 });
   }
@@ -56,7 +58,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const qty = Math.min(999, Math.round(rawQty * 100) / 100);
   const extra = typeof modifiersExtraCost === "number" && modifiersExtraCost >= 0 ? modifiersExtraCost : 0;
 
-  const dish = await prisma.dish.findFirst({ where: { id: dishId, active: true }, select: { name: true, price: true, prepArea: true } });
+  const dish = await prisma.dish.findFirst({ where: { id: dishId, active: true }, select: { name: true, price: true, prepArea: true, options: true } });
   if (!dish) return NextResponse.json<ApiResponse>({ success: false, error: "Platillo no encontrado" }, { status: 404 });
   if (!dish.prepArea) {
     return NextResponse.json<ApiResponse>(
@@ -65,7 +67,36 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     );
   }
 
-  const line = calcLineTotal(dish.price, qty, extra);
+  // Opciones por platillo (Fase Brunch B-2). Si el platillo declara grupos O el mesero
+  // manda picks, la selección MANDA: modifiers, costo extra y snapshot salen del servidor
+  // (el modifiersExtraCost del cliente se IGNORA). Si no hay grupos ni picks, se conserva
+  // el comportamiento libre de siempre (modifiers texto + modifiersExtraCost del cliente),
+  // para no romper /api/bot/pedido ni lo existente.
+  const groups = parseDishOptions(dish.options);
+  const picks = Array.isArray(options)
+    ? (options as unknown[])
+        .filter((p): p is { group: string; label: string } =>
+          !!p && typeof p === "object" &&
+          typeof (p as { group?: unknown }).group === "string" &&
+          typeof (p as { label?: unknown }).label === "string")
+        .map((p) => ({ group: p.group, label: p.label }))
+    : [];
+
+  let finalModifiers: string | null;
+  let finalExtra: number;
+  let snapshot: OptionPick[] | null = null;
+  if (groups.length > 0 || picks.length > 0) {
+    const res = resolveSelection(groups, picks);
+    if (!res.ok) return NextResponse.json<ApiResponse>({ success: false, error: res.error }, { status: 400 });
+    finalModifiers = res.modifiers || null;
+    finalExtra = res.extraCost;
+    snapshot = res.snapshot;
+  } else {
+    finalModifiers = typeof modifiers === "string" ? modifiers : null;
+    finalExtra = extra;
+  }
+
+  const line = calcLineTotal(dish.price, qty, finalExtra);
 
   await prisma.comandaItem.create({
     data: {
@@ -77,8 +108,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       prepAreaSnapshot: dish.prepArea,
       quantity: qty,
       course: courseNum,
-      modifiers: typeof modifiers === "string" ? modifiers : null,
-      modifiersExtraCost: extra,
+      modifiers: finalModifiers,
+      modifiersExtraCost: finalExtra,
+      optionsSnapshot: snapshot ? (snapshot as unknown as Prisma.InputJsonValue) : undefined,
       kitchenNotes: typeof kitchenNotes === "string" ? kitchenNotes : null,
       lineTotal: line,
       addedById: s.staffId,
