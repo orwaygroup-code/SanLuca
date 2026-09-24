@@ -29,6 +29,7 @@ export interface CItem {
   addedAt: string;
   sentAt: string | null;
   comments?: CItemComment[]; // bitácora append-only por producto
+  dish?: { options?: unknown } | null; // opciones del platillo (para el botón "+ extra", B-6b); COMANDA_INCLUDE ya lo manda
 }
 
 export interface CItemComment {
