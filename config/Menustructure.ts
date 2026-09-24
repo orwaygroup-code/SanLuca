@@ -187,29 +187,19 @@ export const BRUNCH_GROUPS: MenuGroup[] = [
         groupSubtitle: "El mejor brunch de la ciudad",
         categories: [
             {
-                slug: "platti-salati",
-                name: "Platti Salati",
-                description: "Platos salados del brunch",
+                slug: "antojitos",
+                name: "Antojitos",
+                description: "Antojitos mexicanos del brunch",
             },
             {
-                slug: "toasts-panini",
-                name: "Toasts & Panini",
-                description: "Toasts y paninis artesanales",
+                slug: "huevos",
+                name: "Huevos",
+                description: "Huevos preparados al gusto",
             },
             {
-                slug: "omelettes",
-                name: "Omelettes",
-                description: "Omelettes al estilo italiano",
-            },
-            {
-                slug: "especiales",
-                name: "Especiales",
-                description: "Los especiales del chef",
-            },
-            {
-                slug: "panetteria-dolci",
-                name: "Panetteria & Dolci",
-                description: "Panadería y dulces",
+                slug: "dulces",
+                name: "Dulces",
+                description: "Dulces y postres del brunch",
             },
         ],
     },

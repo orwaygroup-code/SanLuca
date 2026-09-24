@@ -28,7 +28,9 @@ type PageProps = {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { category } = await params;
     const name = decodeURIComponent(category);
-    const data = await getMenuCategoryByName(`${name} (Brunch)`);
+    // Las bebidas de brunch llevan sufijo " (Brunch)" en la base; las categorías nuevas del seed (Antojitos/Huevos/Dulces) no. Buscamos con sufijo y luego sin él.
+    const data = (await getMenuCategoryByName(`${name} (Brunch)`))
+              ?? (await getMenuCategoryByName(name));
     if (!data) return { title: "Categoría no encontrada" };
     return {
         title: `${data.name} | Brunch | San Luca`,
@@ -39,7 +41,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function BrunchCategoryPage({ params }: PageProps) {
     const { category } = await params;
     const name = decodeURIComponent(category);
-    const data = await getMenuCategoryByName(`${name} (Brunch)`);
+    // Las bebidas de brunch llevan sufijo " (Brunch)" en la base; las categorías nuevas del seed (Antojitos/Huevos/Dulces) no. Buscamos con sufijo y luego sin él.
+    const data = (await getMenuCategoryByName(`${name} (Brunch)`))
+              ?? (await getMenuCategoryByName(name));
 
     if (!data) return notFound();
 
