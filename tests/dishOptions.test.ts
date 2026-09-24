@@ -120,3 +120,38 @@ test("desc: se conserva al parsear pero NO afecta la resolución", () => {
   assert.equal(rWith.extraCost, 0);
   assert.deepEqual(rWith.snapshot, [{ group: "Estilo", label: "Rancheros" }]);
 });
+
+test("skipRequired: extra suelto sin el grupo obligatorio (falla sin, pasa con)", () => {
+  // groups tiene "Salsa" (required) y "Proteína" (opcional). Elegir solo la proteína.
+  const picks = [{ group: "Proteína", label: "Arrachera" }];
+  const sinSkip = resolveSelection(groups, picks);
+  assert.equal(sinSkip.ok, false);
+  if (!sinSkip.ok) assert.equal(sinSkip.error, "Elige Salsa");
+
+  const conSkip = resolveSelection(groups, picks, { skipRequired: true });
+  if (!conSkip.ok) throw new Error(conSkip.error);
+  assert.equal(conSkip.extraCost, 99);
+  assert.equal(conSkip.modifiers, "Arrachera");
+  assert.deepEqual(conSkip.snapshot, [{ group: "Proteína", label: "Arrachera", price: 99 }]);
+});
+
+test("skipRequired: el precio sigue saliendo del grupo, no del pick", () => {
+  const r = resolveSelection(
+    groups,
+    [{ group: "Proteína", label: "Arrachera", price: 9999 } as { group: string; label: string }],
+    { skipRequired: true },
+  );
+  if (!r.ok) throw new Error(r.error);
+  assert.equal(r.extraCost, 99);
+  assert.deepEqual(r.snapshot, [{ group: "Proteína", label: "Arrachera", price: 99 }]);
+});
+
+test("skipRequired: el max por grupo se sigue respetando", () => {
+  const r = resolveSelection(
+    groups,
+    [{ group: "Proteína", label: "Arrachera" }, { group: "Proteína", label: "Filete" }],
+    { skipRequired: true },
+  );
+  assert.equal(r.ok, false);
+  if (!r.ok) assert.equal(r.error, "Solo puedes elegir 1 en Proteína");
+});

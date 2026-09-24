@@ -58,10 +58,16 @@ export function parseDishOptions(raw: unknown): OptionGroup[] {
  *   del grupo declarado, nunca del pick recibido.
  * - modifiers = los labels elegidos unidos con " · ", en el orden de los grupos.
  * - Sin grupos y sin picks → { ok:true, modifiers:"", extraCost:0, snapshot:[] }.
+ *
+ * `opts.skipRequired: true` OMITE la regla de grupo obligatorio (para agregar un
+ * extra suelto a un platillo ya capturado: se elige solo el extra, sin repetir la
+ * salsa/estilo obligatorios). Todo lo demás —label válido, max, precio del grupo,
+ * orden, modifiers y snapshot— queda igual.
  */
 export function resolveSelection(
   groups: OptionGroup[],
   picks: { group: string; label: string }[],
+  opts?: { skipRequired?: boolean },
 ):
   | { ok: true; modifiers: string; extraCost: number; snapshot: OptionPick[] }
   | { ok: false; error: string } {
@@ -72,10 +78,10 @@ export function resolveSelection(
     if (!g || !choice) return { ok: false, error: `Opción no válida: ${p.label}` };
   }
 
-  // 2) required y max por grupo.
+  // 2) required y max por grupo. Con skipRequired se omite solo la de required.
   for (const g of groups) {
     const chosen = picks.filter((p) => p.group === g.group);
-    if (g.required && chosen.length === 0) return { ok: false, error: `Elige ${g.group}` };
+    if (!opts?.skipRequired && g.required && chosen.length === 0) return { ok: false, error: `Elige ${g.group}` };
     if (chosen.length > g.max) return { ok: false, error: `Solo puedes elegir ${g.max} en ${g.group}` };
   }
 

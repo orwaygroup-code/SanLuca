@@ -47,15 +47,72 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   }
 
   const body = await request.json().catch(() => ({}));
-  const { dishId, quantity, modifiers, modifiersExtraCost, kitchenNotes, course, options } = body || {};
+  const { dishId, quantity, modifiers, modifiersExtraCost, kitchenNotes, course, options, extraFor } = body || {};
+
+  // Cantidad decimal: >0, redondeada a 2 decimales, acotada. Default 1 si es inválida.
+  const rawQty = typeof quantity === "number" && Number.isFinite(quantity) && quantity > 0 ? quantity : 1;
+  const qty = Math.min(999, Math.round(rawQty * 100) / 100);
+
+  // Picks de opción recibidos (comunes al modo normal y al modo extra).
+  const picks = Array.isArray(options)
+    ? (options as unknown[])
+        .filter((p): p is { group: string; label: string } =>
+          !!p && typeof p === "object" &&
+          typeof (p as { group?: unknown }).group === "string" &&
+          typeof (p as { label?: unknown }).label === "string")
+        .map((p) => ({ group: p.group, label: p.label }))
+    : [];
+
+  // Modo EXTRA (B-6a): agregar un extra suelto a un producto YA capturado (p.ej. el
+  // cliente pidió la proteína después de que los chilaquiles ya se fueron a cocina).
+  // Cobra SOLO el extra ($99), no un segundo platillo. Las guardas de autorización y
+  // de estado de la comanda son las de arriba, sin cambios.
+  if (extraFor !== undefined && extraFor !== null) {
+    if (!Number.isInteger(extraFor)) {
+      return NextResponse.json<ApiResponse>({ success: false, error: "extraFor inválido" }, { status: 400 });
+    }
+    const parent = await prisma.comandaItem.findFirst({
+      where: { id: extraFor, comandaId: id, tenantId: TENANT },
+      select: { id: true, status: true, dishId: true, dishNameSnapshot: true, prepAreaSnapshot: true, course: true, dish: { select: { options: true } } },
+    });
+    if (!parent) return NextResponse.json<ApiResponse>({ success: false, error: "El producto no está en esta comanda" }, { status: 404 });
+    if (parent.status === "CANCELLED") return NextResponse.json<ApiResponse>({ success: false, error: "No se puede agregar un extra a un producto cancelado" }, { status: 409 });
+
+    // El extra sale de las opciones del platillo del padre; se OMITE la regla de grupo
+    // obligatorio (no se re-elige la salsa/estilo, solo el extra que faltó). Precio,
+    // labels y snapshot salen del grupo, como siempre.
+    const res = resolveSelection(parseDishOptions(parent.dish?.options), picks, { skipRequired: true });
+    if (!res.ok) return NextResponse.json<ApiResponse>({ success: false, error: res.error }, { status: 400 });
+    if (res.extraCost === 0) return NextResponse.json<ApiResponse>({ success: false, error: "Elige al menos un extra con costo" }, { status: 400 });
+
+    await prisma.comandaItem.create({
+      data: {
+        tenantId: TENANT,
+        comandaId: id,
+        dishId: parent.dishId,
+        dishNameSnapshot: res.modifiers,
+        unitPriceSnapshot: 0,
+        prepAreaSnapshot: parent.prepAreaSnapshot,
+        quantity: qty,
+        course: parent.course,
+        modifiers: `Extra de ${parent.dishNameSnapshot}`,
+        modifiersExtraCost: res.extraCost,
+        optionsSnapshot: res.snapshot as unknown as Prisma.InputJsonValue,
+        lineTotal: calcLineTotal(0, qty, res.extraCost),
+        addedById: s.staffId,
+      },
+    });
+
+    await recalcComandaTotals(id);
+    const updated = await prisma.comanda.findFirst({ where: { id, tenantId: TENANT }, include: COMANDA_INCLUDE });
+    return NextResponse.json<ApiResponse>({ success: true, data: updated }, { status: 201 });
+  }
+
   if (typeof dishId !== "string") {
     return NextResponse.json<ApiResponse>({ success: false, error: "dishId es obligatorio" }, { status: 400 });
   }
   // "tiempo" del platillo (1º, 2º…): entero ≥1, default 1.
   const courseNum = Number.isInteger(course) && course >= 0 && course <= 10 ? course : 0; // 0 = Sin tiempo
-  // Cantidad decimal: >0, redondeada a 2 decimales, acotada. Default 1 si es inválida.
-  const rawQty = typeof quantity === "number" && Number.isFinite(quantity) && quantity > 0 ? quantity : 1;
-  const qty = Math.min(999, Math.round(rawQty * 100) / 100);
   const extra = typeof modifiersExtraCost === "number" && modifiersExtraCost >= 0 ? modifiersExtraCost : 0;
 
   const dish = await prisma.dish.findFirst({ where: { id: dishId, active: true }, select: { name: true, price: true, prepArea: true, options: true } });
@@ -73,14 +130,6 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   // el comportamiento libre de siempre (modifiers texto + modifiersExtraCost del cliente),
   // para no romper /api/bot/pedido ni lo existente.
   const groups = parseDishOptions(dish.options);
-  const picks = Array.isArray(options)
-    ? (options as unknown[])
-        .filter((p): p is { group: string; label: string } =>
-          !!p && typeof p === "object" &&
-          typeof (p as { group?: unknown }).group === "string" &&
-          typeof (p as { label?: unknown }).label === "string")
-        .map((p) => ({ group: p.group, label: p.label }))
-    : [];
 
   let finalModifiers: string | null;
   let finalExtra: number;
