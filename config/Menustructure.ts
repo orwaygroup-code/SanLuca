@@ -29,16 +29,46 @@ export const COMIDA_GROUPS: MenuGroup[] = [
         groupSubtitle: "La tradición italiana en su máxima expresión",
         categories: [
             {
-                slug: "antipasti",
-                name: "Antipasti",
-                description: "Entradas de la cocina italiana",
-                imageUrl: "/images/menu/clasica/antipaste.png",
+                slug: "carpacci",
+                name: "Carpacci",
+                description: "Carpaccios finos de la casa",
             },
             {
-                slug: "paste",
-                name: "Paste",
-                description: "Pastas artesanales al dente",
-                imageUrl: "/images/menu/clasica/paste.png",
+                slug: "forno",
+                name: "Forno",
+                description: "Especialidades al horno",
+            },
+            {
+                slug: "tartar",
+                name: "Tartar",
+                description: "Tártaros de la casa",
+            },
+            {
+                slug: "fritti",
+                name: "Fritti",
+                description: "Fritos crujientes",
+            },
+            {
+                slug: "insalate",
+                name: "Insalate",
+                description: "Ensaladas frescas de temporada",
+                imageUrl: "/images/menu/clasica/ensalada.png",
+            },
+            {
+                slug: "cortes",
+                name: "Cortes",
+                description: "Cortes premium de wagyu selecto",
+            },
+            {
+                slug: "terra",
+                name: "Terra",
+                description: "Sabores de la tierra",
+                imageUrl: "/images/menu/clasica/terra.png",
+            },
+            {
+                slug: "brasati-al-vino-rosso",
+                name: "Brasati al Vino Rosso",
+                description: "Braseados al vino tinto",
             },
             {
                 slug: "pizza",
@@ -53,39 +83,16 @@ export const COMIDA_GROUPS: MenuGroup[] = [
                 imageUrl: "/images/menu/clasica/risoto.png",
             },
             {
-                slug: "insalate",
-                name: "Insalate",
-                description: "Ensaladas frescas de temporada",
-                imageUrl: "/images/menu/clasica/ensalada.png",
-            },
-            {
-                slug: "carne-wagyu",
-                name: "Carne Wagyu",
-                description: "Cortes premium de wagyu selecto",
-            },
-            {
-                slug: "terra",
-                name: "Terra",
-                description: "Sabores de la tierra",
-                imageUrl: "/images/menu/clasica/terra.png",
-            },
-            {
                 slug: "pesce-del-giorno",
                 name: "Pesce Del Giorno",
                 description: "Pescado fresco del día",
                 imageUrl: "/images/menu/clasica/pesce.png",
             },
-        ],
-    },
-    {
-        slug: "autor",
-        groupName: "Autor",
-        groupSubtitle: "Creaciones exclusivas del chef",
-        categories: [
             {
-                slug: "especialidades-del-chef",
-                name: "Especialidades del Chef",
-                description: "Selección a cargo del Chef Ricardo Camacho",
+                slug: "paste",
+                name: "Paste",
+                description: "Pastas artesanales al dente",
+                imageUrl: "/images/menu/clasica/paste.png",
             },
         ],
     },
