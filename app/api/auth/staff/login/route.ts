@@ -5,7 +5,6 @@ import { verifyPin } from "@/lib/staff-auth";
 import {
   signStaffSession,
   staffSessionCookieString,
-  type StaffRole,
 } from "@/lib/staff-session";
 import { signSession, sessionCookieString, type Role } from "@/lib/session";
 import { allow, reset } from "@/lib/rateLimit";
@@ -63,7 +62,7 @@ export async function POST(request: NextRequest) {
 
     const token = signStaffSession({
       sub: staff.id,
-      role: staff.role as StaffRole,
+      role: staff.role,
       tenantId: staff.tenantId,
     });
 

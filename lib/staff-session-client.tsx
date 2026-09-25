@@ -6,7 +6,8 @@ export interface StaffUser {
   id:       number;
   username: string;
   fullName: string;
-  role:     "WAITER" | "OPERATION" | "CAPTAIN" | "MANAGER";
+  // Debe reflejar el enum StaffRole de prisma/schema.prisma (los mismos 5 roles).
+  role:     "WAITER" | "OPERATION" | "CAPTAIN" | "MANAGER" | "KITCHEN";
 }
 
 interface StaffSessionState {

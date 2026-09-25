@@ -123,6 +123,7 @@ model Staff {
   waiterTipsReceived    WaiterTipSettlement[] @relation("WaiterTipSettlementWaiter") // liquidaciones donde es el mesero
   waiterTipsSettled     WaiterTipSettlement[] @relation("WaiterTipSettler") // liquidaciones que ejecutó como caja
   comandaNotesCreated   ComandaNote[]         @relation("ComandaNoteCreator") // notas libres que capturó
+  stockMovements        StockMovement[]       @relation("StockMovementAuthor") // movimientos de almacén que registró (Almacén A-1)
   user                  User? // vínculo dual-realm (Ricardo). Inverso de User.staff
 
   @@index([tenantId, role, active])
@@ -1316,4 +1317,86 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@index([tenantId, createdAt])
+}
+
+// ============================================
+// ALMACÉN (inventario manual — Ola A-1)
+// ============================================
+
+enum StockUnit {
+  PIEZA
+  KG
+  GRAMO
+  LITRO
+  ML
+  CAJA
+  PAQUETE
+}
+
+enum StockMoveType {
+  ENTRADA // compra / recepción de proveedor
+  SALIDA // consumo a cocina o barra
+  MERMA // se echó a perder, se rompió, se tiró
+  AJUSTE // corrección tras conteo físico
+}
+
+model StockCategory {
+  id         Int         @id @default(autoincrement())
+  tenantId   Int         @default(1)
+  name       String
+  position   Int?
+  active     Boolean     @default(true)
+  archivedAt DateTime?
+  createdAt  DateTime    @default(now())
+  items      StockItem[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId, active])
+}
+
+model StockItem {
+  id         Int           @id @default(autoincrement())
+  tenantId   Int           @default(1)
+  categoryId Int
+  category   StockCategory @relation(fields: [categoryId], references: [id])
+  name       String
+  unit       StockUnit     @default(PIEZA)
+  /// DERIVADO: recalculado dentro de la misma transacción que crea cada StockMovement,
+  /// con candado optimista. NUNCA se edita directo; para corregir se registra un AJUSTE.
+  stock      Decimal       @default(0) @db.Decimal(12, 3)
+  minStock   Decimal?      @db.Decimal(12, 3)
+  lastCost   Decimal?      @db.Decimal(10, 2)
+  notes      String?
+  position   Int?
+  active     Boolean       @default(true)
+  archivedAt DateTime?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  movements  StockMovement[]
+
+  @@unique([tenantId, categoryId, name])
+  @@index([tenantId, active])
+  @@index([tenantId, categoryId])
+}
+
+/// Movimiento de almacén: APPEND-ONLY, es la fuente de verdad del inventario. `balanceAfter`
+/// congela el saldo resultante. En AJUSTE, `quantity` es el CONTEO físico (el saldo al que
+/// queda el producto), NO una diferencia; para los demás tipos es la cantidad que entra o sale.
+model StockMovement {
+  id           Int           @id @default(autoincrement())
+  tenantId     Int           @default(1)
+  itemId       Int
+  item         StockItem     @relation(fields: [itemId], references: [id])
+  type         StockMoveType
+  quantity     Decimal       @db.Decimal(12, 3)
+  balanceAfter Decimal       @db.Decimal(12, 3)
+  unitCost     Decimal?      @db.Decimal(10, 2)
+  supplier     String?
+  reason       String?
+  createdById  Int
+  createdBy    Staff         @relation("StockMovementAuthor", fields: [createdById], references: [id])
+  createdAt    DateTime      @default(now())
+
+  @@index([tenantId, itemId, createdAt])
+  @@index([tenantId, type, createdAt])
 }

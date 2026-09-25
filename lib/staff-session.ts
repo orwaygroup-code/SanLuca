@@ -27,7 +27,8 @@ if (
 export const STAFF_SESSION_COOKIE = "sl_staff";
 export const STAFF_SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 días
 
-export type StaffRole = "WAITER" | "OPERATION" | "CAPTAIN" | "MANAGER";
+// Debe reflejar el enum StaffRole de prisma/schema.prisma (los mismos 5 roles).
+export type StaffRole = "WAITER" | "OPERATION" | "CAPTAIN" | "MANAGER" | "KITCHEN";
 
 export interface StaffSessionPayload {
   sub:      number;    // staff.id
