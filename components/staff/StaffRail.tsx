@@ -65,6 +65,7 @@ export function StaffRail({
         <RailItem sm icon="calendar" label="Reservas" active={active === "reservas"} onClick={() => router.push("/staff/reservas")} />
         <RailItem sm icon="history" label="Historial" active={active === "historial"} onClick={() => router.push("/staff/historial")} />
         <RailItem sm icon="card" label="Cuentas" active={active === "cuentas"} onClick={() => router.push("/staff/cuentas")} />
+        <RailItem sm icon="bag" label="Almacén" onClick={() => router.push("/staff/almacen")} />
         {/* Un solo acceso, igual que en móvil: el panel ya trae su conmutador
             entre "86 Faltantes" y "101 Priorizar", así que dos entradas hacían
             elegir dos veces lo mismo. */}
