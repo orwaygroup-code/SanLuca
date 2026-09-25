@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/dualAuth";
-import { staffUpdateSchema } from "@/lib/validations";
+import { staffUpdateSchema, type StaffUpdateInput } from "@/lib/validations";
 import { TENANT } from "@/lib/comanda";
 import { syncAdminBridge } from "@/lib/adminBridge";
 import type { ApiResponse } from "@/types";
 
 const PUBLIC_SELECT = {
-  id: true, username: true, fullName: true, role: true, active: true,
+  id: true, username: true, fullName: true, role: true, active: true, payrollAccess: true,
   lastLoginAt: true, lastShift: true, createdAt: true, updatedAt: true,
 } as const;
 
@@ -25,18 +25,40 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   if (!id) return NextResponse.json<ApiResponse>({ success: false, error: "ID inválido" }, { status: 400 });
 
   const body = await request.json().catch(() => null);
-  const parsed = staffUpdateSchema.safeParse(body);
-  if (!parsed.success) {
-    const errors = Object.values(parsed.error.flatten().fieldErrors).flat();
-    const formErr = parsed.error.flatten().formErrors;
-    return NextResponse.json<ApiResponse>(
-      { success: false, error: [...errors, ...formErr].join(", ") || "Datos inválidos" },
-      { status: 400 }
-    );
+
+  // payrollAccess (Nómina N-1) va APARTE del schema de staff, con UNA regla: solo lo cambia
+  // quien YA tiene payrollAccess. El resto de los campos conservan su validación de siempre.
+  const wantsPayroll = !!body && typeof body === "object" && typeof (body as { payrollAccess?: unknown }).payrollAccess === "boolean";
+  const payrollAccessVal = wantsPayroll ? (body as { payrollAccess: boolean }).payrollAccess : undefined;
+  if (wantsPayroll) {
+    const actor = a.staffId != null ? await prisma.staff.findUnique({ where: { id: a.staffId }, select: { payrollAccess: true } }) : null;
+    if (!actor?.payrollAccess) {
+      return NextResponse.json<ApiResponse>({ success: false, error: "Solo alguien con acceso a nómina puede otorgarlo" }, { status: 403 });
+    }
+  }
+
+  const rest: Record<string, unknown> = { ...(body ?? {}) };
+  delete rest.payrollAccess;
+  const hasRest = Object.keys(rest).length > 0;
+
+  let staffData: StaffUpdateInput = {};
+  if (hasRest) {
+    const parsed = staffUpdateSchema.safeParse(rest);
+    if (!parsed.success) {
+      const errors = Object.values(parsed.error.flatten().fieldErrors).flat();
+      const formErr = parsed.error.flatten().formErrors;
+      return NextResponse.json<ApiResponse>(
+        { success: false, error: [...errors, ...formErr].join(", ") || "Datos inválidos" },
+        { status: 400 }
+      );
+    }
+    staffData = parsed.data;
+  } else if (!wantsPayroll) {
+    return NextResponse.json<ApiResponse>({ success: false, error: "Sin cambios" }, { status: 400 });
   }
 
   // El admin no puede desactivar ni degradar su propio Staff vinculado (evita lockout).
-  if (a.staffId != null && id === a.staffId && (parsed.data.active === false || (parsed.data.role && parsed.data.role !== "MANAGER"))) {
+  if (a.staffId != null && id === a.staffId && (staffData.active === false || (staffData.role && staffData.role !== "MANAGER"))) {
     return NextResponse.json<ApiResponse>(
       { success: false, error: "No puedes desactivar ni cambiar tu propio rol de MANAGER" },
       { status: 400 }
@@ -45,8 +67,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
   try {
     const data = {
-      ...parsed.data,
-      ...(parsed.data.username ? { username: parsed.data.username.toLowerCase() } : {}),
+      ...staffData,
+      ...(staffData.username ? { username: staffData.username.toLowerCase() } : {}),
+      ...(wantsPayroll ? { payrollAccess: payrollAccessVal } : {}),
     };
     const updated = await prisma.staff.update({
       where: { id, tenantId: TENANT },

@@ -84,6 +84,10 @@ model Staff {
   // Estado
   active Boolean @default(true)
 
+  /// Permiso de VER y EDITAR sueldos (Nómina N-1). NO se deriva del rol —un manager
+  /// puede no tenerlo, y una hostess sí. Apagado por omisión; solo lo enciende quien ya lo tiene.
+  payrollAccess Boolean @default(false)
+
   // Telemetría
   lastLoginAt DateTime?
   lastShift   String? // "brunch" o "tarde", para reportes
@@ -124,6 +128,8 @@ model Staff {
   waiterTipsSettled     WaiterTipSettlement[] @relation("WaiterTipSettler") // liquidaciones que ejecutó como caja
   comandaNotesCreated   ComandaNote[]         @relation("ComandaNoteCreator") // notas libres que capturó
   stockMovements        StockMovement[]       @relation("StockMovementAuthor") // movimientos de almacén que registró (Almacén A-1)
+  salaries              StaffSalary[]         @relation("StaffSalaryOwner") // su historia de sueldos (Nómina N-1)
+  salariesAuthored      StaffSalary[]         @relation("StaffSalaryAuthor") // sueldos que registró para otros
   user                  User? // vínculo dual-realm (Ricardo). Inverso de User.staff
 
   @@index([tenantId, role, active])
@@ -1401,4 +1407,33 @@ model StockMovement {
 
   @@index([tenantId, itemId, createdAt])
   @@index([tenantId, type, createdAt])
+}
+
+// ============================================
+// NÓMINA (N-1) — solo cuánto gana cada persona
+// ============================================
+
+enum SalaryPeriod {
+  SEMANAL
+  QUINCENAL
+  MENSUAL
+}
+
+/// Sueldo de un empleado, CON HISTORIA. El vigente es el registro con el `effectiveFrom`
+/// más reciente que ya ocurrió. Append-only: corregir es registrar otro con su nota, nunca
+/// editar el anterior (así "cuánto ganaba en marzo" no se pierde).
+model StaffSalary {
+  id            Int          @id @default(autoincrement())
+  tenantId      Int          @default(1)
+  staffId       Int
+  staff         Staff        @relation("StaffSalaryOwner", fields: [staffId], references: [id])
+  amount        Decimal      @db.Decimal(10, 2)
+  period        SalaryPeriod @default(QUINCENAL)
+  effectiveFrom DateTime
+  note          String?
+  createdById   Int
+  createdBy     Staff        @relation("StaffSalaryAuthor", fields: [createdById], references: [id])
+  createdAt     DateTime     @default(now())
+
+  @@index([tenantId, staffId, effectiveFrom])
 }

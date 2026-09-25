@@ -26,6 +26,7 @@
     "db:seed:comida-2026-09": "tsx prisma/seeds/comida-carta-2026-09-04.ts",
     "db:seed:comida-fusion": "tsx prisma/seeds/comida-carta-fusion-2026-09-11.ts",
     "db:seed:brunch-2026-09": "tsx prisma/seeds/brunch-carta-2026-09-24.ts",
+    "db:seed:payroll-access": "tsx prisma/seeds/payroll-access.ts",
     "db:update-wine-images": "tsx prisma/update-wine-images.ts",
     "db:studio": "prisma studio",
     "test": "tsx --test tests/*.test.ts",
