@@ -48,7 +48,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     take: limit,
     select: {
       id: true, type: true, quantity: true, balanceAfter: true, unitCost: true,
-      supplier: true, reason: true, createdAt: true, createdBy: { select: { fullName: true } },
+      supplier: true, reasonCode: true, reason: true, createdAt: true, createdBy: { select: { fullName: true } },
     },
   });
 
@@ -59,6 +59,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     balanceAfter: Number(m.balanceAfter),
     unitCost: m.unitCost != null ? Number(m.unitCost) : null,
     supplier: m.supplier,
+    reasonCode: m.reasonCode,
     reason: m.reason,
     createdAt: m.createdAt,
     createdBy: { fullName: m.createdBy.fullName },
@@ -71,7 +72,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
  * POST /api/almacen/items/:id/movements — registra un movimiento. Es el corazón de A-1.
  * Roles POR TIPO (ver ROLES_BY_TYPE). AJUSTE exige además PIN de Manager. El stock del
  * item se recalcula DENTRO de la transacción con candado optimista (los movimientos son
- * la verdad). Body: { type, quantity, reason?, unitCost?, supplier?, pin? }.
+ * la verdad). Body: { type, quantity, reasonCode, reason?, unitCost?, supplier?, pin? }.
+ * `reasonCode` = motivo estructurado (obligatorio, ver STOCK_REASONS); `reason` = comentario libre.
  */
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   const id = parseId(params.id);
@@ -99,7 +101,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   }
 
   const quantity = round3(Number(body?.quantity));
-  const reason = typeof body?.reason === "string" ? body.reason.trim().slice(0, 200) : "";
+  const reasonCode = typeof body?.reasonCode === "string" ? body.reasonCode.trim().slice(0, 60) : ""; // motivo estructurado (A-4)
+  const reason = typeof body?.reason === "string" ? body.reason.trim().slice(0, 200) : ""; // comentario libre opcional
   const isEntrada = type === "ENTRADA";
 
   // unitCost y supplier SOLO se aceptan en ENTRADA; en los demás se ignoran.
@@ -138,7 +141,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   // condicional al stock leído (candado optimista) → alta del movimiento.
   let movement: {
     id: number; type: StockMoveType; quantity: unknown; balanceAfter: unknown;
-    unitCost: unknown; supplier: string | null; reason: string | null; createdAt: Date;
+    unitCost: unknown; supplier: string | null; reasonCode: string | null; reason: string | null; createdAt: Date;
     createdBy: { fullName: string };
   };
   try {
@@ -147,7 +150,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       if (!fresh) throw Object.assign(new Error("no encontrado"), { httpStatus: 404, clientMessage: "Producto no encontrado" });
 
       const current = Number(fresh.stock);
-      const v = validateMovement({ type, quantity, reason, currentStock: current });
+      const v = validateMovement({ type, quantity, reasonCode, reason, currentStock: current });
       if (!v.ok) throw Object.assign(new Error("inválido"), { httpStatus: 400, clientMessage: v.error });
 
       const balance = nextBalance(current, type, quantity);
@@ -169,12 +172,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           balanceAfter: balance,
           unitCost: isEntrada ? unitCost : null,
           supplier: isEntrada ? supplier : null,
+          reasonCode,
           reason: reason || null,
           createdById: s.staffId as number,
         },
         select: {
           id: true, type: true, quantity: true, balanceAfter: true, unitCost: true,
-          supplier: true, reason: true, createdAt: true, createdBy: { select: { fullName: true } },
+          supplier: true, reasonCode: true, reason: true, createdAt: true, createdBy: { select: { fullName: true } },
         },
       });
     });
@@ -197,7 +201,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       roles: ["MANAGER"],
       type: "audit",
       title: type === "MERMA" ? "Merma en almacén" : "Ajuste de almacén",
-      body: `${item.name} · ${detalle} ${item.unit} · por ${movement.createdBy.fullName} · ${reason}`,
+      body: `${item.name} · ${detalle} ${item.unit} · ${reasonCode} · por ${movement.createdBy.fullName}${reason ? ` · ${reason}` : ""}`,
       url: "/staff/almacen",
     });
   }
@@ -230,6 +234,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         balanceAfter: Number(movement.balanceAfter),
         unitCost: movement.unitCost != null ? Number(movement.unitCost) : null,
         supplier: movement.supplier,
+        reasonCode: movement.reasonCode,
         reason: movement.reason,
         createdAt: movement.createdAt,
         createdBy: { fullName: movement.createdBy.fullName },

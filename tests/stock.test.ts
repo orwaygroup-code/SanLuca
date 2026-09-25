@@ -25,44 +25,78 @@ test("nextBalance: AJUSTE fija el saldo (conteo físico, no diferencia)", () => 
   assert.equal(nextBalance(999, "AJUSTE", 7.5), 7.5);
 });
 
-// ── validateMovement ──
+// ── validateMovement (ajustados a la regla nueva de reasonCode, Ola A-4) ──
 test("validateMovement: SALIDA mayor que el stock falla", () => {
-  const r = validateMovement({ type: "SALIDA", quantity: 6, currentStock: 5 });
+  const r = validateMovement({ type: "SALIDA", quantity: 6, reasonCode: "Preparación del servicio", currentStock: 5 });
   assert.equal(r.ok, false);
   if (!r.ok) assert.equal(r.error, "No hay suficiente: hay 5");
 });
 
 test("validateMovement: MERMA mayor que el stock falla", () => {
-  const r = validateMovement({ type: "MERMA", quantity: 6, reason: "se cayó", currentStock: 5 });
+  const r = validateMovement({ type: "MERMA", quantity: 6, reasonCode: "Caducado", currentStock: 5 });
   assert.equal(r.ok, false);
   if (!r.ok) assert.equal(r.error, "No hay suficiente: hay 5");
 });
 
 test("validateMovement: SALIDA exacta hasta 0 pasa", () => {
-  assert.deepEqual(validateMovement({ type: "SALIDA", quantity: 5, currentStock: 5 }), { ok: true });
+  assert.deepEqual(validateMovement({ type: "SALIDA", quantity: 5, reasonCode: "Preparación del servicio", currentStock: 5 }), { ok: true });
 });
 
 test("validateMovement: AJUSTE a 0 pasa", () => {
-  assert.deepEqual(validateMovement({ type: "AJUSTE", quantity: 0, reason: "conteo", currentStock: 8 }), { ok: true });
+  assert.deepEqual(validateMovement({ type: "AJUSTE", quantity: 0, reasonCode: "Conteo físico", currentStock: 8 }), { ok: true });
 });
 
-test("validateMovement: MERMA sin motivo falla, con motivo pasa", () => {
-  const sin = validateMovement({ type: "MERMA", quantity: 1, currentStock: 5 });
-  assert.equal(sin.ok, false);
-  if (!sin.ok) assert.equal(sin.error, "El motivo es obligatorio");
-  assert.deepEqual(validateMovement({ type: "MERMA", quantity: 1, reason: "  se tiró  ", currentStock: 5 }), { ok: true });
-});
-
-test("validateMovement: AJUSTE sin motivo falla", () => {
-  const r = validateMovement({ type: "AJUSTE", quantity: 3, currentStock: 5 });
-  assert.equal(r.ok, false);
-  if (!r.ok) assert.equal(r.error, "El motivo es obligatorio");
-});
-
-test("validateMovement: cantidad 0 en SALIDA falla", () => {
-  const r = validateMovement({ type: "SALIDA", quantity: 0, currentStock: 5 });
+test("validateMovement: cantidad 0 en SALIDA falla (antes que el motivo)", () => {
+  const r = validateMovement({ type: "SALIDA", quantity: 0, reasonCode: "Preparación del servicio", currentStock: 5 });
   assert.equal(r.ok, false);
   if (!r.ok) assert.equal(r.error, "La cantidad debe ser mayor que cero");
+});
+
+// ── validateMovement: motivo estructurado (Ola A-4) ──
+test("validateMovement: un motivo válido de cada tipo pasa", () => {
+  assert.deepEqual(validateMovement({ type: "ENTRADA", quantity: 1, reasonCode: "Compra a proveedor", currentStock: 100 }), { ok: true });
+  assert.deepEqual(validateMovement({ type: "SALIDA", quantity: 1, reasonCode: "Preparación del servicio", currentStock: 100 }), { ok: true });
+  assert.deepEqual(validateMovement({ type: "MERMA", quantity: 1, reasonCode: "Caducado", currentStock: 100 }), { ok: true });
+  assert.deepEqual(validateMovement({ type: "AJUSTE", quantity: 1, reasonCode: "Conteo físico", currentStock: 100 }), { ok: true });
+});
+
+test("validateMovement: un motivo de OTRO tipo falla (Caducado en ENTRADA)", () => {
+  const r = validateMovement({ type: "ENTRADA", quantity: 1, reasonCode: "Caducado", currentStock: 100 });
+  assert.equal(r.ok, false);
+  if (!r.ok) assert.equal(r.error, "Motivo no válido");
+});
+
+test("validateMovement: sin motivo falla", () => {
+  const r = validateMovement({ type: "SALIDA", quantity: 1, currentStock: 100 });
+  assert.equal(r.ok, false);
+  if (!r.ok) assert.equal(r.error, "Elige un motivo");
+});
+
+test("validateMovement: 'Otro' sin comentario falla", () => {
+  const r = validateMovement({ type: "SALIDA", quantity: 1, reasonCode: "Otro", reason: "   ", currentStock: 100 });
+  assert.equal(r.ok, false);
+  if (!r.ok) assert.equal(r.error, "Explica el motivo en el comentario");
+});
+
+test("validateMovement: 'Otro' con comentario pasa", () => {
+  assert.deepEqual(validateMovement({ type: "SALIDA", quantity: 1, reasonCode: "Otro", reason: "prueba de sabor del chef", currentStock: 100 }), { ok: true });
+});
+
+test("validateMovement: una merma con motivo y SIN comentario pasa (antes fallaba)", () => {
+  assert.deepEqual(validateMovement({ type: "MERMA", quantity: 1, reasonCode: "Se echó a perder", currentStock: 100 }), { ok: true });
+});
+
+// Ex-tests de la regla vieja «El motivo es obligatorio», reescritos a la regla nueva.
+test("validateMovement: MERMA sin motivo estructurado falla (antes: 'El motivo es obligatorio')", () => {
+  const r = validateMovement({ type: "MERMA", quantity: 1, currentStock: 100 });
+  assert.equal(r.ok, false);
+  if (!r.ok) assert.equal(r.error, "Elige un motivo");
+});
+
+test("validateMovement: AJUSTE sin motivo estructurado falla (antes: 'El motivo es obligatorio')", () => {
+  const r = validateMovement({ type: "AJUSTE", quantity: 3, currentStock: 5 });
+  assert.equal(r.ok, false);
+  if (!r.ok) assert.equal(r.error, "Elige un motivo");
 });
 
 // ── round3 ──

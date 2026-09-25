@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { C, Modal, Spinner, EmptyState, Badge, btn, fld, usePoll, type ToastKind } from "@/components/staff/ui";
 import { apiFetch } from "@/components/staff/types";
+import { STOCK_REASONS } from "@/lib/stock";
 
 /**
  * Almacén (Ola A-3). Consume el backend de A-1/A-2. NINGÚN campo de stock en los
@@ -24,7 +25,7 @@ interface AlmCat { id: number; name: string; position: number | null; active: bo
 interface Movement {
   id: number; type: "ENTRADA" | "SALIDA" | "MERMA" | "AJUSTE";
   quantity: number; balanceAfter: number; unitCost: number | null; supplier: string | null;
-  reason: string | null; createdAt: string; createdBy: { fullName: string };
+  reasonCode: string | null; reason: string | null; createdAt: string; createdBy: { fullName: string };
 }
 
 const MX_TZ = "America/Mexico_City";
@@ -229,6 +230,7 @@ function MovementSheet({ item, kind, canMerma, push, onClose, onDone }: {
   item: AlmItem; kind: "ENTRADA" | "SALIDA"; canMerma: boolean; push: Push; onClose: () => void; onDone: () => void;
 }) {
   const [value, setValue] = useState("");
+  const [reasonCode, setReasonCode] = useState("");
   const [reason, setReason] = useState("");
   const [merma, setMerma] = useState(false);
   const [supplier, setSupplier] = useState("");
@@ -239,12 +241,12 @@ function MovementSheet({ item, kind, canMerma, push, onClose, onDone }: {
   const type = isEntrada ? "ENTRADA" : merma ? "MERMA" : "SALIDA";
   const qty = parseFloat(value) || 0;
   const result = round3(isEntrada ? item.stock + qty : item.stock - qty);
-  const needsReason = type === "MERMA";
-  const canSubmit = qty > 0 && (!needsReason || reason.trim().length > 0) && !busy;
+  const otroNeedsComment = reasonCode === "Otro" && reason.trim().length === 0;
+  const canSubmit = qty > 0 && reasonCode !== "" && !otroNeedsComment && !busy;
 
   const submit = async () => {
     setBusy(true);
-    const body: Record<string, unknown> = { type, quantity: qty };
+    const body: Record<string, unknown> = { type, quantity: qty, reasonCode };
     if (reason.trim()) body.reason = reason.trim();
     if (isEntrada) {
       if (supplier.trim()) body.supplier = supplier.trim();
@@ -284,7 +286,7 @@ function MovementSheet({ item, kind, canMerma, push, onClose, onDone }: {
 
           {!isEntrada && canMerma && (
             <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 16, cursor: "pointer", color: C.cream, fontSize: "0.88rem" }}>
-              <input type="checkbox" checked={merma} onChange={(e) => setMerma(e.target.checked)} style={{ width: 20, height: 20, accentColor: C.gold }} />
+              <input type="checkbox" checked={merma} onChange={(e) => { setMerma(e.target.checked); setReasonCode(""); }} style={{ width: 20, height: 20, accentColor: C.gold }} />
               Es merma (producto que se tiró)
             </label>
           )}
@@ -298,13 +300,20 @@ function MovementSheet({ item, kind, canMerma, push, onClose, onDone }: {
             </div>
           )}
 
-          <label style={{ ...fld.label, marginTop: 16 }}>Motivo {needsReason ? "(obligatorio)" : "(opcional)"}</label>
-          <input style={fld.input} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={needsReason ? "¿Qué pasó?" : "Nota (opcional)"} />
+          <label style={{ ...fld.label, marginTop: 16 }}>Motivo</label>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {STOCK_REASONS[type].map((rc) => (
+              <button key={rc} onClick={() => setReasonCode(rc)} style={{ ...chipStyle, ...(reasonCode === rc ? chipOn : {}) }}>{rc}</button>
+            ))}
+          </div>
+
+          <label style={{ ...fld.label, marginTop: 16 }}>Comentario {reasonCode === "Otro" ? "(obligatorio)" : "(opcional)"}</label>
+          <input style={fld.input} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={reasonCode === "Otro" ? "Explica el motivo" : "Nota (opcional)"} />
         </div>
 
         <div style={sheetFoot}>
           <button style={{ ...btn.primary, width: "100%", minHeight: 52, opacity: canSubmit ? 1 : 0.5 }} onClick={submit} disabled={!canSubmit}>
-            {busy ? "Registrando…" : `Registrar ${verb.toLowerCase()} · quedan ${fmtQ(result)} ${item.unit.toLowerCase()}`}
+            {busy ? "Registrando…" : reasonCode === "" ? "Elige un motivo" : `Registrar ${verb.toLowerCase()} · quedan ${fmtQ(result)} ${item.unit.toLowerCase()}`}
           </button>
         </div>
       </div>
@@ -374,6 +383,7 @@ function HistorySheet({ item, isManager, push, onClose, onAdjust }: {
                       {m.type === "ENTRADA" && m.supplier ? ` · ${m.supplier}` : ""}
                       {m.type === "ENTRADA" && m.unitCost != null ? ` · $${m.unitCost}/u` : ""}
                     </div>
+                    {m.reasonCode && <div style={{ marginTop: 5 }}><Badge text={m.reasonCode} color={C.dim} /></div>}
                     {m.reason && <div style={{ color: C.dim, fontSize: "0.78rem", marginTop: 4 }}>{m.reason}</div>}
                   </div>
                 );
@@ -399,19 +409,21 @@ function HistorySheet({ item, isManager, push, onClose, onAdjust }: {
 
 function AdjustSheet({ item, push, onClose, onDone }: { item: AlmItem; push: Push; onClose: () => void; onDone: () => void }) {
   const [value, setValue] = useState("");
+  const [reasonCode, setReasonCode] = useState("");
   const [reason, setReason] = useState("");
   const [pin, setPin] = useState("");
   const [busy, setBusy] = useState(false);
 
   const counted = parseFloat(value) || 0;
   const diff = round3(counted - item.stock);
-  const canSubmit = value !== "" && reason.trim().length > 0 && /^\d{4}$/.test(pin) && !busy;
+  const otroNeedsComment = reasonCode === "Otro" && reason.trim().length === 0;
+  const canSubmit = value !== "" && reasonCode !== "" && !otroNeedsComment && /^\d{4}$/.test(pin) && !busy;
 
   const submit = async () => {
     setBusy(true);
     const r = await apiFetch(`/api/almacen/items/${item.id}/movements`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "AJUSTE", quantity: counted, reason: reason.trim(), pin }),
+      body: JSON.stringify({ type: "AJUSTE", quantity: counted, reasonCode, ...(reason.trim() ? { reason: reason.trim() } : {}), pin }),
     });
     setBusy(false);
     if (r.ok) { push("Ajuste registrado", "success"); onDone(); }
@@ -447,8 +459,14 @@ function AdjustSheet({ item, push, onClose, onDone }: { item: AlmItem; push: Pus
             <div style={rowKV}><span style={{ color: C.dim }}>Diferencia</span><span style={{ color: diff < 0 ? C.red : diff > 0 ? C.green : C.dim, fontWeight: 800 }}>{diff > 0 ? "+" : ""}{fmtQ(diff)} {u}</span></div>
           </div>
 
-          <label style={{ ...fld.label, marginTop: 16 }}>Motivo (obligatorio)</label>
-          <input style={fld.input} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="ej. conteo físico de fin de mes" />
+          <label style={{ ...fld.label, marginTop: 16 }}>Motivo</label>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {STOCK_REASONS.AJUSTE.map((rc) => (
+              <button key={rc} onClick={() => setReasonCode(rc)} style={{ ...chipStyle, ...(reasonCode === rc ? chipOn : {}) }}>{rc}</button>
+            ))}
+          </div>
+          <label style={{ ...fld.label, marginTop: 12 }}>Comentario {reasonCode === "Otro" ? "(obligatorio)" : "(opcional)"}</label>
+          <input style={fld.input} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={reasonCode === "Otro" ? "Explica el motivo" : "ej. conteo físico de fin de mes"} />
           <label style={{ ...fld.label, marginTop: 12 }}>PIN de Manager</label>
           <input
             style={{ ...fld.input, letterSpacing: "0.5em", textAlign: "center", fontSize: "1.15rem" }}

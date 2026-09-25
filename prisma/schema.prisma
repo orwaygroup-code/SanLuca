@@ -1392,7 +1392,9 @@ model StockMovement {
   balanceAfter Decimal       @db.Decimal(12, 3)
   unitCost     Decimal?      @db.Decimal(10, 2)
   supplier     String?
-  reason       String?
+  reasonCode   String? /// motivo estructurado (ver STOCK_REASONS). Nulable solo por las filas
+                       /// anteriores a la Ola A-4; la API lo exige siempre.
+  reason       String? /// COMENTARIO libre opcional (obligatorio solo cuando el motivo es "Otro"). No es el motivo estructurado.
   createdById  Int
   createdBy    Staff         @relation("StockMovementAuthor", fields: [createdById], references: [id])
   createdAt    DateTime      @default(now())
