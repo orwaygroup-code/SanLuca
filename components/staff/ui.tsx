@@ -70,6 +70,7 @@ export const ROLE_LABEL: Record<string, string> = {
   OPERATION: "Operación",
   CAPTAIN: "Capitán",
   MANAGER: "Manager",
+  KITCHEN: "Cocina",
   ADMIN: "Administrador",
 };
 

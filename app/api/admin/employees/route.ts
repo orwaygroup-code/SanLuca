@@ -13,7 +13,7 @@ import type { ApiResponse } from "@/types";
  */
 
 const PUBLIC_SELECT = {
-  id: true, username: true, fullName: true, role: true, active: true,
+  id: true, username: true, fullName: true, role: true, active: true, payrollAccess: true,
   lastLoginAt: true, lastShift: true, createdAt: true, updatedAt: true,
 } as const;
 

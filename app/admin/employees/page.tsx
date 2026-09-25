@@ -11,6 +11,7 @@ type Role = "WAITER" | "OPERATION" | "CAPTAIN" | "MANAGER" | "KITCHEN";
 
 interface StaffRow {
   id: number; username: string; fullName: string; role: Role; active: boolean;
+  payrollAccess: boolean;
   lastLoginAt: string | null; createdAt: string;
 }
 
@@ -106,7 +107,7 @@ export default function EmployeesPage() {
       {loading ? <p style={S.empty}>Cargando…</p> : rows.length === 0 ? <p style={S.empty}>Sin empleados.</p> : (
         <div style={{ overflowX: "auto" }}>
           <table style={S.table}>
-            <thead><tr>{["Nombre", "Usuario", "Rol", "Estado", "Último acceso", "Acciones"].map((h) => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+            <thead><tr>{["Nombre", "Usuario", "Rol", "Estado", "Nómina", "Último acceso", "Acciones"].map((h) => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
             <tbody>
               {rows.map((row) => (
                 <tr key={row.id} style={{ opacity: row.active ? 1 : 0.45 }}>
@@ -114,6 +115,7 @@ export default function EmployeesPage() {
                   <td style={{ ...S.td, color: "rgb(var(--sl-cream-rgb) / 0.72)" }}>{row.username}</td>
                   <td style={S.td}><span style={{ ...S.badge, borderColor: ROLE_COLOR[row.role], color: ROLE_COLOR[row.role] }}>{ROLE_LABEL[row.role]}</span></td>
                   <td style={S.td}><span style={{ color: row.active ? "#4caf50" : "var(--sl-danger)", fontWeight: 600, fontSize: "0.78rem" }}>{row.active ? "Activo" : "Inactivo"}</span></td>
+                  <td style={S.td}>{row.payrollAccess ? <span style={{ color: "var(--sl-gold)", fontWeight: 700, fontSize: "0.78rem" }}>Sí</span> : <span style={{ color: "rgb(var(--sl-cream-rgb) / 0.5)", fontSize: "0.78rem" }}>—</span>}</td>
                   <td style={{ ...S.td, color: "rgb(var(--sl-cream-rgb) / 0.68)", fontSize: "0.78rem" }}>{fmtDateTime(row.lastLoginAt)}</td>
                   <td style={S.td}>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -209,6 +211,7 @@ function EmployeeFormModal({ mode, row, onClose, onSaved }: {
   const [fullName, setFullName] = useState(row?.fullName ?? "");
   const [role, setRole] = useState<Role>(row?.role ?? "WAITER");
   const [pin, setPin] = useState("");
+  const [payrollAccess, setPayrollAccess] = useState(row?.payrollAccess ?? false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -226,7 +229,9 @@ function EmployeeFormModal({ mode, row, onClose, onSaved }: {
       } else if (row) {
         const r = await fetch(`/api/admin/employees/${row.id}`, {
           method: "PATCH", credentials: "same-origin", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username: username.trim().toLowerCase(), fullName: fullName.trim(), role }),
+          // payrollAccess SOLO si cambió: mandarlo siempre haría que un ADMIN sin el permiso
+          // no pudiera ni corregir un nombre (el servidor rechaza el campo que no le toca).
+          body: JSON.stringify({ username: username.trim().toLowerCase(), fullName: fullName.trim(), role, ...(payrollAccess !== row.payrollAccess ? { payrollAccess } : {}) }),
         });
         const d = await r.json().catch(() => null);
         if (!d?.success) throw new Error(mapErr(d?.error));
@@ -254,6 +259,15 @@ function EmployeeFormModal({ mode, row, onClose, onSaved }: {
           <label style={S.label}>Rol</label>
           <GoldSelect value={role} onChange={(v) => setRole(v as Role)} options={ROLE_OPTIONS} placeholder="Selecciona rol" />
         </div>
+        {mode === "edit" && (
+          <label style={{ display: "flex", gap: 10, alignItems: "flex-start", cursor: "pointer" }}>
+            <input type="checkbox" checked={payrollAccess} onChange={(e) => setPayrollAccess(e.target.checked)} style={{ width: 18, height: 18, marginTop: 2, accentColor: "var(--sl-gold)" }} />
+            <span>
+              <span style={{ color: "var(--sl-cream)", fontSize: "0.85rem", fontWeight: 600 }}>Acceso a nómina</span>
+              <span style={{ display: "block", color: "rgb(var(--sl-cream-rgb) / 0.6)", fontSize: "0.76rem", marginTop: 2 }}>Puede ver y cambiar los sueldos de todos, y dar este mismo permiso.</span>
+            </span>
+          </label>
+        )}
         {mode === "create" && (
           <div>
             <label style={S.label}>PIN inicial (opcional)</label>

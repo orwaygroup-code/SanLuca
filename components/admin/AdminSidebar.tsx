@@ -49,6 +49,7 @@ const GROUPS: { title: string; items: NavLink[] }[] = [
   { title: "Administración", items: [
     { href: "/admin/employees", label: "Empleados", icon: "users" },
     { href: "/admin/creditos", label: "Créditos de personal", icon: "clipboard-text" },
+    { href: "/admin/nomina", label: "Nómina", icon: "cash" },
     { href: "/admin/menu", label: "Productos", icon: "clipboard-text" },
     { href: "/admin/almacen", label: "Almacén", icon: "clipboard-text" },
     { href: "/admin/extras", label: "Extras", icon: "star" },
