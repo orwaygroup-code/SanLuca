@@ -1,22 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdminSession } from "@/lib/dualAuth";
 import { TENANT } from "@/lib/comanda";
 import { currentSalary, netPay } from "@/lib/payroll";
+import { requirePayroll } from "@/lib/payrollAuth";
 import type { ApiResponse } from "@/types";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
-
-/**
- * Guard de nómina: ADMIN + Staff ligado con `payrollAccess: true`. Devuelve el staffId del
- * actor (para `createdById`) o null si no tiene acceso. Local a nómina; lo usan los 3 handlers.
- */
-export async function requirePayroll(request: NextRequest): Promise<number | null> {
-  const a = await requireAdminSession(request);
-  if (!a || a.staffId == null) return null;
-  const staff = await prisma.staff.findUnique({ where: { id: a.staffId }, select: { payrollAccess: true } });
-  return staff?.payrollAccess ? a.staffId : null;
-}
 
 /**
  * GET /api/admin/nomina — una fila por empleado activo (menos el sistema "llevar") con su

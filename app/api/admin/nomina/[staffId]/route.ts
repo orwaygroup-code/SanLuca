@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { TENANT } from "@/lib/comanda";
-import { requirePayroll } from "../route";
+import { requirePayroll } from "@/lib/payrollAuth";
 import type { ApiResponse } from "@/types";
 
 const MX_OFFSET = "-06:00";
