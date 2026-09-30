@@ -1,6 +1,5 @@
 import { createHmac, randomBytes } from "crypto";
-
-const SECRET = process.env.AUTH_SECRET ?? "sanluca-dev-secret";
+import { AUTH_SECRET as SECRET } from "./authSecret";
 
 export interface GoogleTokenPayload {
   userId: string;

@@ -12,17 +12,7 @@ import { createHmac, randomBytes, timingSafeEqual } from "crypto";
  * token de un realm nunca valide en el otro.
  */
 
-const SECRET = process.env.AUTH_SECRET ?? "sanluca-dev-secret";
-
-// Fail-fast: ver lib/session.ts. En producción no se firma/verifica con el
-// secreto de dev. El guard de NEXT_PHASE evita abortar el build.
-if (
-  process.env.NODE_ENV === "production" &&
-  process.env.NEXT_PHASE !== "phase-production-build" &&
-  !process.env.AUTH_SECRET
-) {
-  throw new Error("AUTH_SECRET no está definido en producción.");
-}
+import { AUTH_SECRET as SECRET } from "./authSecret";
 
 export const STAFF_SESSION_COOKIE = "sl_staff";
 export const STAFF_SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 días

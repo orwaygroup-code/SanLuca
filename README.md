@@ -149,7 +149,7 @@ Para soportar múltiples restaurantes en una sola instancia:
 2. **Agregar `tenantId` como FK** a todos los modelos existentes.
 3. **Middleware de resolución de tenant** que identifica el restaurante por subdominio (`restaurante-a.tuapp.com`) o header personalizado.
 4. **Row-Level Security** en todas las queries para aislar datos entre tenants.
-5. **Migrar `config/site.ts`** a la base de datos como configuración por tenant.
+5. **Mover la identidad del restaurante** (nombre, dominio, tema, textos) a la base de datos.
 
 ### Tecnologías Recomendadas para Escalar
 
