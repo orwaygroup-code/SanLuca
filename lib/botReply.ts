@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { BRAND } from "@/lib/brand";
 
 /**
  * Respuesta de intención del bot de WhatsApp para { phone, message }: busca las
@@ -111,7 +112,7 @@ export async function buildBotReply(phone: string, message: string): Promise<str
         : r.sectionPreference ?? "Por asignar";
 
     const lines = [
-        `¡Hola ${r.guestName}! 🍽️ Aquí el resumen de tu reserva en *San Luca*:\n`,
+        `¡Hola ${r.guestName}! 🍽️ Aquí el resumen de tu reserva en *${BRAND.shortName}*:\n`,
         `📅 *${fecha}*`,
         `🕐 ${hora}`,
         `👥 ${r.guests} persona${r.guests !== 1 ? "s" : ""}`,

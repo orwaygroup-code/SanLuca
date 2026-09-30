@@ -7,6 +7,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getMenuCategoryById } from "@/lib/db";
+import { BRAND } from "@/lib/brand";
 import { fonts, colors } from "@/config/theme";
 import DishCardGold from "@/components/menu/DishCardGold";
 
@@ -19,7 +20,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const category = await getMenuCategoryById(id);
   if (!category) return { title: "Categoría no encontrada" };
   return {
-    title: `${category.name} | San Luca`,
+    title: `${category.name} | ${BRAND.shortName}`,
     description: `Platillos en ${category.name}`,
   };
 }

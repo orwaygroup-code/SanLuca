@@ -7,12 +7,17 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { getFeaturedDishes, getTopDishesBySection, getMenuCategories } from "@/lib/db";
+import { BRAND } from "@/lib/brand";
 import MenuPageClient from "@/components/menu/MenuPageClient";
 
-export const metadata: Metadata = {
-  title: "Menú | San Luca",
-  description: "Explora nuestro menú de cocina italiana premium",
-};
+// Síncrono a propósito: solo lee la constante BRAND (resuelta al cargar el módulo).
+// No introduce funciones dinámicas, así que no cambia el modo de render de la ruta.
+export function generateMetadata(): Metadata {
+  return {
+    title: `Menú | ${BRAND.shortName}`,
+    description: "Explora nuestro menú de cocina italiana premium",
+  };
+}
 
 export const revalidate = 60;
 

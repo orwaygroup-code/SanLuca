@@ -20,7 +20,7 @@ export interface CreatePreferenceArgs {
   amount: number;
   customerName: string;
   customerEmail: string;
-  description: string; // ej: "Apartado reserva San Luca - Día de las Madres"
+  description: string; // ej: "Apartado reserva <Restaurante> - Día de las Madres"
   appUrl: string;      // base public URL (NEXT_PUBLIC_APP_URL)
 }
 

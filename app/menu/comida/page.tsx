@@ -5,14 +5,19 @@
 
 import type { Metadata } from "next";
 import { getFeaturedDishes, getMenuCategories } from "@/lib/db";
+import { BRAND } from "@/lib/brand";
 import PlatosInsignia from "@/components/menu/Platosinsignia";
 import ComidaSectionsClient from "@/components/menu/ComidaSectionsClient";
 
-export const metadata: Metadata = {
-    title: "Menú Comida | San Luca",
-    description:
-        "Cocina italiana de autor — Clásica, Autor, Bebidas, Vinos y más",
-};
+// Síncrono a propósito: solo lee la constante BRAND (resuelta al cargar el módulo).
+// No introduce funciones dinámicas, así que no cambia el modo de render de la ruta.
+export function generateMetadata(): Metadata {
+    return {
+        title: `Menú Comida | ${BRAND.shortName}`,
+        description:
+            "Cocina italiana de autor — Clásica, Autor, Bebidas, Vinos y más",
+    };
+}
 
 // Render por request: 3 platos insignia al azar distintos en cada carga.
 export const dynamic = "force-dynamic";

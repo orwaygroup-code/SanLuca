@@ -5,6 +5,7 @@
 // <link rel="manifest"> con la ruta actual en cada navegación.
 
 import { NextRequest, NextResponse } from "next/server";
+import { BRAND } from "@/lib/brand";
 
 export const dynamic = "force-dynamic";
 
@@ -30,9 +31,9 @@ export function GET(request: NextRequest) {
   const start_url = raw.startsWith("/") && !raw.startsWith("//") ? raw : "/staff/comandas";
 
   const manifest = {
-    name: "San Luca — Operación",
-    short_name: "San Luca",
-    description: "Sistema de comandas y operación de San Luca Ristorante.",
+    name: `${BRAND.shortName} — Operación`,
+    short_name: BRAND.shortName,
+    description: `Sistema de comandas y operación de ${BRAND.name}.`,
     start_url,
     scope: "/",
     display: "standalone",

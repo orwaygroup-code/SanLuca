@@ -8,6 +8,7 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getMenuCategoryByName } from "@/lib/db";
+import { BRAND } from "@/lib/brand";
 import { fonts } from "@/config/theme";
 import DishCardBlue from "@/components/menu/DishCardBlue";
 import NavThemeSetter from "@/components/NavThemeSetter";
@@ -33,7 +34,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
               ?? (await getMenuCategoryByName(name));
     if (!data) return { title: "Categoría no encontrada" };
     return {
-        title: `${data.name} | Brunch | San Luca`,
+        title: `${data.name} | Brunch | ${BRAND.shortName}`,
         description: `Platillos de brunch — ${data.name}`,
     };
 }
@@ -117,7 +118,7 @@ export default async function BrunchCategoryPage({ params }: PageProps) {
                         position: "relative",
                     }}
                 >
-                    San Luca · Brunch
+                    {BRAND.shortName} · Brunch
                 </p>
 
                 {/* BRUNCH big label — PDF p.5 */}

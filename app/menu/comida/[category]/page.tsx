@@ -8,6 +8,7 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getMenuCategoryByName } from "@/lib/db";
+import { BRAND } from "@/lib/brand";
 import { fonts, colors } from "@/config/theme";
 import DishCardGold from "@/components/menu/DishCardGold";
 import NavThemeSetter from "@/components/NavThemeSetter";
@@ -21,7 +22,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const data = await getMenuCategoryByName(decodeURIComponent(category));
     if (!data) return { title: "Categoría no encontrada" };
     return {
-        title: `${data.name} | San Luca`,
+        title: `${data.name} | ${BRAND.shortName}`,
         description: `Platillos en ${data.name}`,
     };
 }
@@ -101,7 +102,7 @@ export default async function ComidaCategoryPage({ params }: PageProps) {
                         position: "relative",
                     }}
                 >
-                    San Luca · Comida
+                    {BRAND.shortName} · Comida
                 </p>
 
                 <h1

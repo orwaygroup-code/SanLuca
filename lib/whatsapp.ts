@@ -1,3 +1,5 @@
+import { BRAND } from "@/lib/brand";
+
 const GRAPH_VERSION = "v21.0";
 
 function formatPhone(raw: string): string {
@@ -27,7 +29,7 @@ export function buildReservationCaption(params: {
         minute:  "2-digit",
     });
     const section = params.sectionPreference ? `\n📍 ${params.sectionPreference}` : "";
-    const brand   = params.markdown ? "*San Luca*" : "San Luca";
+    const brand   = params.markdown ? `*${BRAND.shortName}*` : BRAND.shortName;
     return (
         `¡Hola ${params.guestName}! 🍽️\n\n` +
         `Tu reserva en ${brand} ha sido registrada.\n\n` +

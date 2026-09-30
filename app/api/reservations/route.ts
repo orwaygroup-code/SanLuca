@@ -12,6 +12,7 @@ import { sendReservationQR } from "@/lib/whatsapp";
 import { notify } from "@/lib/notify";
 import { getAvailableCredit, applyCreditsToReservation } from "@/lib/credits";
 import { createReservationPreference } from "@/lib/mercadopago";
+import { BRAND } from "@/lib/brand";
 import { getSchedule } from "@/lib/schedule";
 import { checkReservationDateTime } from "@/lib/reservationRules";
 import { getSession } from "@/lib/auth-server";
@@ -357,7 +358,7 @@ export async function POST(request: NextRequest) {
                     amount: amountToPay,
                     customerName: rest.guestName,
                     customerEmail,
-                    description: `Apartado reserva San Luca · ${special.label}`,
+                    description: `Apartado reserva ${BRAND.shortName} · ${special.label}`,
                     appUrl,
                 });
                 await prisma.payment.create({

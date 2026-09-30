@@ -14,6 +14,8 @@
  * lanza; el llamador lo registra y el aviso puede darse a mano.
  */
 
+import { BRAND } from "@/lib/brand";
+
 export interface SendMailArgs {
   to:      string;
   subject: string;
@@ -71,7 +73,7 @@ export function buildAccountDeletionEmail(args: {
   const text = [
     greeting,
     "",
-    "Confirmamos que hemos eliminado su cuenta de San Luca Ristorante conforme",
+    `Confirmamos que hemos eliminado su cuenta de ${BRAND.name} conforme`,
     "a su derecho de Cancelación (LFPDPPP §VI).",
     "",
     `· Folio de la solicitud: ${args.folio}`,
@@ -83,7 +85,7 @@ export function buildAccountDeletionEmail(args: {
     "",
     "Si tiene preguntas, escríbanos a privacidad@sanlucaristorante.com.",
     "",
-    "— San Luca Ristorante",
+    `— ${BRAND.name}`,
   ].join("\n");
   return { subject, text };
 }
