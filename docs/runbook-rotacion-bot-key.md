@@ -29,7 +29,13 @@ borró por parecer código muerto y el bot quedó 12 días sin transcripción).
 grep -n '^BOT_API_KEY' /var/www/sanluca/.env; crontab -l | grep -o 'x-bot-key: [^"]*' | sort -u; sqlite3 -readonly ~/.n8n/database.sqlite "SELECT (length(nodes)-length(replace(nodes,'sanluca-bot-2026','')))/length('sanluca-bot-2026') AS nodos_con_llave_vieja FROM workflow_entity WHERE id='qwN0IYjX8soUDGGo';"
 ```
 
-Verificado el 29 sep: `.env` = vieja, cron = vieja (un solo valor), n8n = **7** nodos.
+Verificado el 29 sep antes de empezar: `.env` = vieja, cron = vieja (un solo valor),
+n8n = **7** nodos con la llave escrita a mano.
+
+> **Fase 1 completada el 29 sep 2026.** Los 7 nodos usan ya la credencial
+> `SanLuca - x-bot-key`; el contador dio **0** y el bot respondió a un mensaje real.
+> Queda pendiente la **Fase 2** (cambiar el valor) y probar las 5 rutas restantes de la
+> tabla de abajo.
 
 ---
 
