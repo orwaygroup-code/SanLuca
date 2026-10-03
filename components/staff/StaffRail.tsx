@@ -16,7 +16,7 @@ import { Icon, type IconName } from "./icons";
  */
 
 export type OperTab = "mesas" | "llegadas" | "llevar" | "monitor" | "propinas";
-export type RailActive = OperTab | "reservas" | "historial" | "cuentas" | "cocina";
+export type RailActive = OperTab | "reservas" | "historial" | "cuentas" | "cocina" | "reportes";
 
 export function StaffRail({
   active, counts, onTab, onRefresh, onHelp, onLogout, userName, role,
@@ -72,6 +72,8 @@ export function StaffRail({
         <RailItem sm icon="faltantes101" label="86 · 101" active={active === "cocina"} onClick={() => router.push("/staff/cocina?tab=86")} />
         <RailItem sm icon="pulse" label="Monitor" dataTour="monitor" active={active === "monitor"} onClick={() => goTab("monitor")} />
         <RailItem sm icon="coins" label="Propinas" active={active === "propinas"} onClick={() => goTab("propinas")} />
+        {/* Continuación natural de Propinas: las de hoy (pestaña) y los reportes de días pasados. */}
+        <RailItem sm icon="scissors" label="Reportes" active={active === "reportes"} onClick={() => router.push("/staff/reportes")} />
       </div>
 
       <div style={rail.grow} />

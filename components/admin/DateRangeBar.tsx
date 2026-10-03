@@ -22,7 +22,7 @@ export function DateRangeBar({ value, onChange }: { value: DateFilter; onChange:
   });
   const dateInput: React.CSSProperties = {
     padding: "6px 8px", borderRadius: 8, border: `1px solid ${value.mode === "custom" ? P.gold : P.border}`, background: "var(--sl-field)",
-    color: "var(--sl-on-field)", fontFamily: "inherit", fontSize: "0.78rem", colorScheme: "dark",
+    color: "var(--sl-on-field)", fontFamily: "inherit", fontSize: "0.78rem",
   };
   const setPreset = (range: string) => onChange({ mode: "preset", range, from: "", to: "" });
   const setFrom = (from: string) => onChange({ ...value, mode: from ? "custom" : "preset", from });
