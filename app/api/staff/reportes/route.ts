@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { TENANT } from "@/lib/comanda";
-import { requireStaffRole } from "@/lib/staff-auth-server";
+import { requireCashier } from "@/lib/dualAuth";
 import { buildReportData } from "@/lib/reportsData";
 import { resolveDateRange } from "@/lib/dateRange";
 import { getOpenSession } from "@/lib/caja";
@@ -13,8 +13,11 @@ import type { ApiResponse } from "@/types";
  * searchParams que /admin/reportes, para que el rango se resuelva idéntico, y le
  * añade la lista de cortes del RANGO (buildReportData solo da los de un día).
  *
- * Rol: OPERATION / CAPTAIN / MANAGER. Meseros y cocina NO entran — la vista por
- * mesero compara ventas entre compañeros.
+ * Guard `requireCashier`: admite ADMIN (sl_session) u OPERATION/CAPTAIN/MANAGER
+ * (sl_staff) y excluye a WAITER. Es el mismo guard de la Caja embebida, para que el
+ * manager vea esto DENTRO del panel (/admin/reportes/operacion) con correo/contraseña,
+ * sin PIN. Detalle de requireCashier: exige `staffId != null`, así que un ADMIN SIN
+ * Staff vinculado recibe 403 (Ricardo/Cristian/Francesca/Paul lo tienen).
  *
  * Solo turnos CERRADOS en la lista de cortes: un turno abierto no tiene cifras
  * finales y meterlo en una suma histórica siembra un descuadre. Si el turno
@@ -22,8 +25,8 @@ import type { ApiResponse } from "@/types";
  * true` para que R-2 lo diga en pantalla.
  */
 export async function GET(request: NextRequest) {
-  const session = await requireStaffRole(request, ["OPERATION", "CAPTAIN", "MANAGER"]);
-  if (!session) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
+  const auth = await requireCashier(request);
+  if (!auth) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
 
   const sp = request.nextUrl.searchParams;
   const { data } = await buildReportData(sp);

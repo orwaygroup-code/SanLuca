@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { TENANT } from "@/lib/comanda";
-import { requireStaffRole } from "@/lib/staff-auth-server";
+import { requireCashier } from "@/lib/dualAuth";
 import { resolveDateRange } from "@/lib/dateRange";
 import { buildTipsForSession, aggregateTipsRange } from "@/lib/tipsReport";
 import type { ApiResponse } from "@/types";
 
 /**
  * GET /api/staff/reportes/propinas?from=&to= — reparto de propinas del RANGO,
- * turno cerrado por turno cerrado. Rol OPERATION / CAPTAIN / MANAGER.
+ * turno cerrado por turno cerrado.
+ *
+ * Guard `requireCashier`: ADMIN (sl_session) u OPERATION/CAPTAIN/MANAGER (sl_staff),
+ * excluye a WAITER — el mismo de la Caja embebida, para que el manager lo vea dentro del
+ * panel sin PIN. Detalle: exige `staffId != null`, así que un ADMIN sin Staff vinculado → 403.
  *
  * Solo turnos CERRADOS: ver /api/staff/reportes. Por cada corte corre
  * `buildTipsForSession` (que para meseros liquidados usa la liquidación, no un
@@ -20,7 +24,7 @@ import type { ApiResponse } from "@/types";
  * turnos; por encima, se pide acotar el rango.
  */
 export async function GET(request: NextRequest) {
-  const auth = await requireStaffRole(request, ["OPERATION", "CAPTAIN", "MANAGER"]);
+  const auth = await requireCashier(request);
   if (!auth) return NextResponse.json<ApiResponse>({ success: false, error: "No autorizado" }, { status: 403 });
 
   const sp = request.nextUrl.searchParams;
