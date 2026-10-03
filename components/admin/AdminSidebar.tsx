@@ -45,6 +45,8 @@ const GROUPS: { title: string; items: NavLink[] }[] = [
     { href: "/admin/reportes", label: "Reportes", icon: "chart-bar" },
     { href: "/admin/reportes/historial", label: "Historial de venta", icon: "history" },
     { href: "/admin/reportes/cierres", label: "Cierres de turno", icon: "cash" },
+    // Sale del panel al shell de Operación a propósito: esa pantalla vive en el realm de staff; se vuelve con el botón «Panel» del riel.
+    { href: "/staff/reportes", label: "Reportes de Operación", icon: "cash" },
   ]},
   { title: "Administración", items: [
     { href: "/admin/employees", label: "Empleados", icon: "users" },
