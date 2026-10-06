@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useSession } from "@/lib/session-client";
 import { DateRangeBar, DEFAULT_FILTER, dateFilterQuery, type DateFilter } from "@/components/admin/DateRangeBar";
 
@@ -91,7 +92,12 @@ export default function AdminAlmacenAuditPage() {
     <div style={S.page}>
       <main style={S.main}>
         <div style={S.headRow}>
-          <h1 style={S.h1}>Auditoría de almacén</h1>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <h1 style={S.h1}>Auditoría de almacén</h1>
+            {/* Llevan a la vista de staff, que es donde se edita; sin sesión de PIN, pide entrar. */}
+            <Link href="/staff/almacen" style={S.navBtn}>Inventario</Link>
+            <Link href="/staff/almacen?admin=1" style={S.navBtn} title="Solo Manager">Administrar catálogo</Link>
+          </div>
           <DateRangeBar value={filter} onChange={setFilter} />
         </div>
 
@@ -205,6 +211,7 @@ const S: Record<string, React.CSSProperties> = {
   main: { padding: "22px", maxWidth: 1100, margin: "0 auto" },
   headRow: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 18 },
   h1: { margin: 0, color: C.cream, fontSize: "1.4rem", fontWeight: 800 },
+  navBtn: { display: "inline-flex", alignItems: "center", minHeight: 44, padding: "0 14px", borderRadius: 10, border: `1px solid ${C.gold}`, color: C.gold, fontSize: "0.8rem", fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap" },
   cards: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, marginBottom: 10 },
   card: { background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 14px" },
   filters: { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 },
