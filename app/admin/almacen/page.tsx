@@ -45,10 +45,19 @@ const ALMACEN_ROLES = ["OPERATION", "CAPTAIN", "MANAGER", "KITCHEN"];
  * /admin/almacen — una sola sección con dos pestañas (?tab=): Inventario y Auditoría.
  * Sin guard de permisos propio más allá del ADMIN del panel; cada pestaña depende de su API.
  */
-export default function AdminAlmacenPage({ searchParams }: { searchParams: { tab?: string } }) {
+export default function AdminAlmacenPage() {
   const router = useRouter();
   const session = useSession();
-  const tab: Tab = searchParams.tab === "auditoria" ? "auditoria" : "inventario";
+  // Switch de vista en estado local: cambiar de pestaña no navega ni recarga. El ?tab= solo
+  // sirve para entrar directo a una vista (enlace «Auditoría» de la tablet) y se mantiene al día.
+  const [tab, setTab] = useState<Tab>("inventario");
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("tab") === "auditoria") setTab("auditoria");
+  }, []);
+  const pick = (id: Tab) => {
+    setTab(id);
+    window.history.replaceState(null, "", `/admin/almacen?tab=${id}`);
+  };
 
   useEffect(() => {
     if (session.loading) return;
@@ -63,14 +72,14 @@ export default function AdminAlmacenPage({ searchParams }: { searchParams: { tab
     <div style={S.page}>
       <main style={S.main}>
         <h1 style={{ ...S.h1, marginBottom: 14 }}>Almacén</h1>
-        <div role="tablist" aria-label="Almacén" style={S.tabs}>
+        <div role="tablist" aria-label="Vista del almacén" style={S.switch}>
           {TABS.map((t) => {
             const on = t.id === tab;
             return (
-              <Link key={t.id} href={`/admin/almacen?tab=${t.id}`} role="tab" aria-selected={on}
-                style={{ ...S.tab, ...(on ? S.tabOn : {}) }}>
+              <button key={t.id} type="button" role="tab" aria-selected={on} onClick={() => pick(t.id)}
+                style={{ ...S.switchBtn, ...(on ? S.switchOn : {}) }}>
                 {t.label}
-              </Link>
+              </button>
             );
           })}
         </div>
@@ -284,9 +293,9 @@ const S: Record<string, React.CSSProperties> = {
   main: { padding: "22px", maxWidth: 1100, margin: "0 auto" },
   headRow: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 18 },
   h1: { margin: 0, color: C.cream, fontSize: "1.4rem", fontWeight: 800 },
-  tabs: { display: "flex", gap: 4, borderBottom: `1px solid ${C.line}`, marginBottom: 18 },
-  tab: { display: "inline-flex", alignItems: "center", minHeight: 44, padding: "0 16px", color: C.dim, fontSize: "0.86rem", fontWeight: 700, textDecoration: "none", borderBottom: "2px solid transparent", marginBottom: -1 },
-  tabOn: { color: C.gold, borderBottomColor: C.gold },
+  switch: { display: "inline-flex", gap: 4, padding: 4, borderRadius: 12, background: C.panel, border: `1px solid ${C.border}`, marginBottom: 18 },
+  switchBtn: { minHeight: 44, padding: "0 20px", borderRadius: 9, border: "none", background: "transparent", color: C.dim, fontFamily: "inherit", fontSize: "0.86rem", fontWeight: 700, cursor: "pointer" },
+  switchOn: { background: C.gold, color: "var(--sl-on-accent)" },
   pinCard: { display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 10, maxWidth: 520, padding: "20px 22px", background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12 },
   navBtn: { display: "inline-flex", alignItems: "center", minHeight: 44, padding: "0 14px", borderRadius: 10, border: `1px solid ${C.gold}`, color: C.gold, fontSize: "0.8rem", fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap" },
   cards: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, marginBottom: 10 },
