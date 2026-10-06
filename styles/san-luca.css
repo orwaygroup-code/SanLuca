@@ -1586,101 +1586,6 @@ textarea::placeholder {
 }
 
 /* ══════════════════════════════════════════════
-   CRM SHELL — drawer responsive (<768px)
-   ══════════════════════════════════════════════ */
-.crm-shell {
-  min-height: 100vh;
-  display: grid;
-  grid-template-columns: 260px 1fr;
-  background: var(--sl-panel);
-  color: var(--sl-cream);
-  font-family: inherit;
-  position: relative;
-}
-.crm-shell__aside {
-  background: var(--sl-panel2);
-  padding: 32px 28px;
-  display: flex;
-  flex-direction: column;
-  border-right: 1px solid rgb(var(--sl-veil-rgb) / 0.04);
-}
-.crm-shell__main {
-  padding: 40px clamp(28px, 4vw, 56px);
-  overflow: auto;
-  min-width: 0;
-}
-.crm-shell__hamburger {
-  display: none;
-  position: fixed;
-  top: 14px;
-  left: 14px;
-  z-index: 200;
-  background: rgba(28,38,40,0.92);
-  border: 1px solid rgb(var(--sl-gold-rgb) / 0.45);
-  color: var(--sl-gold);
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  font-size: 1.3rem;
-  cursor: pointer;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  font-family: inherit;
-  line-height: 1;
-}
-.crm-shell__overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.55);
-  z-index: 150;
-  cursor: pointer;
-}
-.crm-shell--open .crm-shell__overlay {
-  display: block;
-}
-
-/* Drawer activo en mobile + tablet (hasta ~1024px efectivos) */
-@media (max-width: 64em) {
-  .crm-shell {
-    grid-template-columns: 1fr;
-  }
-  .crm-shell__aside {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    height: auto;
-    max-height: 85vh;
-    width: min(300px, 88vw);
-    transform: translate(-50%, -46%) scale(0.96);
-    opacity: 0;
-    pointer-events: none;
-    transition: transform 0.22s ease, opacity 0.22s ease;
-    z-index: 180;
-    padding: 36px 28px 28px;
-    border-radius: 18px;
-    overflow-y: auto;
-    box-shadow: 0 24px 64px rgba(0,0,0,0.55);
-  }
-  .crm-shell--open .crm-shell__aside {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 1;
-    pointer-events: auto;
-  }
-  .crm-shell__hamburger {
-    display: flex;
-  }
-  .crm-shell__main {
-    padding: clamp(56px, 10vw, 72px) clamp(12px, 3vw, 24px) clamp(28px, 5vw, 48px);
-    /* Red de seguridad: si algún hijo excede el ancho, se contiene aquí en vez
-       de recorrer toda la página a la izquierda. Los charts/legends largos ya
-       manejan su propio scroll interno. */
-    overflow-x: hidden;
-  }
-}
-
-/* ══════════════════════════════════════════════
    CRM WhatsApp inbox — responsive estilo móvil
    ══════════════════════════════════════════════ */
 .crm-wa-back {
@@ -1928,16 +1833,16 @@ textarea::placeholder {
    CRM paneles (panel/card) — padding fluido con clamp
    ══════════════════════════════════════════════ */
 .crm-panel {
-  background: var(--sl-panel2);
-  border: 1px solid rgb(var(--sl-veil-rgb) / 0.04);
-  border-radius: clamp(12px, 1.5vw, 14px);
+  background: var(--sl-panel);
+  border: 1px solid var(--sl-border);
+  border-radius: 12px;
   padding: clamp(14px, 2.4vw, 20px);
   min-width: 0;
 }
 .crm-card {
-  background: var(--sl-panel2);
-  border: 1px solid rgb(var(--sl-veil-rgb) / 0.04);
-  border-radius: clamp(12px, 1.5vw, 14px);
+  background: var(--sl-panel);
+  border: 1px solid var(--sl-border);
+  border-radius: 12px;
   padding: clamp(14px, 2.4vw, 20px);
   display: flex;
   align-items: center;

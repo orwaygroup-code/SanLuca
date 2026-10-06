@@ -171,7 +171,7 @@ export default function WhatsappPage() {
 
   return (
     <>
-      <CrmPageHead accent="INBOX" title="CRM" sub="WhatsApp · Instagram · Messenger" />
+      <CrmPageHead title="Inbox" sub="WhatsApp · Instagram · Messenger" />
 
       <div className={`crm-wa-shell${selected ? " crm-wa-shell--has-selection" : ""}`} style={shell}>
         {/* ── Lista izquierda ── */}
@@ -377,9 +377,9 @@ const shell: React.CSSProperties = {
   display: "flex",
   height: "calc(100vh - 180px)",
   minHeight: 400,
-  background: "var(--sl-panel2)",
-  borderRadius: 16,
-  border: "1px solid rgb(var(--sl-veil-rgb) / 0.05)",
+  background: "var(--sl-panel)",
+  borderRadius: 12,
+  border: "1px solid var(--sl-border)",
   overflow: "hidden",
 };
 

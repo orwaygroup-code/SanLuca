@@ -85,7 +85,7 @@ export default function CrmDashboardPage() {
 
   return (
     <>
-      <CrmPageHead accent="PANEL" title="CRM" />
+      <CrmPageHead title="CRM" sub="Clientes, conversaciones y campañas" />
 
       <Filters
         period={period} setPeriod={setPeriod}

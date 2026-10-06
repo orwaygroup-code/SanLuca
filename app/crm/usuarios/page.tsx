@@ -97,7 +97,7 @@ export default function UsuariosPage() {
 
   return (
     <>
-      <CrmPageHead accent="DATOS" title="DE USUARIO" sub="Clasificación de datos por usuarios" />
+      <CrmPageHead title="Usuarios" sub="Clasificación de datos por usuario" />
 
       <div className="crm-users-layout">
         {/* Sidebar list */}
@@ -130,8 +130,8 @@ export default function UsuariosPage() {
                   onClick={() => setSelected(selected === u.id ? null : u.id)}
                   style={{
                     ...userItem,
-                    background: selected === u.id ? "var(--sl-panel2)" : "var(--sl-panel2)",
-                    borderColor: selected === u.id ? "rgb(var(--sl-gold-rgb) / 0.45)" : "rgb(var(--sl-veil-rgb) / 0.04)",
+                    background: "var(--sl-panel)",
+                    borderColor: selected === u.id ? "var(--sl-gold)" : "var(--sl-border)",
                   }}
                   aria-expanded={selected === u.id}
                 >
@@ -309,7 +309,7 @@ function ReservationCard({ r, expanded, onToggle }: { r: Reservation; expanded: 
 
   return (
     <div style={{
-      background: "rgba(28,38,40,0.6)",
+      background: "var(--sl-panel2)",
       border: `1px solid ${expanded ? color : "rgb(var(--sl-veil-rgb) / 0.04)"}`,
       borderRadius: 10,
       transition: "border-color 0.2s",

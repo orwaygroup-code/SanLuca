@@ -136,7 +136,7 @@ export default function TagsAdminPage() {
 
   return (
     <div style={{ padding: "32px 40px", color: "var(--sl-cream)" }}>
-      <CrmPageHead accent="Catálogo" title="Tags" sub="Etiquetas reusables para segmentación de conversaciones" />
+      <CrmPageHead title="Tags" sub="Etiquetas reusables para segmentación de conversaciones" />
 
       {/* Form: nuevo tag */}
       <div style={panel}>

@@ -32,7 +32,7 @@ export default function MarketingPage() {
 
   return (
     <>
-      <CrmPageHead accent="MARKETING" title="CAMPAÑAS" sub="Envíos masivos por tag · WhatsApp Business" />
+      <CrmPageHead title="Campañas" sub="Envíos masivos por tag · WhatsApp Business" />
 
       <div style={topBar}>
         <div style={{ display: "flex", gap: 18 }}>
@@ -223,9 +223,9 @@ const muted: React.CSSProperties = {
 };
 
 const emptyWrap: React.CSSProperties = {
-  background: "var(--sl-panel2)",
-  border: "1px solid rgb(var(--sl-veil-rgb) / 0.05)",
-  borderRadius: 16,
+  background: "var(--sl-panel)",
+  border: "1px solid var(--sl-border)",
+  borderRadius: 12,
   padding: "60px 24px",
   textAlign: "center",
   display: "flex",
@@ -234,9 +234,9 @@ const emptyWrap: React.CSSProperties = {
 };
 
 const tableWrap: React.CSSProperties = {
-  background: "var(--sl-panel2)",
-  border: "1px solid rgb(var(--sl-veil-rgb) / 0.05)",
-  borderRadius: 14,
+  background: "var(--sl-panel)",
+  border: "1px solid var(--sl-border)",
+  borderRadius: 12,
   overflow: "hidden",
 };
 

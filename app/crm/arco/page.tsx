@@ -108,7 +108,7 @@ export default function ArcoPage() {
 
   return (
     <div style={page}>
-      <CrmPageHead accent="Registro" title="ARCO" sub="Solicitudes de derechos de protección de datos" />
+      <CrmPageHead title="Solicitudes ARCO" sub="Derechos de protección de datos personales" />
 
       <div style={statsRow}>
         <Stat label="Total"       value={counts.all}          />

@@ -112,7 +112,7 @@ export default function NewCampaignPage() {
   if (templates === null) {
     return (
       <>
-        <CrmPageHead accent="MARKETING" title="NUEVA CAMPAÑA" sub="Cargando templates aprobados…" />
+        <CrmPageHead title="Nueva campaña" sub="Cargando templates aprobados…" />
         <p style={muted}>Cargando…</p>
       </>
     );
@@ -120,7 +120,7 @@ export default function NewCampaignPage() {
 
   return (
     <>
-      <CrmPageHead accent="MARKETING" title="NUEVA CAMPAÑA" sub="Selecciona template y tags · WhatsApp Business" />
+      <CrmPageHead title="Nueva campaña" sub="Selecciona template y tags · WhatsApp Business" />
 
       <div style={topNav}>
         <Link href="/crm/marketing" style={backBtn}>
@@ -408,9 +408,9 @@ const previewLabel: React.CSSProperties = {
 };
 
 const section: React.CSSProperties = {
-  background: "var(--sl-panel2)",
-  border: "1px solid rgb(var(--sl-veil-rgb) / 0.05)",
-  borderRadius: 14,
+  background: "var(--sl-panel)",
+  border: "1px solid var(--sl-border)",
+  borderRadius: 12,
   padding: "18px 20px",
 };
 
