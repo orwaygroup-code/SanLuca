@@ -53,10 +53,8 @@ const GROUPS: { title: string; items: NavLink[] }[] = [
     { href: "/admin/creditos", label: "Créditos de personal", icon: "clipboard-text" },
     { href: "/admin/nomina", label: "Nómina", icon: "cash" },
     { href: "/admin/menu", label: "Productos", icon: "clipboard-text" },
-    // Inventario sale del panel a la vista de staff a propósito: ahí viven los movimientos y el
-    // catálogo, y su API solo admite sesión de PIN. Sin cookie de PIN, la página pide entrar.
-    { href: "/staff/almacen", label: "Inventario de almacén", icon: "clipboard-text" },
-    { href: "/admin/almacen", label: "Auditoría de almacén", icon: "clipboard-text" },
+    // Inventario y Auditoría son pestañas de la misma sección (?tab=).
+    { href: "/admin/almacen", label: "Almacén", icon: "clipboard-text" },
     { href: "/admin/extras", label: "Extras", icon: "star" },
     { href: "/admin/settings", label: "Ajustes", icon: "settings" },
   ]},

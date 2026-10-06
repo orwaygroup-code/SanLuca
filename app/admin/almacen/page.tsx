@@ -4,7 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "@/lib/session-client";
+import { useStaffSession } from "@/lib/staff-session-client";
 import { DateRangeBar, DEFAULT_FILTER, dateFilterQuery, type DateFilter } from "@/components/admin/DateRangeBar";
+import { btn, useToasts, ToastHost } from "@/components/staff/ui";
+import { AlmacenView } from "@/components/staff/almacen";
 
 type MoveType = "ENTRADA" | "SALIDA" | "MERMA" | "AJUSTE";
 interface Row {
@@ -31,9 +34,96 @@ const TYPES: MoveType[] = ["ENTRADA", "SALIDA", "MERMA", "AJUSTE"];
 const fmtQ = (n: number) => String(Math.round(n * 1000) / 1000);
 const fmt = (iso: string) => new Date(iso).toLocaleString("es-MX", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Mexico_City" });
 
-/** /admin/almacen — auditoría de movimientos del almacén (solo lectura). ADMIN. */
-export default function AdminAlmacenAuditPage() {
+type Tab = "inventario" | "auditoria";
+const TABS: { id: Tab; label: string }[] = [
+  { id: "inventario", label: "Inventario" },
+  { id: "auditoria", label: "Auditoría" },
+];
+const ALMACEN_ROLES = ["OPERATION", "CAPTAIN", "MANAGER", "KITCHEN"];
+
+/**
+ * /admin/almacen — una sola sección con dos pestañas (?tab=): Inventario y Auditoría.
+ * Sin guard de permisos propio más allá del ADMIN del panel; cada pestaña depende de su API.
+ */
+export default function AdminAlmacenPage({ searchParams }: { searchParams: { tab?: string } }) {
   const router = useRouter();
+  const session = useSession();
+  const tab: Tab = searchParams.tab === "auditoria" ? "auditoria" : "inventario";
+
+  useEffect(() => {
+    if (session.loading) return;
+    if (!session.user || session.user.role !== "ADMIN") router.replace("/login?mode=login");
+  }, [session.loading, session.user, router]);
+
+  if (session.loading || !session.user || session.user.role !== "ADMIN") {
+    return <div style={S.page}><div style={{ padding: 40, color: C.dim }}>Cargando…</div></div>;
+  }
+
+  return (
+    <div style={S.page}>
+      <main style={S.main}>
+        <h1 style={{ ...S.h1, marginBottom: 14 }}>Almacén</h1>
+        <div role="tablist" aria-label="Almacén" style={S.tabs}>
+          {TABS.map((t) => {
+            const on = t.id === tab;
+            return (
+              <Link key={t.id} href={`/admin/almacen?tab=${t.id}`} role="tab" aria-selected={on}
+                style={{ ...S.tab, ...(on ? S.tabOn : {}) }}>
+                {t.label}
+              </Link>
+            );
+          })}
+        </div>
+        {tab === "inventario" ? <InventarioTab /> : <AuditoriaTab />}
+      </main>
+    </div>
+  );
+}
+
+/**
+ * Inventario: la MISMA <AlmacenView> de /staff/almacen. Su API solo admite sesión de PIN, así
+ * que se opera con el rol REAL de esa sesión (Manager administra catálogo y ajustes; Cocina,
+ * Operación y Capitán registran movimientos). Sin PIN, la pestaña lo pide y regresa aquí.
+ */
+function InventarioTab() {
+  const { staff, loading } = useStaffSession();
+  const { toasts, push, dismiss } = useToasts();
+  const [adminMode, setAdminMode] = useState(false);
+
+  if (loading) return <div style={{ padding: 40, color: C.dim }}>Cargando…</div>;
+
+  if (!staff || !ALMACEN_ROLES.includes(staff.role)) {
+    const next = encodeURIComponent("/admin/almacen?tab=inventario");
+    return (
+      <div style={S.pinCard}>
+        <div style={{ color: C.cream, fontWeight: 700 }}>El inventario se opera con tu PIN de empleado.</div>
+        <div style={{ color: C.dim, fontSize: "0.82rem", lineHeight: 1.45 }}>
+          Es el mismo acceso de la tablet: Manager administra el catálogo y hace ajustes; Cocina,
+          Operación y Capitán registran entradas y salidas.
+        </div>
+        <Link href={`/staff/login?next=${next}`} style={S.navBtn}>Entrar con PIN</Link>
+      </div>
+    );
+  }
+
+  const isManager = staff.role === "MANAGER";
+  return (
+    <>
+      {isManager && (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+          <button style={adminMode ? btn.primary : btn.ghost} onClick={() => setAdminMode((v) => !v)}>
+            {adminMode ? "Listo" : "Administrar catálogo"}
+          </button>
+        </div>
+      )}
+      <AlmacenView role={staff.role} push={push} adminMode={isManager && adminMode} />
+      <ToastHost toasts={toasts} onClose={dismiss} />
+    </>
+  );
+}
+
+/** Auditoría de movimientos del almacén (solo lectura). ADMIN. */
+function AuditoriaTab() {
   const session = useSession();
   const [filter, setFilter] = useState<DateFilter>(DEFAULT_FILTER);
   const [type, setType] = useState("");
@@ -41,11 +131,6 @@ export default function AdminAlmacenAuditPage() {
   const [itemId, setItemId] = useState("");
   const [staffId, setStaffId] = useState("");
   const [data, setData] = useState<AuditData | null>(null);
-
-  useEffect(() => {
-    if (session.loading) return;
-    if (!session.user || session.user.role !== "ADMIN") router.replace("/login?mode=login");
-  }, [session.loading, session.user, router]);
 
   const load = useCallback(async () => {
     setData(null);
@@ -81,23 +166,12 @@ export default function AdminAlmacenAuditPage() {
     return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1]));
   }, [rows]);
 
-  if (session.loading || !session.user || session.user.role !== "ADMIN") {
-    return <div style={S.page}><div style={{ padding: 40, color: C.dim }}>Cargando…</div></div>;
-  }
-
   const totals = data?.totals ?? {};
   const byReason = data?.byReason ?? [];
 
   return (
-    <div style={S.page}>
-      <main style={S.main}>
-        <div style={S.headRow}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <h1 style={S.h1}>Auditoría de almacén</h1>
-            {/* Llevan a la vista de staff, que es donde se edita; sin sesión de PIN, pide entrar. */}
-            <Link href="/staff/almacen" style={S.navBtn}>Inventario</Link>
-            <Link href="/staff/almacen?admin=1" style={S.navBtn} title="Solo Manager">Administrar catálogo</Link>
-          </div>
+    <>
+        <div style={{ ...S.headRow, justifyContent: "flex-end" }}>
           <DateRangeBar value={filter} onChange={setFilter} />
         </div>
 
@@ -196,8 +270,7 @@ export default function AdminAlmacenAuditPage() {
             </table>
           </div>
         )}
-      </main>
-    </div>
+    </>
   );
 }
 
@@ -211,6 +284,10 @@ const S: Record<string, React.CSSProperties> = {
   main: { padding: "22px", maxWidth: 1100, margin: "0 auto" },
   headRow: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 18 },
   h1: { margin: 0, color: C.cream, fontSize: "1.4rem", fontWeight: 800 },
+  tabs: { display: "flex", gap: 4, borderBottom: `1px solid ${C.line}`, marginBottom: 18 },
+  tab: { display: "inline-flex", alignItems: "center", minHeight: 44, padding: "0 16px", color: C.dim, fontSize: "0.86rem", fontWeight: 700, textDecoration: "none", borderBottom: "2px solid transparent", marginBottom: -1 },
+  tabOn: { color: C.gold, borderBottomColor: C.gold },
+  pinCard: { display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 10, maxWidth: 520, padding: "20px 22px", background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12 },
   navBtn: { display: "inline-flex", alignItems: "center", minHeight: 44, padding: "0 14px", borderRadius: 10, border: `1px solid ${C.gold}`, color: C.gold, fontSize: "0.8rem", fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap" },
   cards: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, marginBottom: 10 },
   card: { background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 14px" },

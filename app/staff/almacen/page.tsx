@@ -19,18 +19,10 @@ export default function AlmacenPage() {
   const [adminMode, setAdminMode] = useState(false); // "Administrar" (solo MANAGER); vive aquí porque el botón va en el StaffHeader
 
   useEffect(() => {
-    // `next` conserva el query (?admin=1 desde el panel) para volver al mismo modo tras el PIN.
     const here = window.location.pathname + window.location.search;
     if (!loading && !staff) { router.replace(`/staff/login?next=${encodeURIComponent(here)}`); return; }
     if (staff && !ALLOWED.includes(staff.role)) router.replace("/staff/login");
   }, [loading, staff, router]);
-
-  // ?admin=1 (botón «Administrar catálogo» del panel) abre directo en modo administrar. Se lee
-  // de window y no con useSearchParams para no exigir un Suspense en el build. Solo MANAGER:
-  // a cualquier otro rol el parámetro no le hace nada (y la API lo rechazaría igual).
-  useEffect(() => {
-    if (staff?.role === "MANAGER" && new URLSearchParams(window.location.search).get("admin") === "1") setAdminMode(true);
-  }, [staff?.role]);
 
   if (loading || !staff || !ALLOWED.includes(staff.role)) {
     return <div style={{ minHeight: "100vh", background: C.bg, display: "grid", placeItems: "center" }}><Spinner /></div>;
@@ -51,7 +43,7 @@ export default function AlmacenPage() {
         right={isManager || canAudit ? (
           <div style={{ display: "flex", gap: 8 }}>
             {canAudit && (
-              <button style={btn.ghost} onClick={() => router.push("/admin/almacen")}>Auditoría</button>
+              <button style={btn.ghost} onClick={() => router.push("/admin/almacen?tab=auditoria")}>Auditoría</button>
             )}
             {isManager && (
               <button style={{ ...(adminMode ? btn.primary : btn.ghost) }} onClick={() => setAdminMode((v) => !v)}>
